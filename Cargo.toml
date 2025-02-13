@@ -1,0 +1,9 @@
+[workspace]
+members = ["ghc-rts-sys"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+
+[workspace.metadata]
+crane.name = "ghc-rts"

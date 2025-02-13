@@ -1,0 +1,8 @@
+[package]
+name = "ghc-rts-sys"
+version.workspace = true
+edition.workspace = true
+build = "build.rs"
+
+[build-dependencies]
+bindgen = "0.71.1"
