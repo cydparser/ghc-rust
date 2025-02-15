@@ -8,23 +8,39 @@ fn main() {
         .map(PathBuf::from)
         .unwrap_or_else(|_| manifest_dir.parent().unwrap().parent().unwrap().to_owned());
 
-    let object_file = ghc_dir
-        .join("_build")
-        .join("stage1")
-        .join("compiler")
-        .join("build")
-        .join("GHC")
-        .join("StgToJS")
-        .join("Rts")
-        .join("Rts.o");
+    let object_file = {
+        let mut path = ghc_dir.join("_build");
+        path.extend([
+            "stage1", "compiler", "build", "GHC", "StgToJS", "Rts", "Rts.o",
+        ]);
+        path
+    };
 
-    let mut include_dir = ghc_dir.join("_build");
-    include_dir.push("stage1");
-    include_dir.push("lib");
-    include_dir.push("TODO-platform-specific");
-    include_dir.push("rts-1.0.2");
-    include_dir.push("include");
-    let include_dir = include_dir;
+    let include_dir = {
+        let mut include_dir = ghc_dir.clone();
+        include_dir.extend(["_build", "stage1", "lib"]);
+
+        let arch_os = format!("{}-{}-ghc-", std::env::consts::ARCH, std::env::consts::OS);
+
+        let arch_os_file_name = include_dir
+            .read_dir()
+            .unwrap()
+            .find_map(|entry| {
+                let entry = entry.unwrap();
+                let file_name = entry.file_name();
+                let file_name_str = file_name.to_string_lossy();
+
+                if file_name_str.starts_with(&arch_os) {
+                    Some(String::from(file_name_str))
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(|| panic!("unable to locate directory prefixed with {}", arch_os));
+
+        include_dir.extend([&arch_os_file_name, "rts-1.0.2", "include"]);
+        include_dir
+    };
 
     let header_file = include_dir.join("Rts.h");
 
