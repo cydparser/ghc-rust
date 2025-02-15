@@ -164,9 +164,7 @@
           inputsFrom = lib.attrsets.attrValues self.packages.${system};
 
           packages = [
-            # pkgs.cargo-hakari
-            # pkgs.cargo-semver-checks
-            # pkgs.cargo-show-asm
+            pkgs.llvmPackages.clang
           ];
 
           shellHook = ''
