@@ -54,7 +54,17 @@
 
         rustToolchain = pkgs.fenix.beta;
 
-        crane = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain.defaultToolchain;
+        crane = (inputs.crane.mkLib pkgs).overrideToolchain (
+          rustToolchain.withComponents [
+            "cargo"
+            "clippy"
+            "llvm-tools"
+            "rust-analyzer-preview"
+            "rust-src"
+            "rustc"
+            "rustfmt"
+          ]
+        );
 
         src = crane.cleanCargoSource ./.;
 
@@ -157,13 +167,13 @@
             # pkgs.cargo-hakari
             # pkgs.cargo-semver-checks
             # pkgs.cargo-show-asm
-            rustToolchain.rust-analyzer
           ];
 
           shellHook = ''
             FLAKE_ROOT="$(git rev-parse --show-toplevel)"
 
-            export TAPLO_CONFIG="$FLAKE_ROOT/taplo.toml";
+            export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
+            export TAPLO_CONFIG=" $FLAKE_ROOT/taplo.toml";
             export RUST_BACKTRACE=1;
           '';
         };
