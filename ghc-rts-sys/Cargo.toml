@@ -1,8 +1,8 @@
 [package]
 name = "ghc-rts-sys"
 version.workspace = true
-edition.workspace = true
+edition = "2021"
 build = "build.rs"
 
 [build-dependencies]
-bindgen = "0.71.1"
+bindgen = { git = "https://github.com/rust-lang/rust-bindgen", rev = "a10bcfd0dd1e23c0139355deb567d83bd4b8a013" }

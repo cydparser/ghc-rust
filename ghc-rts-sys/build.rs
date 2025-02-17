@@ -51,6 +51,7 @@ fn main() {
         .clang_arg(format!("-I{}", include_dir.display()))
         // Invalidate bindings when header files change.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
+        .allowlist_file(format!("{}.*", include_dir.as_os_str().to_string_lossy()))
         .generate()
         .expect("Unable to generate bindings");
 
