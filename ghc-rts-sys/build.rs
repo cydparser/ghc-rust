@@ -8,47 +8,26 @@ fn main() {
         .map(PathBuf::from)
         .unwrap_or_else(|_| manifest_dir.parent().unwrap().parent().unwrap().to_owned());
 
-    let object_file = {
-        let mut path = ghc_dir.join("_build");
-        path.extend([
-            "stage1", "compiler", "build", "GHC", "StgToJS", "Rts", "Rts.o",
-        ]);
+    let build_dir = {
+        let mut path = ghc_dir.clone();
+        path.extend(["_build", "stage1", "rts", "build"]);
         path
     };
 
+    println!("cargo::rustc-link-search={}", build_dir.display());
+
+    println!("cargo::rustc-link-lib=HSrts-1.0.2");
+
     let include_dir = {
-        let mut include_dir = ghc_dir.clone();
-        include_dir.extend(["_build", "stage1", "lib"]);
-
-        let arch_os = format!("{}-{}-ghc-", std::env::consts::ARCH, std::env::consts::OS);
-
-        let arch_os_file_name = include_dir
-            .read_dir()
-            .unwrap()
-            .find_map(|entry| {
-                let entry = entry.unwrap();
-                let file_name = entry.file_name();
-                let file_name_str = file_name.to_string_lossy();
-
-                if file_name_str.starts_with(&arch_os) {
-                    Some(String::from(file_name_str))
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_else(|| panic!("unable to locate directory prefixed with {}", arch_os));
-
-        include_dir.extend([&arch_os_file_name, "rts-1.0.2", "include"]);
-        include_dir
+        let mut path = ghc_dir.clone();
+        path.extend(["rts", "include"]);
+        path
     };
 
-    let header_file = include_dir.join("Rts.h");
-
-    println!("cargo::rustc-link-lib=static={}", object_file.display());
-
     let bindings = bindgen::Builder::default()
-        .header(header_file.to_str().unwrap())
+        .header(include_dir.join("Rts.h").to_string_lossy())
         .clang_arg(format!("-I{}", include_dir.display()))
+        .clang_arg(format!("-I{}", build_dir.join("include").display()))
         // Invalidate bindings when header files change.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .allowlist_file(format!("{}.*", include_dir.as_os_str().to_string_lossy()))
