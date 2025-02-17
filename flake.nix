@@ -163,8 +163,9 @@
 
           inputsFrom = lib.attrsets.attrValues self.packages.${system};
 
-          packages = [
-            pkgs.llvmPackages.clang
+          packages = with pkgs; [
+            cargo-binutils
+            llvmPackages.clang
           ];
 
           shellHook = ''
