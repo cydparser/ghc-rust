@@ -1,0 +1,12 @@
+[package]
+name = "generate"
+version.workspace = true
+edition.workspace = true
+
+build = "build.rs"
+
+[build-dependencies]
+bindgen = { git = "https://github.com/rust-lang/rust-bindgen", rev = "a10bcfd0dd1e23c0139355deb567d83bd4b8a013" }
+stringcase = "0.3.0"
+
+[dependencies]
