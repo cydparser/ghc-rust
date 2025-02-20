@@ -103,7 +103,13 @@ fn main() {
     let wrapper = manifest_dir.join("wrapper.h");
     let wrapper_str = wrapper.to_str().unwrap();
 
-    let rts_h = fs::read_to_string(include_dir.join("Rts.h")).unwrap();
+    let rts_h = {
+        let h = fs::read_to_string(include_dir.join("Rts.h")).unwrap();
+        h.split_once("/* Misc stuff without a home */")
+            .unwrap()
+            .0
+            .to_string()
+    };
 
     for (path, headers) in &headers_by_dir {
         let (include_dir, out_dir) = match path {
@@ -136,7 +142,6 @@ fn main() {
                 } else if path.is_some() {
                     f.write_all(rts_h.as_bytes()).unwrap();
                 }
-                dbg!(&include);
                 f.write_all(include.as_bytes()).unwrap();
             }
             let bindings = bindings_builder
@@ -158,13 +163,19 @@ fn main() {
                 .filter_map(|line| extract_import(&headers_by_dir, line))
                 .collect::<Vec<_>>();
 
+            let mut out_file = fs::OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .create(true)
+                .open(&out_path)
+                .unwrap();
+
             if !imports.is_empty() {
-                dbg!((path, header, &imports));
-                fs::write(&out_path, imports.concat()).unwrap();
+                out_file.write_all(imports.concat().as_bytes()).unwrap();
             }
 
             bindings
-                .write_to_file(out_path)
+                .write(Box::new(out_file))
                 .expect("Failed writing bindings");
         }
     }
@@ -175,7 +186,7 @@ fn header_to_module(header: &str) -> String {
 }
 
 fn extract_import(headers_by_dir: &HashMap<Option<&str>, Vec<&str>>, line: &str) -> Option<String> {
-    if !line.starts_with("#import ") {
+    if !line.starts_with("#include ") {
         return None;
     }
 
