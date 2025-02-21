@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::{env, fs};
 
 fn main() {
@@ -100,6 +101,24 @@ fn main() {
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
+    // HACK: Avoid rebuilding if GHC hasn't changed.
+    let commit = Command::new("git")
+        .current_dir(&ghc_dir)
+        .arg("rev-parse")
+        .arg("HEAD")
+        .output()
+        .unwrap()
+        .stdout;
+
+    let marker = out_dir.join(".ghc-commit");
+
+    if marker.exists() {
+        let last_commit = fs::read(&marker).unwrap();
+        if last_commit == commit {
+            return;
+        }
+    }
+
     let wrapper = manifest_dir.join("wrapper.h");
     let wrapper_str = wrapper.to_str().unwrap();
 
@@ -179,6 +198,8 @@ fn main() {
                 .expect("Failed writing bindings");
         }
     }
+
+    fs::write(&marker, commit).unwrap();
 }
 
 fn header_to_module(header: &str) -> String {
