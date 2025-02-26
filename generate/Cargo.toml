@@ -10,3 +10,6 @@ bindgen = { git = "https://github.com/rust-lang/rust-bindgen", rev = "a10bcfd0dd
 stringcase = "0.3.0"
 
 [dependencies]
+prettyplease = "0.2.29"
+quote = "1.0.38"
+syn = { version = "2.0.98", features = ["extra-traits"] }
