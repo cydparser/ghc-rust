@@ -1,4 +1,4 @@
-use quote::quote;
+use quote::{format_ident, quote};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -98,12 +98,11 @@ fn transform_tree(consts: Consts, syn_file: syn::File) -> (syn::File, syn::File)
     }
     main_file.items.push(consts.mod_tests.clone());
 
-    // TODO
-    // [ ] fn
-    //     #[unsafe(no_mangle)]
-    //     extern "C" fn foo(args*) -> ret {
-    //         unsafe { sys::foo(args) }
-    //     }
+    let mut tests_file = syn::File {
+        shebang: None,
+        attrs: vec![],
+        items: vec![consts.use_ghc_rts_sys.clone()],
+    };
 
     for item in items {
         match item {
@@ -128,31 +127,59 @@ fn transform_tree(consts: Consts, syn_file: syn::File) -> (syn::File, syn::File)
                             assert!(generics.gt_token.is_none() && generics.where_clause.is_none());
                             assert!(variadic.is_none());
 
-                            let args = inputs.iter().map(|arg| match arg {
-                                syn::FnArg::Typed(syn::PatType { pat, .. }) => {
-                                    if let syn::Pat::Ident(ref pat_ident @ syn::PatIdent { .. }) =
-                                        **pat
-                                    {
-                                        pat_ident.ident.clone()
-                                    } else {
-                                        panic!(
-                                            "Expected only syn::Pat::Ident variants: {:}",
-                                            &ident
-                                        );
+                            let args: Vec<Ident> = inputs
+                                .iter()
+                                .map(|arg| match arg {
+                                    syn::FnArg::Typed(syn::PatType { pat, .. }) => {
+                                        if let syn::Pat::Ident(
+                                            ref pat_ident @ syn::PatIdent { .. },
+                                        ) = **pat
+                                        {
+                                            pat_ident.ident.clone()
+                                        } else {
+                                            panic!(
+                                                "Expected only syn::Pat::Ident variants: {:}",
+                                                &ident
+                                            );
+                                        }
                                     }
-                                }
-                                syn::FnArg::Receiver(_) => {
-                                    panic!("Unexpected FnArg::Recever: {:}", &ident)
-                                }
-                            });
+                                    syn::FnArg::Receiver(_) => {
+                                        panic!("Unexpected FnArg::Recever: {:}", &ident)
+                                    }
+                                })
+                                .collect();
+                            {
+                                let args = args.clone();
+                                let func = quote! {
+                                    #[unsafe(no_mangle)]
+                                    pub extern "C" fn #ident(#inputs) #output {
+                                        unsafe { sys::#ident(#(#args),*) }
+                                    }
+                                };
+                                main_file.items.push(Item::Verbatim(func));
+                            }
+                            if let syn::ReturnType::Type(_, _) = output {
+                                let fn_ident = format_ident!("equivalent_{}", ident);
+                                let args = args.clone();
 
-                            let func = quote! {
-                                #[unsafe(no_mangle)]
-                                pub extern "C" fn #ident(#inputs) #output {
-                                    unsafe { sys::#ident(#(#args),*) }
-                                }
-                            };
-                            main_file.items.push(Item::Verbatim(func));
+                                tests_file.items.push(Item::Verbatim(quote! {
+                                    #[quickcheck]
+                                    fn #fn_ident(#inputs) -> bool {
+                                        sys::#ident(#(#args),*) == super::#ident(#(#args),*)
+                                    }
+                                }));
+                            } else {
+                                let fn_ident = format_ident!("test_{}", ident);
+                                let args = args.clone();
+
+                                tests_file.items.push(Item::Verbatim(quote! {
+                                    #[test]
+                                    fn #fn_ident() {
+                                        super::#ident(#(#args),*);
+                                        todo!()
+                                    }
+                                }));
+                            }
                         }
                         syn::ForeignItem::Static(_foreign_item_static) => todo!(),
                         fitem => panic!("Unexpected Item: {:#?}", fitem),
@@ -171,12 +198,6 @@ fn transform_tree(consts: Consts, syn_file: syn::File) -> (syn::File, syn::File)
             item => panic!("Unexpected Item: {:#?}", item),
         }
     }
-
-    let tests_file = syn::File {
-        shebang: None,
-        attrs: vec![],
-        items: vec![consts.use_ghc_rts_sys.clone()],
-    };
 
     (main_file, tests_file)
 }
