@@ -110,8 +110,55 @@ fn transform_tree(consts: Consts, syn_file: syn::File) -> (syn::File, syn::File)
             Item::Const(item_const) => todo!(),
             Item::Enum(item_enum) => todo!(),
             Item::ExternCrate(item_extern_crate) => todo!(),
-            Item::Fn(item_fn) => todo!(),
-            Item::ForeignMod(item_foreign_mod) => todo!(),
+            Item::ForeignMod(foreign_mod) => {
+                for fitem in foreign_mod.items.into_iter() {
+                    match fitem {
+                        syn::ForeignItem::Fn(syn::ForeignItemFn {
+                            sig:
+                                syn::Signature {
+                                    ident,
+                                    generics,
+                                    inputs,
+                                    variadic,
+                                    output,
+                                    ..
+                                },
+                            ..
+                        }) => {
+                            assert!(generics.gt_token.is_none() && generics.where_clause.is_none());
+                            assert!(variadic.is_none());
+
+                            let args = inputs.iter().map(|arg| match arg {
+                                syn::FnArg::Typed(syn::PatType { pat, .. }) => {
+                                    if let syn::Pat::Ident(ref pat_ident @ syn::PatIdent { .. }) =
+                                        **pat
+                                    {
+                                        pat_ident.ident.clone()
+                                    } else {
+                                        panic!(
+                                            "Expected only syn::Pat::Ident variants: {:}",
+                                            &ident
+                                        );
+                                    }
+                                }
+                                syn::FnArg::Receiver(_) => {
+                                    panic!("Unexpected FnArg::Recever: {:}", &ident)
+                                }
+                            });
+
+                            let func = quote! {
+                                #[unsafe(no_mangle)]
+                                pub extern "C" fn #ident(#inputs) #output {
+                                    unsafe { sys::#ident(#(#args),*) }
+                                }
+                            };
+                            main_file.items.push(Item::Verbatim(func));
+                        }
+                        syn::ForeignItem::Static(_foreign_item_static) => todo!(),
+                        fitem => panic!("Unexpected Item: {:#?}", fitem),
+                    }
+                }
+            }
             Item::Impl(item_impl) => todo!(),
             Item::Macro(item_macro) => todo!(),
             Item::Mod(item_mod) => todo!(),
@@ -121,9 +168,7 @@ fn transform_tree(consts: Consts, syn_file: syn::File) -> (syn::File, syn::File)
             Item::TraitAlias(item_trait_alias) => todo!(),
             Item::Type(item_type) => todo!(),
             Item::Union(item_union) => todo!(),
-            Item::Use(item_use) => panic!("Unexpected Use: {:?}", item_use),
-            Item::Verbatim(token_stream) => panic!("Unexpected Verbatim: {:?}", token_stream),
-            _ => todo!(),
+            item => panic!("Unexpected Item: {:#?}", item),
         }
     }
 
