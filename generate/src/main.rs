@@ -175,31 +175,14 @@ fn transform_tree(syn_file: syn::File) -> (syn::File, syn::File) {
                             }
                         }
                         syn::ForeignItem::Static(syn::ForeignItemStatic {
-                            mut attrs,
-                            vis,
-                            static_token,
-                            mutability,
                             ident,
-                            colon_token,
+                            mutability,
                             ty,
-                            semi_token,
+                            ..
                         }) => {
-                            let sys_static = format_ident!("ghc_rts_sys::{}", &ident);
-                            let attrs = {
-                                attrs.push(consts.no_mangle.clone());
-                                attrs
-                            };
-                            main_file.items.push(Item::Static(syn::ItemStatic {
-                                attrs,
-                                vis,
-                                static_token,
-                                mutability,
-                                ident,
-                                colon_token,
-                                ty,
-                                eq_token: Token![=](semi_token.span),
-                                expr: Box::new(syn::Expr::Verbatim(quote! { #sys_static })),
-                                semi_token,
+                            // NB: Statics are not exported (#[unsafe(no_mangle)]) because they are not thread safe.
+                            main_file.items.push(Item::Static(parse_quote! {
+                                pub(crate) static #mutability #ident: #ty = ghc_rts_sys::#ident;
                             }));
                         }
                         fitem => panic!("Unexpected Item: {:#?}", fitem),
