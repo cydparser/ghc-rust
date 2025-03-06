@@ -95,9 +95,10 @@ fn transform_tree(syn_file: syn::File) -> (syn::File, syn::File) {
 
     for item in items {
         match item {
-            Item::Const(item_const) => todo!(),
-            Item::Enum(item_enum) => todo!(),
-            Item::ExternCrate(item_extern_crate) => todo!(),
+            Item::Const(mut item_const) => {
+                item_const.vis = Visibility::Inherited;
+                main_file.items.push(Item::Const(item_const));
+            }
             Item::ForeignMod(foreign_mod) => {
                 for fitem in foreign_mod.items.into_iter() {
                     match fitem {
