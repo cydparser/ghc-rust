@@ -181,9 +181,9 @@ fn transform_tree(syn_file: syn::File) -> (syn::File, syn::File) {
                             ty,
                             ..
                         }) => {
-                            // NB: Statics are not exported (#[unsafe(no_mangle)]) because they are not thread safe.
+                            // TODO: Determine witch statics must be exported.
                             main_file.items.push(Item::Static(parse_quote! {
-                                pub(crate) static #mutability #ident: #ty = ghc_rts_sys::#ident;
+                                static #mutability #ident: #ty = ghc_rts_sys::#ident;
                             }));
                         }
                         fitem => panic!("Unexpected Item: {:#?}", fitem),
