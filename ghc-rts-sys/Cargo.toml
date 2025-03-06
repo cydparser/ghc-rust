@@ -3,6 +3,7 @@ name = "ghc-rts-sys"
 version.workspace = true
 edition.workspace = true
 build = "build.rs"
+links = "HSrts-1.0.2"
 
 [build-dependencies]
-bindgen = { git = "https://github.com/rust-lang/rust-bindgen", rev = "a10bcfd0dd1e23c0139355deb567d83bd4b8a013" }
+bindgen.workspace = true

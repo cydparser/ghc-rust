@@ -52,7 +52,7 @@
 
         inherit (pkgs) lib;
 
-        rustToolchain = pkgs.fenix.beta;
+        rustToolchain = pkgs.fenix.stable;
 
         crane = (inputs.crane.mkLib pkgs).overrideToolchain (
           rustToolchain.withComponents [
