@@ -155,6 +155,7 @@ fn transform_tree(syn_file: syn::File) -> Transformed {
             Item::Type(item_type) => {
                 transformed.main_file.items.push(Item::Type(item_type));
             }
+            item @ Item::Use(_) => transformed.main_file.items.push(item),
             item => panic!("Unexpected Item: {:#?}", item),
         }
     }
