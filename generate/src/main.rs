@@ -251,9 +251,11 @@ fn transform_ffn(ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
 
     tests_file.items.push(Item::Fn(parse_quote! {
         #[test]
+        #[ignore]
         fn #fn_ident() {
             #(#bindings)*
             super::#ident(#(#args_from_owned),*);
+            todo!("assert")
         }
     }));
 }
