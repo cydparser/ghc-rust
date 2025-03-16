@@ -70,27 +70,45 @@ struct Transformed {
 }
 
 fn transform_tree(syn_file: syn::File) -> Transformed {
+    let cap = syn_file.items.len() * 2;
+
     let mut transformed = Transformed {
         main_file: syn::File {
             shebang: None,
             attrs: vec![],
-            items: Vec::with_capacity(syn_file.items.len()),
+            items: Vec::with_capacity(cap),
         },
         tests_file: syn::File {
             shebang: None,
             attrs: vec![],
-            items: vec![
-                Item::Use(parse_quote! { use ghc_rts_sys as sys; }),
-                Item::Use(parse_quote! { use quickcheck::quickcheck; }),
-            ],
+            items: Vec::with_capacity(cap),
         },
     };
     let mut items = syn_file.items.into_iter().peekable();
 
-    transformed
-        .main_file
-        .items
-        .push(Item::Use(parse_quote! { use ghc_rts_sys as sys; }));
+    transformed.main_file.items.extend([
+        Item::Use(parse_quote! {
+            #[cfg(test)]
+            use quickcheck::{Arbitrary, Gen};
+        }),
+        Item::Use(parse_quote! {
+            #[cfg(feature = "sys")]
+            use ghc_rts_sys as sys;
+        }),
+    ]);
+
+    transformed.tests_file.items.extend([
+        Item::Use(parse_quote! {
+            use std::mem::size_of;
+        }),
+        Item::Use(parse_quote! {
+            use quickcheck::quickcheck;
+        }),
+        Item::Use(parse_quote! {
+            #[cfg(feature = "sys")]
+            use ghc_rts_sys as sys;
+        }),
+    ]);
 
     // Add original imports.
     while let Some(item) = items.peek() {
@@ -132,15 +150,11 @@ fn transform_tree(syn_file: syn::File) -> Transformed {
                     }
                 }
             }
-            Item::Impl(item_impl) => todo!(),
-            Item::Macro(item_macro) => todo!(),
-            Item::Mod(item_mod) => todo!(),
-            Item::Static(item_static) => todo!(),
-            Item::Struct(item_struct) => todo!(),
-            Item::Trait(item_trait) => todo!(),
-            Item::TraitAlias(item_trait_alias) => todo!(),
-            Item::Type(item_type) => todo!(),
-            Item::Union(item_union) => todo!(),
+            Item::Impl(item_impl) => transformed.main_file.items.push(Item::Impl(item_impl)),
+            Item::Struct(item_struct) => transform_struct(item_struct, &mut transformed),
+            Item::Type(item_type) => {
+                transformed.main_file.items.push(Item::Type(item_type));
+            }
             item => panic!("Unexpected Item: {:#?}", item),
         }
     }
@@ -300,4 +314,80 @@ fn ptr_to_ty_expr_pat(ident: &Ident, type_ptr: &syn::TypePtr) -> (syn::Type, syn
             pat: Box::new(pat),
         }),
     )
+}
+
+fn transform_struct(
+    mut item_struct: syn::ItemStruct,
+    Transformed {
+        main_file,
+        tests_file,
+    }: &mut Transformed,
+) {
+    if item_struct.ident.to_string().starts_with("_") {
+        main_file.items.push(Item::Struct(item_struct));
+        return;
+    }
+
+    let ident = item_struct.ident.clone();
+
+    let field_idents: Vec<Ident> = match &item_struct.fields {
+        syn::Fields::Named(syn::FieldsNamed { named, .. }) => {
+            named.iter().map(|f| f.ident.clone().unwrap()).collect()
+        }
+        _ => panic!("Unexpected struct type: {:?}", &item_struct),
+    };
+
+    let arbitrary_fields: Vec<_> = field_idents
+        .iter()
+        .cloned()
+        .map(|field_ident| {
+            format!("{}: Arbitrary::arbitrary(g)", field_ident)
+                .parse::<TokenStream>()
+                .unwrap_or_else(|e| {
+                    panic!(
+                        "Unable to parse arbitrary field assignment: {} {} {:?}",
+                        field_ident, e, item_struct
+                    )
+                })
+        })
+        .collect();
+
+    item_struct
+        .attrs
+        .push(parse_quote! { #[unsafe(no_mangle)] });
+
+    main_file.items.extend([
+        // impl From
+        Item::Impl(parse_quote! {
+            #[cfg[feature = "sys"]]
+            impl From<#ident> for sys::#ident {
+                fn from(#ident { #(#field_idents),* }: #ident) -> Self {
+                    sys::#ident {
+                        #(#field_idents),*
+                    }
+                }
+            }
+        }),
+        // impl Arbitrary
+        Item::Impl(parse_quote! {
+            #[cfg(test)]
+            impl Arbitrary for #ident {
+                fn arbitrary(g: &mut Gen) -> Self {
+                    sys::#ident {
+                        #(#arbitrary_fields),*
+                    }
+                }
+            }
+        }),
+    ]);
+
+    let test_size_of = format_ident!("test_size_of_{}", ident);
+
+    tests_file.items.push(Item::Fn(parse_quote! {
+        #[cfg(feature = "sys")]
+        #[test]
+        fn #test_size_of() {
+            assert_eq!(size_of::<sys::#ident>(), size_of::<super::#ident>())
+        }
+    }));
 }
