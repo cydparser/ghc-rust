@@ -1,9 +1,12 @@
-use proc_macro2::{Span, TokenStream};
-use quote::format_ident;
 use std::{
     fs,
     path::{Path, PathBuf},
+    process::Command,
+    sync::Mutex,
 };
+
+use proc_macro2::{Span, TokenStream};
+use quote::format_ident;
 use syn::{parse_quote, punctuated::Punctuated, token, Ident, Item, Visibility};
 
 fn main() {
@@ -33,11 +36,14 @@ fn main() {
         } = transform_tree(syn::parse_file(&code).unwrap());
 
         fs::create_dir_all(&mod_dir)?;
-        fs::write(&main_rs, prettyplease::unparse(&main_file).as_bytes())?;
-        fs::write(
-            mod_dir.join("tests.rs"),
-            prettyplease::unparse(&tests_file).as_bytes(),
-        )?;
+
+        for (file, syn_file) in [(main_rs, main_file), (mod_dir.join("tests.rs"), tests_file)] {
+            fs::write(&file, prettyplease::unparse(&syn_file).as_bytes())?;
+            Command::new("rustfmt")
+                .arg(&file)
+                .status()
+                .unwrap_or_else(|_| panic!("Error running rustfmt {}", file.display()));
+        }
 
         Ok(())
     })
