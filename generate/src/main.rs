@@ -279,11 +279,6 @@ fn ptr_to_ty_expr_pat(ident: &Ident, type_ptr: &syn::TypePtr) -> (syn::Type, syn
         ty @ syn::Type::Path(_) => (
             ty.clone(),
             expr_into(ident),
-            // syn::Expr::Path(syn::ExprPath {
-            //     attrs: vec![],
-            //     qself: type_path.qself.clone(),
-            //     path: type_path.path.clone(),
-            // }),
             syn::Pat::Ident(new_pat_ident(ident)),
         ),
         syn::Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(ident, type_ptr),
