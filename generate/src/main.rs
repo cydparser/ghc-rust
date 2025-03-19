@@ -38,7 +38,10 @@ fn main() {
         fs::create_dir_all(&mod_dir)?;
 
         for (file, syn_file) in [(main_rs, main_file), (mod_dir.join("tests.rs"), tests_file)] {
-            fs::write(&file, prettyplease::unparse(&syn_file).as_bytes())?;
+            fs::write(
+                &file,
+                add_blank_lines(prettyplease::unparse(&syn_file)).as_bytes(),
+            )?;
             Command::new("rustfmt")
                 .arg(&file)
                 .status()
@@ -48,6 +51,20 @@ fn main() {
         Ok(())
     })
     .unwrap();
+}
+
+fn add_blank_lines(src: String) -> String {
+    let mut padded = String::with_capacity((src.len() as f64 * 1.1) as usize);
+
+    for line in src.lines() {
+        padded.push_str(line);
+        padded.push_str("\n");
+
+        if line.starts_with("}") || line.starts_with("pub type") || line == "mod tests;" {
+            padded.push_str("\n")
+        }
+    }
+    padded
 }
 
 fn for_each_rs<F>(dir: &Path, f: &F) -> Result<(), Box<dyn std::error::Error>>
