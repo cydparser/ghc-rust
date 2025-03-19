@@ -381,6 +381,7 @@ fn transform_struct(
         .push(parse_quote! { #[unsafe(no_mangle)] });
 
     main_file.items.extend([
+        Item::Struct(item_struct),
         // impl From
         Item::Impl(parse_quote! {
             #[cfg[feature = "sys"]]
