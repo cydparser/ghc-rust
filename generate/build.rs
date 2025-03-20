@@ -4,23 +4,15 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
 
+use bindgen_utils as utils;
+
 fn main() {
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let ghc = utils::GhcDirs::new();
 
-    let ghc_dir = std::env::var("GHC_PATH")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| manifest_dir.parent().unwrap().parent().unwrap().to_owned());
-
-    let build_dir = ghc_dir.join(PathBuf::from("_build/stage1/rts/build"));
-
-    let include_dir = ghc_dir.join(PathBuf::from("rts/include"));
-
-    let bindings_builder = bindgen::Builder::default()
+    let bindings_builder = utils::bindgen_builder(&ghc)
         .allowlist_recursively(false)
-        .clang_arg(format!("-I{}", include_dir.display()))
-        .clang_arg(format!("-I{}", build_dir.join("include").display()))
-        // Invalidate bindings when header files change.
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()));
+        // Force bindgen to emit unions. Without this it inexplicably emits __BindgenUnionField hack.
+        .manually_drop_union(".*");
 
     let headers_by_dir: HashMap<Option<&str>, Vec<&str>> = [
         (None, vec!["HsFFI", "MachDeps", "Rts", "RtsAPI", "Stg"]),
@@ -188,6 +180,8 @@ fn main() {
                 .create(true)
                 .open(&out_path)
                 .unwrap();
+
+            out_file.write_all(utils::use_libc().as_bytes()).unwrap();
 
             if !imports.is_empty() {
                 out_file.write_all(imports.concat().as_bytes()).unwrap();

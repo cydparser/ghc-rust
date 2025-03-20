@@ -7,3 +7,7 @@ links = "HSrts-1.0.2"
 
 [build-dependencies]
 bindgen.workspace = true
+bindgen-utils.workspace = true
+
+[dependencies]
+libc.workspace = true

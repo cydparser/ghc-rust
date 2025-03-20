@@ -1,0 +1,9 @@
+[package]
+name = "bindgen-utils"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+bindgen.workspace = true
+libc.workspace = true
