@@ -95,7 +95,7 @@ fn main() {
 
     // HACK: Avoid rebuilding if GHC hasn't changed.
     let commit = Command::new("git")
-        .current_dir(&ghc_dir)
+        .current_dir(&ghc.root_dir)
         .arg("rev-parse")
         .arg("HEAD")
         .output()
@@ -111,11 +111,13 @@ fn main() {
         }
     }
 
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+
     let wrapper = manifest_dir.join("wrapper.h");
     let wrapper_str = wrapper.to_str().unwrap();
 
     let rts_h = {
-        let h = fs::read_to_string(include_dir.join("Rts.h")).unwrap();
+        let h = fs::read_to_string(ghc.include_dir.join("Rts.h")).unwrap();
         h.split_once("/* Misc stuff without a home */")
             .unwrap()
             .0
@@ -124,13 +126,13 @@ fn main() {
 
     for (path, headers) in &headers_by_dir {
         let (include_dir, out_dir) = match path {
-            None => (include_dir.clone(), out_dir.clone()),
+            None => (ghc.include_dir.clone(), out_dir.clone()),
             Some(path) => {
                 let path = PathBuf::from(path);
                 let out_dir = out_dir.join(&path);
                 fs::create_dir_all(&out_dir)
                     .unwrap_or_else(|e| panic!("Unable to create {}: {}", out_dir.display(), e));
-                (include_dir.join(path), out_dir)
+                (ghc.include_dir.join(path), out_dir)
             }
         };
 

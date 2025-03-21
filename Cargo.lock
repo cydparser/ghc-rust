@@ -81,6 +81,7 @@ name = "generate"
 version = "0.0.0"
 dependencies = [
  "bindgen",
+ "bindgen-utils",
  "prettyplease",
  "proc-macro2",
  "quote",

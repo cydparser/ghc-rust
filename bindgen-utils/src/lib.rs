@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 pub struct GhcDirs {
+    pub root_dir: PathBuf,
     pub include_dir: PathBuf,
     pub build_dir: PathBuf,
 }
@@ -14,6 +15,7 @@ impl GhcDirs {
             .unwrap_or_else(|_| manifest_dir.parent().unwrap().parent().unwrap().to_owned());
 
         GhcDirs {
+            root_dir: ghc_dir.clone(),
             include_dir: ghc_dir.join(PathBuf::from("rts/include")),
             build_dir: ghc_dir.join(PathBuf::from("_build/stage1/rts/build")),
         }
