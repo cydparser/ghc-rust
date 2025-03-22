@@ -133,9 +133,10 @@ fn transform_tree(syn_file: syn::File) -> Transformed {
         }),
     ]);
 
-    // Add original imports.
+    // Add original imports and exports.
     while let Some(item) = items.peek() {
         match item {
+            Item::Mod(_) => transformed.main_file.items.push(items.next().unwrap()),
             Item::Use(_) => transformed.main_file.items.push(items.next().unwrap()),
             _ => break,
         }
