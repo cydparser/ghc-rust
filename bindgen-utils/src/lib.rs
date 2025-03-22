@@ -59,6 +59,6 @@ pub fn use_libc() -> String {
         s.push_str(ty);
         s.push_str(",");
     }
-    s.push_str("}");
+    s.push_str("};\n");
     s
 }
