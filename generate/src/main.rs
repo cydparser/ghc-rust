@@ -111,6 +111,10 @@ fn transform_tree(syn_file: syn::File) -> Transformed {
 
     transformed.main_file.items.extend([
         Item::Use(parse_quote! {
+            #[cfg(feature = "tracing")]
+            use tracing::instrument;
+        }),
+        Item::Use(parse_quote! {
             #[cfg(test)]
             use quickcheck::{Arbitrary, Gen};
         }),
