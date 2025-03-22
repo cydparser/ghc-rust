@@ -268,6 +268,7 @@ fn transform_ffn(ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
     // Mark all functions as unsafe until the code can be audited.
     let func = parse_quote! {
         #[unsafe(no_mangle)]
+        #[cfg_attr(feature = "tracing", instrument)]
         pub unsafe extern "C" fn #ident(#inputs) #output {
             unsafe { sys::#ident(#(#args_into),*) }
         }
