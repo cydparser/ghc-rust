@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs};
 
@@ -111,9 +111,7 @@ fn main() {
         }
     }
 
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-
-    let wrapper = manifest_dir.join("wrapper.h");
+    let wrapper = out_dir.join("wrapper.h");
     let wrapper_str = wrapper.to_str().unwrap();
 
     let rts_h = {
@@ -135,6 +133,8 @@ fn main() {
                 (ghc.include_dir.join(path), out_dir)
             }
         };
+
+        let parent_module_path = path.clone().map(|s| s.to_string().replace('/', "::"));
 
         for header in headers {
             let header_path = include_dir.join(format!("{}.h", header));
@@ -168,12 +168,17 @@ fn main() {
 
             let module_name = header_to_module(header);
 
+            let module_path = parent_module_path
+                .as_ref()
+                .map(|s| format!("{}::{}", s, &module_name))
+                .unwrap_or(module_name.clone());
+
             let out_path = out_dir.join(format!("{}.rs", module_name));
 
-            let imports = fs::read_to_string(header_path)
+            let imports_submodules = fs::read_to_string(header_path)
                 .unwrap()
                 .lines()
-                .filter_map(|line| extract_import(&headers_by_dir, line))
+                .filter_map(|line| extract_import(&headers_by_dir, &module_path, line))
                 .collect::<Vec<_>>();
 
             let mut out_file = fs::OpenOptions::new()
@@ -185,8 +190,23 @@ fn main() {
 
             out_file.write_all(utils::use_libc().as_bytes()).unwrap();
 
-            if !imports.is_empty() {
-                out_file.write_all(imports.concat().as_bytes()).unwrap();
+            if !imports_submodules.is_empty() {
+                let mut imports = String::new();
+                let mut submodules = String::new();
+
+                for is in imports_submodules {
+                    match is {
+                        ImportOrSubmodule::Import(i) => imports.push_str(&i),
+                        ImportOrSubmodule::Submodule(s) => submodules.push_str(&s),
+                    }
+                }
+                if !imports.is_empty() {
+                    imports.push_str("\n");
+                    out_file.write_all(imports.as_bytes()).unwrap();
+                }
+                if !submodules.is_empty() {
+                    out_file.write_all(submodules.as_bytes()).unwrap();
+                }
             }
 
             bindings
@@ -202,7 +222,16 @@ fn header_to_module(header: &str) -> String {
     stringcase::snake_case(header)
 }
 
-fn extract_import(headers_by_dir: &HashMap<Option<&str>, Vec<&str>>, line: &str) -> Option<String> {
+enum ImportOrSubmodule {
+    Import(String),
+    Submodule(String),
+}
+
+fn extract_import(
+    headers_by_dir: &HashMap<Option<&str>, Vec<&str>>,
+    module_path: &str,
+    line: &str,
+) -> Option<ImportOrSubmodule> {
     if !line.starts_with("#include ") {
         return None;
     }
@@ -216,10 +245,27 @@ fn extract_import(headers_by_dir: &HashMap<Option<&str>, Vec<&str>>, line: &str)
 
     let _ = headers_by_dir.get(&p)?.iter().find(|&&s| s == h)?;
 
-    Some(format!(
-        "use crate::{}{};\n",
-        p.map(|s| format!("{}::", s.replace('/', "::")))
-            .unwrap_or(String::new()),
-        header_to_module(h)
-    ))
+    let module_name = header_to_module(h);
+
+    match p {
+        None => Some(ImportOrSubmodule::Import(format!(
+            "use crate::{};\n",
+            &module_name
+        ))),
+        Some(p) => {
+            let parent_module_path = p.replace('/', "::");
+
+            if parent_module_path == module_path {
+                Some(ImportOrSubmodule::Submodule(format!(
+                    "pub mod {};\n",
+                    module_name
+                )))
+            } else {
+                Some(ImportOrSubmodule::Import(format!(
+                    "use crate::{}::{};\n",
+                    parent_module_path, module_name
+                )))
+            }
+        }
+    }
 }
