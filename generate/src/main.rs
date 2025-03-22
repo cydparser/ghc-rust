@@ -404,7 +404,7 @@ fn transform_struct(
             #[cfg(test)]
             impl Arbitrary for #ident {
                 fn arbitrary(g: &mut Gen) -> Self {
-                    sys::#ident {
+                    #ident {
                         #(#arbitrary_fields),*
                     }
                 }
