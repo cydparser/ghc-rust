@@ -213,7 +213,7 @@ fn transform_ffn(ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
         return;
     }
 
-    let (inputs_owned, args, args_into, args_from_owned, bindings): (
+    let (inputs_owned, _args, args_into, args_from_owned, bindings): (
         Punctuated<_, token::Comma>,
         Vec<_>,
         Vec<_>,
@@ -269,7 +269,7 @@ fn transform_ffn(ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
     let func = parse_quote! {
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn #ident(#inputs) #output {
-            unsafe { sys::#ident(#(#args),*) }
+            unsafe { sys::#ident(#(#args_into),*) }
         }
     };
     main_file.items.push(Item::Fn(func));
