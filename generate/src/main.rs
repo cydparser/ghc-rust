@@ -2,7 +2,6 @@ use std::{
     fs,
     path::{Path, PathBuf},
     process::Command,
-    sync::Mutex,
 };
 
 use proc_macro2::{Span, TokenStream};
@@ -362,7 +361,7 @@ fn ptr_to_ty_expr_pat(ident: &Ident, type_ptr: &syn::TypePtr) -> (syn::Type, syn
 }
 
 fn transform_struct(
-    mut item_struct: syn::ItemStruct,
+    item_struct: syn::ItemStruct,
     Transformed {
         main_file,
         tests_file,
@@ -408,7 +407,7 @@ fn transform_struct(
 }
 
 fn transform_union(
-    mut item_union: syn::ItemUnion,
+    item_union: syn::ItemUnion,
     Transformed {
         main_file,
         tests_file,
