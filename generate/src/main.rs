@@ -370,31 +370,12 @@ fn transform_struct(
     let arbitrary_fields: Vec<_> = field_idents
         .iter()
         .cloned()
-        .map(|field_ident| {
-            format!("{}: Arbitrary::arbitrary(g)", field_ident)
-                .parse::<TokenStream>()
-                .unwrap_or_else(|e| {
-                    panic!(
-                        "Unable to parse arbitrary field assignment: {} {} {:?}",
-                        field_ident, e, item_struct
-                    )
-                })
-        })
+        .map(|field_ident| parse_token_stream(format!("{}: Arbitrary::arbitrary(g)", field_ident)))
         .collect();
 
     main_file.items.extend([
         Item::Struct(item_struct),
-        // impl From
-        Item::Impl(parse_quote! {
-            #[cfg[feature = "sys"]]
-            impl From<#ident> for sys::#ident {
-                fn from(#ident { #(#field_idents),* }: #ident) -> Self {
-                    sys::#ident {
-                        #(#field_idents),*
-                    }
-                }
-            }
-        }),
+        Item::Impl(impl_from(&ident)),
         // impl Arbitrary
         Item::Impl(parse_quote! {
             #[cfg(test)]
@@ -408,13 +389,46 @@ fn transform_struct(
         }),
     ]);
 
+    tests_file.items.push(Item::Fn(fn_test_size_of(&ident)));
+}
+
+        // impl Arbitrary
+        Item::Impl(parse_quote! {
+            #[cfg(test)]
+            impl Arbitrary for #ident {
+                fn arbitrary(g: &mut Gen) -> Self {
+                    #ident {
+                        #(#arbitrary_fields),*
+                    }
+                }
+            }
+        }),
+    ]);
+
+fn parse_token_stream(s: String) -> TokenStream {
+    s.parse::<TokenStream>()
+        .unwrap_or_else(|e| panic!("Unable to parse TokenStream: {}: {}", s, e))
+}
+
+fn impl_from(ident: &Ident) -> syn::ItemImpl {
+    parse_quote! {
+        #[cfg(feature = "sys")]
+        impl From<#ident> for sys::#ident {
+            fn from(x: #ident) -> Self {
+                unsafe { std::mem::transmute(x) }
+            }
+        }
+    }
+}
+
+fn fn_test_size_of(ident: &Ident) -> syn::ItemFn {
     let test_size_of = format_ident!("test_size_of_{}", ident);
 
-    tests_file.items.push(Item::Fn(parse_quote! {
+    parse_quote! {
         #[cfg(feature = "sys")]
         #[test]
         fn #test_size_of() {
             assert_eq!(size_of::<sys::#ident>(), size_of::<super::#ident>())
         }
-    }));
+    }
 }
