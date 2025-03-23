@@ -15,3 +15,25 @@ crane.name = "ghc-rts"
 bindgen = { git = "https://github.com/rust-lang/rust-bindgen", rev = "a10bcfd0dd1e23c0139355deb567d83bd4b8a013" }
 bindgen-utils = { path = "bindgen-utils" }
 libc = "0.2.171"
+
+[package]
+name = "ghc-rts"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["staticlib"]
+
+[features]
+default = ["sys", "tracing"]
+sys = []
+tracing = ["dep:tracing"]
+
+[dependencies]
+ghc-rts-sys = { path = "ghc-rts-sys" }
+libc.workspace = true
+tracing = { version = "0.1.41", optional = true }
+
+[dev-dependencies]
+quickcheck = "1.0.3"
