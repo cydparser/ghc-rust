@@ -382,10 +382,6 @@ fn transform_struct(
         })
         .collect();
 
-    item_struct
-        .attrs
-        .push(parse_quote! { #[unsafe(no_mangle)] });
-
     main_file.items.extend([
         Item::Struct(item_struct),
         // impl From
