@@ -153,10 +153,7 @@ fn transform_tree(syn_file: syn::File) -> Transformed {
 
     for item in items {
         match item {
-            Item::Const(mut item_const) => {
-                item_const.vis = Visibility::Inherited;
-                transformed.main_file.items.push(Item::Const(item_const));
-            }
+            Item::Const(item_const) => transform_const(item_const, &mut transformed),
             Item::ForeignMod(foreign_mod) => {
                 for fitem in foreign_mod.items.into_iter() {
                     match fitem {
@@ -190,6 +187,23 @@ fn transform_tree(syn_file: syn::File) -> Transformed {
     }
 
     transformed
+}
+
+fn transform_const(mut item_const: syn::ItemConst, transformed: &mut Transformed) {
+    let ident = item_const.ident.clone();
+
+    item_const.vis = Visibility::Inherited;
+    transformed.main_file.items.push(Item::Const(item_const));
+
+    let test_eq = format_ident!("test_eq_{}", ident);
+
+    transformed.tests_file.items.push(Item::Fn(parse_quote! {
+        #[cfg(feature = "sys")]
+        #[test]
+        fn #test_eq() {
+            assert_eq!(sys::#ident, super::#ident.into());
+        }
+    }));
 }
 
 fn transform_ffn(ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
