@@ -183,6 +183,7 @@ fn transform_tree(syn_file: syn::File) -> Transformed {
             Item::Type(item_type) => {
                 transformed.main_file.items.push(Item::Type(item_type));
             }
+            Item::Union(item_union) => transform_union(item_union, &mut transformed),
             item @ Item::Use(_) => transformed.main_file.items.push(item),
             item => panic!("Unexpected Item: {:#?}", item),
         }
@@ -392,18 +393,59 @@ fn transform_struct(
     tests_file.items.push(Item::Fn(fn_test_size_of(&ident)));
 }
 
+fn transform_union(
+    mut item_union: syn::ItemUnion,
+    Transformed {
+        main_file,
+        tests_file,
+    }: &mut Transformed,
+) {
+    if item_union.ident.to_string().starts_with("_") {
+        main_file.items.push(Item::Union(item_union));
+        return;
+    }
+
+    let ident = item_union.ident.clone();
+
+    let field_idents: Vec<Ident> = item_union
+        .fields
+        .named
+        .iter()
+        .map(|f| f.ident.clone().unwrap())
+        .collect();
+
+    let field_count = field_idents.len();
+
+    let arbitrary_fields: Vec<_> = field_idents
+        .iter()
+        .cloned()
+        .enumerate()
+        .map(|(i, field_ident)| {
+            parse_token_stream(format!(
+                "{} => {} {{ {}: Arbitrary::arbitrary(g) }}",
+                i, &ident, field_ident
+            ))
+        })
+        .collect();
+
+    main_file.items.extend([
+        Item::Union(item_union),
+        Item::Impl(impl_from(&ident)),
         // impl Arbitrary
         Item::Impl(parse_quote! {
             #[cfg(test)]
             impl Arbitrary for #ident {
                 fn arbitrary(g: &mut Gen) -> Self {
-                    #ident {
+                    match Arbitrary::arbitrary::<usize>(g) % #field_count {
                         #(#arbitrary_fields),*
                     }
                 }
             }
         }),
     ]);
+
+    tests_file.items.push(Item::Fn(fn_test_size_of(&ident)));
+}
 
 fn parse_token_stream(s: String) -> TokenStream {
     s.parse::<TokenStream>()
