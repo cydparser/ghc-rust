@@ -8,6 +8,8 @@ use proc_macro2::{Span, TokenStream};
 use quote::format_ident;
 use syn::{parse_quote, punctuated::Punctuated, token, Ident, Item, Visibility};
 
+use generate::InternalSymbols;
+
 fn main() {
     let src_dir = PathBuf::from(String::from(env!("OUT_DIR")));
 
@@ -22,6 +24,8 @@ fn main() {
 
     dbg!(&src_dir);
 
+    let symbols = InternalSymbols::new();
+
     // Create directories, one for each module, in the destination dir.
     for_each_rs(&src_dir, &|path| {
         eprintln!("Processing {}", path.display());
@@ -32,7 +36,7 @@ fn main() {
         let Transformed {
             main_file,
             tests_file,
-        } = transform_tree(syn::parse_file(&code).unwrap());
+        } = transform_tree(&symbols, syn::parse_file(&code).unwrap());
 
         fs::create_dir_all(&mod_dir)?;
 
@@ -91,7 +95,7 @@ struct Transformed {
     tests_file: syn::File,
 }
 
-fn transform_tree(syn_file: syn::File) -> Transformed {
+fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed {
     let cap = syn_file.items.len() * 2;
 
     let mut transformed = Transformed {
@@ -152,22 +156,29 @@ fn transform_tree(syn_file: syn::File) -> Transformed {
 
     for item in items {
         match item {
-            Item::Const(item_const) => transform_const(item_const, &mut transformed),
+            Item::Const(item_const) => transform_const(symbols, item_const, &mut transformed),
             Item::ForeignMod(foreign_mod) => {
                 for fitem in foreign_mod.items.into_iter() {
                     match fitem {
                         syn::ForeignItem::Fn(ffn) => {
-                            transform_ffn(ffn, &mut transformed);
+                            transform_ffn(symbols, ffn, &mut transformed);
                         }
                         syn::ForeignItem::Static(syn::ForeignItemStatic {
+                            vis,
                             ident,
                             mutability,
                             ty,
                             ..
                         }) => {
-                            // TODO: Determine witch statics must be exported.
+                            let (vis, attr) = if symbols.is_internal_static(&ident) {
+                                (Visibility::Inherited, None)
+                            } else {
+                                (vis, Some(parse_token_stream("#[unsafe(no_mangle)]")))
+                            };
+
                             transformed.main_file.items.push(Item::Static(parse_quote! {
-                                static #mutability #ident: #ty = ghc_rts_sys::#ident;
+                                #attr
+                                #vis static #mutability #ident: #ty = ghc_rts_sys::#ident;
                             }));
                         }
                         fitem => panic!("Unexpected Item: {:#?}", fitem),
@@ -175,8 +186,11 @@ fn transform_tree(syn_file: syn::File) -> Transformed {
                 }
             }
             Item::Impl(item_impl) => transformed.main_file.items.push(Item::Impl(item_impl)),
-            Item::Struct(item_struct) => transform_struct(item_struct, &mut transformed),
-            Item::Type(item_type) => {
+            Item::Struct(item_struct) => transform_struct(symbols, item_struct, &mut transformed),
+            Item::Type(mut item_type) => {
+                if symbols.is_internal_type(&item_type.ident) {
+                    item_type.vis = Visibility::Inherited;
+                }
                 transformed.main_file.items.push(Item::Type(item_type));
             }
             Item::Union(item_union) => transform_union(item_union, &mut transformed),
@@ -188,11 +202,21 @@ fn transform_tree(syn_file: syn::File) -> Transformed {
     transformed
 }
 
-fn transform_const(mut item_const: syn::ItemConst, transformed: &mut Transformed) {
+fn transform_const(
+    symbols: &InternalSymbols,
+    mut item_const: syn::ItemConst,
+    transformed: &mut Transformed,
+) {
     let ident = item_const.ident.clone();
 
-    item_const.vis = Visibility::Inherited;
+    if symbols.is_internal_const(&ident) {
+        item_const.vis = parse_quote! { pub(crate) };
+    }
     transformed.main_file.items.push(Item::Const(item_const));
+
+    if ident.to_string() == "_" {
+        return;
+    }
 
     let test_eq = format_ident!("test_eq_{}", ident);
 
@@ -205,10 +229,16 @@ fn transform_const(mut item_const: syn::ItemConst, transformed: &mut Transformed
     }));
 }
 
-fn transform_ffn(ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
+fn transform_ffn(
+    symbols: &InternalSymbols,
+    ffn: syn::ForeignItemFn,
+    transformed: &mut Transformed,
+) {
     let syn::ForeignItemFn {
+        vis,
         sig:
             syn::Signature {
+                abi,
                 ident,
                 generics,
                 inputs,
@@ -285,14 +315,19 @@ fn transform_ffn(ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
         .collect();
 
     // Mark all functions as unsafe until the code can be audited.
-    let func = parse_quote! {
-        #[unsafe(no_mangle)]
+    let (vis, abi, attr) = if symbols.is_internal_func(&ident) {
+        (parse_quote! { pub(crate) }, None, None)
+    } else {
+        (vis, abi, Some(parse_token_stream("#[unsafe(no_mangle)]")))
+    };
+    main_file.items.push(Item::Fn(parse_quote! {
+        #attr
         #[cfg_attr(feature = "tracing", instrument)]
-        pub unsafe extern "C" fn #ident(#inputs) #output {
+        #vis unsafe #abi fn #ident(#inputs) #output {
             unsafe { sys::#ident(#(#args_into),*) }
         }
-    };
-    main_file.items.push(Item::Fn(func));
+    }));
+
     if let syn::ReturnType::Type(_, _) = output {
         let fn_ident = format_ident!("equivalent_{}", ident);
 
@@ -361,18 +396,22 @@ fn ptr_to_ty_expr_pat(ident: &Ident, type_ptr: &syn::TypePtr) -> (syn::Type, syn
 }
 
 fn transform_struct(
-    item_struct: syn::ItemStruct,
+    symbols: &InternalSymbols,
+    mut item_struct: syn::ItemStruct,
     Transformed {
         main_file,
         tests_file,
     }: &mut Transformed,
 ) {
-    if item_struct.ident.to_string().starts_with("_") {
+    if item_struct.ident.to_string() == "__IncompleteArrayField" {
         main_file.items.push(Item::Struct(item_struct));
         return;
     }
-
     let ident = item_struct.ident.clone();
+
+    if symbols.is_internal_struct(&ident) {
+        item_struct.vis = parse_quote! { pub(crate) };
+    }
 
     let field_idents: Vec<Ident> = match &item_struct.fields {
         syn::Fields::Named(syn::FieldsNamed { named, .. }) => {
@@ -407,18 +446,15 @@ fn transform_struct(
 }
 
 fn transform_union(
-    item_union: syn::ItemUnion,
+    mut item_union: syn::ItemUnion,
     Transformed {
         main_file,
         tests_file,
     }: &mut Transformed,
 ) {
-    if item_union.ident.to_string().starts_with("_") {
-        main_file.items.push(Item::Union(item_union));
-        return;
-    }
-
     let ident = item_union.ident.clone();
+
+    item_union.vis = parse_quote! { pub(crate) };
 
     let field_idents: Vec<Ident> = item_union
         .fields
@@ -460,8 +496,12 @@ fn transform_union(
     tests_file.items.push(Item::Fn(fn_test_size_of(&ident)));
 }
 
-fn parse_token_stream(s: String) -> TokenStream {
-    s.parse::<TokenStream>()
+fn parse_token_stream<S>(s: S) -> TokenStream
+where
+    S: AsRef<str> + std::fmt::Display,
+{
+    s.as_ref()
+        .parse::<TokenStream>()
         .unwrap_or_else(|e| panic!("Unable to parse TokenStream: {}: {}", s, e))
 }
 
