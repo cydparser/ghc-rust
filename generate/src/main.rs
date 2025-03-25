@@ -189,7 +189,7 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
             Item::Struct(item_struct) => transform_struct(symbols, item_struct, &mut transformed),
             Item::Type(mut item_type) => {
                 if symbols.is_internal_type(&item_type.ident) {
-                    item_type.vis = Visibility::Inherited;
+                    item_type.vis = parse_quote! { pub(crate) };
                 }
                 transformed.main_file.items.push(Item::Type(item_type));
             }
