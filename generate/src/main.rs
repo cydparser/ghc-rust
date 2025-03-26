@@ -257,7 +257,6 @@ fn transform_ffn(
         vis,
         sig:
             syn::Signature {
-                abi,
                 ident,
                 generics,
                 inputs,
@@ -334,11 +333,16 @@ fn transform_ffn(
         .collect();
 
     // Mark all functions as unsafe until the code can be audited.
-    let (vis, abi, attr) = if symbols.is_internal_func(&ident) {
-        (parse_quote! { pub(crate) }, None, None)
-    } else {
-        (vis, abi, Some(parse_token_stream("#[unsafe(no_mangle)]")))
-    };
+    let (vis, abi, attr): (_, Option<syn::Abi>, Option<syn::Attribute>) =
+        if symbols.is_internal_func(&ident) {
+            (parse_quote! { pub(crate) }, None, None)
+        } else {
+            (
+                vis,
+                Some(parse_quote! { extern "C" }),
+                Some(parse_quote! { #[unsafe(no_mangle)] }),
+            )
+        };
     main_file.items.push(Item::Fn(parse_quote! {
         #attr
         #[cfg_attr(feature = "tracing", instrument)]
