@@ -63,7 +63,10 @@ fn add_blank_lines(src: String) -> String {
         padded.push_str(line);
         padded.push_str("\n");
 
-        if line.starts_with("}") || line.starts_with("pub type") || line == "mod tests;" {
+        if line.starts_with("}")
+            || ((line.starts_with("pub") || line.starts_with("static")) && line.ends_with(";"))
+            || line == "mod tests;"
+        {
             padded.push_str("\n")
         }
     }
