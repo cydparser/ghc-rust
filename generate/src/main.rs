@@ -224,11 +224,13 @@ fn transform_const(
     if symbols.is_internal_const(&ident) {
         item_const.vis = parse_quote! { pub(crate) };
     }
-    transformed.main_file.items.push(Item::Const(item_const));
 
     if ident.to_string() == "_" {
+        transformed.tests_file.items.push(Item::Const(item_const));
         return;
-    }
+    } else {
+        transformed.main_file.items.push(Item::Const(item_const))
+    };
 
     let test_eq = format_ident!("test_eq_{}", ident);
 
