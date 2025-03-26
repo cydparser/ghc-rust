@@ -40,7 +40,7 @@ fn main() {
 
         fs::create_dir_all(&mod_dir)?;
 
-        for (file, syn_file) in [(main_rs, main_file), (mod_dir.join("tests.rs"), tests_file)] {
+        for (file, syn_file) in [(mod_dir.join("tests.rs"), tests_file), (main_rs, main_file)] {
             fs::write(
                 &file,
                 add_blank_lines(prettyplease::unparse(&syn_file)).as_bytes(),
