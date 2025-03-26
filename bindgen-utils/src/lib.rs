@@ -45,6 +45,11 @@ pub fn bindgen_builder(ghc: &GhcDirs) -> bindgen::Builder {
     };
     bindgen::Builder::default()
         .rust_target(bindgen::RustTarget::stable(85, 0).unwrap())
+        .default_enum_style(bindgen::EnumVariation::Rust {
+            non_exhaustive: false,
+        })
+        .default_non_copy_union_style(bindgen::NonCopyUnionStyle::ManuallyDrop)
+        .use_core()
         .clang_arg(format!("-I{}", ghc.include_dir.display()))
         .clang_arg(format!("-I{}", ghc.build_dir.join("include").display()))
         // Invalidate bindings when header files change.

@@ -9,10 +9,7 @@ use bindgen_utils as utils;
 fn main() {
     let ghc = utils::GhcDirs::new();
 
-    let bindings_builder = utils::bindgen_builder(&ghc)
-        .allowlist_recursively(false)
-        // Force bindgen to emit unions. Without this it inexplicably emits __BindgenUnionField hack.
-        .manually_drop_union(".*");
+    let bindings_builder = utils::bindgen_builder(&ghc).allowlist_recursively(false);
 
     let headers_by_dir: HashMap<Option<&str>, Vec<&str>> = [
         (None, vec!["HsFFI", "MachDeps", "Rts", "RtsAPI", "Stg"]),
