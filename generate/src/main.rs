@@ -121,6 +121,9 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
 
     transformed.main_file.items.extend([
         Item::Use(parse_quote! {
+            use std::mem::transmute;
+        }),
+        Item::Use(parse_quote! {
             #[cfg(feature = "tracing")]
             use tracing::instrument;
         }),
@@ -137,7 +140,7 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
 
     transformed.tests_file.items.extend([
         Item::Use(parse_quote! {
-            use std::mem::size_of;
+            use std::mem::{size_of, transmute};
         }),
         Item::Use(parse_quote! {
             use quickcheck::quickcheck;
@@ -333,7 +336,7 @@ fn transform_ffn(
         #attr
         #[cfg_attr(feature = "tracing", instrument)]
         #vis unsafe #abi fn #ident(#inputs) #output {
-            unsafe { sys::#ident(#(#args_into),*) }
+            unsafe { transmute(sys::#ident(#(#args_into),*)) }
         }
     }));
 
@@ -344,7 +347,7 @@ fn transform_ffn(
             #[cfg(feature = "sys")]
             #[quickcheck]
             fn #fn_ident(#inputs_owned) -> bool {
-                let expected = unsafe { sys::#ident(#(#args_into),*) };
+                let expected = unsafe { transmute(sys::#ident(#(#args_into),*)) };
                 super::#ident(#(#args_from_owned),*) == expected
             }
         }));
@@ -519,7 +522,7 @@ fn impl_from(ident: &Ident) -> syn::ItemImpl {
         #[cfg(feature = "sys")]
         impl From<#ident> for sys::#ident {
             fn from(x: #ident) -> Self {
-                unsafe { std::mem::transmute(x) }
+                unsafe { transmute(x) }
             }
         }
     }
