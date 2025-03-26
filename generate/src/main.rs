@@ -169,6 +169,11 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
     for item in items {
         match item {
             Item::Const(item_const) => transform_const(symbols, item_const, &mut transformed),
+            Item::Enum(mut item_enum) => {
+                // Enums are not referrenced outside of C files.
+                item_enum.vis = parse_quote! { pub(crate) };
+                transformed.main_file.items.push(Item::Enum(item_enum));
+            }
             Item::ForeignMod(foreign_mod) => {
                 for fitem in foreign_mod.items.into_iter() {
                     match fitem {
