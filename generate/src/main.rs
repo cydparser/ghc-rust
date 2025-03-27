@@ -359,7 +359,8 @@ fn transform_ffn(
             #[quickcheck]
             fn #fn_ident(#inputs_owned) -> bool {
                 let expected = unsafe { transmute(sys::#ident(#(#args_into),*)) };
-                super::#ident(#(#args_from_owned),*) == expected
+                let actual = unsafe { super::#ident(#(#args_from_owned),*) };
+                actual == expected
             }
         }));
     }
@@ -370,7 +371,7 @@ fn transform_ffn(
         #[ignore]
         fn #fn_ident() {
             #(#bindings)*
-            super::#ident(#(#args_from_owned),*);
+            unsafe { super::#ident(#(#args_from_owned),*) };
             todo!("assert")
         }
     }));
