@@ -29,6 +29,8 @@ crate-type = ["staticlib"]
 default = ["sys", "tracing"]
 sys = []
 tracing = ["dep:tracing"]
+javascript_HOST_ARCH = []
+UnregisterisedCompiler = []
 
 [dependencies]
 ghc-rts-sys = { path = "ghc-rts-sys" }
