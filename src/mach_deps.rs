@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests;
 
+// TODO: Set constants same way as ghcautoconf.h
+
 pub const SIZEOF_HSINT: u32 = 8;
 
 pub const ALIGNMENT_HSINT: u32 = 8;
