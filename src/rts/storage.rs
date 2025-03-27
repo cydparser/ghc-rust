@@ -1,10 +1,10 @@
-pub mod m_block;
-pub mod closures;
 pub mod block;
-pub mod tso;
+pub mod closure_macros;
+pub mod closure_types;
+pub mod closures;
+pub mod fun_types;
 pub mod gc;
 pub mod heap;
 pub mod info_tables;
-pub mod closure_macros;
-pub mod closure_types;
-pub mod fun_types;
+pub mod m_block;
+pub mod tso;
