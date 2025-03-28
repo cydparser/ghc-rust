@@ -195,7 +195,7 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
 
                             transformed.main_file.items.push(Item::Static(parse_quote! {
                                 #attr
-                                #vis static #mutability #ident: #ty = sys::#ident;
+                                #vis static #mutability #ident: #ty = unsafe { sys::#ident };
                             }));
                         }
                         fitem => panic!("Unexpected Item: {:#?}", fitem),
