@@ -1,8 +1,10 @@
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use std::mem::size_of;
+
+use super::{StgWord128, StgWord256, StgWord512};
+
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
-use std::mem::{size_of, transmute};
+
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_STG_INT8_MIN() {
@@ -24,13 +26,13 @@ fn test_eq_STG_WORD8_MAX() {
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_Word8() {
-    assert_eq!(sys::FMT_Word8, super::FMT_Word8.into());
+    assert_eq!(sys::FMT_Word8, super::FMT_Word8);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_HexWord8() {
-    assert_eq!(sys::FMT_HexWord8, super::FMT_HexWord8.into());
+    assert_eq!(sys::FMT_HexWord8, super::FMT_HexWord8);
 }
 
 #[cfg(feature = "sys")]
@@ -54,13 +56,13 @@ fn test_eq_STG_WORD16_MAX() {
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_Word16() {
-    assert_eq!(sys::FMT_Word16, super::FMT_Word16.into());
+    assert_eq!(sys::FMT_Word16, super::FMT_Word16);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_HexWord16() {
-    assert_eq!(sys::FMT_HexWord16, super::FMT_HexWord16.into());
+    assert_eq!(sys::FMT_HexWord16, super::FMT_HexWord16);
 }
 
 #[cfg(feature = "sys")]
@@ -84,55 +86,55 @@ fn test_eq_STG_WORD32_MAX() {
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_Word32() {
-    assert_eq!(sys::FMT_Word32, super::FMT_Word32.into());
+    assert_eq!(sys::FMT_Word32, super::FMT_Word32);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_HexWord32() {
-    assert_eq!(sys::FMT_HexWord32, super::FMT_HexWord32.into());
+    assert_eq!(sys::FMT_HexWord32, super::FMT_HexWord32);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_Int32() {
-    assert_eq!(sys::FMT_Int32, super::FMT_Int32.into());
+    assert_eq!(sys::FMT_Int32, super::FMT_Int32);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_Word64() {
-    assert_eq!(sys::FMT_Word64, super::FMT_Word64.into());
+    assert_eq!(sys::FMT_Word64, super::FMT_Word64);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_HexWord64() {
-    assert_eq!(sys::FMT_HexWord64, super::FMT_HexWord64.into());
+    assert_eq!(sys::FMT_HexWord64, super::FMT_HexWord64);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_Int64() {
-    assert_eq!(sys::FMT_Int64, super::FMT_Int64.into());
+    assert_eq!(sys::FMT_Int64, super::FMT_Int64);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_Word() {
-    assert_eq!(sys::FMT_Word, super::FMT_Word.into());
+    assert_eq!(sys::FMT_Word, super::FMT_Word);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_HexWord() {
-    assert_eq!(sys::FMT_HexWord, super::FMT_HexWord.into());
+    assert_eq!(sys::FMT_HexWord, super::FMT_HexWord);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_Int() {
-    assert_eq!(sys::FMT_Int, super::FMT_Int.into());
+    assert_eq!(sys::FMT_Int, super::FMT_Int);
 }
 
 #[cfg(feature = "sys")]
@@ -176,27 +178,3 @@ const _: () = {
     ["Offset of field: StgWord512::h"][::core::mem::offset_of!(StgWord512, h) - 0usize];
     ["Offset of field: StgWord512::l"][::core::mem::offset_of!(StgWord512, l) - 32usize];
 };
-
-#[cfg(feature = "sys")]
-#[test]
-fn test_size_of_StgClosure_() {
-    assert_eq!(
-        size_of::<sys::StgClosure_>(),
-        size_of::<super::StgClosure_>()
-    )
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn test_size_of_StgThunk_() {
-    assert_eq!(size_of::<sys::StgThunk_>(), size_of::<super::StgThunk_>())
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn test_size_of_Capability_() {
-    assert_eq!(
-        size_of::<sys::Capability_>(),
-        size_of::<super::Capability_>()
-    )
-}

@@ -1,12 +1,11 @@
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
+use std::mem::transmute;
+
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
-use std::mem::transmute;
-#[cfg(feature = "tracing")]
-use tracing::instrument;
+
+#[cfg(feature = "sys")]
+use ghc_rts_sys as sys;
+
 #[cfg(test)]
 mod tests;
 
@@ -179,68 +178,4 @@ pub(crate) type StgFunPtr = ::core::option::Option<
 >;
 pub(crate) type StgFun = ::core::option::Option<unsafe extern "C" fn() -> StgFunPtr>;
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct StgClosure_ {
-    _unused: [u8; 0],
-}
-
-#[cfg(feature = "sys")]
-impl From<StgClosure_> for sys::StgClosure_ {
-    fn from(x: StgClosure_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for StgClosure_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgClosure_ {
-            _unused: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct StgThunk_ {
-    _unused: [u8; 0],
-}
-
-#[cfg(feature = "sys")]
-impl From<StgThunk_> for sys::StgThunk_ {
-    fn from(x: StgThunk_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for StgThunk_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgThunk_ {
-            _unused: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct Capability_ {
-    _unused: [u8; 0],
-}
-
-#[cfg(feature = "sys")]
-impl From<Capability_> for sys::Capability_ {
-    fn from(x: Capability_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for Capability_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        Capability_ {
-            _unused: Arbitrary::arbitrary(g),
-        }
-    }
-}
+// TODO: Add forward declarations, StgClosure_, StgThunk_, Capability_ for the unregisterised backend.
