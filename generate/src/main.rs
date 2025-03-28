@@ -243,7 +243,7 @@ fn transform_const(
         #[cfg(feature = "sys")]
         #[test]
         fn #test_eq() {
-            assert_eq!(sys::#ident, super::#ident.into());
+            assert_eq!(sys::#ident, super::#ident);
         }
     }));
 }
