@@ -143,19 +143,7 @@
         };
 
         packages = {
-          # XXX Note that the cargo workspace must define `workspace.members` using wildcards,
-          # otherwise, omitting a crate (like we do below) will result in errors since
-          # cargo won't be able to find the sources for all members.
           ghc-rts-sys = craneBuildPackage "ghc-rts-sys" { };
-
-          # XXX  crane.buildPackage (
-          #   individualCrateArgs
-          #   // {
-          #     pname = "ghc-rts-sys";
-          #     cargoExtraArgs = "-p ghc-rts-sys";
-          #     src = filesetForCrate ./ghc-rts-sys;
-          #   }
-          # );
         };
 
         devShells.default = crane.devShell {
