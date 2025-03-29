@@ -29,8 +29,16 @@ fn main() {
     // Create directories, one for each module, in the destination dir.
     for_each_rs(&src_dir, &|path| {
         eprintln!("Processing {}", path.display());
-        let main_rs = dst_dir.join(path.strip_prefix(&src_dir).unwrap());
-        let mod_dir = main_rs.with_extension("");
+        let mod_rs = dst_dir.join(path.strip_prefix(&src_dir).unwrap());
+        let mod_dir = mod_rs.with_extension("");
+        let tests_rs = mod_dir.join("tests.rs");
+        let mod_exists = mod_rs.exists();
+        let tests_exists = tests_rs.exists();
+
+        if mod_exists && tests_exists {
+            eprintln!("  * Skipping");
+            return Ok(());
+        }
 
         let code = fs::read_to_string(path).unwrap();
         let Transformed {
@@ -40,7 +48,15 @@ fn main() {
 
         fs::create_dir_all(&mod_dir)?;
 
-        for (file, syn_file) in [(mod_dir.join("tests.rs"), tests_file), (main_rs, main_file)] {
+        for (file, exists, syn_file) in [
+            (tests_rs, tests_exists, tests_file),
+            (mod_rs, mod_exists, main_file),
+        ] {
+            if exists {
+                continue;
+            }
+            eprintln!("  * Writing {}", file.display());
+
             fs::write(
                 &file,
                 add_blank_lines(prettyplease::unparse(&syn_file)).as_bytes(),
