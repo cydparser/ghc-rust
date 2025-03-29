@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[quickcheck]
@@ -23,7 +23,7 @@ fn test___hscore_get_saved_termios() {
 #[ignore]
 fn test___hscore_set_saved_termios() {
     let fd = Default::default();
-    let ts = Default::default();
+    let mut ts = Default::default();
     unsafe { super::__hscore_set_saved_termios(fd, &mut ts) };
     todo!("assert")
 }

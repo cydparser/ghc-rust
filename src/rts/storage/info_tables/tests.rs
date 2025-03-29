@@ -1,60 +1,60 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__HNF() {
-    assert_eq!(sys::_HNF, super::_HNF.into());
+    assert_eq!(sys::_HNF, super::_HNF);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__BTM() {
-    assert_eq!(sys::_BTM, super::_BTM.into());
+    assert_eq!(sys::_BTM, super::_BTM);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__NS() {
-    assert_eq!(sys::_NS, super::_NS.into());
+    assert_eq!(sys::_NS, super::_NS);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__THU() {
-    assert_eq!(sys::_THU, super::_THU.into());
+    assert_eq!(sys::_THU, super::_THU);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__MUT() {
-    assert_eq!(sys::_MUT, super::_MUT.into());
+    assert_eq!(sys::_MUT, super::_MUT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__UPT() {
-    assert_eq!(sys::_UPT, super::_UPT.into());
+    assert_eq!(sys::_UPT, super::_UPT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__SRT() {
-    assert_eq!(sys::_SRT, super::_SRT.into());
+    assert_eq!(sys::_SRT, super::_SRT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__IND() {
-    assert_eq!(sys::_IND, super::_IND.into());
+    assert_eq!(sys::_IND, super::_IND);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__FRM() {
-    assert_eq!(sys::_FRM, super::_FRM.into());
+    assert_eq!(sys::_FRM, super::_FRM);
 }
 
 #[cfg(feature = "sys")]

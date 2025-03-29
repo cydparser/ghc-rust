@@ -40,9 +40,9 @@ impl Arbitrary for EventLogWriter {
     }
 }
 
-static FileEventLogWriter: EventLogWriter = sys::FileEventLogWriter;
+static FileEventLogWriter: EventLogWriter = unsafe { sys::FileEventLogWriter };
 
-static NullEventLogWriter: EventLogWriter = sys::NullEventLogWriter;
+static NullEventLogWriter: EventLogWriter = unsafe { sys::NullEventLogWriter };
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -60,17 +60,17 @@ pub(crate) unsafe fn eventLogStatus() -> EventLogStatus {
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn startEventLogging(writer: *const EventLogWriter) -> bool {
-    unsafe { transmute(sys::startEventLogging(&writer.into())) }
+    unsafe { transmute(sys::startEventLogging(writer)) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn endEventLogging() {
-    unsafe { transmute(sys::endEventLogging()) }
+    unsafe { sys::endEventLogging() }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn flushEventLog(cap: *mut *mut Capability) {
-    unsafe { transmute(sys::flushEventLog(&mut &mut cap.into())) }
+    unsafe { sys::flushEventLog(cap) }
 }

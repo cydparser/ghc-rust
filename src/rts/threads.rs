@@ -14,7 +14,7 @@ mod tests;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn createThread(cap: *mut Capability, stack_size: W_) -> *mut StgTSO {
-    unsafe { transmute(sys::createThread(&mut cap.into(), stack_size.into())) }
+    unsafe { transmute(sys::createThread(cap, stack_size)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -23,13 +23,7 @@ pub(crate) unsafe fn scheduleWaitThread(
     ret: *mut HaskellObj,
     cap: *mut *mut Capability,
 ) {
-    unsafe {
-        transmute(sys::scheduleWaitThread(
-            &mut tso.into(),
-            &mut ret.into(),
-            &mut &mut cap.into(),
-        ))
-    }
+    unsafe { sys::scheduleWaitThread(tso, ret, cap) }
 }
 
 #[unsafe(no_mangle)]
@@ -39,13 +33,7 @@ pub unsafe extern "C" fn createGenThread(
     stack_size: W_,
     closure: *mut StgClosure,
 ) -> *mut StgTSO {
-    unsafe {
-        transmute(sys::createGenThread(
-            &mut cap.into(),
-            stack_size.into(),
-            &mut closure.into(),
-        ))
-    }
+    unsafe { transmute(sys::createGenThread(cap, stack_size, closure)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -54,13 +42,7 @@ pub(crate) unsafe fn createIOThread(
     stack_size: W_,
     closure: *mut StgClosure,
 ) -> *mut StgTSO {
-    unsafe {
-        transmute(sys::createIOThread(
-            &mut cap.into(),
-            stack_size.into(),
-            &mut closure.into(),
-        ))
-    }
+    unsafe { transmute(sys::createIOThread(cap, stack_size, closure)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -69,13 +51,7 @@ pub(crate) unsafe fn createStrictIOThread(
     stack_size: W_,
     closure: *mut StgClosure,
 ) -> *mut StgTSO {
-    unsafe {
-        transmute(sys::createStrictIOThread(
-            &mut cap.into(),
-            stack_size.into(),
-            &mut closure.into(),
-        ))
-    }
+    unsafe { transmute(sys::createStrictIOThread(cap, stack_size, closure)) }
 }
 
 #[unsafe(no_mangle)]
@@ -84,55 +60,55 @@ pub unsafe extern "C" fn suspendThread(
     arg1: *mut StgRegTable,
     interruptible: bool,
 ) -> *mut ::core::ffi::c_void {
-    unsafe { transmute(sys::suspendThread(&mut arg1.into(), interruptible.into())) }
+    unsafe { transmute(sys::suspendThread(arg1, interruptible)) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn resumeThread(arg1: *mut ::core::ffi::c_void) -> *mut StgRegTable {
-    unsafe { transmute(sys::resumeThread(&mut arg1.into())) }
+    unsafe { transmute(sys::resumeThread(arg1)) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn eq_thread(tso1: StgPtr, tso2: StgPtr) -> bool {
-    unsafe { transmute(sys::eq_thread(tso1.into(), tso2.into())) }
+    unsafe { transmute(sys::eq_thread(tso1, tso2)) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn cmp_thread(tso1: StgPtr, tso2: StgPtr) -> ::core::ffi::c_int {
-    unsafe { transmute(sys::cmp_thread(tso1.into(), tso2.into())) }
+    unsafe { transmute(sys::cmp_thread(tso1, tso2)) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn rts_getThreadId(tso: StgPtr) -> StgThreadID {
-    unsafe { transmute(sys::rts_getThreadId(tso.into())) }
+    unsafe { transmute(sys::rts_getThreadId(tso)) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn rts_enableThreadAllocationLimit(tso: StgPtr) {
-    unsafe { transmute(sys::rts_enableThreadAllocationLimit(tso.into())) }
+    unsafe { sys::rts_enableThreadAllocationLimit(tso) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn rts_disableThreadAllocationLimit(tso: StgPtr) {
-    unsafe { transmute(sys::rts_disableThreadAllocationLimit(tso.into())) }
+    unsafe { sys::rts_disableThreadAllocationLimit(tso) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn listThreads(cap: *mut Capability) -> *mut _StgMutArrPtrs {
-    unsafe { transmute(sys::listThreads(&mut cap.into())) }
+    unsafe { transmute(sys::listThreads(cap)) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn forkProcess(entry: *mut HsStablePtr) -> pid_t {
-    unsafe { transmute(sys::forkProcess(&mut entry.into())) }
+    unsafe { transmute(sys::forkProcess(entry)) }
 }
 
 #[unsafe(no_mangle)]
@@ -142,16 +118,16 @@ pub unsafe extern "C" fn rtsSupportsBoundThreads() -> HsBool {
 }
 
 #[unsafe(no_mangle)]
-pub static mut n_capabilities: ::core::ffi::c_uint = sys::n_capabilities;
+pub static mut n_capabilities: ::core::ffi::c_uint = unsafe { sys::n_capabilities };
 
 #[unsafe(no_mangle)]
-pub static mut enabled_capabilities: u32 = sys::enabled_capabilities;
+pub static mut enabled_capabilities: u32 = unsafe { sys::enabled_capabilities };
 
 #[unsafe(no_mangle)]
-pub static mut MainCapability: Capability = sys::MainCapability;
+pub static mut MainCapability: Capability = unsafe { sys::MainCapability };
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn setNumCapabilities(new_: u32) {
-    unsafe { transmute(sys::setNumCapabilities(new_.into())) }
+    unsafe { sys::setNumCapabilities(new_) }
 }

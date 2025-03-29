@@ -1,153 +1,144 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_NO_GC_STATS() {
-    assert_eq!(sys::NO_GC_STATS, super::NO_GC_STATS.into());
+    assert_eq!(sys::NO_GC_STATS, super::NO_GC_STATS);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_COLLECT_GC_STATS() {
-    assert_eq!(sys::COLLECT_GC_STATS, super::COLLECT_GC_STATS.into());
+    assert_eq!(sys::COLLECT_GC_STATS, super::COLLECT_GC_STATS);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_ONELINE_GC_STATS() {
-    assert_eq!(sys::ONELINE_GC_STATS, super::ONELINE_GC_STATS.into());
+    assert_eq!(sys::ONELINE_GC_STATS, super::ONELINE_GC_STATS);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_SUMMARY_GC_STATS() {
-    assert_eq!(sys::SUMMARY_GC_STATS, super::SUMMARY_GC_STATS.into());
+    assert_eq!(sys::SUMMARY_GC_STATS, super::SUMMARY_GC_STATS);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_VERBOSE_GC_STATS() {
-    assert_eq!(sys::VERBOSE_GC_STATS, super::VERBOSE_GC_STATS.into());
+    assert_eq!(sys::VERBOSE_GC_STATS, super::VERBOSE_GC_STATS);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_COST_CENTRES_NONE() {
-    assert_eq!(sys::COST_CENTRES_NONE, super::COST_CENTRES_NONE.into());
+    assert_eq!(sys::COST_CENTRES_NONE, super::COST_CENTRES_NONE);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_COST_CENTRES_SUMMARY() {
-    assert_eq!(
-        sys::COST_CENTRES_SUMMARY,
-        super::COST_CENTRES_SUMMARY.into()
-    );
+    assert_eq!(sys::COST_CENTRES_SUMMARY, super::COST_CENTRES_SUMMARY);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_COST_CENTRES_VERBOSE() {
-    assert_eq!(
-        sys::COST_CENTRES_VERBOSE,
-        super::COST_CENTRES_VERBOSE.into()
-    );
+    assert_eq!(sys::COST_CENTRES_VERBOSE, super::COST_CENTRES_VERBOSE);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_COST_CENTRES_ALL() {
-    assert_eq!(sys::COST_CENTRES_ALL, super::COST_CENTRES_ALL.into());
+    assert_eq!(sys::COST_CENTRES_ALL, super::COST_CENTRES_ALL);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_COST_CENTRES_JSON() {
-    assert_eq!(sys::COST_CENTRES_JSON, super::COST_CENTRES_JSON.into());
+    assert_eq!(sys::COST_CENTRES_JSON, super::COST_CENTRES_JSON);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_NO_HEAP_PROFILING() {
-    assert_eq!(sys::NO_HEAP_PROFILING, super::NO_HEAP_PROFILING.into());
+    assert_eq!(sys::NO_HEAP_PROFILING, super::NO_HEAP_PROFILING);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HEAP_BY_CCS() {
-    assert_eq!(sys::HEAP_BY_CCS, super::HEAP_BY_CCS.into());
+    assert_eq!(sys::HEAP_BY_CCS, super::HEAP_BY_CCS);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HEAP_BY_MOD() {
-    assert_eq!(sys::HEAP_BY_MOD, super::HEAP_BY_MOD.into());
+    assert_eq!(sys::HEAP_BY_MOD, super::HEAP_BY_MOD);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HEAP_BY_DESCR() {
-    assert_eq!(sys::HEAP_BY_DESCR, super::HEAP_BY_DESCR.into());
+    assert_eq!(sys::HEAP_BY_DESCR, super::HEAP_BY_DESCR);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HEAP_BY_TYPE() {
-    assert_eq!(sys::HEAP_BY_TYPE, super::HEAP_BY_TYPE.into());
+    assert_eq!(sys::HEAP_BY_TYPE, super::HEAP_BY_TYPE);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HEAP_BY_RETAINER() {
-    assert_eq!(sys::HEAP_BY_RETAINER, super::HEAP_BY_RETAINER.into());
+    assert_eq!(sys::HEAP_BY_RETAINER, super::HEAP_BY_RETAINER);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HEAP_BY_LDV() {
-    assert_eq!(sys::HEAP_BY_LDV, super::HEAP_BY_LDV.into());
+    assert_eq!(sys::HEAP_BY_LDV, super::HEAP_BY_LDV);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HEAP_BY_CLOSURE_TYPE() {
-    assert_eq!(
-        sys::HEAP_BY_CLOSURE_TYPE,
-        super::HEAP_BY_CLOSURE_TYPE.into()
-    );
+    assert_eq!(sys::HEAP_BY_CLOSURE_TYPE, super::HEAP_BY_CLOSURE_TYPE);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HEAP_BY_INFO_TABLE() {
-    assert_eq!(sys::HEAP_BY_INFO_TABLE, super::HEAP_BY_INFO_TABLE.into());
+    assert_eq!(sys::HEAP_BY_INFO_TABLE, super::HEAP_BY_INFO_TABLE);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HEAP_BY_ERA() {
-    assert_eq!(sys::HEAP_BY_ERA, super::HEAP_BY_ERA.into());
+    assert_eq!(sys::HEAP_BY_ERA, super::HEAP_BY_ERA);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_TRACE_NONE() {
-    assert_eq!(sys::TRACE_NONE, super::TRACE_NONE.into());
+    assert_eq!(sys::TRACE_NONE, super::TRACE_NONE);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_TRACE_EVENTLOG() {
-    assert_eq!(sys::TRACE_EVENTLOG, super::TRACE_EVENTLOG.into());
+    assert_eq!(sys::TRACE_EVENTLOG, super::TRACE_EVENTLOG);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_TRACE_STDERR() {
-    assert_eq!(sys::TRACE_STDERR, super::TRACE_STDERR.into());
+    assert_eq!(sys::TRACE_STDERR, super::TRACE_STDERR);
 }
 
 #[cfg(feature = "sys")]
@@ -155,83 +146,74 @@ fn test_eq_TRACE_STDERR() {
 fn test_eq_DEFAULT_LINKER_ALWAYS_PIC() {
     assert_eq!(
         sys::DEFAULT_LINKER_ALWAYS_PIC,
-        super::DEFAULT_LINKER_ALWAYS_PIC.into()
+        super::DEFAULT_LINKER_ALWAYS_PIC
     );
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_STATS_FILENAME_MAXLEN() {
-    assert_eq!(
-        sys::STATS_FILENAME_MAXLEN,
-        super::STATS_FILENAME_MAXLEN.into()
-    );
+    assert_eq!(sys::STATS_FILENAME_MAXLEN, super::STATS_FILENAME_MAXLEN);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_GR_FILENAME_FMT() {
-    assert_eq!(sys::GR_FILENAME_FMT, super::GR_FILENAME_FMT.into());
+    assert_eq!(sys::GR_FILENAME_FMT, super::GR_FILENAME_FMT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HP_FILENAME_FMT() {
-    assert_eq!(sys::HP_FILENAME_FMT, super::HP_FILENAME_FMT.into());
+    assert_eq!(sys::HP_FILENAME_FMT, super::HP_FILENAME_FMT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_LIFE_FILENAME_FMT() {
-    assert_eq!(sys::LIFE_FILENAME_FMT, super::LIFE_FILENAME_FMT.into());
+    assert_eq!(sys::LIFE_FILENAME_FMT, super::LIFE_FILENAME_FMT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_PROF_FILENAME_FMT() {
-    assert_eq!(sys::PROF_FILENAME_FMT, super::PROF_FILENAME_FMT.into());
+    assert_eq!(sys::PROF_FILENAME_FMT, super::PROF_FILENAME_FMT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_PROF_FILENAME_FMT_GUM() {
-    assert_eq!(
-        sys::PROF_FILENAME_FMT_GUM,
-        super::PROF_FILENAME_FMT_GUM.into()
-    );
+    assert_eq!(sys::PROF_FILENAME_FMT_GUM, super::PROF_FILENAME_FMT_GUM);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_QP_FILENAME_FMT() {
-    assert_eq!(sys::QP_FILENAME_FMT, super::QP_FILENAME_FMT.into());
+    assert_eq!(sys::QP_FILENAME_FMT, super::QP_FILENAME_FMT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_STAT_FILENAME_FMT() {
-    assert_eq!(sys::STAT_FILENAME_FMT, super::STAT_FILENAME_FMT.into());
+    assert_eq!(sys::STAT_FILENAME_FMT, super::STAT_FILENAME_FMT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_TICKY_FILENAME_FMT() {
-    assert_eq!(sys::TICKY_FILENAME_FMT, super::TICKY_FILENAME_FMT.into());
+    assert_eq!(sys::TICKY_FILENAME_FMT, super::TICKY_FILENAME_FMT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_TIME_FILENAME_FMT() {
-    assert_eq!(sys::TIME_FILENAME_FMT, super::TIME_FILENAME_FMT.into());
+    assert_eq!(sys::TIME_FILENAME_FMT, super::TIME_FILENAME_FMT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_TIME_FILENAME_FMT_GUM() {
-    assert_eq!(
-        sys::TIME_FILENAME_FMT_GUM,
-        super::TIME_FILENAME_FMT_GUM.into()
-    );
+    assert_eq!(sys::TIME_FILENAME_FMT_GUM, super::TIME_FILENAME_FMT_GUM);
 }
 
 #[cfg(feature = "sys")]

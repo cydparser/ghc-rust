@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[test]
 #[ignore]
@@ -77,7 +77,7 @@ fn test_getMBlocksOnNode() {
 #[test]
 #[ignore]
 fn test_freeMBlocks() {
-    let addr = Default::default();
+    let mut addr = Default::default();
     let n = Default::default();
     unsafe { super::freeMBlocks(&mut addr, n) };
     todo!("assert")
@@ -108,7 +108,7 @@ fn equivalent_getFirstMBlock(state: ::core::ffi::c_void) -> bool {
 #[test]
 #[ignore]
 fn test_getFirstMBlock() {
-    let state = Default::default();
+    let mut state = Default::default();
     unsafe { super::getFirstMBlock(&mut &mut state) };
     todo!("assert")
 }
@@ -129,8 +129,8 @@ fn equivalent_getNextMBlock(state: ::core::ffi::c_void, mblock: ::core::ffi::c_v
 #[test]
 #[ignore]
 fn test_getNextMBlock() {
-    let state = Default::default();
-    let mblock = Default::default();
+    let mut state = Default::default();
+    let mut mblock = Default::default();
     unsafe { super::getNextMBlock(&mut &mut state, &mut mblock) };
     todo!("assert")
 }

@@ -122,13 +122,13 @@ pub type LibdwSession = LibdwSession_;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn backtraceFree(bt: *mut Backtrace) {
-    unsafe { transmute(sys::backtraceFree(&mut bt.into())) }
+    unsafe { sys::backtraceFree(bt) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn libdwGetBacktrace(session: *mut LibdwSession) -> *mut Backtrace {
-    unsafe { transmute(sys::libdwGetBacktrace(&mut session.into())) }
+    unsafe { transmute(sys::libdwGetBacktrace(session)) }
 }
 
 #[unsafe(no_mangle)]
@@ -138,13 +138,7 @@ pub unsafe extern "C" fn libdwLookupLocation(
     loc: *mut Location,
     pc: StgPtr,
 ) -> ::core::ffi::c_int {
-    unsafe {
-        transmute(sys::libdwLookupLocation(
-            &mut session.into(),
-            &mut loc.into(),
-            pc.into(),
-        ))
-    }
+    unsafe { transmute(sys::libdwLookupLocation(session, loc, pc)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -153,11 +147,5 @@ pub(crate) unsafe fn libdwPrintBacktrace(
     file: *mut FILE,
     bt: *mut Backtrace,
 ) {
-    unsafe {
-        transmute(sys::libdwPrintBacktrace(
-            &mut session.into(),
-            &mut file.into(),
-            &mut bt.into(),
-        ))
-    }
+    unsafe { sys::libdwPrintBacktrace(session, file, bt) }
 }

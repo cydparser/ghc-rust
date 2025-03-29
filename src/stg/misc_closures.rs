@@ -1,86 +1,98 @@
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
+use std::mem::transmute;
+
 use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
-use std::mem::transmute;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
+
+use crate::rts::types::StgInfoTable;
+use crate::stg::types::{StgFunPtr, StgInt, StgPtr, StgWord, StgWord64};
+#[cfg(feature = "sys")]
+use ghc_rts_sys as sys;
+
 #[cfg(test)]
 mod tests;
 
 #[unsafe(no_mangle)]
-pub static stg_upd_frame_info: StgInfoTable = sys::stg_upd_frame_info;
+pub static stg_upd_frame_info: StgInfoTable = unsafe { transmute(sys::stg_upd_frame_info) };
 
 #[unsafe(no_mangle)]
-pub static stg_bh_upd_frame_info: StgInfoTable = sys::stg_bh_upd_frame_info;
+pub static stg_bh_upd_frame_info: StgInfoTable = unsafe { sys::stg_bh_upd_frame_info };
 
-static stg_marked_upd_frame_info: StgInfoTable = sys::stg_marked_upd_frame_info;
+static stg_marked_upd_frame_info: StgInfoTable = unsafe { sys::stg_marked_upd_frame_info };
 
-static stg_noupd_frame_info: StgInfoTable = sys::stg_noupd_frame_info;
+static stg_noupd_frame_info: StgInfoTable = unsafe { sys::stg_noupd_frame_info };
 
-static stg_orig_thunk_info_frame_info: StgInfoTable = sys::stg_orig_thunk_info_frame_info;
-
-#[unsafe(no_mangle)]
-pub static stg_catch_frame_info: StgInfoTable = sys::stg_catch_frame_info;
+static stg_orig_thunk_info_frame_info: StgInfoTable =
+    unsafe { sys::stg_orig_thunk_info_frame_info };
 
 #[unsafe(no_mangle)]
-pub static stg_catch_retry_frame_info: StgInfoTable = sys::stg_catch_retry_frame_info;
+pub static stg_catch_frame_info: StgInfoTable = unsafe { sys::stg_catch_frame_info };
 
 #[unsafe(no_mangle)]
-pub static stg_atomically_frame_info: StgInfoTable = sys::stg_atomically_frame_info;
-
-static stg_atomically_waiting_frame_info: StgInfoTable = sys::stg_atomically_waiting_frame_info;
+pub static stg_catch_retry_frame_info: StgInfoTable = unsafe { sys::stg_catch_retry_frame_info };
 
 #[unsafe(no_mangle)]
-pub static stg_catch_stm_frame_info: StgInfoTable = sys::stg_catch_stm_frame_info;
+pub static stg_atomically_frame_info: StgInfoTable = unsafe { sys::stg_atomically_frame_info };
+
+static stg_atomically_waiting_frame_info: StgInfoTable =
+    unsafe { sys::stg_atomically_waiting_frame_info };
+
+#[unsafe(no_mangle)]
+pub static stg_catch_stm_frame_info: StgInfoTable = unsafe { sys::stg_catch_stm_frame_info };
 
 static stg_unmaskAsyncExceptionszh_ret_info: StgInfoTable =
-    sys::stg_unmaskAsyncExceptionszh_ret_info;
+    unsafe { sys::stg_unmaskAsyncExceptionszh_ret_info };
 
-static stg_maskUninterruptiblezh_ret_info: StgInfoTable = sys::stg_maskUninterruptiblezh_ret_info;
+static stg_maskUninterruptiblezh_ret_info: StgInfoTable =
+    unsafe { sys::stg_maskUninterruptiblezh_ret_info };
 
-static stg_maskAsyncExceptionszh_ret_info: StgInfoTable = sys::stg_maskAsyncExceptionszh_ret_info;
-
-#[unsafe(no_mangle)]
-pub static stg_stack_underflow_frame_d_info: StgInfoTable = sys::stg_stack_underflow_frame_d_info;
-
-static stg_stack_underflow_frame_v16_info: StgInfoTable = sys::stg_stack_underflow_frame_v16_info;
-
-static stg_stack_underflow_frame_v32_info: StgInfoTable = sys::stg_stack_underflow_frame_v32_info;
-
-static stg_stack_underflow_frame_v64_info: StgInfoTable = sys::stg_stack_underflow_frame_v64_info;
-
-static stg_keepAlive_frame_info: StgInfoTable = sys::stg_keepAlive_frame_info;
+static stg_maskAsyncExceptionszh_ret_info: StgInfoTable =
+    unsafe { sys::stg_maskAsyncExceptionszh_ret_info };
 
 #[unsafe(no_mangle)]
-pub static stg_restore_cccs_d_info: StgInfoTable = sys::stg_restore_cccs_d_info;
+pub static stg_stack_underflow_frame_d_info: StgInfoTable =
+    unsafe { sys::stg_stack_underflow_frame_d_info };
+
+static stg_stack_underflow_frame_v16_info: StgInfoTable =
+    unsafe { sys::stg_stack_underflow_frame_v16_info };
+
+static stg_stack_underflow_frame_v32_info: StgInfoTable =
+    unsafe { sys::stg_stack_underflow_frame_v32_info };
+
+static stg_stack_underflow_frame_v64_info: StgInfoTable =
+    unsafe { sys::stg_stack_underflow_frame_v64_info };
+
+static stg_keepAlive_frame_info: StgInfoTable = unsafe { sys::stg_keepAlive_frame_info };
 
 #[unsafe(no_mangle)]
-pub static stg_restore_cccs_v16_info: StgInfoTable = sys::stg_restore_cccs_v16_info;
+pub static stg_restore_cccs_d_info: StgInfoTable = unsafe { sys::stg_restore_cccs_d_info };
 
 #[unsafe(no_mangle)]
-pub static stg_restore_cccs_v32_info: StgInfoTable = sys::stg_restore_cccs_v32_info;
+pub static stg_restore_cccs_v16_info: StgInfoTable = unsafe { sys::stg_restore_cccs_v16_info };
 
 #[unsafe(no_mangle)]
-pub static stg_restore_cccs_v64_info: StgInfoTable = sys::stg_restore_cccs_v64_info;
+pub static stg_restore_cccs_v32_info: StgInfoTable = unsafe { sys::stg_restore_cccs_v32_info };
 
-static stg_restore_cccs_eval_info: StgInfoTable = sys::stg_restore_cccs_eval_info;
+#[unsafe(no_mangle)]
+pub static stg_restore_cccs_v64_info: StgInfoTable = unsafe { sys::stg_restore_cccs_v64_info };
 
-static stg_prompt_frame_info: StgInfoTable = sys::stg_prompt_frame_info;
+static stg_restore_cccs_eval_info: StgInfoTable = unsafe { sys::stg_restore_cccs_eval_info };
 
-static stg_ctoi_R1p_info: StgInfoTable = sys::stg_ctoi_R1p_info;
+static stg_prompt_frame_info: StgInfoTable = unsafe { sys::stg_prompt_frame_info };
 
-static stg_ctoi_R1n_info: StgInfoTable = sys::stg_ctoi_R1n_info;
+static stg_ctoi_R1p_info: StgInfoTable = unsafe { sys::stg_ctoi_R1p_info };
 
-static stg_ctoi_F1_info: StgInfoTable = sys::stg_ctoi_F1_info;
+static stg_ctoi_R1n_info: StgInfoTable = unsafe { sys::stg_ctoi_R1n_info };
 
-static stg_ctoi_D1_info: StgInfoTable = sys::stg_ctoi_D1_info;
+static stg_ctoi_F1_info: StgInfoTable = unsafe { sys::stg_ctoi_F1_info };
 
-static stg_ctoi_L1_info: StgInfoTable = sys::stg_ctoi_L1_info;
+static stg_ctoi_D1_info: StgInfoTable = unsafe { sys::stg_ctoi_D1_info };
 
-static stg_ctoi_V_info: StgInfoTable = sys::stg_ctoi_V_info;
+static stg_ctoi_L1_info: StgInfoTable = unsafe { sys::stg_ctoi_L1_info };
+
+static stg_ctoi_V_info: StgInfoTable = unsafe { sys::stg_ctoi_V_info };
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
@@ -88,457 +100,464 @@ pub unsafe extern "C" fn stg_ctoi_t() -> StgFunPtr {
     unsafe { transmute(sys::stg_ctoi_t()) }
 }
 
-static stg_ctoi_t0_info: StgInfoTable = sys::stg_ctoi_t0_info;
+static stg_ctoi_t0_info: StgInfoTable = unsafe { sys::stg_ctoi_t0_info };
 
-static stg_ctoi_t1_info: StgInfoTable = sys::stg_ctoi_t1_info;
+static stg_ctoi_t1_info: StgInfoTable = unsafe { sys::stg_ctoi_t1_info };
 
-static stg_ctoi_t2_info: StgInfoTable = sys::stg_ctoi_t2_info;
-
-#[unsafe(no_mangle)]
-pub static stg_ctoi_t3_info: StgInfoTable = sys::stg_ctoi_t3_info;
-
-static stg_ctoi_t4_info: StgInfoTable = sys::stg_ctoi_t4_info;
-
-static stg_ctoi_t5_info: StgInfoTable = sys::stg_ctoi_t5_info;
-
-static stg_ctoi_t6_info: StgInfoTable = sys::stg_ctoi_t6_info;
-
-static stg_ctoi_t7_info: StgInfoTable = sys::stg_ctoi_t7_info;
-
-static stg_ctoi_t8_info: StgInfoTable = sys::stg_ctoi_t8_info;
-
-static stg_ctoi_t9_info: StgInfoTable = sys::stg_ctoi_t9_info;
-
-static stg_ctoi_t10_info: StgInfoTable = sys::stg_ctoi_t10_info;
-
-static stg_ctoi_t11_info: StgInfoTable = sys::stg_ctoi_t11_info;
-
-static stg_ctoi_t12_info: StgInfoTable = sys::stg_ctoi_t12_info;
-
-static stg_ctoi_t13_info: StgInfoTable = sys::stg_ctoi_t13_info;
-
-static stg_ctoi_t14_info: StgInfoTable = sys::stg_ctoi_t14_info;
-
-static stg_ctoi_t15_info: StgInfoTable = sys::stg_ctoi_t15_info;
-
-static stg_ctoi_t16_info: StgInfoTable = sys::stg_ctoi_t16_info;
-
-static stg_ctoi_t17_info: StgInfoTable = sys::stg_ctoi_t17_info;
-
-static stg_ctoi_t18_info: StgInfoTable = sys::stg_ctoi_t18_info;
-
-static stg_ctoi_t19_info: StgInfoTable = sys::stg_ctoi_t19_info;
-
-static stg_ctoi_t20_info: StgInfoTable = sys::stg_ctoi_t20_info;
-
-static stg_ctoi_t21_info: StgInfoTable = sys::stg_ctoi_t21_info;
-
-static stg_ctoi_t22_info: StgInfoTable = sys::stg_ctoi_t22_info;
-
-static stg_ctoi_t23_info: StgInfoTable = sys::stg_ctoi_t23_info;
-
-static stg_ctoi_t24_info: StgInfoTable = sys::stg_ctoi_t24_info;
-
-static stg_ctoi_t25_info: StgInfoTable = sys::stg_ctoi_t25_info;
-
-static stg_ctoi_t26_info: StgInfoTable = sys::stg_ctoi_t26_info;
-
-static stg_ctoi_t27_info: StgInfoTable = sys::stg_ctoi_t27_info;
-
-static stg_ctoi_t28_info: StgInfoTable = sys::stg_ctoi_t28_info;
-
-static stg_ctoi_t29_info: StgInfoTable = sys::stg_ctoi_t29_info;
-
-static stg_ctoi_t30_info: StgInfoTable = sys::stg_ctoi_t30_info;
-
-static stg_ctoi_t31_info: StgInfoTable = sys::stg_ctoi_t31_info;
-
-static stg_ctoi_t32_info: StgInfoTable = sys::stg_ctoi_t32_info;
-
-static stg_ctoi_t33_info: StgInfoTable = sys::stg_ctoi_t33_info;
-
-static stg_ctoi_t34_info: StgInfoTable = sys::stg_ctoi_t34_info;
-
-static stg_ctoi_t35_info: StgInfoTable = sys::stg_ctoi_t35_info;
-
-static stg_ctoi_t36_info: StgInfoTable = sys::stg_ctoi_t36_info;
-
-static stg_ctoi_t37_info: StgInfoTable = sys::stg_ctoi_t37_info;
-
-static stg_ctoi_t38_info: StgInfoTable = sys::stg_ctoi_t38_info;
-
-static stg_ctoi_t39_info: StgInfoTable = sys::stg_ctoi_t39_info;
-
-static stg_ctoi_t40_info: StgInfoTable = sys::stg_ctoi_t40_info;
-
-static stg_ctoi_t41_info: StgInfoTable = sys::stg_ctoi_t41_info;
-
-static stg_ctoi_t42_info: StgInfoTable = sys::stg_ctoi_t42_info;
-
-static stg_ctoi_t43_info: StgInfoTable = sys::stg_ctoi_t43_info;
-
-static stg_ctoi_t44_info: StgInfoTable = sys::stg_ctoi_t44_info;
-
-static stg_ctoi_t45_info: StgInfoTable = sys::stg_ctoi_t45_info;
-
-static stg_ctoi_t46_info: StgInfoTable = sys::stg_ctoi_t46_info;
-
-static stg_ctoi_t47_info: StgInfoTable = sys::stg_ctoi_t47_info;
-
-static stg_ctoi_t48_info: StgInfoTable = sys::stg_ctoi_t48_info;
-
-static stg_ctoi_t49_info: StgInfoTable = sys::stg_ctoi_t49_info;
-
-static stg_ctoi_t50_info: StgInfoTable = sys::stg_ctoi_t50_info;
-
-static stg_ctoi_t51_info: StgInfoTable = sys::stg_ctoi_t51_info;
-
-static stg_ctoi_t52_info: StgInfoTable = sys::stg_ctoi_t52_info;
-
-static stg_ctoi_t53_info: StgInfoTable = sys::stg_ctoi_t53_info;
-
-static stg_ctoi_t54_info: StgInfoTable = sys::stg_ctoi_t54_info;
-
-static stg_ctoi_t55_info: StgInfoTable = sys::stg_ctoi_t55_info;
-
-static stg_ctoi_t56_info: StgInfoTable = sys::stg_ctoi_t56_info;
-
-static stg_ctoi_t57_info: StgInfoTable = sys::stg_ctoi_t57_info;
-
-static stg_ctoi_t58_info: StgInfoTable = sys::stg_ctoi_t58_info;
-
-static stg_ctoi_t59_info: StgInfoTable = sys::stg_ctoi_t59_info;
-
-static stg_ctoi_t60_info: StgInfoTable = sys::stg_ctoi_t60_info;
-
-static stg_ctoi_t61_info: StgInfoTable = sys::stg_ctoi_t61_info;
-
-static stg_ctoi_t62_info: StgInfoTable = sys::stg_ctoi_t62_info;
+static stg_ctoi_t2_info: StgInfoTable = unsafe { sys::stg_ctoi_t2_info };
 
 #[unsafe(no_mangle)]
-pub static stg_primcall_info: StgInfoTable = sys::stg_primcall_info;
+pub static stg_ctoi_t3_info: StgInfoTable = unsafe { sys::stg_ctoi_t3_info };
 
-static stg_apply_interp_info: StgInfoTable = sys::stg_apply_interp_info;
+static stg_ctoi_t4_info: StgInfoTable = unsafe { sys::stg_ctoi_t4_info };
 
-static stg_dead_thread_info: StgInfoTable = sys::stg_dead_thread_info;
+static stg_ctoi_t5_info: StgInfoTable = unsafe { sys::stg_ctoi_t5_info };
 
-static stg_IND_info: StgInfoTable = sys::stg_IND_info;
+static stg_ctoi_t6_info: StgInfoTable = unsafe { sys::stg_ctoi_t6_info };
+
+static stg_ctoi_t7_info: StgInfoTable = unsafe { sys::stg_ctoi_t7_info };
+
+static stg_ctoi_t8_info: StgInfoTable = unsafe { sys::stg_ctoi_t8_info };
+
+static stg_ctoi_t9_info: StgInfoTable = unsafe { sys::stg_ctoi_t9_info };
+
+static stg_ctoi_t10_info: StgInfoTable = unsafe { sys::stg_ctoi_t10_info };
+
+static stg_ctoi_t11_info: StgInfoTable = unsafe { sys::stg_ctoi_t11_info };
+
+static stg_ctoi_t12_info: StgInfoTable = unsafe { sys::stg_ctoi_t12_info };
+
+static stg_ctoi_t13_info: StgInfoTable = unsafe { sys::stg_ctoi_t13_info };
+
+static stg_ctoi_t14_info: StgInfoTable = unsafe { sys::stg_ctoi_t14_info };
+
+static stg_ctoi_t15_info: StgInfoTable = unsafe { sys::stg_ctoi_t15_info };
+
+static stg_ctoi_t16_info: StgInfoTable = unsafe { sys::stg_ctoi_t16_info };
+
+static stg_ctoi_t17_info: StgInfoTable = unsafe { sys::stg_ctoi_t17_info };
+
+static stg_ctoi_t18_info: StgInfoTable = unsafe { sys::stg_ctoi_t18_info };
+
+static stg_ctoi_t19_info: StgInfoTable = unsafe { sys::stg_ctoi_t19_info };
+
+static stg_ctoi_t20_info: StgInfoTable = unsafe { sys::stg_ctoi_t20_info };
+
+static stg_ctoi_t21_info: StgInfoTable = unsafe { sys::stg_ctoi_t21_info };
+
+static stg_ctoi_t22_info: StgInfoTable = unsafe { sys::stg_ctoi_t22_info };
+
+static stg_ctoi_t23_info: StgInfoTable = unsafe { sys::stg_ctoi_t23_info };
+
+static stg_ctoi_t24_info: StgInfoTable = unsafe { sys::stg_ctoi_t24_info };
+
+static stg_ctoi_t25_info: StgInfoTable = unsafe { sys::stg_ctoi_t25_info };
+
+static stg_ctoi_t26_info: StgInfoTable = unsafe { sys::stg_ctoi_t26_info };
+
+static stg_ctoi_t27_info: StgInfoTable = unsafe { sys::stg_ctoi_t27_info };
+
+static stg_ctoi_t28_info: StgInfoTable = unsafe { sys::stg_ctoi_t28_info };
+
+static stg_ctoi_t29_info: StgInfoTable = unsafe { sys::stg_ctoi_t29_info };
+
+static stg_ctoi_t30_info: StgInfoTable = unsafe { sys::stg_ctoi_t30_info };
+
+static stg_ctoi_t31_info: StgInfoTable = unsafe { sys::stg_ctoi_t31_info };
+
+static stg_ctoi_t32_info: StgInfoTable = unsafe { sys::stg_ctoi_t32_info };
+
+static stg_ctoi_t33_info: StgInfoTable = unsafe { sys::stg_ctoi_t33_info };
+
+static stg_ctoi_t34_info: StgInfoTable = unsafe { sys::stg_ctoi_t34_info };
+
+static stg_ctoi_t35_info: StgInfoTable = unsafe { sys::stg_ctoi_t35_info };
+
+static stg_ctoi_t36_info: StgInfoTable = unsafe { sys::stg_ctoi_t36_info };
+
+static stg_ctoi_t37_info: StgInfoTable = unsafe { sys::stg_ctoi_t37_info };
+
+static stg_ctoi_t38_info: StgInfoTable = unsafe { sys::stg_ctoi_t38_info };
+
+static stg_ctoi_t39_info: StgInfoTable = unsafe { sys::stg_ctoi_t39_info };
+
+static stg_ctoi_t40_info: StgInfoTable = unsafe { sys::stg_ctoi_t40_info };
+
+static stg_ctoi_t41_info: StgInfoTable = unsafe { sys::stg_ctoi_t41_info };
+
+static stg_ctoi_t42_info: StgInfoTable = unsafe { sys::stg_ctoi_t42_info };
+
+static stg_ctoi_t43_info: StgInfoTable = unsafe { sys::stg_ctoi_t43_info };
+
+static stg_ctoi_t44_info: StgInfoTable = unsafe { sys::stg_ctoi_t44_info };
+
+static stg_ctoi_t45_info: StgInfoTable = unsafe { sys::stg_ctoi_t45_info };
+
+static stg_ctoi_t46_info: StgInfoTable = unsafe { sys::stg_ctoi_t46_info };
+
+static stg_ctoi_t47_info: StgInfoTable = unsafe { sys::stg_ctoi_t47_info };
+
+static stg_ctoi_t48_info: StgInfoTable = unsafe { sys::stg_ctoi_t48_info };
+
+static stg_ctoi_t49_info: StgInfoTable = unsafe { sys::stg_ctoi_t49_info };
+
+static stg_ctoi_t50_info: StgInfoTable = unsafe { sys::stg_ctoi_t50_info };
+
+static stg_ctoi_t51_info: StgInfoTable = unsafe { sys::stg_ctoi_t51_info };
+
+static stg_ctoi_t52_info: StgInfoTable = unsafe { sys::stg_ctoi_t52_info };
+
+static stg_ctoi_t53_info: StgInfoTable = unsafe { sys::stg_ctoi_t53_info };
+
+static stg_ctoi_t54_info: StgInfoTable = unsafe { sys::stg_ctoi_t54_info };
+
+static stg_ctoi_t55_info: StgInfoTable = unsafe { sys::stg_ctoi_t55_info };
+
+static stg_ctoi_t56_info: StgInfoTable = unsafe { sys::stg_ctoi_t56_info };
+
+static stg_ctoi_t57_info: StgInfoTable = unsafe { sys::stg_ctoi_t57_info };
+
+static stg_ctoi_t58_info: StgInfoTable = unsafe { sys::stg_ctoi_t58_info };
+
+static stg_ctoi_t59_info: StgInfoTable = unsafe { sys::stg_ctoi_t59_info };
+
+static stg_ctoi_t60_info: StgInfoTable = unsafe { sys::stg_ctoi_t60_info };
+
+static stg_ctoi_t61_info: StgInfoTable = unsafe { sys::stg_ctoi_t61_info };
+
+static stg_ctoi_t62_info: StgInfoTable = unsafe { sys::stg_ctoi_t62_info };
 
 #[unsafe(no_mangle)]
-pub static stg_IND_STATIC_info: StgInfoTable = sys::stg_IND_STATIC_info;
+pub static stg_primcall_info: StgInfoTable = unsafe { sys::stg_primcall_info };
 
-static stg_BLACKHOLE_info: StgInfoTable = sys::stg_BLACKHOLE_info;
+static stg_apply_interp_info: StgInfoTable = unsafe { sys::stg_apply_interp_info };
 
-static stg_CAF_BLACKHOLE_info: StgInfoTable = sys::stg_CAF_BLACKHOLE_info;
+static stg_dead_thread_info: StgInfoTable = unsafe { sys::stg_dead_thread_info };
 
-#[unsafe(no_mangle)]
-pub static __stg_EAGER_BLACKHOLE_info: StgInfoTable = sys::__stg_EAGER_BLACKHOLE_info;
-
-static stg_WHITEHOLE_info: StgInfoTable = sys::stg_WHITEHOLE_info;
-
-static stg_BLOCKING_QUEUE_CLEAN_info: StgInfoTable = sys::stg_BLOCKING_QUEUE_CLEAN_info;
-
-static stg_BLOCKING_QUEUE_DIRTY_info: StgInfoTable = sys::stg_BLOCKING_QUEUE_DIRTY_info;
+static stg_IND_info: StgInfoTable = unsafe { sys::stg_IND_info };
 
 #[unsafe(no_mangle)]
-pub static stg_BCO_info: StgFunInfoTable = sys::stg_BCO_info;
+pub static stg_IND_STATIC_info: StgInfoTable = unsafe { sys::stg_IND_STATIC_info };
 
-static stg_EVACUATED_info: StgInfoTable = sys::stg_EVACUATED_info;
+static stg_BLACKHOLE_info: StgInfoTable = unsafe { sys::stg_BLACKHOLE_info };
 
-static stg_WEAK_info: StgInfoTable = sys::stg_WEAK_info;
-
-static stg_DEAD_WEAK_info: StgInfoTable = sys::stg_DEAD_WEAK_info;
-
-static stg_C_FINALIZER_LIST_info: StgInfoTable = sys::stg_C_FINALIZER_LIST_info;
-
-static stg_STABLE_NAME_info: StgInfoTable = sys::stg_STABLE_NAME_info;
-
-static stg_MVAR_CLEAN_info: StgInfoTable = sys::stg_MVAR_CLEAN_info;
-
-static stg_MVAR_DIRTY_info: StgInfoTable = sys::stg_MVAR_DIRTY_info;
-
-static stg_TVAR_CLEAN_info: StgInfoTable = sys::stg_TVAR_CLEAN_info;
-
-static stg_TVAR_DIRTY_info: StgInfoTable = sys::stg_TVAR_DIRTY_info;
-
-static stg_TSO_info: StgInfoTable = sys::stg_TSO_info;
+static stg_CAF_BLACKHOLE_info: StgInfoTable = unsafe { sys::stg_CAF_BLACKHOLE_info };
 
 #[unsafe(no_mangle)]
-pub static stg_STACK_info: StgInfoTable = sys::stg_STACK_info;
+pub static __stg_EAGER_BLACKHOLE_info: StgInfoTable = unsafe { sys::__stg_EAGER_BLACKHOLE_info };
 
-static stg_RUBBISH_ENTRY_info: StgInfoTable = sys::stg_RUBBISH_ENTRY_info;
+static stg_WHITEHOLE_info: StgInfoTable = unsafe { sys::stg_WHITEHOLE_info };
+
+static stg_BLOCKING_QUEUE_CLEAN_info: StgInfoTable = unsafe { sys::stg_BLOCKING_QUEUE_CLEAN_info };
+
+static stg_BLOCKING_QUEUE_DIRTY_info: StgInfoTable = unsafe { sys::stg_BLOCKING_QUEUE_DIRTY_info };
 
 #[unsafe(no_mangle)]
-pub static stg_ARR_WORDS_info: StgInfoTable = sys::stg_ARR_WORDS_info;
+pub static stg_BCO_info: StgFunInfoTable = unsafe { sys::stg_BCO_info };
 
-static stg_MUT_ARR_WORDS_info: StgInfoTable = sys::stg_MUT_ARR_WORDS_info;
+static stg_EVACUATED_info: StgInfoTable = unsafe { sys::stg_EVACUATED_info };
 
-static stg_MUT_ARR_PTRS_CLEAN_info: StgInfoTable = sys::stg_MUT_ARR_PTRS_CLEAN_info;
+static stg_WEAK_info: StgInfoTable = unsafe { sys::stg_WEAK_info };
 
-static stg_MUT_ARR_PTRS_DIRTY_info: StgInfoTable = sys::stg_MUT_ARR_PTRS_DIRTY_info;
+static stg_DEAD_WEAK_info: StgInfoTable = unsafe { sys::stg_DEAD_WEAK_info };
+
+static stg_C_FINALIZER_LIST_info: StgInfoTable = unsafe { sys::stg_C_FINALIZER_LIST_info };
+
+static stg_STABLE_NAME_info: StgInfoTable = unsafe { sys::stg_STABLE_NAME_info };
+
+static stg_MVAR_CLEAN_info: StgInfoTable = unsafe { sys::stg_MVAR_CLEAN_info };
+
+static stg_MVAR_DIRTY_info: StgInfoTable = unsafe { sys::stg_MVAR_DIRTY_info };
+
+static stg_TVAR_CLEAN_info: StgInfoTable = unsafe { sys::stg_TVAR_CLEAN_info };
+
+static stg_TVAR_DIRTY_info: StgInfoTable = unsafe { sys::stg_TVAR_DIRTY_info };
+
+static stg_TSO_info: StgInfoTable = unsafe { sys::stg_TSO_info };
+
+#[unsafe(no_mangle)]
+pub static stg_STACK_info: StgInfoTable = unsafe { sys::stg_STACK_info };
+
+static stg_RUBBISH_ENTRY_info: StgInfoTable = unsafe { sys::stg_RUBBISH_ENTRY_info };
+
+#[unsafe(no_mangle)]
+pub static stg_ARR_WORDS_info: StgInfoTable = unsafe { sys::stg_ARR_WORDS_info };
+
+static stg_MUT_ARR_WORDS_info: StgInfoTable = unsafe { sys::stg_MUT_ARR_WORDS_info };
+
+static stg_MUT_ARR_PTRS_CLEAN_info: StgInfoTable = unsafe { sys::stg_MUT_ARR_PTRS_CLEAN_info };
+
+static stg_MUT_ARR_PTRS_DIRTY_info: StgInfoTable = unsafe { sys::stg_MUT_ARR_PTRS_DIRTY_info };
 
 #[unsafe(no_mangle)]
 pub static stg_MUT_ARR_PTRS_FROZEN_CLEAN_info: StgInfoTable =
-    sys::stg_MUT_ARR_PTRS_FROZEN_CLEAN_info;
+    unsafe { sys::stg_MUT_ARR_PTRS_FROZEN_CLEAN_info };
 
 #[unsafe(no_mangle)]
 pub static stg_MUT_ARR_PTRS_FROZEN_DIRTY_info: StgInfoTable =
-    sys::stg_MUT_ARR_PTRS_FROZEN_DIRTY_info;
+    unsafe { sys::stg_MUT_ARR_PTRS_FROZEN_DIRTY_info };
 
-static stg_SMALL_MUT_ARR_PTRS_CLEAN_info: StgInfoTable = sys::stg_SMALL_MUT_ARR_PTRS_CLEAN_info;
+static stg_SMALL_MUT_ARR_PTRS_CLEAN_info: StgInfoTable =
+    unsafe { sys::stg_SMALL_MUT_ARR_PTRS_CLEAN_info };
 
-static stg_SMALL_MUT_ARR_PTRS_DIRTY_info: StgInfoTable = sys::stg_SMALL_MUT_ARR_PTRS_DIRTY_info;
+static stg_SMALL_MUT_ARR_PTRS_DIRTY_info: StgInfoTable =
+    unsafe { sys::stg_SMALL_MUT_ARR_PTRS_DIRTY_info };
 
 static stg_SMALL_MUT_ARR_PTRS_FROZEN_CLEAN_info: StgInfoTable =
-    sys::stg_SMALL_MUT_ARR_PTRS_FROZEN_CLEAN_info;
+    unsafe { sys::stg_SMALL_MUT_ARR_PTRS_FROZEN_CLEAN_info };
 
 static stg_SMALL_MUT_ARR_PTRS_FROZEN_DIRTY_info: StgInfoTable =
-    sys::stg_SMALL_MUT_ARR_PTRS_FROZEN_DIRTY_info;
+    unsafe { sys::stg_SMALL_MUT_ARR_PTRS_FROZEN_DIRTY_info };
 
-static stg_MUT_VAR_CLEAN_info: StgInfoTable = sys::stg_MUT_VAR_CLEAN_info;
+static stg_MUT_VAR_CLEAN_info: StgInfoTable = unsafe { sys::stg_MUT_VAR_CLEAN_info };
 
-static stg_MUT_VAR_DIRTY_info: StgInfoTable = sys::stg_MUT_VAR_DIRTY_info;
+static stg_MUT_VAR_DIRTY_info: StgInfoTable = unsafe { sys::stg_MUT_VAR_DIRTY_info };
 
-static stg_END_TSO_QUEUE_info: StgInfoTable = sys::stg_END_TSO_QUEUE_info;
+static stg_END_TSO_QUEUE_info: StgInfoTable = unsafe { sys::stg_END_TSO_QUEUE_info };
 
-static stg_GCD_CAF_info: StgInfoTable = sys::stg_GCD_CAF_info;
+static stg_GCD_CAF_info: StgInfoTable = unsafe { sys::stg_GCD_CAF_info };
 
-static stg_STM_AWOKEN_info: StgInfoTable = sys::stg_STM_AWOKEN_info;
+static stg_STM_AWOKEN_info: StgInfoTable = unsafe { sys::stg_STM_AWOKEN_info };
 
-static stg_MSG_TRY_WAKEUP_info: StgInfoTable = sys::stg_MSG_TRY_WAKEUP_info;
+static stg_MSG_TRY_WAKEUP_info: StgInfoTable = unsafe { sys::stg_MSG_TRY_WAKEUP_info };
 
-static stg_MSG_THROWTO_info: StgInfoTable = sys::stg_MSG_THROWTO_info;
+static stg_MSG_THROWTO_info: StgInfoTable = unsafe { sys::stg_MSG_THROWTO_info };
 
-static stg_MSG_BLACKHOLE_info: StgInfoTable = sys::stg_MSG_BLACKHOLE_info;
+static stg_MSG_BLACKHOLE_info: StgInfoTable = unsafe { sys::stg_MSG_BLACKHOLE_info };
 
-static stg_MSG_CLONE_STACK_info: StgInfoTable = sys::stg_MSG_CLONE_STACK_info;
+static stg_MSG_CLONE_STACK_info: StgInfoTable = unsafe { sys::stg_MSG_CLONE_STACK_info };
 
-static stg_MSG_NULL_info: StgInfoTable = sys::stg_MSG_NULL_info;
+static stg_MSG_NULL_info: StgInfoTable = unsafe { sys::stg_MSG_NULL_info };
 
-static stg_MVAR_TSO_QUEUE_info: StgInfoTable = sys::stg_MVAR_TSO_QUEUE_info;
+static stg_MVAR_TSO_QUEUE_info: StgInfoTable = unsafe { sys::stg_MVAR_TSO_QUEUE_info };
 
-static stg_catch_info: StgInfoTable = sys::stg_catch_info;
-
-#[unsafe(no_mangle)]
-pub static stg_PAP_info: StgInfoTable = sys::stg_PAP_info;
-
-static stg_AP_info: StgInfoTable = sys::stg_AP_info;
-
-static stg_AP_NOUPD_info: StgInfoTable = sys::stg_AP_NOUPD_info;
-
-static stg_AP_STACK_info: StgInfoTable = sys::stg_AP_STACK_info;
-
-static stg_AP_STACK_NOUPD_info: StgInfoTable = sys::stg_AP_STACK_NOUPD_info;
-
-static stg_CONTINUATION_info: StgInfoTable = sys::stg_CONTINUATION_info;
-
-static stg_PROMPT_TAG_info: StgInfoTable = sys::stg_PROMPT_TAG_info;
-
-static stg_dummy_ret_info: StgInfoTable = sys::stg_dummy_ret_info;
-
-static stg_raise_info: StgInfoTable = sys::stg_raise_info;
-
-static stg_raise_ret_info: StgInfoTable = sys::stg_raise_ret_info;
-
-static stg_atomically_info: StgInfoTable = sys::stg_atomically_info;
-
-static stg_TVAR_WATCH_QUEUE_info: StgInfoTable = sys::stg_TVAR_WATCH_QUEUE_info;
-
-static stg_TREC_CHUNK_info: StgInfoTable = sys::stg_TREC_CHUNK_info;
-
-static stg_TREC_HEADER_info: StgInfoTable = sys::stg_TREC_HEADER_info;
-
-static stg_END_STM_WATCH_QUEUE_info: StgInfoTable = sys::stg_END_STM_WATCH_QUEUE_info;
-
-static stg_END_STM_CHUNK_LIST_info: StgInfoTable = sys::stg_END_STM_CHUNK_LIST_info;
-
-static stg_NO_TREC_info: StgInfoTable = sys::stg_NO_TREC_info;
-
-static stg_COMPACT_NFDATA_CLEAN_info: StgInfoTable = sys::stg_COMPACT_NFDATA_CLEAN_info;
-
-static stg_COMPACT_NFDATA_DIRTY_info: StgInfoTable = sys::stg_COMPACT_NFDATA_DIRTY_info;
+static stg_catch_info: StgInfoTable = unsafe { sys::stg_catch_info };
 
 #[unsafe(no_mangle)]
-pub static stg_SRT_1_info: StgInfoTable = sys::stg_SRT_1_info;
+pub static stg_PAP_info: StgInfoTable = unsafe { sys::stg_PAP_info };
 
-static stg_SRT_2_info: StgInfoTable = sys::stg_SRT_2_info;
+static stg_AP_info: StgInfoTable = unsafe { sys::stg_AP_info };
 
-static stg_SRT_3_info: StgInfoTable = sys::stg_SRT_3_info;
+static stg_AP_NOUPD_info: StgInfoTable = unsafe { sys::stg_AP_NOUPD_info };
 
-static stg_SRT_4_info: StgInfoTable = sys::stg_SRT_4_info;
+static stg_AP_STACK_info: StgInfoTable = unsafe { sys::stg_AP_STACK_info };
 
-static stg_SRT_5_info: StgInfoTable = sys::stg_SRT_5_info;
+static stg_AP_STACK_NOUPD_info: StgInfoTable = unsafe { sys::stg_AP_STACK_NOUPD_info };
 
-static stg_SRT_6_info: StgInfoTable = sys::stg_SRT_6_info;
+static stg_CONTINUATION_info: StgInfoTable = unsafe { sys::stg_CONTINUATION_info };
 
-static stg_SRT_7_info: StgInfoTable = sys::stg_SRT_7_info;
+static stg_PROMPT_TAG_info: StgInfoTable = unsafe { sys::stg_PROMPT_TAG_info };
 
-static stg_SRT_8_info: StgInfoTable = sys::stg_SRT_8_info;
+static stg_dummy_ret_info: StgInfoTable = unsafe { sys::stg_dummy_ret_info };
 
-static stg_SRT_9_info: StgInfoTable = sys::stg_SRT_9_info;
+static stg_raise_info: StgInfoTable = unsafe { sys::stg_raise_info };
 
-static stg_SRT_10_info: StgInfoTable = sys::stg_SRT_10_info;
+static stg_raise_ret_info: StgInfoTable = unsafe { sys::stg_raise_ret_info };
 
-static stg_SRT_11_info: StgInfoTable = sys::stg_SRT_11_info;
+static stg_atomically_info: StgInfoTable = unsafe { sys::stg_atomically_info };
 
-static stg_SRT_12_info: StgInfoTable = sys::stg_SRT_12_info;
+static stg_TVAR_WATCH_QUEUE_info: StgInfoTable = unsafe { sys::stg_TVAR_WATCH_QUEUE_info };
 
-static stg_SRT_13_info: StgInfoTable = sys::stg_SRT_13_info;
+static stg_TREC_CHUNK_info: StgInfoTable = unsafe { sys::stg_TREC_CHUNK_info };
 
-static stg_SRT_14_info: StgInfoTable = sys::stg_SRT_14_info;
+static stg_TREC_HEADER_info: StgInfoTable = unsafe { sys::stg_TREC_HEADER_info };
 
-static stg_SRT_15_info: StgInfoTable = sys::stg_SRT_15_info;
+static stg_END_STM_WATCH_QUEUE_info: StgInfoTable = unsafe { sys::stg_END_STM_WATCH_QUEUE_info };
 
-#[unsafe(no_mangle)]
-pub static stg_SRT_16_info: StgInfoTable = sys::stg_SRT_16_info;
+static stg_END_STM_CHUNK_LIST_info: StgInfoTable = unsafe { sys::stg_END_STM_CHUNK_LIST_info };
 
-#[unsafe(no_mangle)]
-pub static mut stg_END_TSO_QUEUE_closure: StgClosure = sys::stg_END_TSO_QUEUE_closure;
+static stg_NO_TREC_info: StgInfoTable = unsafe { sys::stg_NO_TREC_info };
 
-static mut stg_STM_AWOKEN_closure: StgClosure = sys::stg_STM_AWOKEN_closure;
+static stg_COMPACT_NFDATA_CLEAN_info: StgInfoTable = unsafe { sys::stg_COMPACT_NFDATA_CLEAN_info };
 
-static mut stg_NO_FINALIZER_closure: StgClosure = sys::stg_NO_FINALIZER_closure;
-
-static mut stg_dummy_ret_closure: StgClosure = sys::stg_dummy_ret_closure;
-
-static mut stg_forceIO_closure: StgClosure = sys::stg_forceIO_closure;
-
-static mut stg_END_STM_WATCH_QUEUE_closure: StgClosure = sys::stg_END_STM_WATCH_QUEUE_closure;
-
-static mut stg_END_STM_CHUNK_LIST_closure: StgClosure = sys::stg_END_STM_CHUNK_LIST_closure;
-
-static mut stg_NO_TREC_closure: StgClosure = sys::stg_NO_TREC_closure;
-
-static stg_NO_FINALIZER_info: StgInfoTable = sys::stg_NO_FINALIZER_info;
-
-static mut stg_CHARLIKE_closure: [StgIntCharlikeClosure; 0usize] = sys::stg_CHARLIKE_closure;
+static stg_COMPACT_NFDATA_DIRTY_info: StgInfoTable = unsafe { sys::stg_COMPACT_NFDATA_DIRTY_info };
 
 #[unsafe(no_mangle)]
-pub static mut stg_INTLIKE_closure: [StgIntCharlikeClosure; 0usize] = sys::stg_INTLIKE_closure;
+pub static stg_SRT_1_info: StgInfoTable = unsafe { sys::stg_SRT_1_info };
 
-static stg_forceIO_info: StgInfoTable = sys::stg_forceIO_info;
+static stg_SRT_2_info: StgInfoTable = unsafe { sys::stg_SRT_2_info };
 
-static stg_noforceIO_info: StgInfoTable = sys::stg_noforceIO_info;
+static stg_SRT_3_info: StgInfoTable = unsafe { sys::stg_SRT_3_info };
 
-static stg_sel_0_upd_info: StgInfoTable = sys::stg_sel_0_upd_info;
+static stg_SRT_4_info: StgInfoTable = unsafe { sys::stg_SRT_4_info };
 
-static stg_sel_1_upd_info: StgInfoTable = sys::stg_sel_1_upd_info;
+static stg_SRT_5_info: StgInfoTable = unsafe { sys::stg_SRT_5_info };
 
-static stg_sel_2_upd_info: StgInfoTable = sys::stg_sel_2_upd_info;
+static stg_SRT_6_info: StgInfoTable = unsafe { sys::stg_SRT_6_info };
 
-static stg_sel_3_upd_info: StgInfoTable = sys::stg_sel_3_upd_info;
+static stg_SRT_7_info: StgInfoTable = unsafe { sys::stg_SRT_7_info };
 
-static stg_sel_4_upd_info: StgInfoTable = sys::stg_sel_4_upd_info;
+static stg_SRT_8_info: StgInfoTable = unsafe { sys::stg_SRT_8_info };
 
-static stg_sel_5_upd_info: StgInfoTable = sys::stg_sel_5_upd_info;
+static stg_SRT_9_info: StgInfoTable = unsafe { sys::stg_SRT_9_info };
 
-static stg_sel_6_upd_info: StgInfoTable = sys::stg_sel_6_upd_info;
+static stg_SRT_10_info: StgInfoTable = unsafe { sys::stg_SRT_10_info };
 
-static stg_sel_7_upd_info: StgInfoTable = sys::stg_sel_7_upd_info;
+static stg_SRT_11_info: StgInfoTable = unsafe { sys::stg_SRT_11_info };
 
-static stg_sel_8_upd_info: StgInfoTable = sys::stg_sel_8_upd_info;
+static stg_SRT_12_info: StgInfoTable = unsafe { sys::stg_SRT_12_info };
 
-static stg_sel_9_upd_info: StgInfoTable = sys::stg_sel_9_upd_info;
+static stg_SRT_13_info: StgInfoTable = unsafe { sys::stg_SRT_13_info };
 
-static stg_sel_10_upd_info: StgInfoTable = sys::stg_sel_10_upd_info;
+static stg_SRT_14_info: StgInfoTable = unsafe { sys::stg_SRT_14_info };
 
-static stg_sel_11_upd_info: StgInfoTable = sys::stg_sel_11_upd_info;
-
-static stg_sel_12_upd_info: StgInfoTable = sys::stg_sel_12_upd_info;
-
-static stg_sel_13_upd_info: StgInfoTable = sys::stg_sel_13_upd_info;
-
-static stg_sel_14_upd_info: StgInfoTable = sys::stg_sel_14_upd_info;
-
-static stg_sel_15_upd_info: StgInfoTable = sys::stg_sel_15_upd_info;
-
-static stg_sel_0_noupd_info: StgInfoTable = sys::stg_sel_0_noupd_info;
-
-static stg_sel_1_noupd_info: StgInfoTable = sys::stg_sel_1_noupd_info;
-
-static stg_sel_2_noupd_info: StgInfoTable = sys::stg_sel_2_noupd_info;
-
-static stg_sel_3_noupd_info: StgInfoTable = sys::stg_sel_3_noupd_info;
-
-static stg_sel_4_noupd_info: StgInfoTable = sys::stg_sel_4_noupd_info;
-
-static stg_sel_5_noupd_info: StgInfoTable = sys::stg_sel_5_noupd_info;
-
-static stg_sel_6_noupd_info: StgInfoTable = sys::stg_sel_6_noupd_info;
-
-static stg_sel_7_noupd_info: StgInfoTable = sys::stg_sel_7_noupd_info;
-
-static stg_sel_8_noupd_info: StgInfoTable = sys::stg_sel_8_noupd_info;
-
-static stg_sel_9_noupd_info: StgInfoTable = sys::stg_sel_9_noupd_info;
-
-static stg_sel_10_noupd_info: StgInfoTable = sys::stg_sel_10_noupd_info;
-
-static stg_sel_11_noupd_info: StgInfoTable = sys::stg_sel_11_noupd_info;
-
-static stg_sel_12_noupd_info: StgInfoTable = sys::stg_sel_12_noupd_info;
-
-static stg_sel_13_noupd_info: StgInfoTable = sys::stg_sel_13_noupd_info;
-
-static stg_sel_14_noupd_info: StgInfoTable = sys::stg_sel_14_noupd_info;
-
-static stg_sel_15_noupd_info: StgInfoTable = sys::stg_sel_15_noupd_info;
-
-static stg_ap_1_upd_info: StgThunkInfoTable = sys::stg_ap_1_upd_info;
-
-static stg_ap_2_upd_info: StgThunkInfoTable = sys::stg_ap_2_upd_info;
-
-static stg_ap_3_upd_info: StgThunkInfoTable = sys::stg_ap_3_upd_info;
-
-static stg_ap_4_upd_info: StgThunkInfoTable = sys::stg_ap_4_upd_info;
-
-static stg_ap_5_upd_info: StgThunkInfoTable = sys::stg_ap_5_upd_info;
-
-static stg_ap_6_upd_info: StgThunkInfoTable = sys::stg_ap_6_upd_info;
-
-static stg_ap_7_upd_info: StgThunkInfoTable = sys::stg_ap_7_upd_info;
+static stg_SRT_15_info: StgInfoTable = unsafe { sys::stg_SRT_15_info };
 
 #[unsafe(no_mangle)]
-pub static stg_unpack_cstring_info: StgInfoTable = sys::stg_unpack_cstring_info;
+pub static stg_SRT_16_info: StgInfoTable = unsafe { sys::stg_SRT_16_info };
 
 #[unsafe(no_mangle)]
-pub static stg_unpack_cstring_utf8_info: StgInfoTable = sys::stg_unpack_cstring_utf8_info;
+pub static mut stg_END_TSO_QUEUE_closure: StgClosure = unsafe { sys::stg_END_TSO_QUEUE_closure };
+
+static mut stg_STM_AWOKEN_closure: StgClosure = unsafe { sys::stg_STM_AWOKEN_closure };
+
+static mut stg_NO_FINALIZER_closure: StgClosure = unsafe { sys::stg_NO_FINALIZER_closure };
+
+static mut stg_dummy_ret_closure: StgClosure = unsafe { sys::stg_dummy_ret_closure };
+
+static mut stg_forceIO_closure: StgClosure = unsafe { sys::stg_forceIO_closure };
+
+static mut stg_END_STM_WATCH_QUEUE_closure: StgClosure =
+    unsafe { sys::stg_END_STM_WATCH_QUEUE_closure };
+
+static mut stg_END_STM_CHUNK_LIST_closure: StgClosure =
+    unsafe { sys::stg_END_STM_CHUNK_LIST_closure };
+
+static mut stg_NO_TREC_closure: StgClosure = unsafe { sys::stg_NO_TREC_closure };
+
+static stg_NO_FINALIZER_info: StgInfoTable = unsafe { sys::stg_NO_FINALIZER_info };
+
+static mut stg_CHARLIKE_closure: [StgIntCharlikeClosure; 0usize] =
+    unsafe { sys::stg_CHARLIKE_closure };
 
 #[unsafe(no_mangle)]
-pub static stg_ap_v_info: StgInfoTable = sys::stg_ap_v_info;
+pub static mut stg_INTLIKE_closure: [StgIntCharlikeClosure; 0usize] =
+    unsafe { sys::stg_INTLIKE_closure };
 
-static stg_ap_f_info: StgInfoTable = sys::stg_ap_f_info;
+static stg_forceIO_info: StgInfoTable = unsafe { sys::stg_forceIO_info };
 
-static stg_ap_d_info: StgInfoTable = sys::stg_ap_d_info;
+static stg_noforceIO_info: StgInfoTable = unsafe { sys::stg_noforceIO_info };
 
-static stg_ap_l_info: StgInfoTable = sys::stg_ap_l_info;
+static stg_sel_0_upd_info: StgInfoTable = unsafe { sys::stg_sel_0_upd_info };
 
-static stg_ap_v16_info: StgInfoTable = sys::stg_ap_v16_info;
+static stg_sel_1_upd_info: StgInfoTable = unsafe { sys::stg_sel_1_upd_info };
 
-static stg_ap_v32_info: StgInfoTable = sys::stg_ap_v32_info;
+static stg_sel_2_upd_info: StgInfoTable = unsafe { sys::stg_sel_2_upd_info };
 
-static stg_ap_v64_info: StgInfoTable = sys::stg_ap_v64_info;
+static stg_sel_3_upd_info: StgInfoTable = unsafe { sys::stg_sel_3_upd_info };
 
-static stg_ap_n_info: StgInfoTable = sys::stg_ap_n_info;
+static stg_sel_4_upd_info: StgInfoTable = unsafe { sys::stg_sel_4_upd_info };
 
-static stg_ap_p_info: StgInfoTable = sys::stg_ap_p_info;
+static stg_sel_5_upd_info: StgInfoTable = unsafe { sys::stg_sel_5_upd_info };
 
-static stg_ap_pv_info: StgInfoTable = sys::stg_ap_pv_info;
+static stg_sel_6_upd_info: StgInfoTable = unsafe { sys::stg_sel_6_upd_info };
+
+static stg_sel_7_upd_info: StgInfoTable = unsafe { sys::stg_sel_7_upd_info };
+
+static stg_sel_8_upd_info: StgInfoTable = unsafe { sys::stg_sel_8_upd_info };
+
+static stg_sel_9_upd_info: StgInfoTable = unsafe { sys::stg_sel_9_upd_info };
+
+static stg_sel_10_upd_info: StgInfoTable = unsafe { sys::stg_sel_10_upd_info };
+
+static stg_sel_11_upd_info: StgInfoTable = unsafe { sys::stg_sel_11_upd_info };
+
+static stg_sel_12_upd_info: StgInfoTable = unsafe { sys::stg_sel_12_upd_info };
+
+static stg_sel_13_upd_info: StgInfoTable = unsafe { sys::stg_sel_13_upd_info };
+
+static stg_sel_14_upd_info: StgInfoTable = unsafe { sys::stg_sel_14_upd_info };
+
+static stg_sel_15_upd_info: StgInfoTable = unsafe { sys::stg_sel_15_upd_info };
+
+static stg_sel_0_noupd_info: StgInfoTable = unsafe { sys::stg_sel_0_noupd_info };
+
+static stg_sel_1_noupd_info: StgInfoTable = unsafe { sys::stg_sel_1_noupd_info };
+
+static stg_sel_2_noupd_info: StgInfoTable = unsafe { sys::stg_sel_2_noupd_info };
+
+static stg_sel_3_noupd_info: StgInfoTable = unsafe { sys::stg_sel_3_noupd_info };
+
+static stg_sel_4_noupd_info: StgInfoTable = unsafe { sys::stg_sel_4_noupd_info };
+
+static stg_sel_5_noupd_info: StgInfoTable = unsafe { sys::stg_sel_5_noupd_info };
+
+static stg_sel_6_noupd_info: StgInfoTable = unsafe { sys::stg_sel_6_noupd_info };
+
+static stg_sel_7_noupd_info: StgInfoTable = unsafe { sys::stg_sel_7_noupd_info };
+
+static stg_sel_8_noupd_info: StgInfoTable = unsafe { sys::stg_sel_8_noupd_info };
+
+static stg_sel_9_noupd_info: StgInfoTable = unsafe { sys::stg_sel_9_noupd_info };
+
+static stg_sel_10_noupd_info: StgInfoTable = unsafe { sys::stg_sel_10_noupd_info };
+
+static stg_sel_11_noupd_info: StgInfoTable = unsafe { sys::stg_sel_11_noupd_info };
+
+static stg_sel_12_noupd_info: StgInfoTable = unsafe { sys::stg_sel_12_noupd_info };
+
+static stg_sel_13_noupd_info: StgInfoTable = unsafe { sys::stg_sel_13_noupd_info };
+
+static stg_sel_14_noupd_info: StgInfoTable = unsafe { sys::stg_sel_14_noupd_info };
+
+static stg_sel_15_noupd_info: StgInfoTable = unsafe { sys::stg_sel_15_noupd_info };
+
+static stg_ap_1_upd_info: StgThunkInfoTable = unsafe { sys::stg_ap_1_upd_info };
+
+static stg_ap_2_upd_info: StgThunkInfoTable = unsafe { sys::stg_ap_2_upd_info };
+
+static stg_ap_3_upd_info: StgThunkInfoTable = unsafe { sys::stg_ap_3_upd_info };
+
+static stg_ap_4_upd_info: StgThunkInfoTable = unsafe { sys::stg_ap_4_upd_info };
+
+static stg_ap_5_upd_info: StgThunkInfoTable = unsafe { sys::stg_ap_5_upd_info };
+
+static stg_ap_6_upd_info: StgThunkInfoTable = unsafe { sys::stg_ap_6_upd_info };
+
+static stg_ap_7_upd_info: StgThunkInfoTable = unsafe { sys::stg_ap_7_upd_info };
 
 #[unsafe(no_mangle)]
-pub static stg_ap_pp_info: StgInfoTable = sys::stg_ap_pp_info;
+pub static stg_unpack_cstring_info: StgInfoTable = unsafe { sys::stg_unpack_cstring_info };
 
-static stg_ap_ppv_info: StgInfoTable = sys::stg_ap_ppv_info;
+#[unsafe(no_mangle)]
+pub static stg_unpack_cstring_utf8_info: StgInfoTable =
+    unsafe { sys::stg_unpack_cstring_utf8_info };
 
-static stg_ap_ppp_info: StgInfoTable = sys::stg_ap_ppp_info;
+#[unsafe(no_mangle)]
+pub static stg_ap_v_info: StgInfoTable = unsafe { sys::stg_ap_v_info };
 
-static stg_ap_pppv_info: StgInfoTable = sys::stg_ap_pppv_info;
+static stg_ap_f_info: StgInfoTable = unsafe { sys::stg_ap_f_info };
 
-static stg_ap_pppp_info: StgInfoTable = sys::stg_ap_pppp_info;
+static stg_ap_d_info: StgInfoTable = unsafe { sys::stg_ap_d_info };
 
-static stg_ap_ppppp_info: StgInfoTable = sys::stg_ap_ppppp_info;
+static stg_ap_l_info: StgInfoTable = unsafe { sys::stg_ap_l_info };
 
-static stg_ap_pppppp_info: StgInfoTable = sys::stg_ap_pppppp_info;
+static stg_ap_v16_info: StgInfoTable = unsafe { sys::stg_ap_v16_info };
+
+static stg_ap_v32_info: StgInfoTable = unsafe { sys::stg_ap_v32_info };
+
+static stg_ap_v64_info: StgInfoTable = unsafe { sys::stg_ap_v64_info };
+
+static stg_ap_n_info: StgInfoTable = unsafe { sys::stg_ap_n_info };
+
+static stg_ap_p_info: StgInfoTable = unsafe { sys::stg_ap_p_info };
+
+static stg_ap_pv_info: StgInfoTable = unsafe { sys::stg_ap_pv_info };
+
+#[unsafe(no_mangle)]
+pub static stg_ap_pp_info: StgInfoTable = unsafe { sys::stg_ap_pp_info };
+
+static stg_ap_ppv_info: StgInfoTable = unsafe { sys::stg_ap_ppv_info };
+
+static stg_ap_ppp_info: StgInfoTable = unsafe { sys::stg_ap_ppp_info };
+
+static stg_ap_pppv_info: StgInfoTable = unsafe { sys::stg_ap_pppv_info };
+
+static stg_ap_pppp_info: StgInfoTable = unsafe { sys::stg_ap_pppp_info };
+
+static stg_ap_ppppp_info: StgInfoTable = unsafe { sys::stg_ap_ppppp_info };
+
+static stg_ap_pppppp_info: StgInfoTable = unsafe { sys::stg_ap_pppppp_info };
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
@@ -686,22 +705,22 @@ pub unsafe extern "C" fn stg_gc_noregs() -> StgFunPtr {
     unsafe { transmute(sys::stg_gc_noregs()) }
 }
 
-static stg_ret_v_info: StgInfoTable = sys::stg_ret_v_info;
+static stg_ret_v_info: StgInfoTable = unsafe { sys::stg_ret_v_info };
 
 #[unsafe(no_mangle)]
-pub static stg_ret_p_info: StgInfoTable = sys::stg_ret_p_info;
+pub static stg_ret_p_info: StgInfoTable = unsafe { sys::stg_ret_p_info };
 
 #[unsafe(no_mangle)]
-pub static stg_ret_n_info: StgInfoTable = sys::stg_ret_n_info;
+pub static stg_ret_n_info: StgInfoTable = unsafe { sys::stg_ret_n_info };
 
-static stg_ret_f_info: StgInfoTable = sys::stg_ret_f_info;
+static stg_ret_f_info: StgInfoTable = unsafe { sys::stg_ret_f_info };
 
-static stg_ret_d_info: StgInfoTable = sys::stg_ret_d_info;
+static stg_ret_d_info: StgInfoTable = unsafe { sys::stg_ret_d_info };
 
-static stg_ret_l_info: StgInfoTable = sys::stg_ret_l_info;
+static stg_ret_l_info: StgInfoTable = unsafe { sys::stg_ret_l_info };
 
 #[unsafe(no_mangle)]
-pub static stg_ret_t_info: StgInfoTable = sys::stg_ret_t_info;
+pub static stg_ret_t_info: StgInfoTable = unsafe { sys::stg_ret_t_info };
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn stg_gc_prim() -> StgFunPtr {
@@ -723,9 +742,9 @@ pub(crate) unsafe fn stg_gc_prim_n() -> StgFunPtr {
     unsafe { transmute(sys::stg_gc_prim_n()) }
 }
 
-static stg_gc_prim_p_ll_ret_info: StgInfoTable = sys::stg_gc_prim_p_ll_ret_info;
+static stg_gc_prim_p_ll_ret_info: StgInfoTable = unsafe { sys::stg_gc_prim_p_ll_ret_info };
 
-static stg_gc_prim_pp_ll_ret_info: StgInfoTable = sys::stg_gc_prim_pp_ll_ret_info;
+static stg_gc_prim_pp_ll_ret_info: StgInfoTable = unsafe { sys::stg_gc_prim_pp_ll_ret_info };
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn stg_gc_prim_p_ll() -> StgFunPtr {
@@ -737,7 +756,7 @@ pub(crate) unsafe fn stg_gc_prim_pp_ll() -> StgFunPtr {
     unsafe { transmute(sys::stg_gc_prim_pp_ll()) }
 }
 
-static stg_enter_info: StgInfoTable = sys::stg_enter_info;
+static stg_enter_info: StgInfoTable = unsafe { sys::stg_enter_info };
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
@@ -794,7 +813,7 @@ pub unsafe extern "C" fn stg_gc_pppp() -> StgFunPtr {
 }
 
 #[unsafe(no_mangle)]
-pub static stg_gc_fun_info: StgInfoTable = sys::stg_gc_fun_info;
+pub static stg_gc_fun_info: StgInfoTable = unsafe { sys::stg_gc_fun_info };
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
@@ -837,16 +856,16 @@ pub(crate) unsafe fn stg_block_readmvar() -> StgFunPtr {
     unsafe { transmute(sys::stg_block_readmvar()) }
 }
 
-static stg_block_takemvar_info: StgInfoTable = sys::stg_block_takemvar_info;
+static stg_block_takemvar_info: StgInfoTable = unsafe { sys::stg_block_takemvar_info };
 
-static stg_block_readmvar_info: StgInfoTable = sys::stg_block_readmvar_info;
+static stg_block_readmvar_info: StgInfoTable = unsafe { sys::stg_block_readmvar_info };
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn stg_block_putmvar() -> StgFunPtr {
     unsafe { transmute(sys::stg_block_putmvar()) }
 }
 
-static stg_block_putmvar_info: StgInfoTable = sys::stg_block_putmvar_info;
+static stg_block_putmvar_info: StgInfoTable = unsafe { sys::stg_block_putmvar_info };
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn stg_block_stmwait() -> StgFunPtr {
@@ -858,7 +877,7 @@ pub(crate) unsafe fn stg_block_throwto() -> StgFunPtr {
     unsafe { transmute(sys::stg_block_throwto()) }
 }
 
-static stg_block_throwto_info: StgInfoTable = sys::stg_block_throwto_info;
+static stg_block_throwto_info: StgInfoTable = unsafe { sys::stg_block_throwto_info };
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn stg_readIOPortzh() -> StgFunPtr {
@@ -876,7 +895,7 @@ pub(crate) unsafe fn stg_newIOPortzh() -> StgFunPtr {
 }
 
 #[unsafe(no_mangle)]
-pub static stg_stop_thread_info: StgInfoTable = sys::stg_stop_thread_info;
+pub static stg_stop_thread_info: StgInfoTable = unsafe { sys::stg_stop_thread_info };
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
@@ -1507,7 +1526,7 @@ pub(crate) unsafe fn stg_noDuplicatezh() -> StgFunPtr {
     unsafe { transmute(sys::stg_noDuplicatezh()) }
 }
 
-static stg_noDuplicate_info: StgFunInfoTable = sys::stg_noDuplicate_info;
+static stg_noDuplicate_info: StgFunInfoTable = unsafe { sys::stg_noDuplicate_info };
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn stg_clearCCSzh() -> StgFunPtr {

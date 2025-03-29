@@ -1,12 +1,12 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_TIME_RESOLUTION() {
-    assert_eq!(sys::TIME_RESOLUTION, super::TIME_RESOLUTION.into());
+    assert_eq!(sys::TIME_RESOLUTION, super::TIME_RESOLUTION);
 }
 
 #[cfg(feature = "sys")]

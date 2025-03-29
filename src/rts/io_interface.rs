@@ -13,17 +13,17 @@ mod tests;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn setIOManagerControlFd(cap_no: u32, fd: ::core::ffi::c_int) {
-    unsafe { transmute(sys::setIOManagerControlFd(cap_no.into(), fd.into())) }
+    unsafe { sys::setIOManagerControlFd(cap_no, fd) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn setTimerManagerControlFd(fd: ::core::ffi::c_int) {
-    unsafe { transmute(sys::setTimerManagerControlFd(fd.into())) }
+    unsafe { sys::setTimerManagerControlFd(fd) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn setIOManagerWakeupFd(fd: ::core::ffi::c_int) {
-    unsafe { transmute(sys::setIOManagerWakeupFd(fd.into())) }
+    unsafe { sys::setIOManagerWakeupFd(fd) }
 }

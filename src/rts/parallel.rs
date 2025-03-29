@@ -13,5 +13,5 @@ mod tests;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn newSpark(reg: *mut StgRegTable, p: *mut StgClosure) -> StgInt {
-    unsafe { transmute(sys::newSpark(&mut reg.into(), &mut p.into())) }
+    unsafe { transmute(sys::newSpark(reg, p)) }
 }

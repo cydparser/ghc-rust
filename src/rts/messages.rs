@@ -13,17 +13,17 @@ mod tests;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn vbarf(s: *const ::core::ffi::c_char, ap: *mut __va_list_tag) -> ! {
-    unsafe { transmute(sys::vbarf(&s.into(), &mut ap.into())) }
+    unsafe { transmute(sys::vbarf(s, ap)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn verrorBelch(s: *const ::core::ffi::c_char, ap: *mut __va_list_tag) {
-    unsafe { transmute(sys::verrorBelch(&s.into(), &mut ap.into())) }
+    unsafe { sys::verrorBelch(s, ap) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn vsysErrorBelch(s: *const ::core::ffi::c_char, ap: *mut __va_list_tag) {
-    unsafe { transmute(sys::vsysErrorBelch(&s.into(), &mut ap.into())) }
+    unsafe { sys::vsysErrorBelch(s, ap) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -31,7 +31,7 @@ pub(crate) unsafe fn vdebugBelch(
     s: *const ::core::ffi::c_char,
     ap: *mut __va_list_tag,
 ) -> ::core::ffi::c_int {
-    unsafe { transmute(sys::vdebugBelch(&s.into(), &mut ap.into())) }
+    unsafe { transmute(sys::vdebugBelch(s, ap)) }
 }
 
 pub(crate) type RtsMsgFunction = ::core::option::Option<
@@ -43,18 +43,18 @@ pub(crate) type RtsMsgFunctionRetLen = ::core::option::Option<
         arg2: *mut __va_list_tag,
     ) -> ::core::ffi::c_int,
 >;
-static mut fatalInternalErrorFn: RtsMsgFunction = sys::fatalInternalErrorFn;
+static mut fatalInternalErrorFn: RtsMsgFunction = unsafe { sys::fatalInternalErrorFn };
 
-static mut debugMsgFn: RtsMsgFunctionRetLen = sys::debugMsgFn;
+static mut debugMsgFn: RtsMsgFunctionRetLen = unsafe { sys::debugMsgFn };
 
-static mut errorMsgFn: RtsMsgFunction = sys::errorMsgFn;
+static mut errorMsgFn: RtsMsgFunction = unsafe { sys::errorMsgFn };
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn rtsFatalInternalErrorFn(
     arg1: *const ::core::ffi::c_char,
     arg2: *mut __va_list_tag,
 ) {
-    unsafe { transmute(sys::rtsFatalInternalErrorFn(&arg1.into(), &mut arg2.into())) }
+    unsafe { sys::rtsFatalInternalErrorFn(arg1, arg2) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -62,17 +62,17 @@ pub(crate) unsafe fn rtsDebugMsgFn(
     arg1: *const ::core::ffi::c_char,
     arg2: *mut __va_list_tag,
 ) -> ::core::ffi::c_int {
-    unsafe { transmute(sys::rtsDebugMsgFn(&arg1.into(), &mut arg2.into())) }
+    unsafe { transmute(sys::rtsDebugMsgFn(arg1, arg2)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn rtsErrorMsgFn(arg1: *const ::core::ffi::c_char, arg2: *mut __va_list_tag) {
-    unsafe { transmute(sys::rtsErrorMsgFn(&arg1.into(), &mut arg2.into())) }
+    unsafe { sys::rtsErrorMsgFn(arg1, arg2) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn rtsSysErrorMsgFn(arg1: *const ::core::ffi::c_char, arg2: *mut __va_list_tag) {
-    unsafe { transmute(sys::rtsSysErrorMsgFn(&arg1.into(), &mut arg2.into())) }
+    unsafe { sys::rtsSysErrorMsgFn(arg1, arg2) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]

@@ -28,11 +28,11 @@ pub(crate) unsafe fn ghc_tsan_atomic64_compare_exchange(
 ) -> __tsan_atomic64 {
     unsafe {
         transmute(sys::ghc_tsan_atomic64_compare_exchange(
-            &mut ptr.into(),
-            expected.into(),
-            new_value.into(),
-            success_memorder.into(),
-            failure_memorder.into(),
+            ptr,
+            expected,
+            new_value,
+            success_memorder,
+            failure_memorder,
         ))
     }
 }
@@ -47,11 +47,11 @@ pub(crate) unsafe fn ghc_tsan_atomic32_compare_exchange(
 ) -> __tsan_atomic32 {
     unsafe {
         transmute(sys::ghc_tsan_atomic32_compare_exchange(
-            &mut ptr.into(),
-            expected.into(),
-            new_value.into(),
-            success_memorder.into(),
-            failure_memorder.into(),
+            ptr,
+            expected,
+            new_value,
+            success_memorder,
+            failure_memorder,
         ))
     }
 }
@@ -66,11 +66,11 @@ pub(crate) unsafe fn ghc_tsan_atomic16_compare_exchange(
 ) -> __tsan_atomic16 {
     unsafe {
         transmute(sys::ghc_tsan_atomic16_compare_exchange(
-            &mut ptr.into(),
-            expected.into(),
-            new_value.into(),
-            success_memorder.into(),
-            failure_memorder.into(),
+            ptr,
+            expected,
+            new_value,
+            success_memorder,
+            failure_memorder,
         ))
     }
 }
@@ -85,11 +85,11 @@ pub(crate) unsafe fn ghc_tsan_atomic8_compare_exchange(
 ) -> __tsan_atomic8 {
     unsafe {
         transmute(sys::ghc_tsan_atomic8_compare_exchange(
-            &mut ptr.into(),
-            expected.into(),
-            new_value.into(),
-            success_memorder.into(),
-            failure_memorder.into(),
+            ptr,
+            expected,
+            new_value,
+            success_memorder,
+            failure_memorder,
         ))
     }
 }

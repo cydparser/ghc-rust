@@ -16,12 +16,7 @@ pub(crate) unsafe fn heap_view_closurePtrs(
     cap: *mut Capability,
     closure: *mut StgClosure,
 ) -> *mut StgMutArrPtrs {
-    unsafe {
-        transmute(sys::heap_view_closurePtrs(
-            &mut cap.into(),
-            &mut closure.into(),
-        ))
-    }
+    unsafe { transmute(sys::heap_view_closurePtrs(cap, closure)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -32,21 +27,13 @@ pub(crate) unsafe fn heap_view_closure_ptrs_in_pap_payload(
     payload: *mut *mut StgClosure,
     size: StgWord,
 ) {
-    unsafe {
-        transmute(sys::heap_view_closure_ptrs_in_pap_payload(
-            &mut &mut ptrs.into(),
-            &mut nptrs.into(),
-            &mut fun.into(),
-            &mut &mut payload.into(),
-            size.into(),
-        ))
-    }
+    unsafe { sys::heap_view_closure_ptrs_in_pap_payload(ptrs, nptrs, fun, payload, size) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn heap_view_closureSize(closure: *mut StgClosure) -> StgWord {
-    unsafe { transmute(sys::heap_view_closureSize(&mut closure.into())) }
+    unsafe { transmute(sys::heap_view_closureSize(closure)) }
 }
 
 #[unsafe(no_mangle)]
@@ -55,10 +42,5 @@ pub unsafe extern "C" fn collect_pointers(
     closure: *mut StgClosure,
     ptrs: *mut *mut StgClosure,
 ) -> StgWord {
-    unsafe {
-        transmute(sys::collect_pointers(
-            &mut closure.into(),
-            &mut &mut ptrs.into(),
-        ))
-    }
+    unsafe { transmute(sys::collect_pointers(closure, ptrs)) }
 }

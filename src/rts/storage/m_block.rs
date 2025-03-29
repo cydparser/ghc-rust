@@ -10,14 +10,14 @@ use tracing::instrument;
 #[cfg(test)]
 mod tests;
 
-static mut peak_mblocks_allocated: W_ = sys::peak_mblocks_allocated;
+static mut peak_mblocks_allocated: W_ = unsafe { sys::peak_mblocks_allocated };
 
 #[unsafe(no_mangle)]
-pub static mut mblocks_allocated: W_ = sys::mblocks_allocated;
+pub static mut mblocks_allocated: W_ = unsafe { sys::mblocks_allocated };
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn initMBlocks() {
-    unsafe { transmute(sys::initMBlocks()) }
+    unsafe { sys::initMBlocks() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -28,41 +28,41 @@ pub(crate) unsafe fn getMBlock() -> *mut ::core::ffi::c_void {
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getMBlocks(n: u32) -> *mut ::core::ffi::c_void {
-    unsafe { transmute(sys::getMBlocks(n.into())) }
+    unsafe { transmute(sys::getMBlocks(n)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn getMBlockOnNode(node: u32) -> *mut ::core::ffi::c_void {
-    unsafe { transmute(sys::getMBlockOnNode(node.into())) }
+    unsafe { transmute(sys::getMBlockOnNode(node)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn getMBlocksOnNode(node: u32, n: u32) -> *mut ::core::ffi::c_void {
-    unsafe { transmute(sys::getMBlocksOnNode(node.into(), n.into())) }
+    unsafe { transmute(sys::getMBlocksOnNode(node, n)) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn freeMBlocks(addr: *mut ::core::ffi::c_void, n: u32) {
-    unsafe { transmute(sys::freeMBlocks(&mut addr.into(), n.into())) }
+    unsafe { sys::freeMBlocks(addr, n) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn releaseFreeMemory() {
-    unsafe { transmute(sys::releaseFreeMemory()) }
+    unsafe { sys::releaseFreeMemory() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn freeAllMBlocks() {
-    unsafe { transmute(sys::freeAllMBlocks()) }
+    unsafe { sys::freeAllMBlocks() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn getFirstMBlock(
     state: *mut *mut ::core::ffi::c_void,
 ) -> *mut ::core::ffi::c_void {
-    unsafe { transmute(sys::getFirstMBlock(&mut &mut state.into())) }
+    unsafe { transmute(sys::getFirstMBlock(state)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -70,10 +70,5 @@ pub(crate) unsafe fn getNextMBlock(
     state: *mut *mut ::core::ffi::c_void,
     mblock: *mut ::core::ffi::c_void,
 ) -> *mut ::core::ffi::c_void {
-    unsafe {
-        transmute(sys::getNextMBlock(
-            &mut &mut state.into(),
-            &mut mblock.into(),
-        ))
-    }
+    unsafe { transmute(sys::getNextMBlock(state, mblock)) }
 }

@@ -81,82 +81,82 @@ pub unsafe extern "C" fn hs_init(
     argc: *mut ::core::ffi::c_int,
     argv: *mut *mut *mut ::core::ffi::c_char,
 ) {
-    unsafe { transmute(sys::hs_init(&mut argc.into(), &mut &mut &mut argv.into())) }
+    unsafe { sys::hs_init(argc, argv) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_exit() {
-    unsafe { transmute(sys::hs_exit()) }
+    unsafe { sys::hs_exit() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn hs_exit_nowait() {
-    unsafe { transmute(sys::hs_exit_nowait()) }
+    unsafe { sys::hs_exit_nowait() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn hs_set_argv(argc: ::core::ffi::c_int, argv: *mut *mut ::core::ffi::c_char) {
-    unsafe { transmute(sys::hs_set_argv(argc.into(), &mut &mut argv.into())) }
+    unsafe { sys::hs_set_argv(argc, argv) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_thread_done() {
-    unsafe { transmute(sys::hs_thread_done()) }
+    unsafe { sys::hs_thread_done() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn hs_restoreConsoleCP() {
-    unsafe { transmute(sys::hs_restoreConsoleCP()) }
+    unsafe { sys::hs_restoreConsoleCP() }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_perform_gc() {
-    unsafe { transmute(sys::hs_perform_gc()) }
+    unsafe { sys::hs_perform_gc() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn hs_lock_stable_ptr_table() {
-    unsafe { transmute(sys::hs_lock_stable_ptr_table()) }
+    unsafe { sys::hs_lock_stable_ptr_table() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn hs_lock_stable_tables() {
-    unsafe { transmute(sys::hs_lock_stable_tables()) }
+    unsafe { sys::hs_lock_stable_tables() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn hs_unlock_stable_ptr_table() {
-    unsafe { transmute(sys::hs_unlock_stable_ptr_table()) }
+    unsafe { sys::hs_unlock_stable_ptr_table() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn hs_unlock_stable_tables() {
-    unsafe { transmute(sys::hs_unlock_stable_tables()) }
+    unsafe { sys::hs_unlock_stable_tables() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn hs_free_stable_ptr_unsafe(sp: HsStablePtr) {
-    unsafe { transmute(sys::hs_free_stable_ptr_unsafe(sp.into())) }
+    unsafe { sys::hs_free_stable_ptr_unsafe(sp) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_free_stable_ptr(sp: HsStablePtr) {
-    unsafe { transmute(sys::hs_free_stable_ptr(sp.into())) }
+    unsafe { sys::hs_free_stable_ptr(sp) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn hs_free_fun_ptr(fp: HsFunPtr) {
-    unsafe { transmute(sys::hs_free_fun_ptr(fp.into())) }
+    unsafe { sys::hs_free_fun_ptr(fp) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_spt_lookup(key: *mut StgWord64) -> StgPtr {
-    unsafe { transmute(sys::hs_spt_lookup(&mut key.into())) }
+    unsafe { transmute(sys::hs_spt_lookup(key)) }
 }
 
 #[unsafe(no_mangle)]
@@ -165,7 +165,7 @@ pub unsafe extern "C" fn hs_spt_keys(
     keys: *mut StgPtr,
     szKeys: ::core::ffi::c_int,
 ) -> ::core::ffi::c_int {
-    unsafe { transmute(sys::hs_spt_keys(&mut keys.into(), szKeys.into())) }
+    unsafe { transmute(sys::hs_spt_keys(keys, szKeys)) }
 }
 
 #[unsafe(no_mangle)]
@@ -177,5 +177,5 @@ pub unsafe extern "C" fn hs_spt_key_count() -> ::core::ffi::c_int {
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_try_putmvar(capability: ::core::ffi::c_int, sp: HsStablePtr) {
-    unsafe { transmute(sys::hs_try_putmvar(capability.into(), sp.into())) }
+    unsafe { sys::hs_try_putmvar(capability, sp) }
 }

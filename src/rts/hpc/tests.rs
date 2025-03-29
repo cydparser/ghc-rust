@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
@@ -33,10 +33,10 @@ const _: () = {
 #[test]
 #[ignore]
 fn test_hs_hpc_module() {
-    let modName = Default::default();
+    let mut modName = Default::default();
     let modCount = Default::default();
     let modHashNo = Default::default();
-    let tixArr = Default::default();
+    let mut tixArr = Default::default();
     unsafe { super::hs_hpc_module(&mut modName, modCount, modHashNo, &mut tixArr) };
     todo!("assert")
 }

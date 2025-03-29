@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[quickcheck]
@@ -14,7 +14,7 @@ fn equivalent_createThread(cap: Capability, stack_size: W_) -> bool {
 #[test]
 #[ignore]
 fn test_createThread() {
-    let cap = Default::default();
+    let mut cap = Default::default();
     let stack_size = Default::default();
     unsafe { super::createThread(&mut cap, stack_size) };
     todo!("assert")
@@ -23,9 +23,9 @@ fn test_createThread() {
 #[test]
 #[ignore]
 fn test_scheduleWaitThread() {
-    let tso = Default::default();
-    let ret = Default::default();
-    let cap = Default::default();
+    let mut tso = Default::default();
+    let mut ret = Default::default();
+    let mut cap = Default::default();
     unsafe { super::scheduleWaitThread(&mut tso, &mut ret, &mut &mut cap) };
     todo!("assert")
 }
@@ -47,9 +47,9 @@ fn equivalent_createGenThread(cap: Capability, stack_size: W_, closure: StgClosu
 #[test]
 #[ignore]
 fn test_createGenThread() {
-    let cap = Default::default();
+    let mut cap = Default::default();
     let stack_size = Default::default();
-    let closure = Default::default();
+    let mut closure = Default::default();
     unsafe { super::createGenThread(&mut cap, stack_size, &mut closure) };
     todo!("assert")
 }
@@ -71,9 +71,9 @@ fn equivalent_createIOThread(cap: Capability, stack_size: W_, closure: StgClosur
 #[test]
 #[ignore]
 fn test_createIOThread() {
-    let cap = Default::default();
+    let mut cap = Default::default();
     let stack_size = Default::default();
-    let closure = Default::default();
+    let mut closure = Default::default();
     unsafe { super::createIOThread(&mut cap, stack_size, &mut closure) };
     todo!("assert")
 }
@@ -95,9 +95,9 @@ fn equivalent_createStrictIOThread(cap: Capability, stack_size: W_, closure: Stg
 #[test]
 #[ignore]
 fn test_createStrictIOThread() {
-    let cap = Default::default();
+    let mut cap = Default::default();
     let stack_size = Default::default();
-    let closure = Default::default();
+    let mut closure = Default::default();
     unsafe { super::createStrictIOThread(&mut cap, stack_size, &mut closure) };
     todo!("assert")
 }
@@ -113,7 +113,7 @@ fn equivalent_suspendThread(arg1: StgRegTable, interruptible: bool) -> bool {
 #[test]
 #[ignore]
 fn test_suspendThread() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let interruptible = Default::default();
     unsafe { super::suspendThread(&mut arg1, interruptible) };
     todo!("assert")
@@ -130,7 +130,7 @@ fn equivalent_resumeThread(arg1: ::core::ffi::c_void) -> bool {
 #[test]
 #[ignore]
 fn test_resumeThread() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     unsafe { super::resumeThread(&mut arg1) };
     todo!("assert")
 }
@@ -212,7 +212,7 @@ fn equivalent_listThreads(cap: Capability) -> bool {
 #[test]
 #[ignore]
 fn test_listThreads() {
-    let cap = Default::default();
+    let mut cap = Default::default();
     unsafe { super::listThreads(&mut cap) };
     todo!("assert")
 }
@@ -228,7 +228,7 @@ fn equivalent_forkProcess(entry: HsStablePtr) -> bool {
 #[test]
 #[ignore]
 fn test_forkProcess() {
-    let entry = Default::default();
+    let mut entry = Default::default();
     unsafe { super::forkProcess(&mut entry) };
     todo!("assert")
 }

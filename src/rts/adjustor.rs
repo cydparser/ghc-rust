@@ -17,17 +17,11 @@ pub unsafe extern "C" fn createAdjustor(
     wptr: StgFunPtr,
     typeString: *mut ::core::ffi::c_char,
 ) -> *mut ::core::ffi::c_void {
-    unsafe {
-        transmute(sys::createAdjustor(
-            hptr.into(),
-            wptr.into(),
-            &mut typeString.into(),
-        ))
-    }
+    unsafe { transmute(sys::createAdjustor(hptr, wptr, typeString)) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn freeHaskellFunctionPtr(ptr: *mut ::core::ffi::c_void) {
-    unsafe { transmute(sys::freeHaskellFunctionPtr(&mut ptr.into())) }
+    unsafe { sys::freeHaskellFunctionPtr(ptr) }
 }

@@ -13,25 +13,25 @@ mod tests;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn requestHeapCensus() {
-    unsafe { transmute(sys::requestHeapCensus()) }
+    unsafe { sys::requestHeapCensus() }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn startHeapProfTimer() {
-    unsafe { transmute(sys::startHeapProfTimer()) }
+    unsafe { sys::startHeapProfTimer() }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn stopHeapProfTimer() {
-    unsafe { transmute(sys::stopHeapProfTimer()) }
+    unsafe { sys::stopHeapProfTimer() }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn setUserEra(w: StgWord) {
-    unsafe { transmute(sys::setUserEra(w.into())) }
+    unsafe { sys::setUserEra(w) }
 }
 
 #[unsafe(no_mangle)]
@@ -43,5 +43,5 @@ pub unsafe extern "C" fn getUserEra() -> StgWord {
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn incrementUserEra(w: StgWord) -> StgWord {
-    unsafe { transmute(sys::incrementUserEra(w.into())) }
+    unsafe { transmute(sys::incrementUserEra(w)) }
 }

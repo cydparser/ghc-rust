@@ -1,103 +1,103 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_CHAR_MIN() {
-    assert_eq!(sys::HS_CHAR_MIN, super::HS_CHAR_MIN.into());
+    assert_eq!(sys::HS_CHAR_MIN, super::HS_CHAR_MIN);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_CHAR_MAX() {
-    assert_eq!(sys::HS_CHAR_MAX, super::HS_CHAR_MAX.into());
+    assert_eq!(sys::HS_CHAR_MAX, super::HS_CHAR_MAX);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_BOOL_FALSE() {
-    assert_eq!(sys::HS_BOOL_FALSE, super::HS_BOOL_FALSE.into());
+    assert_eq!(sys::HS_BOOL_FALSE, super::HS_BOOL_FALSE);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_BOOL_TRUE() {
-    assert_eq!(sys::HS_BOOL_TRUE, super::HS_BOOL_TRUE.into());
+    assert_eq!(sys::HS_BOOL_TRUE, super::HS_BOOL_TRUE);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_BOOL_MIN() {
-    assert_eq!(sys::HS_BOOL_MIN, super::HS_BOOL_MIN.into());
+    assert_eq!(sys::HS_BOOL_MIN, super::HS_BOOL_MIN);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_BOOL_MAX() {
-    assert_eq!(sys::HS_BOOL_MAX, super::HS_BOOL_MAX.into());
+    assert_eq!(sys::HS_BOOL_MAX, super::HS_BOOL_MAX);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_INT8_MIN() {
-    assert_eq!(sys::HS_INT8_MIN, super::HS_INT8_MIN.into());
+    assert_eq!(sys::HS_INT8_MIN, super::HS_INT8_MIN);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_INT8_MAX() {
-    assert_eq!(sys::HS_INT8_MAX, super::HS_INT8_MAX.into());
+    assert_eq!(sys::HS_INT8_MAX, super::HS_INT8_MAX);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_INT16_MIN() {
-    assert_eq!(sys::HS_INT16_MIN, super::HS_INT16_MIN.into());
+    assert_eq!(sys::HS_INT16_MIN, super::HS_INT16_MIN);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_INT16_MAX() {
-    assert_eq!(sys::HS_INT16_MAX, super::HS_INT16_MAX.into());
+    assert_eq!(sys::HS_INT16_MAX, super::HS_INT16_MAX);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_INT32_MIN() {
-    assert_eq!(sys::HS_INT32_MIN, super::HS_INT32_MIN.into());
+    assert_eq!(sys::HS_INT32_MIN, super::HS_INT32_MIN);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_INT32_MAX() {
-    assert_eq!(sys::HS_INT32_MAX, super::HS_INT32_MAX.into());
+    assert_eq!(sys::HS_INT32_MAX, super::HS_INT32_MAX);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_WORD8_MAX() {
-    assert_eq!(sys::HS_WORD8_MAX, super::HS_WORD8_MAX.into());
+    assert_eq!(sys::HS_WORD8_MAX, super::HS_WORD8_MAX);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_WORD16_MAX() {
-    assert_eq!(sys::HS_WORD16_MAX, super::HS_WORD16_MAX.into());
+    assert_eq!(sys::HS_WORD16_MAX, super::HS_WORD16_MAX);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_HS_WORD32_MAX() {
-    assert_eq!(sys::HS_WORD32_MAX, super::HS_WORD32_MAX.into());
+    assert_eq!(sys::HS_WORD32_MAX, super::HS_WORD32_MAX);
 }
 
 #[test]
 #[ignore]
 fn test_hs_init() {
-    let argc = Default::default();
-    let argv = Default::default();
+    let mut argc = Default::default();
+    let mut argv = Default::default();
     unsafe { super::hs_init(&mut argc, &mut &mut &mut argv) };
     todo!("assert")
 }
@@ -120,7 +120,7 @@ fn test_hs_exit_nowait() {
 #[ignore]
 fn test_hs_set_argv() {
     let argc = Default::default();
-    let argv = Default::default();
+    let mut argv = Default::default();
     unsafe { super::hs_set_argv(argc, &mut &mut argv) };
     todo!("assert")
 }
@@ -209,7 +209,7 @@ fn equivalent_hs_spt_lookup(key: StgWord64) -> bool {
 #[test]
 #[ignore]
 fn test_hs_spt_lookup() {
-    let key = Default::default();
+    let mut key = Default::default();
     unsafe { super::hs_spt_lookup(&mut key) };
     todo!("assert")
 }
@@ -225,7 +225,7 @@ fn equivalent_hs_spt_keys(keys: StgPtr, szKeys: ::core::ffi::c_int) -> bool {
 #[test]
 #[ignore]
 fn test_hs_spt_keys() {
-    let keys = Default::default();
+    let mut keys = Default::default();
     let szKeys = Default::default();
     unsafe { super::hs_spt_keys(&mut keys, szKeys) };
     todo!("assert")

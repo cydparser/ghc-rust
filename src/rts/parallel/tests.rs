@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[quickcheck]
@@ -14,8 +14,8 @@ fn equivalent_newSpark(reg: StgRegTable, p: StgClosure) -> bool {
 #[test]
 #[ignore]
 fn test_newSpark() {
-    let reg = Default::default();
-    let p = Default::default();
+    let mut reg = Default::default();
+    let mut p = Default::default();
     unsafe { super::newSpark(&mut reg, &mut p) };
     todo!("assert")
 }

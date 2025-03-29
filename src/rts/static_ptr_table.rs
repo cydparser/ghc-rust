@@ -13,22 +13,17 @@ mod tests;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_spt_insert(key: *mut StgWord64, spe_closure: *mut ::core::ffi::c_void) {
-    unsafe { transmute(sys::hs_spt_insert(&mut key.into(), &mut spe_closure.into())) }
+    unsafe { sys::hs_spt_insert(key, spe_closure) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_spt_insert_stableptr(key: *mut StgWord64, entry: *mut StgStablePtr) {
-    unsafe {
-        transmute(sys::hs_spt_insert_stableptr(
-            &mut key.into(),
-            &mut entry.into(),
-        ))
-    }
+    unsafe { sys::hs_spt_insert_stableptr(key, entry) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_spt_remove(key: *mut StgWord64) {
-    unsafe { transmute(sys::hs_spt_remove(&mut key.into())) }
+    unsafe { sys::hs_spt_remove(key) }
 }

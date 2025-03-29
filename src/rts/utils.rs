@@ -13,5 +13,5 @@ mod tests;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn genericRaise(sig: ::core::ffi::c_int) -> ::core::ffi::c_int {
-    unsafe { transmute(sys::genericRaise(sig.into())) }
+    unsafe { transmute(sys::genericRaise(sig)) }
 }

@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
@@ -34,7 +34,7 @@ fn test_allocateExecPage() {
 #[test]
 #[ignore]
 fn test_freezeExecPage() {
-    let page = Default::default();
+    let mut page = Default::default();
     unsafe { super::freezeExecPage(&mut page) };
     todo!("assert")
 }
@@ -42,7 +42,7 @@ fn test_freezeExecPage() {
 #[test]
 #[ignore]
 fn test_freeExecPage() {
-    let page = Default::default();
+    let mut page = Default::default();
     unsafe { super::freeExecPage(&mut page) };
     todo!("assert")
 }

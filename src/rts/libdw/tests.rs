@@ -1,12 +1,12 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_BACKTRACE_CHUNK_SZ() {
-    assert_eq!(sys::BACKTRACE_CHUNK_SZ, super::BACKTRACE_CHUNK_SZ.into());
+    assert_eq!(sys::BACKTRACE_CHUNK_SZ, super::BACKTRACE_CHUNK_SZ);
 }
 
 #[cfg(feature = "sys")]
@@ -76,7 +76,7 @@ fn test_size_of_LibdwSession_() {
 #[test]
 #[ignore]
 fn test_backtraceFree() {
-    let bt = Default::default();
+    let mut bt = Default::default();
     unsafe { super::backtraceFree(&mut bt) };
     todo!("assert")
 }
@@ -92,7 +92,7 @@ fn equivalent_libdwGetBacktrace(session: LibdwSession) -> bool {
 #[test]
 #[ignore]
 fn test_libdwGetBacktrace() {
-    let session = Default::default();
+    let mut session = Default::default();
     unsafe { super::libdwGetBacktrace(&mut session) };
     todo!("assert")
 }
@@ -114,8 +114,8 @@ fn equivalent_libdwLookupLocation(session: LibdwSession, loc: Location, pc: StgP
 #[test]
 #[ignore]
 fn test_libdwLookupLocation() {
-    let session = Default::default();
-    let loc = Default::default();
+    let mut session = Default::default();
+    let mut loc = Default::default();
     let pc = Default::default();
     unsafe { super::libdwLookupLocation(&mut session, &mut loc, pc) };
     todo!("assert")
@@ -124,9 +124,9 @@ fn test_libdwLookupLocation() {
 #[test]
 #[ignore]
 fn test_libdwPrintBacktrace() {
-    let session = Default::default();
-    let file = Default::default();
-    let bt = Default::default();
+    let mut session = Default::default();
+    let mut file = Default::default();
+    let mut bt = Default::default();
     unsafe { super::libdwPrintBacktrace(&mut session, &mut file, &mut bt) };
     todo!("assert")
 }

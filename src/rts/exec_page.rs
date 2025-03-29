@@ -41,11 +41,11 @@ pub unsafe extern "C" fn allocateExecPage() -> *mut ExecPage {
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn freezeExecPage(page: *mut ExecPage) {
-    unsafe { transmute(sys::freezeExecPage(&mut page.into())) }
+    unsafe { sys::freezeExecPage(page) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn freeExecPage(page: *mut ExecPage) {
-    unsafe { transmute(sys::freeExecPage(&mut page.into())) }
+    unsafe { sys::freeExecPage(page) }
 }

@@ -15,7 +15,7 @@ mod tests;
 pub unsafe extern "C" fn __hscore_get_saved_termios(
     fd: ::core::ffi::c_int,
 ) -> *mut ::core::ffi::c_void {
-    unsafe { transmute(sys::__hscore_get_saved_termios(fd.into())) }
+    unsafe { transmute(sys::__hscore_get_saved_termios(fd)) }
 }
 
 #[unsafe(no_mangle)]
@@ -24,5 +24,5 @@ pub unsafe extern "C" fn __hscore_set_saved_termios(
     fd: ::core::ffi::c_int,
     ts: *mut ::core::ffi::c_void,
 ) {
-    unsafe { transmute(sys::__hscore_set_saved_termios(fd.into(), &mut ts.into())) }
+    unsafe { sys::__hscore_set_saved_termios(fd, ts) }
 }

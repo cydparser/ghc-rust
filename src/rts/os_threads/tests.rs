@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
@@ -78,10 +78,10 @@ fn equivalent_createOSThread(
 #[test]
 #[ignore]
 fn test_createOSThread() {
-    let tid = Default::default();
+    let mut tid = Default::default();
     let name = Default::default();
     let startProc = Default::default();
-    let param = Default::default();
+    let mut param = Default::default();
     unsafe { super::createOSThread(&mut tid, &name, startProc, &mut param) };
     todo!("assert")
 }
@@ -109,10 +109,10 @@ fn equivalent_createAttachedOSThread(
 #[test]
 #[ignore]
 fn test_createAttachedOSThread() {
-    let tid = Default::default();
+    let mut tid = Default::default();
     let name = Default::default();
     let startProc = Default::default();
-    let param = Default::default();
+    let mut param = Default::default();
     unsafe { super::createAttachedOSThread(&mut tid, &name, startProc, &mut param) };
     todo!("assert")
 }
@@ -152,7 +152,7 @@ fn test_joinOSThread() {
 #[test]
 #[ignore]
 fn test_initCondition() {
-    let pCond = Default::default();
+    let mut pCond = Default::default();
     unsafe { super::initCondition(&mut pCond) };
     todo!("assert")
 }
@@ -160,7 +160,7 @@ fn test_initCondition() {
 #[test]
 #[ignore]
 fn test_closeCondition() {
-    let pCond = Default::default();
+    let mut pCond = Default::default();
     unsafe { super::closeCondition(&mut pCond) };
     todo!("assert")
 }
@@ -168,7 +168,7 @@ fn test_closeCondition() {
 #[test]
 #[ignore]
 fn test_broadcastCondition() {
-    let pCond = Default::default();
+    let mut pCond = Default::default();
     unsafe { super::broadcastCondition(&mut pCond) };
     todo!("assert")
 }
@@ -176,7 +176,7 @@ fn test_broadcastCondition() {
 #[test]
 #[ignore]
 fn test_signalCondition() {
-    let pCond = Default::default();
+    let mut pCond = Default::default();
     unsafe { super::signalCondition(&mut pCond) };
     todo!("assert")
 }
@@ -184,8 +184,8 @@ fn test_signalCondition() {
 #[test]
 #[ignore]
 fn test_waitCondition() {
-    let pCond = Default::default();
-    let pMut = Default::default();
+    let mut pCond = Default::default();
+    let mut pMut = Default::default();
     unsafe { super::waitCondition(&mut pCond, &mut pMut) };
     todo!("assert")
 }
@@ -207,8 +207,8 @@ fn equivalent_timedWaitCondition(pCond: Condition, pMut: Mutex, timeout: Time) -
 #[test]
 #[ignore]
 fn test_timedWaitCondition() {
-    let pCond = Default::default();
-    let pMut = Default::default();
+    let mut pCond = Default::default();
+    let mut pMut = Default::default();
     let timeout = Default::default();
     unsafe { super::timedWaitCondition(&mut pCond, &mut pMut, timeout) };
     todo!("assert")
@@ -217,7 +217,7 @@ fn test_timedWaitCondition() {
 #[test]
 #[ignore]
 fn test_initMutex() {
-    let pMut = Default::default();
+    let mut pMut = Default::default();
     unsafe { super::initMutex(&mut pMut) };
     todo!("assert")
 }
@@ -225,7 +225,7 @@ fn test_initMutex() {
 #[test]
 #[ignore]
 fn test_closeMutex() {
-    let pMut = Default::default();
+    let mut pMut = Default::default();
     unsafe { super::closeMutex(&mut pMut) };
     todo!("assert")
 }
@@ -233,7 +233,7 @@ fn test_closeMutex() {
 #[test]
 #[ignore]
 fn test_newThreadLocalKey() {
-    let key = Default::default();
+    let mut key = Default::default();
     unsafe { super::newThreadLocalKey(&mut key) };
     todo!("assert")
 }
@@ -249,7 +249,7 @@ fn equivalent_getThreadLocalVar(key: ThreadLocalKey) -> bool {
 #[test]
 #[ignore]
 fn test_getThreadLocalVar() {
-    let key = Default::default();
+    let mut key = Default::default();
     unsafe { super::getThreadLocalVar(&mut key) };
     todo!("assert")
 }
@@ -257,8 +257,8 @@ fn test_getThreadLocalVar() {
 #[test]
 #[ignore]
 fn test_setThreadLocalVar() {
-    let key = Default::default();
-    let value = Default::default();
+    let mut key = Default::default();
+    let mut value = Default::default();
     unsafe { super::setThreadLocalVar(&mut key, &mut value) };
     todo!("assert")
 }
@@ -266,7 +266,7 @@ fn test_setThreadLocalVar() {
 #[test]
 #[ignore]
 fn test_freeThreadLocalKey() {
-    let key = Default::default();
+    let mut key = Default::default();
     unsafe { super::freeThreadLocalKey(&mut key) };
     todo!("assert")
 }

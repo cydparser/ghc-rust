@@ -19,11 +19,11 @@ pub unsafe extern "C" fn libdwPoolTake() -> *mut LibdwSession {
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn libdwPoolRelease(sess: *mut LibdwSession) {
-    unsafe { transmute(sys::libdwPoolRelease(&mut sess.into())) }
+    unsafe { sys::libdwPoolRelease(sess) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn libdwPoolClear() {
-    unsafe { transmute(sys::libdwPoolClear()) }
+    unsafe { sys::libdwPoolClear() }
 }

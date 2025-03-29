@@ -70,9 +70,9 @@ impl Arbitrary for StgProfHeader {
 
 #[repr(C)]
 pub(crate) union StgProfHeader__bindgen_ty_1 {
-    pub trav: ::core::mem::ManuallyDrop<StgWord>,
-    pub ldvw: ::core::mem::ManuallyDrop<StgWord>,
-    pub era: ::core::mem::ManuallyDrop<StgWord>,
+    pub trav: StgWord,
+    pub ldvw: StgWord,
+    pub era: StgWord,
 }
 
 #[cfg(feature = "sys")]

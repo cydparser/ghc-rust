@@ -1,15 +1,12 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_TREC_CHUNK_NUM_ENTRIES() {
-    assert_eq!(
-        sys::TREC_CHUNK_NUM_ENTRIES,
-        super::TREC_CHUNK_NUM_ENTRIES.into()
-    );
+    assert_eq!(sys::TREC_CHUNK_NUM_ENTRIES, super::TREC_CHUNK_NUM_ENTRIES);
 }
 
 #[cfg(feature = "sys")]

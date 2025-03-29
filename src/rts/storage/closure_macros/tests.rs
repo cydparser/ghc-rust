@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[quickcheck]
@@ -23,7 +23,7 @@ fn test_closure_sizeW_() {
 #[test]
 #[ignore]
 fn test_stg_overwritingClosure() {
-    let p = Default::default();
+    let mut p = Default::default();
     unsafe { super::stg_overwritingClosure(&mut p) };
     todo!("assert")
 }
@@ -31,7 +31,7 @@ fn test_stg_overwritingClosure() {
 #[test]
 #[ignore]
 fn test_stg_overwritingMutableClosureOfs() {
-    let p = Default::default();
+    let mut p = Default::default();
     let offset = Default::default();
     unsafe { super::stg_overwritingMutableClosureOfs(&mut p, offset) };
     todo!("assert")
@@ -40,7 +40,7 @@ fn test_stg_overwritingMutableClosureOfs() {
 #[test]
 #[ignore]
 fn test_stg_overwritingClosureSize() {
-    let p = Default::default();
+    let mut p = Default::default();
     let size = Default::default();
     unsafe { super::stg_overwritingClosureSize(&mut p, size) };
     todo!("assert")

@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[quickcheck]
@@ -26,7 +26,7 @@ fn equivalent_createAdjustor(
 fn test_createAdjustor() {
     let hptr = Default::default();
     let wptr = Default::default();
-    let typeString = Default::default();
+    let mut typeString = Default::default();
     unsafe { super::createAdjustor(hptr, wptr, &mut typeString) };
     todo!("assert")
 }
@@ -34,7 +34,7 @@ fn test_createAdjustor() {
 #[test]
 #[ignore]
 fn test_freeHaskellFunctionPtr() {
-    let ptr = Default::default();
+    let mut ptr = Default::default();
     unsafe { super::freeHaskellFunctionPtr(&mut ptr) };
     todo!("assert")
 }

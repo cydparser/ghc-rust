@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[quickcheck]
@@ -19,8 +19,8 @@ fn equivalent_heap_view_closurePtrs(cap: Capability, closure: StgClosure) -> boo
 #[test]
 #[ignore]
 fn test_heap_view_closurePtrs() {
-    let cap = Default::default();
-    let closure = Default::default();
+    let mut cap = Default::default();
+    let mut closure = Default::default();
     unsafe { super::heap_view_closurePtrs(&mut cap, &mut closure) };
     todo!("assert")
 }
@@ -28,10 +28,10 @@ fn test_heap_view_closurePtrs() {
 #[test]
 #[ignore]
 fn test_heap_view_closure_ptrs_in_pap_payload() {
-    let ptrs = Default::default();
-    let nptrs = Default::default();
-    let fun = Default::default();
-    let payload = Default::default();
+    let mut ptrs = Default::default();
+    let mut nptrs = Default::default();
+    let mut fun = Default::default();
+    let mut payload = Default::default();
     let size = Default::default();
     unsafe {
         super::heap_view_closure_ptrs_in_pap_payload(
@@ -56,7 +56,7 @@ fn equivalent_heap_view_closureSize(closure: StgClosure) -> bool {
 #[test]
 #[ignore]
 fn test_heap_view_closureSize() {
-    let closure = Default::default();
+    let mut closure = Default::default();
     unsafe { super::heap_view_closureSize(&mut closure) };
     todo!("assert")
 }
@@ -77,8 +77,8 @@ fn equivalent_collect_pointers(closure: StgClosure, ptrs: StgClosure) -> bool {
 #[test]
 #[ignore]
 fn test_collect_pointers() {
-    let closure = Default::default();
-    let ptrs = Default::default();
+    let mut closure = Default::default();
+    let mut ptrs = Default::default();
     unsafe { super::collect_pointers(&mut closure, &mut &mut ptrs) };
     todo!("assert")
 }

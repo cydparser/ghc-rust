@@ -19,18 +19,11 @@ pub unsafe extern "C" fn lockFile(
     ino: StgWord64,
     for_writing: ::core::ffi::c_int,
 ) -> ::core::ffi::c_int {
-    unsafe {
-        transmute(sys::lockFile(
-            id.into(),
-            dev.into(),
-            ino.into(),
-            for_writing.into(),
-        ))
-    }
+    unsafe { transmute(sys::lockFile(id, dev, ino, for_writing)) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn unlockFile(id: StgWord64) -> ::core::ffi::c_int {
-    unsafe { transmute(sys::unlockFile(id.into())) }
+    unsafe { transmute(sys::unlockFile(id)) }
 }

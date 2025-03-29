@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[quickcheck]
@@ -15,7 +15,7 @@ fn equivalent_vbarf(s: ::core::ffi::c_char, ap: __va_list_tag) -> bool {
 #[ignore]
 fn test_vbarf() {
     let s = Default::default();
-    let ap = Default::default();
+    let mut ap = Default::default();
     unsafe { super::vbarf(&s, &mut ap) };
     todo!("assert")
 }
@@ -24,7 +24,7 @@ fn test_vbarf() {
 #[ignore]
 fn test_verrorBelch() {
     let s = Default::default();
-    let ap = Default::default();
+    let mut ap = Default::default();
     unsafe { super::verrorBelch(&s, &mut ap) };
     todo!("assert")
 }
@@ -33,7 +33,7 @@ fn test_verrorBelch() {
 #[ignore]
 fn test_vsysErrorBelch() {
     let s = Default::default();
-    let ap = Default::default();
+    let mut ap = Default::default();
     unsafe { super::vsysErrorBelch(&s, &mut ap) };
     todo!("assert")
 }
@@ -50,7 +50,7 @@ fn equivalent_vdebugBelch(s: ::core::ffi::c_char, ap: __va_list_tag) -> bool {
 #[ignore]
 fn test_vdebugBelch() {
     let s = Default::default();
-    let ap = Default::default();
+    let mut ap = Default::default();
     unsafe { super::vdebugBelch(&s, &mut ap) };
     todo!("assert")
 }
@@ -59,7 +59,7 @@ fn test_vdebugBelch() {
 #[ignore]
 fn test_rtsFatalInternalErrorFn() {
     let arg1 = Default::default();
-    let arg2 = Default::default();
+    let mut arg2 = Default::default();
     unsafe { super::rtsFatalInternalErrorFn(&arg1, &mut arg2) };
     todo!("assert")
 }
@@ -76,7 +76,7 @@ fn equivalent_rtsDebugMsgFn(arg1: ::core::ffi::c_char, arg2: __va_list_tag) -> b
 #[ignore]
 fn test_rtsDebugMsgFn() {
     let arg1 = Default::default();
-    let arg2 = Default::default();
+    let mut arg2 = Default::default();
     unsafe { super::rtsDebugMsgFn(&arg1, &mut arg2) };
     todo!("assert")
 }
@@ -85,7 +85,7 @@ fn test_rtsDebugMsgFn() {
 #[ignore]
 fn test_rtsErrorMsgFn() {
     let arg1 = Default::default();
-    let arg2 = Default::default();
+    let mut arg2 = Default::default();
     unsafe { super::rtsErrorMsgFn(&arg1, &mut arg2) };
     todo!("assert")
 }
@@ -94,7 +94,7 @@ fn test_rtsErrorMsgFn() {
 #[ignore]
 fn test_rtsSysErrorMsgFn() {
     let arg1 = Default::default();
-    let arg2 = Default::default();
+    let mut arg2 = Default::default();
     unsafe { super::rtsSysErrorMsgFn(&arg1, &mut arg2) };
     todo!("assert")
 }

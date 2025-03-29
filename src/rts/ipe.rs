@@ -152,7 +152,7 @@ pub type IpeBufferListNode = IpeBufferListNode_;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn registerInfoProvList(node: *mut IpeBufferListNode) {
-    unsafe { transmute(sys::registerInfoProvList(&mut node.into())) }
+    unsafe { sys::registerInfoProvList(node) }
 }
 
 #[unsafe(no_mangle)]
@@ -161,16 +161,11 @@ pub unsafe extern "C" fn formatClosureDescIpe(
     ipe_buf: *const InfoProvEnt,
     str_buf: *mut ::core::ffi::c_char,
 ) {
-    unsafe {
-        transmute(sys::formatClosureDescIpe(
-            &ipe_buf.into(),
-            &mut str_buf.into(),
-        ))
-    }
+    unsafe { sys::formatClosureDescIpe(ipe_buf, str_buf) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn lookupIPE(info: *const StgInfoTable, out: *mut InfoProvEnt) -> bool {
-    unsafe { transmute(sys::lookupIPE(&info.into(), &mut out.into())) }
+    unsafe { transmute(sys::lookupIPE(info, out)) }
 }

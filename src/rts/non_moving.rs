@@ -13,23 +13,13 @@ mod tests;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn updateRemembSetPushClosure_(reg: *mut StgRegTable, p: *mut StgClosure_) {
-    unsafe {
-        transmute(sys::updateRemembSetPushClosure_(
-            &mut reg.into(),
-            &mut p.into(),
-        ))
-    }
+    unsafe { sys::updateRemembSetPushClosure_(reg, p) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn updateRemembSetPushThunk_(reg: *mut StgRegTable, p: *mut StgThunk_) {
-    unsafe {
-        transmute(sys::updateRemembSetPushThunk_(
-            &mut reg.into(),
-            &mut p.into(),
-        ))
-    }
+    unsafe { sys::updateRemembSetPushThunk_(reg, p) }
 }
 
 #[unsafe(no_mangle)]
@@ -39,4 +29,5 @@ pub unsafe extern "C" fn stg_copyArray_barrier() -> StgFunPtr {
 }
 
 #[unsafe(no_mangle)]
-pub static mut nonmoving_write_barrier_enabled: StgWord = sys::nonmoving_write_barrier_enabled;
+pub static mut nonmoving_write_barrier_enabled: StgWord =
+    unsafe { sys::nonmoving_write_barrier_enabled };

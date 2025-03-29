@@ -13,11 +13,11 @@ mod tests;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn registerCcList(cc_list: *mut *mut CostCentre) {
-    unsafe { transmute(sys::registerCcList(&mut &mut cc_list.into())) }
+    unsafe { sys::registerCcList(cc_list) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn registerCcsList(cc_list: *mut *mut CostCentreStack) {
-    unsafe { transmute(sys::registerCcsList(&mut &mut cc_list.into())) }
+    unsafe { sys::registerCcsList(cc_list) }
 }

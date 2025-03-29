@@ -596,8 +596,8 @@ impl Arbitrary for _RTS_FLAGS {
 pub type RTS_FLAGS = _RTS_FLAGS;
 
 #[unsafe(no_mangle)]
-pub static mut RtsFlags: RTS_FLAGS = sys::RtsFlags;
+pub static mut RtsFlags: RTS_FLAGS = unsafe { sys::RtsFlags };
 
-static mut rts_argc: ::core::ffi::c_int = sys::rts_argc;
+static mut rts_argc: ::core::ffi::c_int = unsafe { sys::rts_argc };
 
-static mut rts_argv: *mut *mut ::core::ffi::c_char = sys::rts_argv;
+static mut rts_argv: *mut *mut ::core::ffi::c_char = unsafe { sys::rts_argv };

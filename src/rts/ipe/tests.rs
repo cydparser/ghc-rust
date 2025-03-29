@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
@@ -109,7 +109,7 @@ const _: () = {
 #[test]
 #[ignore]
 fn test_registerInfoProvList() {
-    let node = Default::default();
+    let mut node = Default::default();
     unsafe { super::registerInfoProvList(&mut node) };
     todo!("assert")
 }
@@ -118,7 +118,7 @@ fn test_registerInfoProvList() {
 #[ignore]
 fn test_formatClosureDescIpe() {
     let ipe_buf = Default::default();
-    let str_buf = Default::default();
+    let mut str_buf = Default::default();
     unsafe { super::formatClosureDescIpe(&ipe_buf, &mut str_buf) };
     todo!("assert")
 }
@@ -135,7 +135,7 @@ fn equivalent_lookupIPE(info: StgInfoTable, out: InfoProvEnt) -> bool {
 #[ignore]
 fn test_lookupIPE() {
     let info = Default::default();
-    let out = Default::default();
+    let mut out = Default::default();
     unsafe { super::lookupIPE(&info, &mut out) };
     todo!("assert")
 }

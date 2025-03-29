@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[quickcheck]
@@ -36,7 +36,7 @@ fn equivalent_ghc_tsan_atomic64_compare_exchange(
 #[test]
 #[ignore]
 fn test_ghc_tsan_atomic64_compare_exchange() {
-    let ptr = Default::default();
+    let mut ptr = Default::default();
     let expected = Default::default();
     let new_value = Default::default();
     let success_memorder = Default::default();
@@ -86,7 +86,7 @@ fn equivalent_ghc_tsan_atomic32_compare_exchange(
 #[test]
 #[ignore]
 fn test_ghc_tsan_atomic32_compare_exchange() {
-    let ptr = Default::default();
+    let mut ptr = Default::default();
     let expected = Default::default();
     let new_value = Default::default();
     let success_memorder = Default::default();
@@ -136,7 +136,7 @@ fn equivalent_ghc_tsan_atomic16_compare_exchange(
 #[test]
 #[ignore]
 fn test_ghc_tsan_atomic16_compare_exchange() {
-    let ptr = Default::default();
+    let mut ptr = Default::default();
     let expected = Default::default();
     let new_value = Default::default();
     let success_memorder = Default::default();
@@ -186,7 +186,7 @@ fn equivalent_ghc_tsan_atomic8_compare_exchange(
 #[test]
 #[ignore]
 fn test_ghc_tsan_atomic8_compare_exchange() {
-    let ptr = Default::default();
+    let mut ptr = Default::default();
     let expected = Default::default();
     let new_value = Default::default();
     let success_memorder = Default::default();

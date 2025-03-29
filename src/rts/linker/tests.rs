@@ -1,12 +1,12 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_PATH_FMT() {
-    assert_eq!(sys::PATH_FMT, super::PATH_FMT.into());
+    assert_eq!(sys::PATH_FMT, super::PATH_FMT);
 }
 
 #[test]
@@ -45,9 +45,9 @@ fn equivalent_insertSymbol(
 #[test]
 #[ignore]
 fn test_insertSymbol() {
-    let obj_name = Default::default();
-    let key = Default::default();
-    let data = Default::default();
+    let mut obj_name = Default::default();
+    let mut key = Default::default();
+    let mut data = Default::default();
     unsafe { super::insertSymbol(&mut obj_name, &mut key, &mut data) };
     todo!("assert")
 }
@@ -63,7 +63,7 @@ fn equivalent_lookupSymbol(lbl: ::core::ffi::c_char) -> bool {
 #[test]
 #[ignore]
 fn test_lookupSymbol() {
-    let lbl = Default::default();
+    let mut lbl = Default::default();
     unsafe { super::lookupSymbol(&mut lbl) };
     todo!("assert")
 }
@@ -79,7 +79,7 @@ fn equivalent_getObjectLoadStatus(path: pathchar) -> bool {
 #[test]
 #[ignore]
 fn test_getObjectLoadStatus() {
-    let path = Default::default();
+    let mut path = Default::default();
     unsafe { super::getObjectLoadStatus(&mut path) };
     todo!("assert")
 }
@@ -95,7 +95,7 @@ fn equivalent_unloadObj(path: pathchar) -> bool {
 #[test]
 #[ignore]
 fn test_unloadObj() {
-    let path = Default::default();
+    let mut path = Default::default();
     unsafe { super::unloadObj(&mut path) };
     todo!("assert")
 }
@@ -111,7 +111,7 @@ fn equivalent_purgeObj(path: pathchar) -> bool {
 #[test]
 #[ignore]
 fn test_purgeObj() {
-    let path = Default::default();
+    let mut path = Default::default();
     unsafe { super::purgeObj(&mut path) };
     todo!("assert")
 }
@@ -127,7 +127,7 @@ fn equivalent_loadObj(path: pathchar) -> bool {
 #[test]
 #[ignore]
 fn test_loadObj() {
-    let path = Default::default();
+    let mut path = Default::default();
     unsafe { super::loadObj(&mut path) };
     todo!("assert")
 }
@@ -143,7 +143,7 @@ fn equivalent_loadArchive(path: pathchar) -> bool {
 #[test]
 #[ignore]
 fn test_loadArchive() {
-    let path = Default::default();
+    let mut path = Default::default();
     unsafe { super::loadArchive(&mut path) };
     todo!("assert")
 }
@@ -179,8 +179,8 @@ fn equivalent_loadNativeObj(path: pathchar, errmsg: ::core::ffi::c_char) -> bool
 #[test]
 #[ignore]
 fn test_loadNativeObj() {
-    let path = Default::default();
-    let errmsg = Default::default();
+    let mut path = Default::default();
+    let mut errmsg = Default::default();
     unsafe { super::loadNativeObj(&mut path, &mut &mut errmsg) };
     todo!("assert")
 }
@@ -196,7 +196,7 @@ fn equivalent_unloadNativeObj(handle: ::core::ffi::c_void) -> bool {
 #[test]
 #[ignore]
 fn test_unloadNativeObj() {
-    let handle = Default::default();
+    let mut handle = Default::default();
     unsafe { super::unloadNativeObj(&mut handle) };
     todo!("assert")
 }
@@ -220,7 +220,7 @@ fn equivalent_lookupSymbolInNativeObj(
 #[test]
 #[ignore]
 fn test_lookupSymbolInNativeObj() {
-    let handle = Default::default();
+    let mut handle = Default::default();
     let symbol_name = Default::default();
     unsafe { super::lookupSymbolInNativeObj(&mut handle, &symbol_name) };
     todo!("assert")
@@ -237,7 +237,7 @@ fn equivalent_addDLL(dll_name: pathchar) -> bool {
 #[test]
 #[ignore]
 fn test_addDLL() {
-    let dll_name = Default::default();
+    let mut dll_name = Default::default();
     unsafe { super::addDLL(&mut dll_name) };
     todo!("assert")
 }
@@ -253,7 +253,7 @@ fn equivalent_addLibrarySearchPath(dll_path: pathchar) -> bool {
 #[test]
 #[ignore]
 fn test_addLibrarySearchPath() {
-    let dll_path = Default::default();
+    let mut dll_path = Default::default();
     unsafe { super::addLibrarySearchPath(&mut dll_path) };
     todo!("assert")
 }
@@ -292,7 +292,7 @@ fn equivalent_findSystemLibrary(dll_name: pathchar) -> bool {
 #[test]
 #[ignore]
 fn test_findSystemLibrary() {
-    let dll_name = Default::default();
+    let mut dll_name = Default::default();
     unsafe { super::findSystemLibrary(&mut dll_name) };
     todo!("assert")
 }

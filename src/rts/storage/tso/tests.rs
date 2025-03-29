@@ -1,24 +1,24 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_StgThreadID() {
-    assert_eq!(sys::FMT_StgThreadID, super::FMT_StgThreadID.into());
+    assert_eq!(sys::FMT_StgThreadID, super::FMT_StgThreadID);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_STACK_DIRTY() {
-    assert_eq!(sys::STACK_DIRTY, super::STACK_DIRTY.into());
+    assert_eq!(sys::STACK_DIRTY, super::STACK_DIRTY);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_STACK_SANE() {
-    assert_eq!(sys::STACK_SANE, super::STACK_SANE.into());
+    assert_eq!(sys::STACK_SANE, super::STACK_SANE);
 }
 
 #[cfg(feature = "sys")]
@@ -125,8 +125,8 @@ const _: () = {
 #[test]
 #[ignore]
 fn test_dirty_TSO() {
-    let cap = Default::default();
-    let tso = Default::default();
+    let mut cap = Default::default();
+    let mut tso = Default::default();
     unsafe { super::dirty_TSO(&mut cap, &mut tso) };
     todo!("assert")
 }
@@ -134,9 +134,9 @@ fn test_dirty_TSO() {
 #[test]
 #[ignore]
 fn test_setTSOLink() {
-    let cap = Default::default();
-    let tso = Default::default();
-    let target = Default::default();
+    let mut cap = Default::default();
+    let mut tso = Default::default();
+    let mut target = Default::default();
     unsafe { super::setTSOLink(&mut cap, &mut tso, &mut target) };
     todo!("assert")
 }
@@ -144,9 +144,9 @@ fn test_setTSOLink() {
 #[test]
 #[ignore]
 fn test_setTSOPrev() {
-    let cap = Default::default();
-    let tso = Default::default();
-    let target = Default::default();
+    let mut cap = Default::default();
+    let mut tso = Default::default();
+    let mut target = Default::default();
     unsafe { super::setTSOPrev(&mut cap, &mut tso, &mut target) };
     todo!("assert")
 }
@@ -154,8 +154,8 @@ fn test_setTSOPrev() {
 #[test]
 #[ignore]
 fn test_dirty_STACK() {
-    let cap = Default::default();
-    let stack = Default::default();
+    let mut cap = Default::default();
+    let mut stack = Default::default();
     unsafe { super::dirty_STACK(&mut cap, &mut stack) };
     todo!("assert")
 }

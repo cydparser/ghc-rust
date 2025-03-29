@@ -51,14 +51,7 @@ pub unsafe extern "C" fn hs_hpc_module(
     modHashNo: StgWord32,
     tixArr: *mut StgWord64,
 ) {
-    unsafe {
-        transmute(sys::hs_hpc_module(
-            &mut modName.into(),
-            modCount.into(),
-            modHashNo.into(),
-            &mut tixArr.into(),
-        ))
-    }
+    unsafe { sys::hs_hpc_module(modName, modCount, modHashNo, tixArr) }
 }
 
 #[unsafe(no_mangle)]
@@ -69,10 +62,10 @@ pub unsafe extern "C" fn hs_hpc_rootModule() -> *mut HpcModuleInfo {
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn startupHpc() {
-    unsafe { transmute(sys::startupHpc()) }
+    unsafe { sys::startupHpc() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn exitHpc() {
-    unsafe { transmute(sys::exitHpc()) }
+    unsafe { sys::exitHpc() }
 }

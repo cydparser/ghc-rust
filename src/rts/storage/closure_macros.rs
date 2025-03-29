@@ -12,25 +12,20 @@ mod tests;
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn closure_sizeW_(p: *const StgClosure, info: *const StgInfoTable) -> u32 {
-    unsafe { transmute(sys::closure_sizeW_(&p.into(), &info.into())) }
+    unsafe { transmute(sys::closure_sizeW_(p, info)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn stg_overwritingClosure(p: *mut StgClosure) {
-    unsafe { transmute(sys::stg_overwritingClosure(&mut p.into())) }
+    unsafe { sys::stg_overwritingClosure(p) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn stg_overwritingMutableClosureOfs(p: *mut StgClosure, offset: u32) {
-    unsafe {
-        transmute(sys::stg_overwritingMutableClosureOfs(
-            &mut p.into(),
-            offset.into(),
-        ))
-    }
+    unsafe { sys::stg_overwritingMutableClosureOfs(p, offset) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn stg_overwritingClosureSize(p: *mut StgClosure, size: u32) {
-    unsafe { transmute(sys::stg_overwritingClosureSize(&mut p.into(), size.into())) }
+    unsafe { sys::stg_overwritingClosureSize(p, size) }
 }

@@ -18,12 +18,5 @@ pub unsafe extern "C" fn hs_main(
     main_closure: *mut StgClosure,
     rts_config: RtsConfig,
 ) -> ! {
-    unsafe {
-        transmute(sys::hs_main(
-            argc.into(),
-            &mut &mut argv.into(),
-            &mut main_closure.into(),
-            rts_config.into(),
-        ))
-    }
+    unsafe { transmute(sys::hs_main(argc, argv, main_closure, rts_config)) }
 }

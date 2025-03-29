@@ -35,4 +35,4 @@ impl Arbitrary for snEntry {
     }
 }
 
-static mut stable_name_table: *mut snEntry = sys::stable_name_table;
+static mut stable_name_table: *mut snEntry = unsafe { sys::stable_name_table };

@@ -1,7 +1,7 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
+use quickcheck_macros::quickcheck;
 use std::mem::{size_of, transmute};
 #[cfg(feature = "sys")]
 #[test]
@@ -23,7 +23,7 @@ fn equivalent_pauseTokenCapability(pauseToken: PauseToken) -> bool {
 #[test]
 #[ignore]
 fn test_pauseTokenCapability() {
-    let pauseToken = Default::default();
+    let mut pauseToken = Default::default();
     unsafe { super::pauseTokenCapability(&mut pauseToken) };
     todo!("assert")
 }
@@ -208,7 +208,7 @@ const _: () = {
 #[test]
 #[ignore]
 fn test_getRTSStats() {
-    let s = Default::default();
+    let mut s = Default::default();
     unsafe { super::getRTSStats(&mut s) };
     todo!("assert")
 }
@@ -247,7 +247,7 @@ fn test_getAllocations() {
 #[ignore]
 fn test_startupHaskell() {
     let argc = Default::default();
-    let argv = Default::default();
+    let mut argv = Default::default();
     let init_root = Default::default();
     unsafe { super::startupHaskell(argc, &mut &mut argv, init_root) };
     todo!("assert")
@@ -263,8 +263,8 @@ fn test_shutdownHaskell() {
 #[test]
 #[ignore]
 fn test_hs_init_with_rtsopts() {
-    let argc = Default::default();
-    let argv = Default::default();
+    let mut argc = Default::default();
+    let mut argv = Default::default();
     unsafe { super::hs_init_with_rtsopts(&mut argc, &mut &mut &mut argv) };
     todo!("assert")
 }
@@ -272,8 +272,8 @@ fn test_hs_init_with_rtsopts() {
 #[test]
 #[ignore]
 fn test_hs_init_ghc() {
-    let argc = Default::default();
-    let argv = Default::default();
+    let mut argc = Default::default();
+    let mut argv = Default::default();
     let rts_config = Default::default();
     unsafe { super::hs_init_ghc(&mut argc, &mut &mut &mut argv, rts_config) };
     todo!("assert")
@@ -327,8 +327,8 @@ fn test_shutdownHaskellAndSignal() {
 #[test]
 #[ignore]
 fn test_getProgArgv() {
-    let argc = Default::default();
-    let argv = Default::default();
+    let mut argc = Default::default();
+    let mut argv = Default::default();
     unsafe { super::getProgArgv(&mut argc, &mut &mut &mut argv) };
     todo!("assert")
 }
@@ -337,7 +337,7 @@ fn test_getProgArgv() {
 #[ignore]
 fn test_setProgArgv() {
     let argc = Default::default();
-    let argv = Default::default();
+    let mut argv = Default::default();
     unsafe { super::setProgArgv(argc, &mut &mut argv) };
     todo!("assert")
 }
@@ -345,8 +345,8 @@ fn test_setProgArgv() {
 #[test]
 #[ignore]
 fn test_getFullProgArgv() {
-    let argc = Default::default();
-    let argv = Default::default();
+    let mut argc = Default::default();
+    let mut argv = Default::default();
     unsafe { super::getFullProgArgv(&mut argc, &mut &mut &mut argv) };
     todo!("assert")
 }
@@ -355,7 +355,7 @@ fn test_getFullProgArgv() {
 #[ignore]
 fn test_setFullProgArgv() {
     let argc = Default::default();
-    let argv = Default::default();
+    let mut argv = Default::default();
     unsafe { super::setFullProgArgv(argc, &mut &mut argv) };
     todo!("assert")
 }
@@ -385,7 +385,7 @@ fn test_rts_lock() {
 #[test]
 #[ignore]
 fn test_rts_unlock() {
-    let token = Default::default();
+    let mut token = Default::default();
     unsafe { super::rts_unlock(&mut token) };
     todo!("assert")
 }
@@ -433,7 +433,7 @@ fn equivalent_rts_mkChar(arg1: Capability, c: HsChar) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkChar() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let c = Default::default();
     unsafe { super::rts_mkChar(&mut arg1, c) };
     todo!("assert")
@@ -450,7 +450,7 @@ fn equivalent_rts_mkInt(arg1: Capability, i: HsInt) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkInt() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let i = Default::default();
     unsafe { super::rts_mkInt(&mut arg1, i) };
     todo!("assert")
@@ -467,7 +467,7 @@ fn equivalent_rts_mkInt8(arg1: Capability, i: HsInt8) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkInt8() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let i = Default::default();
     unsafe { super::rts_mkInt8(&mut arg1, i) };
     todo!("assert")
@@ -484,7 +484,7 @@ fn equivalent_rts_mkInt16(arg1: Capability, i: HsInt16) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkInt16() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let i = Default::default();
     unsafe { super::rts_mkInt16(&mut arg1, i) };
     todo!("assert")
@@ -501,7 +501,7 @@ fn equivalent_rts_mkInt32(arg1: Capability, i: HsInt32) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkInt32() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let i = Default::default();
     unsafe { super::rts_mkInt32(&mut arg1, i) };
     todo!("assert")
@@ -518,7 +518,7 @@ fn equivalent_rts_mkInt64(arg1: Capability, i: HsInt64) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkInt64() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let i = Default::default();
     unsafe { super::rts_mkInt64(&mut arg1, i) };
     todo!("assert")
@@ -535,7 +535,7 @@ fn equivalent_rts_mkWord(arg1: Capability, w: HsWord) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkWord() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let w = Default::default();
     unsafe { super::rts_mkWord(&mut arg1, w) };
     todo!("assert")
@@ -552,7 +552,7 @@ fn equivalent_rts_mkWord8(arg1: Capability, w: HsWord8) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkWord8() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let w = Default::default();
     unsafe { super::rts_mkWord8(&mut arg1, w) };
     todo!("assert")
@@ -569,7 +569,7 @@ fn equivalent_rts_mkWord16(arg1: Capability, w: HsWord16) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkWord16() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let w = Default::default();
     unsafe { super::rts_mkWord16(&mut arg1, w) };
     todo!("assert")
@@ -586,7 +586,7 @@ fn equivalent_rts_mkWord32(arg1: Capability, w: HsWord32) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkWord32() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let w = Default::default();
     unsafe { super::rts_mkWord32(&mut arg1, w) };
     todo!("assert")
@@ -603,7 +603,7 @@ fn equivalent_rts_mkWord64(arg1: Capability, w: HsWord64) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkWord64() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let w = Default::default();
     unsafe { super::rts_mkWord64(&mut arg1, w) };
     todo!("assert")
@@ -620,7 +620,7 @@ fn equivalent_rts_mkPtr(arg1: Capability, a: HsPtr) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkPtr() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let a = Default::default();
     unsafe { super::rts_mkPtr(&mut arg1, a) };
     todo!("assert")
@@ -637,7 +637,7 @@ fn equivalent_rts_mkFunPtr(arg1: Capability, a: HsFunPtr) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkFunPtr() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let a = Default::default();
     unsafe { super::rts_mkFunPtr(&mut arg1, a) };
     todo!("assert")
@@ -654,7 +654,7 @@ fn equivalent_rts_mkFloat(arg1: Capability, f: HsFloat) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkFloat() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let f = Default::default();
     unsafe { super::rts_mkFloat(&mut arg1, f) };
     todo!("assert")
@@ -671,7 +671,7 @@ fn equivalent_rts_mkDouble(arg1: Capability, f: HsDouble) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkDouble() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let f = Default::default();
     unsafe { super::rts_mkDouble(&mut arg1, f) };
     todo!("assert")
@@ -688,7 +688,7 @@ fn equivalent_rts_mkStablePtr(arg1: Capability, s: HsStablePtr) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkStablePtr() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let s = Default::default();
     unsafe { super::rts_mkStablePtr(&mut arg1, s) };
     todo!("assert")
@@ -705,7 +705,7 @@ fn equivalent_rts_mkBool(arg1: Capability, b: HsBool) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkBool() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let b = Default::default();
     unsafe { super::rts_mkBool(&mut arg1, b) };
     todo!("assert")
@@ -722,8 +722,8 @@ fn equivalent_rts_mkString(arg1: Capability, s: ::core::ffi::c_char) -> bool {
 #[test]
 #[ignore]
 fn test_rts_mkString() {
-    let arg1 = Default::default();
-    let s = Default::default();
+    let mut arg1 = Default::default();
+    let mut s = Default::default();
     unsafe { super::rts_mkString(&mut arg1, &mut s) };
     todo!("assert")
 }
@@ -739,7 +739,7 @@ fn equivalent_rts_apply(arg1: Capability, arg2: HaskellObj, arg3: HaskellObj) ->
 #[test]
 #[ignore]
 fn test_rts_apply() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let arg2 = Default::default();
     let arg3 = Default::default();
     unsafe { super::rts_apply(&mut arg1, arg2, arg3) };
@@ -1021,9 +1021,9 @@ fn test_rts_getBool() {
 #[test]
 #[ignore]
 fn test_rts_eval() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let p = Default::default();
-    let ret = Default::default();
+    let mut ret = Default::default();
     unsafe { super::rts_eval(&mut &mut arg1, p, &mut ret) };
     todo!("assert")
 }
@@ -1031,10 +1031,10 @@ fn test_rts_eval() {
 #[test]
 #[ignore]
 fn test_rts_eval_() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let p = Default::default();
     let stack_size = Default::default();
-    let ret = Default::default();
+    let mut ret = Default::default();
     unsafe { super::rts_eval_(&mut &mut arg1, p, stack_size, &mut ret) };
     todo!("assert")
 }
@@ -1042,9 +1042,9 @@ fn test_rts_eval_() {
 #[test]
 #[ignore]
 fn test_rts_evalIO() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let p = Default::default();
-    let ret = Default::default();
+    let mut ret = Default::default();
     unsafe { super::rts_evalIO(&mut &mut arg1, p, &mut ret) };
     todo!("assert")
 }
@@ -1052,9 +1052,9 @@ fn test_rts_evalIO() {
 #[test]
 #[ignore]
 fn test_rts_evalStableIOMain() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let s = Default::default();
-    let ret = Default::default();
+    let mut ret = Default::default();
     unsafe { super::rts_evalStableIOMain(&mut &mut arg1, s, &mut ret) };
     todo!("assert")
 }
@@ -1062,9 +1062,9 @@ fn test_rts_evalStableIOMain() {
 #[test]
 #[ignore]
 fn test_rts_evalStableIO() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let s = Default::default();
-    let ret = Default::default();
+    let mut ret = Default::default();
     unsafe { super::rts_evalStableIO(&mut &mut arg1, s, &mut ret) };
     todo!("assert")
 }
@@ -1072,9 +1072,9 @@ fn test_rts_evalStableIO() {
 #[test]
 #[ignore]
 fn test_rts_evalLazyIO() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let p = Default::default();
-    let ret = Default::default();
+    let mut ret = Default::default();
     unsafe { super::rts_evalLazyIO(&mut &mut arg1, p, &mut ret) };
     todo!("assert")
 }
@@ -1082,10 +1082,10 @@ fn test_rts_evalLazyIO() {
 #[test]
 #[ignore]
 fn test_rts_evalLazyIO_() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let p = Default::default();
     let stack_size = Default::default();
-    let ret = Default::default();
+    let mut ret = Default::default();
     unsafe { super::rts_evalLazyIO_(&mut &mut arg1, p, stack_size, &mut ret) };
     todo!("assert")
 }
@@ -1093,9 +1093,9 @@ fn test_rts_evalLazyIO_() {
 #[test]
 #[ignore]
 fn test_rts_inCall() {
-    let arg1 = Default::default();
+    let mut arg1 = Default::default();
     let p = Default::default();
-    let ret = Default::default();
+    let mut ret = Default::default();
     unsafe { super::rts_inCall(&mut &mut arg1, p, &mut ret) };
     todo!("assert")
 }
@@ -1103,8 +1103,8 @@ fn test_rts_inCall() {
 #[test]
 #[ignore]
 fn test_rts_checkSchedStatus() {
-    let site = Default::default();
-    let arg1 = Default::default();
+    let mut site = Default::default();
+    let mut arg1 = Default::default();
     unsafe { super::rts_checkSchedStatus(&mut site, &mut arg1) };
     todo!("assert")
 }
@@ -1120,7 +1120,7 @@ fn equivalent_rts_getSchedStatus(cap: Capability) -> bool {
 #[test]
 #[ignore]
 fn test_rts_getSchedStatus() {
-    let cap = Default::default();
+    let mut cap = Default::default();
     unsafe { super::rts_getSchedStatus(&mut cap) };
     todo!("assert")
 }
@@ -1143,7 +1143,7 @@ fn test_rts_pause() {
 #[test]
 #[ignore]
 fn test_rts_resume() {
-    let pauseToken = Default::default();
+    let mut pauseToken = Default::default();
     unsafe { super::rts_resume(&mut pauseToken) };
     todo!("assert")
 }
@@ -1167,7 +1167,7 @@ fn test_rts_isPaused() {
 #[ignore]
 fn test_rts_listThreads() {
     let cb = Default::default();
-    let user = Default::default();
+    let mut user = Default::default();
     unsafe { super::rts_listThreads(cb, &mut user) };
     todo!("assert")
 }
@@ -1176,7 +1176,7 @@ fn test_rts_listThreads() {
 #[ignore]
 fn test_rts_listMiscRoots() {
     let cb = Default::default();
-    let user = Default::default();
+    let mut user = Default::default();
     unsafe { super::rts_listMiscRoots(cb, &mut user) };
     todo!("assert")
 }

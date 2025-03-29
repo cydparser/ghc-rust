@@ -12,7 +12,7 @@ mod tests;
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn getStablePtr(p: StgPtr) -> StgStablePtr {
-    unsafe { transmute(sys::getStablePtr(p.into())) }
+    unsafe { transmute(sys::getStablePtr(p)) }
 }
 
 #[repr(C)]
@@ -36,4 +36,4 @@ impl Arbitrary for spEntry {
     }
 }
 
-static mut stable_ptr_table: *mut spEntry = sys::stable_ptr_table;
+static mut stable_ptr_table: *mut spEntry = unsafe { sys::stable_ptr_table };
