@@ -162,6 +162,9 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
             use quickcheck_macros::quickcheck;
         }),
         Item::Use(parse_quote! {
+            use super::*;
+        }),
+        Item::Use(parse_quote! {
             #[cfg(feature = "sys")]
             use ghc_rts_sys as sys;
         }),
