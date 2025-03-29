@@ -1,8 +1,11 @@
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use core::ffi;
+use std::mem::transmute;
+
+use quickcheck_macros::quickcheck;
+
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
-use std::mem::{size_of, transmute};
+
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_IN_STG_CODE() {
@@ -18,13 +21,13 @@ fn test_eq__REENTRANT() {
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_SizeT() {
-    assert_eq!(sys::FMT_SizeT, super::FMT_SizeT.into());
+    assert_eq!(sys::FMT_SizeT, super::FMT_SizeT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_HexSizeT() {
-    assert_eq!(sys::FMT_HexSizeT, super::FMT_HexSizeT.into());
+    assert_eq!(sys::FMT_HexSizeT, super::FMT_HexSizeT);
 }
 
 #[cfg(feature = "sys")]
@@ -63,14 +66,6 @@ fn test_eq_DEBUG_IS_ON() {
     assert_eq!(sys::DEBUG_IS_ON, super::DEBUG_IS_ON.into());
 }
 
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent__assertFail(filename: ::core::ffi::c_char, linenum: ::core::ffi::c_uint) -> bool {
-    let expected = unsafe { transmute(sys::_assertFail(&filename.into(), linenum.into())) };
-    let actual = unsafe { super::_assertFail(&filename, linenum) };
-    actual == expected
-}
-
 #[test]
 #[ignore]
 fn test__assertFail() {
@@ -104,14 +99,6 @@ fn test_reportHeapOverflow() {
     todo!("assert")
 }
 
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_stg_exit(n: ::core::ffi::c_int) -> bool {
-    let expected = unsafe { transmute(sys::stg_exit(n.into())) };
-    let actual = unsafe { super::stg_exit(n) };
-    actual == expected
-}
-
 #[test]
 #[ignore]
 fn test_stg_exit() {
@@ -122,18 +109,10 @@ fn test_stg_exit() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_stg_sig_install(
-    arg1: ::core::ffi::c_int,
-    arg2: ::core::ffi::c_int,
-    arg3: ::core::ffi::c_void,
-) -> bool {
-    let expected = unsafe {
-        transmute(sys::stg_sig_install(
-            arg1.into(),
-            arg2.into(),
-            &mut arg3.into(),
-        ))
-    };
+fn equivalent_stg_sig_install(arg1: ffi::c_int, arg2: ffi::c_int) -> bool {
+    let arg3 = todo!("*void");
+    let expected = unsafe { sys::stg_sig_install(arg1.into(), arg2.into(), &mut arg3) };
+    let arg3 = todo!("*void");
     let actual = unsafe { super::stg_sig_install(arg1, arg2, &mut arg3) };
     actual == expected
 }
@@ -143,7 +122,7 @@ fn equivalent_stg_sig_install(
 fn test_stg_sig_install() {
     let arg1 = Default::default();
     let arg2 = Default::default();
-    let arg3 = Default::default();
+    let arg3 = todo!("*void");
     unsafe { super::stg_sig_install(arg1, arg2, &mut arg3) };
     todo!("assert")
 }
