@@ -509,7 +509,7 @@ fn transform_union(
             #[cfg(test)]
             impl Arbitrary for #ident {
                 fn arbitrary(g: &mut Gen) -> Self {
-                    match Arbitrary::arbitrary::<usize>(g) % #field_count {
+                    match Arbitrary::arbitrary(g) % #field_count {
                         #(#arbitrary_fields),*
                     }
                 }
