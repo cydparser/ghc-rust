@@ -3,14 +3,8 @@
 #[cfg(test)]
 mod tests;
 
-pub const MACHREGS_NO_REGS: u32 = if cfg!(any(
-    feature = "UnregisterisedCompiler",
-    feature = "javascript_HOST_ARCH"
-)) {
-    1
-} else {
-    0
-};
+// TODO: Set to 1 when defined(UnregisterisedCompiler) || defined(javascript_HOST_ARCH)
+pub const MACHREGS_NO_REGS: u32 = 0;
 
 // Target Architecture Constants
 
