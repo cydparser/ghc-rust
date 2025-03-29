@@ -293,18 +293,28 @@ fn transform_ffn(
                 if let syn::Pat::Ident(pat_ident @ syn::PatIdent { .. }) = pat_type.pat.as_ref() {
                     let param_ident = pat_ident.ident.clone();
 
-                    let (ty_owned, arg_into, arg_from_owned) = match pat_type.ty.as_ref() {
-                        ty @ syn::Type::Path(_) => (
-                            ty.clone(),
-                            expr_into(&param_ident),
-                            syn::Pat::Ident(new_pat_ident(&param_ident)),
-                        ),
-                        syn::Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(&param_ident, type_ptr),
-                        ty => panic!("Unexpected type in {:?}: {:?}", arg, ty),
-                    };
+                    let (mutability, ty_owned, arg_into, arg_from_owned) =
+                        match pat_type.ty.as_ref() {
+                            ty @ syn::Type::Path(_) => (
+                                "",
+                                ty.clone(),
+                                expr_into(&param_ident),
+                                syn::Pat::Ident(new_pat_ident(&param_ident)),
+                            ),
+                            syn::Type::Ptr(type_ptr) => {
+                                let (ty, expr, pat) = ptr_to_ty_expr_pat(&param_ident, type_ptr);
+                                (
+                                    type_ptr.mutability.map(|_| "mut").unwrap_or(""),
+                                    ty,
+                                    expr,
+                                    pat,
+                                )
+                            }
+                            ty => panic!("Unexpected type in {:?}: {:?}", arg, ty),
+                        };
 
                     let binding: TokenStream =
-                        format!("let {} = Default::default();", &param_ident)
+                        format!("let {} {} = Default::default();", mutability, &param_ident)
                             .parse()
                             .unwrap_or_else(|e| {
                                 panic!("Unable to parse let expression: {:?} {}", arg, e)
