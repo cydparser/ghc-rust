@@ -143,7 +143,7 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
             use std::mem::{size_of, transmute};
         }),
         Item::Use(parse_quote! {
-            use quickcheck::quickcheck;
+            use quickcheck_macros::quickcheck;
         }),
         Item::Use(parse_quote! {
             #[cfg(feature = "sys")]
