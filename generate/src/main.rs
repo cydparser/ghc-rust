@@ -280,7 +280,7 @@ fn transform_ffn(
         return;
     }
 
-    let (inputs_owned, _args, args_into, args_from_owned, bindings): (
+    let (inputs_owned, args, args_into, args_from_owned, bindings): (
         Punctuated<_, token::Comma>,
         Vec<_>,
         Vec<_>,
@@ -343,11 +343,17 @@ fn transform_ffn(
                 Some(parse_quote! { #[unsafe(no_mangle)] }),
             )
         };
+
+    let call: syn::Expr = match output {
+        syn::ReturnType::Default => parse_quote! { sys::#ident(#(#args),*) },
+        syn::ReturnType::Type(_, _) => parse_quote! { transmute(sys::#ident(#(#args),*)) },
+    };
+
     main_file.items.push(Item::Fn(parse_quote! {
         #attr
         #[cfg_attr(feature = "tracing", instrument)]
         #vis unsafe #abi fn #ident(#inputs) #output {
-            unsafe { transmute(sys::#ident(#(#args_into),*)) }
+            unsafe { #call }
         }
     }));
 
