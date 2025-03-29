@@ -1,8 +1,11 @@
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use std::mem::{size_of, transmute};
+
+use quickcheck_macros::quickcheck;
+
+use super::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
-use std::mem::{size_of, transmute};
+
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_UNIT() {
@@ -345,45 +348,4 @@ fn test_allocBlockOnNode_lock() {
     let node = Default::default();
     unsafe { super::allocBlockOnNode_lock(node) };
     todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_freeGroup() {
-    let p = Default::default();
-    unsafe { super::freeGroup(&mut p) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_freeChain() {
-    let p = Default::default();
-    unsafe { super::freeChain(&mut p) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_freeGroup_lock() {
-    let p = Default::default();
-    unsafe { super::freeGroup_lock(&mut p) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_freeChain_lock() {
-    let p = Default::default();
-    unsafe { super::freeChain_lock(&mut p) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn test_size_of_generation_() {
-    assert_eq!(
-        size_of::<sys::generation_>(),
-        size_of::<super::generation_>()
-    )
 }

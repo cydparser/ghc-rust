@@ -1,12 +1,18 @@
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
+use std::mem::transmute;
+
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
-use std::mem::transmute;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
+
+use crate::{
+    rts::storage::gc::generation_,
+    stg::types::{StgPtr, StgWord, StgWord16, StgWord32},
+    stg::W_,
+};
+#[cfg(feature = "sys")]
+use ghc_rts_sys as sys;
+
 #[cfg(test)]
 mod tests;
 
@@ -51,6 +57,7 @@ pub(crate) const BF_NONMOVING_SWEEPING: u32 = 2048;
 pub(crate) const BF_FLAG_MAX: u32 = 32768;
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub(crate) struct NonmovingSegmentInfo {
     pub allocator_idx: StgWord16,
     pub next_free_snap: StgWord16,
@@ -95,29 +102,10 @@ impl From<bdescr_> for sys::bdescr_ {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for bdescr_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        bdescr_ {
-            start: Arbitrary::arbitrary(g),
-            __bindgen_anon_1: Arbitrary::arbitrary(g),
-            link: Arbitrary::arbitrary(g),
-            u: Arbitrary::arbitrary(g),
-            gen_: Arbitrary::arbitrary(g),
-            gen_no: Arbitrary::arbitrary(g),
-            dest_no: Arbitrary::arbitrary(g),
-            node: Arbitrary::arbitrary(g),
-            flags: Arbitrary::arbitrary(g),
-            blocks: Arbitrary::arbitrary(g),
-            _padding: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 #[repr(C)]
 pub(crate) union bdescr___bindgen_ty_1 {
-    pub free: ::core::mem::ManuallyDrop<StgPtr>,
-    pub nonmoving_segment: ::core::mem::ManuallyDrop<NonmovingSegmentInfo>,
+    pub free: StgPtr,
+    pub nonmoving_segment: NonmovingSegmentInfo,
 }
 
 #[cfg(feature = "sys")]
@@ -127,25 +115,11 @@ impl From<bdescr___bindgen_ty_1> for sys::bdescr___bindgen_ty_1 {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for bdescr___bindgen_ty_1 {
-    fn arbitrary(g: &mut Gen) -> Self {
-        match Arbitrary::arbitrary::<usize>(g) % 2usize {
-            0 => bdescr___bindgen_ty_1 {
-                free: Arbitrary::arbitrary(g),
-            },
-            1 => bdescr___bindgen_ty_1 {
-                nonmoving_segment: Arbitrary::arbitrary(g),
-            },
-        }
-    }
-}
-
 #[repr(C)]
 pub(crate) union bdescr___bindgen_ty_2 {
-    pub back: ::core::mem::ManuallyDrop<*mut bdescr_>,
-    pub bitmap: ::core::mem::ManuallyDrop<*mut StgWord>,
-    pub scan: ::core::mem::ManuallyDrop<StgPtr>,
+    pub back: *mut bdescr_,
+    pub bitmap: *mut StgWord,
+    pub scan: StgPtr,
 }
 
 #[cfg(feature = "sys")]
@@ -155,28 +129,11 @@ impl From<bdescr___bindgen_ty_2> for sys::bdescr___bindgen_ty_2 {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for bdescr___bindgen_ty_2 {
-    fn arbitrary(g: &mut Gen) -> Self {
-        match Arbitrary::arbitrary::<usize>(g) % 3usize {
-            0 => bdescr___bindgen_ty_2 {
-                back: Arbitrary::arbitrary(g),
-            },
-            1 => bdescr___bindgen_ty_2 {
-                bitmap: Arbitrary::arbitrary(g),
-            },
-            2 => bdescr___bindgen_ty_2 {
-                scan: Arbitrary::arbitrary(g),
-            },
-        }
-    }
-}
-
 pub type bdescr = bdescr_;
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn initBlockAllocator() {
-    unsafe { transmute(sys::initBlockAllocator()) }
+    unsafe { sys::initBlockAllocator() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -223,43 +180,21 @@ pub(crate) unsafe fn allocBlockOnNode_lock(node: u32) -> *mut bdescr {
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn freeGroup(p: *mut bdescr) {
-    unsafe { transmute(sys::freeGroup(&mut p.into())) }
+    unsafe { sys::freeGroup(transmute(p)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn freeChain(p: *mut bdescr) {
-    unsafe { transmute(sys::freeChain(&mut p.into())) }
+    unsafe { sys::freeChain(transmute(p)) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn freeGroup_lock(p: *mut bdescr) {
-    unsafe { transmute(sys::freeGroup_lock(&mut p.into())) }
+    unsafe { sys::freeGroup_lock(transmute(p)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn freeChain_lock(p: *mut bdescr) {
-    unsafe { transmute(sys::freeChain_lock(&mut p.into())) }
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct generation_ {
-    pub _address: u8,
-}
-
-#[cfg(feature = "sys")]
-impl From<generation_> for sys::generation_ {
-    fn from(x: generation_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for generation_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        generation_ {
-            _address: Arbitrary::arbitrary(g),
-        }
-    }
+    unsafe { sys::freeChain_lock(transmute(p)) }
 }
