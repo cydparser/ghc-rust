@@ -1,3 +1,4 @@
+use core::ffi;
 use std::mem::transmute;
 
 #[cfg(test)]
@@ -149,11 +150,11 @@ pub(crate) type StgHalfInt = i32;
 
 pub type StgHalfWord = u32;
 
-pub type StgAddr = *mut ::core::ffi::c_void;
+pub type StgAddr = *mut ffi::c_void;
 
 pub type StgChar = StgWord32;
 
-pub type StgBool = ::core::ffi::c_int;
+pub type StgBool = ffi::c_int;
 
 pub type StgFloat = f32;
 
@@ -167,15 +168,13 @@ pub(crate) type StgOffset = StgWord;
 
 pub(crate) type StgCode = StgWord8;
 
-pub type StgStablePtr = *mut ::core::ffi::c_void;
+pub type StgStablePtr = *mut ffi::c_void;
 
 pub(crate) type StgByteArray = *mut StgWord8;
 
-pub(crate) type StgFunPtr = ::core::option::Option<
-    unsafe extern "C" fn() -> ::core::option::Option<
-        unsafe extern "C" fn() -> *mut ::core::ffi::c_void,
-    >,
->;
-pub(crate) type StgFun = ::core::option::Option<unsafe extern "C" fn() -> StgFunPtr>;
+pub(crate) type StgFunPtr =
+    Option<unsafe extern "C" fn() -> Option<unsafe extern "C" fn() -> *mut ffi::c_void>>;
+
+pub(crate) type StgFun = Option<unsafe extern "C" fn() -> StgFunPtr>;
 
 // TODO: Add forward declarations, StgClosure_, StgThunk_, Capability_ for the unregisterised backend.
