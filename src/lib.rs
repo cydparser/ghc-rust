@@ -4,6 +4,6 @@
 
 // XXX pub mod hs_ffi;
 pub mod mach_deps;
-// XXX pub mod rts;
+pub mod rts;
 // XXX pub mod rts_api;
 pub mod stg;
