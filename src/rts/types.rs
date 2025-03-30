@@ -1,10 +1,9 @@
-use core::ffi;
+use crate::rts::storage::{closures::StgClosure_, info_tables::StgInfoTable_, tso::StgTSO_};
 
-use crate::rts::storage::closures::StgClosure_;
-use crate::rts::storage::info_tables::StgInfoTable_;
-use crate::rts::storage::tso::StgTSO_;
+#[cfg(test)]
+mod tests;
 
-pub type nat = ffi::c_uint;
+pub type nat = ::core::ffi::c_uint;
 
 pub type StgClosure = StgClosure_;
 
