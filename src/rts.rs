@@ -74,6 +74,7 @@ pub mod static_ptr_table;
 pub mod libdw;
 
 pub mod libdw_pool;
+pub mod capability;
 
 #[cfg(test)]
 mod tests;
