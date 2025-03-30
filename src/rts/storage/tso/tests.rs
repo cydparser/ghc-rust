@@ -1,24 +1,25 @@
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use std::mem::size_of;
+
+use super::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::mem::{size_of, transmute};
+
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_FMT_StgThreadID() {
-    assert_eq!(sys::FMT_StgThreadID, super::FMT_StgThreadID);
+    assert_eq!(sys::FMT_StgThreadID, FMT_StgThreadID);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_STACK_DIRTY() {
-    assert_eq!(sys::STACK_DIRTY, super::STACK_DIRTY);
+    assert_eq!(sys::STACK_DIRTY, STACK_DIRTY);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq_STACK_SANE() {
-    assert_eq!(sys::STACK_SANE, super::STACK_SANE);
+    assert_eq!(sys::STACK_SANE, STACK_SANE);
 }
 
 #[cfg(feature = "sys")]
@@ -26,7 +27,7 @@ fn test_eq_STACK_SANE() {
 fn test_size_of_StgTSOProfInfo() {
     assert_eq!(
         size_of::<sys::StgTSOProfInfo>(),
-        size_of::<super::StgTSOProfInfo>()
+        size_of::<StgTSOProfInfo>()
     )
 }
 
@@ -43,7 +44,7 @@ const _: () = {
 fn test_size_of_StgTSOBlockInfo() {
     assert_eq!(
         size_of::<sys::StgTSOBlockInfo>(),
-        size_of::<super::StgTSOBlockInfo>()
+        size_of::<StgTSOBlockInfo>()
     )
 }
 
@@ -68,7 +69,7 @@ const _: () = {
 #[cfg(feature = "sys")]
 #[test]
 fn test_size_of_StgTSO_() {
-    assert_eq!(size_of::<sys::StgTSO_>(), size_of::<super::StgTSO_>())
+    assert_eq!(size_of::<sys::StgTSO_>(), size_of::<StgTSO_>())
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -106,7 +107,7 @@ const _: () = {
 #[cfg(feature = "sys")]
 #[test]
 fn test_size_of_StgStack_() {
-    assert_eq!(size_of::<sys::StgStack_>(), size_of::<super::StgStack_>())
+    assert_eq!(size_of::<sys::StgStack_>(), size_of::<StgStack_>())
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -125,43 +126,43 @@ const _: () = {
 #[test]
 #[ignore]
 fn test_dirty_TSO() {
-    let mut cap = Default::default();
-    let mut tso = Default::default();
-    unsafe { super::dirty_TSO(&mut cap, &mut tso) };
+    let mut cap = todo!();
+    let mut tso = todo!();
+    unsafe { dirty_TSO(&mut cap, &mut tso) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_setTSOLink() {
-    let mut cap = Default::default();
-    let mut tso = Default::default();
-    let mut target = Default::default();
-    unsafe { super::setTSOLink(&mut cap, &mut tso, &mut target) };
+    let mut cap = todo!();
+    let mut tso = todo!();
+    let mut target = todo!();
+    unsafe { setTSOLink(&mut cap, &mut tso, &mut target) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_setTSOPrev() {
-    let mut cap = Default::default();
-    let mut tso = Default::default();
-    let mut target = Default::default();
-    unsafe { super::setTSOPrev(&mut cap, &mut tso, &mut target) };
+    let mut cap = todo!();
+    let mut tso = todo!();
+    let mut target = todo!();
+    unsafe { setTSOPrev(&mut cap, &mut tso, &mut target) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_dirty_STACK() {
-    let mut cap = Default::default();
-    let mut stack = Default::default();
-    unsafe { super::dirty_STACK(&mut cap, &mut stack) };
+    let mut cap = todo!();
+    let mut stack = todo!();
+    unsafe { dirty_STACK(&mut cap, &mut stack) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_size_of_InCall_() {
-    assert_eq!(size_of::<sys::InCall_>(), size_of::<super::InCall_>())
+    assert_eq!(size_of::<sys::InCall_>(), size_of::<InCall_>())
 }

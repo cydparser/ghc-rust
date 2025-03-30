@@ -1,48 +1,31 @@
-use crate::rts::storage::closures;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
+use std::{ffi::c_uint, mem::transmute};
+
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
-use std::mem::transmute;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
+
+use crate::{
+    rts::{
+        capability::Capability_,
+        prof::ccs::CostCentreStack,
+        storage::closures::{
+            MessageBlackHole_, MessageThrowTo_, MessageWakeup_, StgArrBytes, StgBlockingQueue_,
+            StgHeader, StgTRecHeader_,
+        },
+        types::{StgClosure, StgTSO},
+    },
+    stg::types::{StgInt, StgInt64, StgPtr, StgWord, StgWord16, StgWord32, StgWord64, StgWord8},
+};
+#[cfg(feature = "sys")]
+use ghc_rts_sys as sys;
+
 #[cfg(test)]
 mod tests;
 
 #[repr(C)]
 #[derive(Default)]
 pub struct __IncompleteArrayField<T>(::core::marker::PhantomData<T>, [T; 0]);
-
-impl<T> __IncompleteArrayField<T> {
-    #[inline]
-    pub const fn new() -> Self {
-        __IncompleteArrayField(::core::marker::PhantomData, [])
-    }
-    #[inline]
-    pub fn as_ptr(&self) -> *const T {
-        self as *const _ as *const T
-    }
-    #[inline]
-    pub fn as_mut_ptr(&mut self) -> *mut T {
-        self as *mut _ as *mut T
-    }
-    #[inline]
-    pub unsafe fn as_slice(&self, len: usize) -> &[T] {
-        ::core::slice::from_raw_parts(self.as_ptr(), len)
-    }
-    #[inline]
-    pub unsafe fn as_mut_slice(&mut self, len: usize) -> &mut [T] {
-        ::core::slice::from_raw_parts_mut(self.as_mut_ptr(), len)
-    }
-}
-
-impl<T> ::core::fmt::Debug for __IncompleteArrayField<T> {
-    fn fmt(&self, fmt: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        fmt.write_str("__IncompleteArrayField")
-    }
-}
 
 pub(crate) const FMT_StgThreadID: &[u8; 3] = b"lu\0";
 
@@ -63,63 +46,26 @@ impl From<StgTSOProfInfo> for sys::StgTSOProfInfo {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgTSOProfInfo {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgTSOProfInfo {
-            cccs: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 pub(crate) type StgThreadID = StgWord64;
 
-pub(crate) type StgThreadReturnCode = ::core::ffi::c_uint;
+pub(crate) type StgThreadReturnCode = c_uint;
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub(crate) union StgTSOBlockInfo {
-    pub closure: ::core::mem::ManuallyDrop<*mut StgClosure>,
-    pub prev: ::core::mem::ManuallyDrop<*mut StgTSO>,
-    pub bh: ::core::mem::ManuallyDrop<*mut MessageBlackHole_>,
-    pub throwto: ::core::mem::ManuallyDrop<*mut MessageThrowTo_>,
-    pub wakeup: ::core::mem::ManuallyDrop<*mut MessageWakeup_>,
-    pub fd: ::core::mem::ManuallyDrop<StgInt>,
-    pub target: ::core::mem::ManuallyDrop<StgWord>,
+    pub closure: *mut StgClosure,
+    pub prev: *mut StgTSO,
+    pub bh: *mut MessageBlackHole_,
+    pub throwto: *mut MessageThrowTo_,
+    pub wakeup: *mut MessageWakeup_,
+    pub fd: StgInt,
+    pub target: StgWord,
 }
 
 #[cfg(feature = "sys")]
 impl From<StgTSOBlockInfo> for sys::StgTSOBlockInfo {
     fn from(x: StgTSOBlockInfo) -> Self {
         unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for StgTSOBlockInfo {
-    fn arbitrary(g: &mut Gen) -> Self {
-        match Arbitrary::arbitrary::<usize>(g) % 7usize {
-            0 => StgTSOBlockInfo {
-                closure: Arbitrary::arbitrary(g),
-            },
-            1 => StgTSOBlockInfo {
-                prev: Arbitrary::arbitrary(g),
-            },
-            2 => StgTSOBlockInfo {
-                bh: Arbitrary::arbitrary(g),
-            },
-            3 => StgTSOBlockInfo {
-                throwto: Arbitrary::arbitrary(g),
-            },
-            4 => StgTSOBlockInfo {
-                wakeup: Arbitrary::arbitrary(g),
-            },
-            5 => StgTSOBlockInfo {
-                fd: Arbitrary::arbitrary(g),
-            },
-            6 => StgTSOBlockInfo {
-                target: Arbitrary::arbitrary(g),
-            },
-        }
     }
 }
 
@@ -153,33 +99,6 @@ impl From<StgTSO_> for sys::StgTSO_ {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgTSO_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgTSO_ {
-            header: Arbitrary::arbitrary(g),
-            _link: Arbitrary::arbitrary(g),
-            global_link: Arbitrary::arbitrary(g),
-            stackobj: Arbitrary::arbitrary(g),
-            what_next: Arbitrary::arbitrary(g),
-            flags: Arbitrary::arbitrary(g),
-            why_blocked: Arbitrary::arbitrary(g),
-            block_info: Arbitrary::arbitrary(g),
-            id: Arbitrary::arbitrary(g),
-            saved_errno: Arbitrary::arbitrary(g),
-            dirty: Arbitrary::arbitrary(g),
-            bound: Arbitrary::arbitrary(g),
-            cap: Arbitrary::arbitrary(g),
-            trec: Arbitrary::arbitrary(g),
-            label: Arbitrary::arbitrary(g),
-            blocked_exceptions: Arbitrary::arbitrary(g),
-            bq: Arbitrary::arbitrary(g),
-            alloc_limit: Arbitrary::arbitrary(g),
-            tot_stack_size: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 pub(crate) type StgTSOPtr = *mut StgTSO_;
 
 #[repr(C)]
@@ -199,52 +118,26 @@ impl From<StgStack_> for sys::StgStack_ {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgStack_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgStack_ {
-            header: Arbitrary::arbitrary(g),
-            stack_size: Arbitrary::arbitrary(g),
-            dirty: Arbitrary::arbitrary(g),
-            marking: Arbitrary::arbitrary(g),
-            sp: Arbitrary::arbitrary(g),
-            stack: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 pub type StgStack = StgStack_;
 
 #[cfg_attr(feature = "tracing", instrument)]
-pub(crate) unsafe fn dirty_TSO(cap: *mut Capability, tso: *mut StgTSO) {
-    unsafe { transmute(sys::dirty_TSO(&mut cap.into(), &mut tso.into())) }
+pub(crate) unsafe fn dirty_TSO(cap: *mut Capability_, tso: *mut StgTSO) {
+    unsafe { sys::dirty_TSO(transmute(cap), transmute(tso)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
-pub(crate) unsafe fn setTSOLink(cap: *mut Capability, tso: *mut StgTSO, target: *mut StgTSO) {
-    unsafe {
-        transmute(sys::setTSOLink(
-            &mut cap.into(),
-            &mut tso.into(),
-            &mut target.into(),
-        ))
-    }
+pub(crate) unsafe fn setTSOLink(cap: *mut Capability_, tso: *mut StgTSO, target: *mut StgTSO) {
+    unsafe { sys::setTSOLink(transmute(cap), transmute(tso), transmute(target)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
-pub(crate) unsafe fn setTSOPrev(cap: *mut Capability, tso: *mut StgTSO, target: *mut StgTSO) {
-    unsafe {
-        transmute(sys::setTSOPrev(
-            &mut cap.into(),
-            &mut tso.into(),
-            &mut target.into(),
-        ))
-    }
+pub(crate) unsafe fn setTSOPrev(cap: *mut Capability_, tso: *mut StgTSO, target: *mut StgTSO) {
+    unsafe { sys::setTSOPrev(transmute(cap), transmute(tso), transmute(target)) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
-pub(crate) unsafe fn dirty_STACK(cap: *mut Capability, stack: *mut StgStack) {
-    unsafe { transmute(sys::dirty_STACK(&mut cap.into(), &mut stack.into())) }
+pub(crate) unsafe fn dirty_STACK(cap: *mut Capability_, stack: *mut StgStack) {
+    unsafe { sys::dirty_STACK(transmute(cap), transmute(stack)) }
 }
 
 #[repr(C)]
