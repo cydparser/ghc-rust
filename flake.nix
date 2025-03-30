@@ -20,6 +20,11 @@
       inputs.systems.follows = "systems";
     };
 
+    git-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
     systems.url = "github:nix-systems/default";
@@ -118,12 +123,6 @@
 
           doc = crane.cargoDoc (commonArgs // { inherit cargoArtifacts; });
 
-          fmt = crane.cargoFmt { inherit src; };
-
-          toml-fmt = crane.taploFmt {
-            src = lib.sources.sourceFilesBySuffices src [ ".toml" ];
-          };
-
           audit = crane.cargoAudit {
             inherit src;
             inherit (inputs) advisory-db;
@@ -140,6 +139,20 @@
               cargoNextestPartitionsExtraArgs = "--no-tests=pass";
             }
           );
+
+          pre-commit = inputs.git-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              treefmt = {
+                enable = true;
+                settings.formatters = [
+                  crane.rustfmt
+                  pkgs.nixfmt-rfc-style
+                  pkgs.taplo
+                ];
+              };
+            };
+          };
         };
 
         packages = {
@@ -153,18 +166,24 @@
 
           inputsFrom = lib.attrsets.attrValues self.packages.${system};
 
-          packages = with pkgs; [
-            cargo-binutils
-            llvmPackages.clang
-          ];
+          packages =
+            with pkgs;
+            [
+              cargo-binutils
+              cargo-semver-checks
+              llvmPackages.clang
+            ]
+            ++ self.checks.${system}.pre-commit.enabledPackages;
 
-          shellHook = ''
-            FLAKE_ROOT="$(git rev-parse --show-toplevel)"
+          shellHook =
+            ''
+              FLAKE_ROOT="$(git rev-parse --show-toplevel)"
 
-            export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
-            export TAPLO_CONFIG=" $FLAKE_ROOT/taplo.toml";
-            export RUST_BACKTRACE=1;
-          '';
+              export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
+              export TAPLO_CONFIG=" $FLAKE_ROOT/taplo.toml";
+              export RUST_BACKTRACE=1;
+            ''
+            + self.checks.${system}.pre-commit.shellHook;
         };
       }
     );

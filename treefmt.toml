@@ -1,0 +1,14 @@
+excludes = [".gitignore", "*.lock"]
+
+[formatter.nix]
+command = "nixfmt"
+includes = ["*.nix"]
+
+[formatter.rust]
+command = "rustfmt"
+includes = ["*.rs"]
+
+[formatter.toml]
+command = "taplo"
+options = ["format"]
+includes = ["*.toml"]
