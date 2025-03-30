@@ -3,6 +3,7 @@
 #![allow(non_upper_case_globals)]
 
 // XXX pub mod hs_ffi;
+mod bindgen;
 pub mod mach_deps;
 pub mod rts;
 // XXX pub mod rts_api;
