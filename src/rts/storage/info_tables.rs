@@ -1,47 +1,18 @@
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
+use std::mem::transmute;
+
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
-use std::mem::transmute;
-#[cfg(feature = "tracing")]
-use tracing::instrument;
+
+use crate::{
+    bindgen::__IncompleteArrayField,
+    rts::types::{StgClosure, StgInfoTable},
+    stg::types::{StgCode, StgFun, StgHalfInt, StgHalfWord, StgWord, StgWord16},
+};
+#[cfg(feature = "sys")]
+use ghc_rts_sys as sys;
+
 #[cfg(test)]
 mod tests;
-
-#[repr(C)]
-#[derive(Default)]
-pub struct __IncompleteArrayField<T>(::core::marker::PhantomData<T>, [T; 0]);
-
-impl<T> __IncompleteArrayField<T> {
-    #[inline]
-    pub const fn new() -> Self {
-        __IncompleteArrayField(::core::marker::PhantomData, [])
-    }
-    #[inline]
-    pub fn as_ptr(&self) -> *const T {
-        self as *const _ as *const T
-    }
-    #[inline]
-    pub fn as_mut_ptr(&mut self) -> *mut T {
-        self as *mut _ as *mut T
-    }
-    #[inline]
-    pub unsafe fn as_slice(&self, len: usize) -> &[T] {
-        ::core::slice::from_raw_parts(self.as_ptr(), len)
-    }
-    #[inline]
-    pub unsafe fn as_mut_slice(&mut self, len: usize) -> &mut [T] {
-        ::core::slice::from_raw_parts_mut(self.as_mut_ptr(), len)
-    }
-}
-
-impl<T> ::core::fmt::Debug for __IncompleteArrayField<T> {
-    fn fmt(&self, fmt: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        fmt.write_str("__IncompleteArrayField")
-    }
-}
 
 pub(crate) const _HNF: u32 = 1;
 
@@ -76,19 +47,7 @@ impl From<StgProfInfo> for sys::StgProfInfo {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgProfInfo {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgProfInfo {
-            closure_type_off: Arbitrary::arbitrary(g),
-            __pad_closure_type_off: Arbitrary::arbitrary(g),
-            closure_desc_off: Arbitrary::arbitrary(g),
-            __pad_closure_desc_off: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
-static closure_flags: [StgWord16; 0usize] = sys::closure_flags;
+static closure_flags: [StgWord16; 0usize] = unsafe { sys::closure_flags };
 
 #[repr(C)]
 pub(crate) struct StgLargeBitmap_ {
@@ -103,25 +62,16 @@ impl From<StgLargeBitmap_> for sys::StgLargeBitmap_ {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgLargeBitmap_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgLargeBitmap_ {
-            size: Arbitrary::arbitrary(g),
-            bitmap: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 pub type StgLargeBitmap = StgLargeBitmap_;
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub(crate) union StgClosureInfo {
-    pub payload: ::core::mem::ManuallyDrop<StgClosureInfo__bindgen_ty_1>,
-    pub bitmap: ::core::mem::ManuallyDrop<StgWord>,
-    pub large_bitmap_offset: ::core::mem::ManuallyDrop<StgHalfInt>,
-    pub __pad_large_bitmap_offset: ::core::mem::ManuallyDrop<StgHalfWord>,
-    pub selector_offset: ::core::mem::ManuallyDrop<StgWord>,
+    pub payload: StgClosureInfo__bindgen_ty_1,
+    pub bitmap: StgWord,
+    pub large_bitmap_offset: StgHalfInt,
+    pub __pad_large_bitmap_offset: StgHalfWord,
+    pub selector_offset: StgWord,
 }
 
 #[cfg(feature = "sys")]
@@ -134,7 +84,7 @@ impl From<StgClosureInfo> for sys::StgClosureInfo {
 #[cfg(test)]
 impl Arbitrary for StgClosureInfo {
     fn arbitrary(g: &mut Gen) -> Self {
-        match Arbitrary::arbitrary::<usize>(g) % 5usize {
+        match <usize as Arbitrary>::arbitrary(g) % 5usize {
             0 => StgClosureInfo {
                 payload: Arbitrary::arbitrary(g),
             },
@@ -147,7 +97,7 @@ impl Arbitrary for StgClosureInfo {
             3 => StgClosureInfo {
                 __pad_large_bitmap_offset: Arbitrary::arbitrary(g),
             },
-            4 => StgClosureInfo {
+            4.. => StgClosureInfo {
                 selector_offset: Arbitrary::arbitrary(g),
             },
         }
@@ -155,6 +105,7 @@ impl Arbitrary for StgClosureInfo {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub(crate) struct StgClosureInfo__bindgen_ty_1 {
     pub ptrs: StgHalfWord,
     pub nptrs: StgHalfWord,
@@ -194,18 +145,6 @@ impl From<StgInfoTable_> for sys::StgInfoTable_ {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgInfoTable_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgInfoTable_ {
-            layout: Arbitrary::arbitrary(g),
-            type_: Arbitrary::arbitrary(g),
-            srt: Arbitrary::arbitrary(g),
-            code: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 pub(crate) type StgInfoTablePtr = *mut StgInfoTable_;
 
 #[repr(C)]
@@ -224,47 +163,17 @@ impl From<StgFunInfoExtraRev_> for sys::StgFunInfoExtraRev_ {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgFunInfoExtraRev_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgFunInfoExtraRev_ {
-            slow_apply_offset: Arbitrary::arbitrary(g),
-            __pad_slow_apply_offset: Arbitrary::arbitrary(g),
-            b: Arbitrary::arbitrary(g),
-            fun_type: Arbitrary::arbitrary(g),
-            arity: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 #[repr(C)]
 pub(crate) union StgFunInfoExtraRev___bindgen_ty_1 {
-    pub bitmap: ::core::mem::ManuallyDrop<StgWord>,
-    pub bitmap_offset: ::core::mem::ManuallyDrop<StgHalfInt>,
-    pub __pad_bitmap_offset: ::core::mem::ManuallyDrop<StgHalfWord>,
+    pub bitmap: StgWord,
+    pub bitmap_offset: StgHalfInt,
+    pub __pad_bitmap_offset: StgHalfWord,
 }
 
 #[cfg(feature = "sys")]
 impl From<StgFunInfoExtraRev___bindgen_ty_1> for sys::StgFunInfoExtraRev___bindgen_ty_1 {
     fn from(x: StgFunInfoExtraRev___bindgen_ty_1) -> Self {
         unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for StgFunInfoExtraRev___bindgen_ty_1 {
-    fn arbitrary(g: &mut Gen) -> Self {
-        match Arbitrary::arbitrary::<usize>(g) % 3usize {
-            0 => StgFunInfoExtraRev___bindgen_ty_1 {
-                bitmap: Arbitrary::arbitrary(g),
-            },
-            1 => StgFunInfoExtraRev___bindgen_ty_1 {
-                bitmap_offset: Arbitrary::arbitrary(g),
-            },
-            2 => StgFunInfoExtraRev___bindgen_ty_1 {
-                __pad_bitmap_offset: Arbitrary::arbitrary(g),
-            },
-        }
     }
 }
 
@@ -286,39 +195,16 @@ impl From<StgFunInfoExtraFwd_> for sys::StgFunInfoExtraFwd_ {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgFunInfoExtraFwd_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgFunInfoExtraFwd_ {
-            fun_type: Arbitrary::arbitrary(g),
-            arity: Arbitrary::arbitrary(g),
-            srt: Arbitrary::arbitrary(g),
-            b: Arbitrary::arbitrary(g),
-            slow_apply: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
+// TODO: Can `bitmap` be moved into StgFunInfoExtraFwd_?
 #[repr(C)]
 pub(crate) union StgFunInfoExtraFwd___bindgen_ty_1 {
-    pub bitmap: ::core::mem::ManuallyDrop<StgWord>,
+    pub bitmap: StgWord,
 }
 
 #[cfg(feature = "sys")]
 impl From<StgFunInfoExtraFwd___bindgen_ty_1> for sys::StgFunInfoExtraFwd___bindgen_ty_1 {
     fn from(x: StgFunInfoExtraFwd___bindgen_ty_1) -> Self {
         unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for StgFunInfoExtraFwd___bindgen_ty_1 {
-    fn arbitrary(g: &mut Gen) -> Self {
-        match Arbitrary::arbitrary::<usize>(g) % 1usize {
-            0 => StgFunInfoExtraFwd___bindgen_ty_1 {
-                bitmap: Arbitrary::arbitrary(g),
-            },
-        }
     }
 }
 
@@ -337,18 +223,8 @@ impl From<StgFunInfoTable> for sys::StgFunInfoTable {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgFunInfoTable {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgFunInfoTable {
-            f: Arbitrary::arbitrary(g),
-            i: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 #[unsafe(no_mangle)]
-pub static stg_arg_bitmaps: [StgWord; 0usize] = sys::stg_arg_bitmaps;
+pub static stg_arg_bitmaps: [StgWord; 0usize] = unsafe { sys::stg_arg_bitmaps };
 
 #[repr(C)]
 pub struct StgRetInfoTable {
@@ -362,15 +238,6 @@ impl From<StgRetInfoTable> for sys::StgRetInfoTable {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgRetInfoTable {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgRetInfoTable {
-            i: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 #[repr(C)]
 pub(crate) struct StgThunkInfoTable_ {
     pub i: StgInfoTable,
@@ -380,15 +247,6 @@ pub(crate) struct StgThunkInfoTable_ {
 impl From<StgThunkInfoTable_> for sys::StgThunkInfoTable_ {
     fn from(x: StgThunkInfoTable_) -> Self {
         unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for StgThunkInfoTable_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgThunkInfoTable_ {
-            i: Arbitrary::arbitrary(g),
-        }
     }
 }
 
@@ -405,17 +263,6 @@ pub(crate) struct StgConInfoTable_ {
 impl From<StgConInfoTable_> for sys::StgConInfoTable_ {
     fn from(x: StgConInfoTable_) -> Self {
         unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for StgConInfoTable_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgConInfoTable_ {
-            con_desc: Arbitrary::arbitrary(g),
-            __pad_con_desc: Arbitrary::arbitrary(g),
-            i: Arbitrary::arbitrary(g),
-        }
     }
 }
 

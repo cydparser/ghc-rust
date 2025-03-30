@@ -1,69 +1,67 @@
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use std::mem::size_of;
+
+use super::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::mem::{size_of, transmute};
+
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__HNF() {
-    assert_eq!(sys::_HNF, super::_HNF);
+    assert_eq!(sys::_HNF, _HNF);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__BTM() {
-    assert_eq!(sys::_BTM, super::_BTM);
+    assert_eq!(sys::_BTM, _BTM);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__NS() {
-    assert_eq!(sys::_NS, super::_NS);
+    assert_eq!(sys::_NS, _NS);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__THU() {
-    assert_eq!(sys::_THU, super::_THU);
+    assert_eq!(sys::_THU, _THU);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__MUT() {
-    assert_eq!(sys::_MUT, super::_MUT);
+    assert_eq!(sys::_MUT, _MUT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__UPT() {
-    assert_eq!(sys::_UPT, super::_UPT);
+    assert_eq!(sys::_UPT, _UPT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__SRT() {
-    assert_eq!(sys::_SRT, super::_SRT);
+    assert_eq!(sys::_SRT, _SRT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__IND() {
-    assert_eq!(sys::_IND, super::_IND);
+    assert_eq!(sys::_IND, _IND);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_eq__FRM() {
-    assert_eq!(sys::_FRM, super::_FRM);
+    assert_eq!(sys::_FRM, _FRM);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn test_size_of_StgProfInfo() {
-    assert_eq!(
-        size_of::<sys::StgProfInfo>(),
-        size_of::<super::StgProfInfo>()
-    )
+    assert_eq!(size_of::<sys::StgProfInfo>(), size_of::<StgProfInfo>())
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -85,7 +83,7 @@ const _: () = {
 fn test_size_of_StgLargeBitmap_() {
     assert_eq!(
         size_of::<sys::StgLargeBitmap_>(),
-        size_of::<super::StgLargeBitmap_>()
+        size_of::<StgLargeBitmap_>()
     )
 }
 
@@ -104,7 +102,7 @@ const _: () = {
 fn test_size_of_StgClosureInfo() {
     assert_eq!(
         size_of::<sys::StgClosureInfo>(),
-        size_of::<super::StgClosureInfo>()
+        size_of::<StgClosureInfo>()
     )
 }
 
@@ -113,7 +111,7 @@ fn test_size_of_StgClosureInfo() {
 fn test_size_of_StgClosureInfo__bindgen_ty_1() {
     assert_eq!(
         size_of::<sys::StgClosureInfo__bindgen_ty_1>(),
-        size_of::<super::StgClosureInfo__bindgen_ty_1>()
+        size_of::<StgClosureInfo__bindgen_ty_1>()
     )
 }
 
@@ -148,10 +146,7 @@ const _: () = {
 #[cfg(feature = "sys")]
 #[test]
 fn test_size_of_StgInfoTable_() {
-    assert_eq!(
-        size_of::<sys::StgInfoTable_>(),
-        size_of::<super::StgInfoTable_>()
-    )
+    assert_eq!(size_of::<sys::StgInfoTable_>(), size_of::<StgInfoTable_>())
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -172,7 +167,7 @@ const _: () = {
 fn test_size_of_StgFunInfoExtraRev_() {
     assert_eq!(
         size_of::<sys::StgFunInfoExtraRev_>(),
-        size_of::<super::StgFunInfoExtraRev_>()
+        size_of::<StgFunInfoExtraRev_>()
     )
 }
 
@@ -181,7 +176,7 @@ fn test_size_of_StgFunInfoExtraRev_() {
 fn test_size_of_StgFunInfoExtraRev___bindgen_ty_1() {
     assert_eq!(
         size_of::<sys::StgFunInfoExtraRev___bindgen_ty_1>(),
-        size_of::<super::StgFunInfoExtraRev___bindgen_ty_1>()
+        size_of::<StgFunInfoExtraRev___bindgen_ty_1>()
     )
 }
 
@@ -220,7 +215,7 @@ const _: () = {
 fn test_size_of_StgFunInfoExtraFwd_() {
     assert_eq!(
         size_of::<sys::StgFunInfoExtraFwd_>(),
-        size_of::<super::StgFunInfoExtraFwd_>()
+        size_of::<StgFunInfoExtraFwd_>()
     )
 }
 
@@ -229,7 +224,7 @@ fn test_size_of_StgFunInfoExtraFwd_() {
 fn test_size_of_StgFunInfoExtraFwd___bindgen_ty_1() {
     assert_eq!(
         size_of::<sys::StgFunInfoExtraFwd___bindgen_ty_1>(),
-        size_of::<super::StgFunInfoExtraFwd___bindgen_ty_1>()
+        size_of::<StgFunInfoExtraFwd___bindgen_ty_1>()
     )
 }
 
@@ -264,7 +259,7 @@ const _: () = {
 fn test_size_of_StgFunInfoTable() {
     assert_eq!(
         size_of::<sys::StgFunInfoTable>(),
-        size_of::<super::StgFunInfoTable>()
+        size_of::<StgFunInfoTable>()
     )
 }
 
@@ -281,7 +276,7 @@ const _: () = {
 fn test_size_of_StgRetInfoTable() {
     assert_eq!(
         size_of::<sys::StgRetInfoTable>(),
-        size_of::<super::StgRetInfoTable>()
+        size_of::<StgRetInfoTable>()
     )
 }
 
@@ -297,7 +292,7 @@ const _: () = {
 fn test_size_of_StgThunkInfoTable_() {
     assert_eq!(
         size_of::<sys::StgThunkInfoTable_>(),
-        size_of::<super::StgThunkInfoTable_>()
+        size_of::<StgThunkInfoTable_>()
     )
 }
 
@@ -314,7 +309,7 @@ const _: () = {
 fn test_size_of_StgConInfoTable_() {
     assert_eq!(
         size_of::<sys::StgConInfoTable_>(),
-        size_of::<super::StgConInfoTable_>()
+        size_of::<StgConInfoTable_>()
     )
 }
 
