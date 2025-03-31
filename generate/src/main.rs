@@ -131,13 +131,22 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
     };
     let mut items = syn_file.items.into_iter().peekable();
 
+    let ffi = parse_token_stream("ffi::{c_char, c_int, c_uint, c_void}");
+
     let use_stg_types = Item::Use(parse_quote! {
-            use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+        use crate::{
+            rts,
+            stg::types::{StgInt, StgPtr, StgWord, StgWord64},
+        };
     });
 
     transformed.main_file.items.extend([
         Item::Use(parse_quote! {
-            use std::mem::transmute;
+            use std::{
+                #ffi,
+                mem::transmute,
+                slice,
+            };
         }),
         Item::Use(parse_quote! {
             #[cfg(feature = "tracing")]
@@ -156,7 +165,10 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
 
     transformed.tests_file.items.extend([
         Item::Use(parse_quote! {
-            use std::mem::{size_of, transmute};
+            use std::{
+                #ffi,
+                mem::{size_of, transmute},
+            };
         }),
         Item::Use(parse_quote! {
             use quickcheck_macros::quickcheck;
