@@ -1,7 +1,9 @@
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use core::ffi;
-use std::mem::transmute;
+use std::{
+    ffi::{c_char, c_int, c_uint, c_void},
+    mem::transmute, ptr::null,
+};
 
 #[cfg(feature = "tracing")]
 use tracing::instrument;
@@ -101,12 +103,12 @@ pub(crate) const DEBUG_IS_ON: u32 = 0;
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn _assertFail(filename: *const ffi::c_char, linenum: ffi::c_uint) {
+pub unsafe extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) {
     unsafe { sys::_assertFail(filename, linenum) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
-pub(crate) unsafe fn _warnFail(filename: *const ffi::c_char, linenum: ffi::c_uint) {
+pub(crate) unsafe fn _warnFail(filename: *const c_char, linenum: c_uint) {
     unsafe { sys::_warnFail(filename, linenum) }
 }
 
@@ -119,7 +121,7 @@ static mut prog_name: *mut ffi::c_char = unsafe { sys::prog_name };
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn reportStackOverflow(tso: *mut types::StgTSO) {
-    unsafe { sys::reportStackOverflow(&mut tso.into()) }
+    unsafe { sys::reportStackOverflow(transmute(tso)) }
 }
 
 #[unsafe(no_mangle)]
@@ -130,46 +132,42 @@ pub unsafe extern "C" fn reportHeapOverflow() {
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn stg_exit(n: ffi::c_int) {
+pub unsafe extern "C" fn stg_exit(n: c_int) {
     unsafe { sys::stg_exit(n) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn stg_sig_install(
-    arg1: ffi::c_int,
-    arg2: ffi::c_int,
-    arg3: *mut ffi::c_void,
-) -> ffi::c_int {
+pub unsafe extern "C" fn stg_sig_install(arg1: c_int, arg2: c_int, arg3: *mut c_void) -> c_int {
     unsafe { sys::stg_sig_install(arg1, arg2, arg3) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn rts_isProfiled() -> ffi::c_int {
+pub unsafe extern "C" fn rts_isProfiled() -> c_int {
     unsafe { sys::rts_isProfiled() }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn rts_isDynamic() -> ffi::c_int {
+pub unsafe extern "C" fn rts_isDynamic() -> c_int {
     unsafe { sys::rts_isDynamic() }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn rts_isThreaded() -> ffi::c_int {
+pub unsafe extern "C" fn rts_isThreaded() -> c_int {
     unsafe { sys::rts_isThreaded() }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn rts_isDebugged() -> ffi::c_int {
+pub unsafe extern "C" fn rts_isDebugged() -> c_int {
     unsafe { sys::rts_isDebugged() }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn rts_isTracing() -> ffi::c_int {
+pub unsafe extern "C" fn rts_isTracing() -> c_int {
     unsafe { sys::rts_isTracing() }
 }
