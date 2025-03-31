@@ -313,16 +313,18 @@ fn transform_ffn(
 
     let (inputs_owned, args, args_into, args_from_owned, bindings): (
         Punctuated<_, token::Comma>,
-        Vec<_>,
-        Vec<_>,
-        Vec<_>,
-        Vec<_>,
+        Vec<syn::Expr>,
+        Vec<syn::Expr>,
+        Vec<syn::Pat>,
+        Vec<TokenStream>,
     ) = inputs
         .iter()
         .map(|arg| match arg {
             syn::FnArg::Typed(pat_type) => {
                 if let syn::Pat::Ident(pat_ident @ syn::PatIdent { .. }) = pat_type.pat.as_ref() {
                     let param_ident = pat_ident.ident.clone();
+
+                    let arg_transmutted = parse_quote! { transmute(#param_ident) };
 
                     let (mutability, ty_owned, arg_into, arg_from_owned) =
                         match pat_type.ty.as_ref() {
@@ -358,7 +360,7 @@ fn transform_ffn(
                             colon_token: pat_type.colon_token.clone(),
                             ty: Box::new(ty_owned),
                         }),
-                        param_ident,
+                        arg_transmutted,
                         arg_into,
                         arg_from_owned,
                         binding,
@@ -418,7 +420,7 @@ fn transform_ffn(
         #[ignore]
         fn #fn_ident() {
             #(#bindings)*
-            unsafe { super::#ident(#(#args_from_owned),*) };
+            unsafe { #ident(#(#args_from_owned),*) };
             todo!("assert")
         }
     }));
