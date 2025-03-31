@@ -274,7 +274,7 @@ fn transform_const(
         #[cfg(feature = "sys")]
         #[test]
         fn #test_eq() {
-            assert_eq!(sys::#ident, super::#ident);
+            assert_eq!(sys::#ident, #ident);
         }
     }));
 }
@@ -406,7 +406,7 @@ fn transform_ffn(
             #[quickcheck]
             fn #fn_ident(#inputs_owned) -> bool {
                 let expected = unsafe { transmute(sys::#ident(#(#args_into),*)) };
-                let actual = unsafe { super::#ident(#(#args_from_owned),*) };
+                let actual = unsafe { #ident(#(#args_from_owned),*) };
                 actual == expected
             }
         }));
@@ -594,7 +594,7 @@ fn fn_test_size_of(ident: &Ident) -> syn::ItemFn {
         #[cfg(feature = "sys")]
         #[test]
         fn #test_size_of() {
-            assert_eq!(size_of::<sys::#ident>(), size_of::<super::#ident>())
+            assert_eq!(size_of::<sys::#ident>(), size_of::<#ident>())
         }
     }
 }
