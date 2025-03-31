@@ -2,8 +2,10 @@
 use ghc_rts_sys as sys;
 use std::mem::transmute;
 
-#[cfg[test]]
+#[cfg(test)]
 mod tests;
+
+pub type Capability = Capability_;
 
 // TODO: replace with C implementation in rts/Capability.h
 #[repr(C)]
