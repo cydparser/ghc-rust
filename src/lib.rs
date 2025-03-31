@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
-// XXX pub mod hs_ffi;
+pub mod hs_ffi;
 mod bindgen;
 pub mod mach_deps;
 pub mod rts;

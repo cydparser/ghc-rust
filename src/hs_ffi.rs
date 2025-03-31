@@ -1,14 +1,19 @@
-use crate::stg::types;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
-#[cfg(test)]
-use quickcheck::{Arbitrary, Gen};
-use std::mem::transmute;
+use std::{
+    ffi::{c_char, c_int, c_void},
+    mem::transmute,
+};
+
 #[cfg(feature = "tracing")]
 use tracing::instrument;
+
 #[cfg(test)]
+use crate::stg::types::{
+    StgChar, StgDouble, StgFloat, StgInt, StgInt16, StgInt32, StgInt64, StgInt8, StgPtr, StgWord,
+    StgWord16, StgWord32, StgWord64, StgWord8,
+};
+#[cfg(feature = "sys")]
+use ghc_rts_sys as sys;
+
 mod tests;
 
 pub(crate) const HS_CHAR_MIN: u32 = 0;
@@ -69,18 +74,15 @@ pub type HsDouble = StgDouble;
 
 pub type HsBool = StgInt;
 
-pub(crate) type HsPtr = *mut ::core::ffi::c_void;
+pub(crate) type HsPtr = *mut c_void;
 
-pub(crate) type HsFunPtr = ::core::option::Option<unsafe extern "C" fn()>;
+pub(crate) type HsFunPtr = Option<unsafe extern "C" fn()>;
 
-pub type HsStablePtr = *mut ::core::ffi::c_void;
+pub type HsStablePtr = *mut c_void;
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn hs_init(
-    argc: *mut ::core::ffi::c_int,
-    argv: *mut *mut *mut ::core::ffi::c_char,
-) {
+pub unsafe extern "C" fn hs_init(argc: *mut c_int, argv: *mut *mut *mut c_char) {
     unsafe { sys::hs_init(argc, argv) }
 }
 
@@ -96,7 +98,7 @@ pub(crate) unsafe fn hs_exit_nowait() {
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
-pub(crate) unsafe fn hs_set_argv(argc: ::core::ffi::c_int, argv: *mut *mut ::core::ffi::c_char) {
+pub(crate) unsafe fn hs_set_argv(argc: c_int, argv: *mut *mut c_char) {
     unsafe { sys::hs_set_argv(argc, argv) }
 }
 
@@ -156,26 +158,23 @@ pub(crate) unsafe fn hs_free_fun_ptr(fp: HsFunPtr) {
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_spt_lookup(key: *mut StgWord64) -> StgPtr {
-    unsafe { transmute(sys::hs_spt_lookup(key)) }
+    unsafe { sys::hs_spt_lookup(key) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn hs_spt_keys(
-    keys: *mut StgPtr,
-    szKeys: ::core::ffi::c_int,
-) -> ::core::ffi::c_int {
-    unsafe { transmute(sys::hs_spt_keys(keys, szKeys)) }
+pub unsafe extern "C" fn hs_spt_keys(keys: *mut StgPtr, szKeys: c_int) -> c_int {
+    unsafe { sys::hs_spt_keys(keys, szKeys) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn hs_spt_key_count() -> ::core::ffi::c_int {
+pub unsafe extern "C" fn hs_spt_key_count() -> c_int {
     unsafe { transmute(sys::hs_spt_key_count()) }
 }
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn hs_try_putmvar(capability: ::core::ffi::c_int, sp: HsStablePtr) {
+pub unsafe extern "C" fn hs_try_putmvar(capability: c_int, sp: HsStablePtr) {
     unsafe { sys::hs_try_putmvar(capability, sp) }
 }
