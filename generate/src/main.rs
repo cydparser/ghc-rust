@@ -543,7 +543,13 @@ fn transform_union(
         .map(|(i, field_ident)| {
             parse_token_stream(format!(
                 "{} => {} {{ {}: Arbitrary::arbitrary(g) }}",
-                i, &ident, field_ident
+                if i + 1 == field_count {
+                    format!("{}..", i)
+                } else {
+                    i.to_string()
+                },
+                &ident,
+                field_ident
             ))
         })
         .collect();
@@ -556,7 +562,7 @@ fn transform_union(
             #[cfg(test)]
             impl Arbitrary for #ident {
                 fn arbitrary(g: &mut Gen) -> Self {
-                    match Arbitrary::arbitrary(g) % #field_count {
+                    match <usize as Arbitrary>::arbitrary(g) % #field_count {
                         #(#arbitrary_fields),*
                     }
                 }
