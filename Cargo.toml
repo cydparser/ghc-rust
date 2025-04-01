@@ -1,5 +1,5 @@
 [workspace]
-members = ["bindgen-utils", "generate", "ghc-rts-sys"]
+members = ["bindgen-utils", "generate", "ghc-rts-sys", "include"]
 resolver = "3"
 
 [workspace.package]
