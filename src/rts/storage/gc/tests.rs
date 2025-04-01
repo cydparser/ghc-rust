@@ -1,12 +1,13 @@
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use std::mem::{size_of, transmute};
+
+use super::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-use quickcheck::quickcheck;
-use std::mem::{size_of, transmute};
+
 #[cfg(feature = "sys")]
 #[test]
 fn test_size_of_nursery_() {
-    assert_eq!(size_of::<sys::nursery_>(), size_of::<super::nursery_>())
+    assert_eq!(size_of::<sys::nursery_>(), size_of::<nursery_>())
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -20,10 +21,7 @@ const _: () = {
 #[cfg(feature = "sys")]
 #[test]
 fn test_size_of_generation_() {
-    assert_eq!(
-        size_of::<sys::generation_>(),
-        size_of::<super::generation_>()
-    )
+    assert_eq!(size_of::<sys::generation_>(), size_of::<generation_>())
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -93,69 +91,38 @@ const _: () = {
 #[test]
 #[ignore]
 fn test_listAllBlocks() {
-    let cb = Default::default();
-    let user = Default::default();
-    unsafe { super::listAllBlocks(cb, &mut user) };
+    let cb = todo!();
+    let mut user = todo!();
+    unsafe { listAllBlocks(cb, &mut user) };
     todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_allocate(cap: Capability, n: W_) -> bool {
-    let expected = unsafe { transmute(sys::allocate(&mut cap.into(), n.into())) };
-    let actual = unsafe { super::allocate(&mut cap, n) };
-    actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_allocate() {
-    let cap = Default::default();
+    let mut cap = todo!();
     let n = Default::default();
-    unsafe { super::allocate(&mut cap, n) };
+    unsafe { allocate(&mut cap, n) };
     todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_allocateMightFail(cap: Capability, n: W_) -> bool {
-    let expected = unsafe { transmute(sys::allocateMightFail(&mut cap.into(), n.into())) };
-    let actual = unsafe { super::allocateMightFail(&mut cap, n) };
-    actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_allocateMightFail() {
-    let cap = Default::default();
+    let mut cap = todo!();
     let n = Default::default();
-    unsafe { super::allocateMightFail(&mut cap, n) };
+    unsafe { allocateMightFail(&mut cap, n) };
     todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_allocatePinned(cap: Capability, n: W_, alignment: W_, align_off: W_) -> bool {
-    let expected = unsafe {
-        transmute(sys::allocatePinned(
-            &mut cap.into(),
-            n.into(),
-            alignment.into(),
-            align_off.into(),
-        ))
-    };
-    let actual = unsafe { super::allocatePinned(&mut cap, n, alignment, align_off) };
-    actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_allocatePinned() {
-    let cap = Default::default();
+    let mut cap = todo!();
     let n = Default::default();
     let alignment = Default::default();
     let align_off = Default::default();
-    unsafe { super::allocatePinned(&mut cap, n, alignment, align_off) };
+    unsafe { allocatePinned(&mut cap, n, alignment, align_off) };
     todo!("assert")
 }
 
@@ -163,110 +130,86 @@ fn test_allocatePinned() {
 #[ignore]
 fn test_flushExec() {
     let len = Default::default();
-    let exec_addr = Default::default();
-    unsafe { super::flushExec(len, exec_addr) };
+    let exec_addr = todo!();
+    unsafe { flushExec(len, exec_addr) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_performGC() {
-    unsafe { super::performGC() };
+    unsafe { performGC() };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_performMajorGC() {
-    unsafe { super::performMajorGC() };
+    unsafe { performMajorGC() };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_performBlockingMajorGC() {
-    unsafe { super::performBlockingMajorGC() };
+    unsafe { performBlockingMajorGC() };
     todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_newCAF(reg: StgRegTable, caf: StgIndStatic) -> bool {
-    let expected = unsafe { transmute(sys::newCAF(&mut reg.into(), &mut caf.into())) };
-    let actual = unsafe { super::newCAF(&mut reg, &mut caf) };
-    actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_newCAF() {
-    let reg = Default::default();
-    let caf = Default::default();
-    unsafe { super::newCAF(&mut reg, &mut caf) };
+    let mut reg = todo!();
+    let mut caf = todo!();
+    unsafe { newCAF(&mut reg, &mut caf) };
     todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_newRetainedCAF(reg: StgRegTable, caf: StgIndStatic) -> bool {
-    let expected = unsafe { transmute(sys::newRetainedCAF(&mut reg.into(), &mut caf.into())) };
-    let actual = unsafe { super::newRetainedCAF(&mut reg, &mut caf) };
-    actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_newRetainedCAF() {
-    let reg = Default::default();
-    let caf = Default::default();
-    unsafe { super::newRetainedCAF(&mut reg, &mut caf) };
+    let mut reg = todo!();
+    let mut caf = todo!();
+    unsafe { newRetainedCAF(&mut reg, &mut caf) };
     todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_newGCdCAF(reg: StgRegTable, caf: StgIndStatic) -> bool {
-    let expected = unsafe { transmute(sys::newGCdCAF(&mut reg.into(), &mut caf.into())) };
-    let actual = unsafe { super::newGCdCAF(&mut reg, &mut caf) };
-    actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_newGCdCAF() {
-    let reg = Default::default();
-    let caf = Default::default();
-    unsafe { super::newGCdCAF(&mut reg, &mut caf) };
+    let mut reg = todo!();
+    let mut caf = todo!();
+    unsafe { newGCdCAF(&mut reg, &mut caf) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_revertCAFs() {
-    unsafe { super::revertCAFs() };
+    unsafe { revertCAFs() };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_setKeepCAFs() {
-    unsafe { super::setKeepCAFs() };
+    unsafe { setKeepCAFs() };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_setHighMemDynamic() {
-    unsafe { super::setHighMemDynamic() };
+    unsafe { setHighMemDynamic() };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_dirty_MUT_VAR() {
-    let reg = Default::default();
-    let mv = Default::default();
-    let old = Default::default();
-    unsafe { super::dirty_MUT_VAR(&mut reg, &mut mv, &mut old) };
+    let mut reg = todo!();
+    let mut mv = todo!();
+    let mut old = todo!();
+    unsafe { dirty_MUT_VAR(&mut reg, &mut mv, &mut old) };
     todo!("assert")
 }

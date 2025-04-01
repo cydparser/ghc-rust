@@ -26,8 +26,6 @@ pub(crate) enum SchedulerStatus {
 
 pub type HaskellObj = *mut StgClosure_;
 
-pub type Capability = Capability_;
-
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct PauseToken_ {

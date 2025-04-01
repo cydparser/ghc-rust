@@ -6,7 +6,6 @@ use std::{
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 
-#[cfg(test)]
 use crate::stg::types::{
     StgChar, StgDouble, StgFloat, StgInt, StgInt16, StgInt32, StgInt64, StgInt8, StgPtr, StgWord,
     StgWord16, StgWord32, StgWord64, StgWord8,
