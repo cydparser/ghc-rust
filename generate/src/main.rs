@@ -310,7 +310,7 @@ fn transform_ffn(
         return;
     }
 
-    let (inputs_owned, args, args_into, args_from_owned, bindings): (
+    let (inputs_owned, args_from_sys, args_into, args_from_owned, bindings): (
         Punctuated<_, token::Comma>,
         Vec<syn::Expr>,
         Vec<syn::Expr>,
@@ -323,21 +323,25 @@ fn transform_ffn(
                 if let syn::Pat::Ident(pat_ident @ syn::PatIdent { .. }) = pat_type.pat.as_ref() {
                     let param_ident = pat_ident.ident.clone();
 
-                    let arg_transmutted = parse_quote! { transmute(#param_ident) };
-
-                    let (mutability, ty_owned, arg_into, arg_from_owned) =
+                    let (mutability, ty_owned, arg_from_sys, arg_into, arg_from_owned) =
                         match pat_type.ty.as_ref() {
-                            ty @ syn::Type::Path(_) => (
+                            ty @ syn::Type::Path(type_path) => (
                                 "",
                                 ty.clone(),
+                                match type_path.path.leading_colon {
+                                    Some(_) => parse_quote! { #param_ident },
+                                    None => parse_quote! { transmute(#param_ident) },
+                                },
                                 expr_into(&param_ident),
                                 syn::Pat::Ident(new_pat_ident(&param_ident)),
                             ),
                             syn::Type::Ptr(type_ptr) => {
                                 let (ty, expr, pat) = ptr_to_ty_expr_pat(&param_ident, type_ptr);
+                                let arg_from_sys = parse_quote! { #param_ident as #ty };
                                 (
                                     type_ptr.mutability.map(|_| "mut").unwrap_or(""),
                                     ty,
+                                    arg_from_sys,
                                     expr,
                                     pat,
                                 )
@@ -359,7 +363,7 @@ fn transform_ffn(
                             colon_token: pat_type.colon_token.clone(),
                             ty: Box::new(ty_owned),
                         }),
-                        arg_transmutted,
+                        arg_from_sys,
                         arg_into,
                         arg_from_owned,
                         binding,
@@ -387,8 +391,8 @@ fn transform_ffn(
         };
 
     let call: syn::Expr = match output {
-        syn::ReturnType::Default => parse_quote! { sys::#ident(#(#args),*) },
-        syn::ReturnType::Type(_, _) => parse_quote! { transmute(sys::#ident(#(#args),*)) },
+        syn::ReturnType::Default => parse_quote! { sys::#ident(#(#args_from_sys),*) },
+        syn::ReturnType::Type(_, _) => parse_quote! { transmute(sys::#ident(#(#args_from_sys),*)) },
     };
 
     main_file.items.push(Item::Fn(parse_quote! {
