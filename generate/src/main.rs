@@ -157,7 +157,6 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
             use quickcheck::{Arbitrary, Gen};
         }),
         Item::Use(parse_quote! {
-            #[cfg(feature = "sys")]
             use ghc_rts_sys as sys;
         }),
         use_stg_types.clone(),
