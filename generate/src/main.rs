@@ -231,7 +231,7 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
 
                             let rhs: syn::Expr = match ty.as_ref() {
                                 syn::Type::Ptr(type_ptr) => match type_ptr.mutability {
-                                    Some(_) => parse_quote! { std::ptr::mut_null() },
+                                    Some(_) => parse_quote! { std::ptr::null_mut() },
                                     None => parse_quote! { std::ptr::null() },
                                 },
                                 _ => parse_quote! { Default::default() },
