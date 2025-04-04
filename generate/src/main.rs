@@ -196,6 +196,8 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
         mod tests;
     }));
 
+    let mut statics = vec![];
+
     for item in items {
         match item {
             Item::Const(item_const) => transform_const(symbols, item_const, &mut transformed),
@@ -217,15 +219,27 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
                             ty,
                             ..
                         }) => {
+                            statics.push(ident.clone());
+
                             let (vis, attr) = if symbols.is_internal_static(&ident) {
                                 (Visibility::Inherited, None)
                             } else {
                                 (vis, Some(parse_token_stream("#[unsafe(no_mangle)]")))
                             };
 
+                            let unused_ident = format_ident!("_TODO_{}", ident);
+
+                            let rhs: syn::Expr = match ty.as_ref() {
+                                syn::Type::Ptr(type_ptr) => match type_ptr.mutability {
+                                    Some(_) => parse_quote! { std::ptr::mut_null() },
+                                    None => parse_quote! { std::ptr::null() },
+                                },
+                                _ => parse_quote! { Default::default() },
+                            };
+
                             transformed.main_file.items.push(Item::Static(parse_quote! {
                                 #attr
-                                #vis static #mutability #ident: #ty = unsafe { sys::#ident };
+                                #vis static #mutability #unused_ident: #ty = #rhs;
                             }));
                         }
                         fitem => panic!("Unexpected Item: {:#?}", fitem),
@@ -244,6 +258,12 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
             item @ Item::Use(_) => transformed.main_file.items.push(item),
             item => panic!("Unexpected Item: {:#?}", item),
         }
+    }
+
+    if !statics.is_empty() {
+        transformed.main_file.items.extend([Item::Use(parse_quote! {
+            pub use ghc_rts_sys::{#(#statics),*};
+        })]);
     }
 
     transformed
