@@ -1,10 +1,9 @@
-use core::ffi;
+use std::ffi::{c_int, c_void};
 use std::mem::transmute;
 
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
 
-#[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 
 #[cfg(test)]
@@ -150,11 +149,11 @@ pub(crate) type StgHalfInt = i32;
 
 pub type StgHalfWord = u32;
 
-pub type StgAddr = *mut ffi::c_void;
+pub type StgAddr = *mut c_void;
 
 pub type StgChar = StgWord32;
 
-pub type StgBool = ffi::c_int;
+pub type StgBool = c_int;
 
 pub type StgFloat = f32;
 
@@ -168,12 +167,12 @@ pub(crate) type StgOffset = StgWord;
 
 pub(crate) type StgCode = StgWord8;
 
-pub type StgStablePtr = *mut ffi::c_void;
+pub type StgStablePtr = *mut c_void;
 
 pub(crate) type StgByteArray = *mut StgWord8;
 
 pub(crate) type StgFunPtr =
-    Option<unsafe extern "C" fn() -> Option<unsafe extern "C" fn() -> *mut ffi::c_void>>;
+    Option<unsafe extern "C" fn() -> Option<unsafe extern "C" fn() -> *mut c_void>>;
 
 pub(crate) type StgFun = Option<unsafe extern "C" fn() -> StgFunPtr>;
 

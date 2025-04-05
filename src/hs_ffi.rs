@@ -1,7 +1,4 @@
-use std::{
-    ffi::{c_char, c_int, c_void},
-    mem::transmute,
-};
+use std::ffi::{c_char, c_int, c_void};
 
 #[cfg(feature = "tracing")]
 use tracing::instrument;
@@ -10,9 +7,9 @@ use crate::stg::types::{
     StgChar, StgDouble, StgFloat, StgInt, StgInt16, StgInt32, StgInt64, StgInt8, StgPtr, StgWord,
     StgWord16, StgWord32, StgWord64, StgWord8,
 };
-#[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 
+#[cfg(test)]
 mod tests;
 
 pub(crate) const HS_CHAR_MIN: u32 = 0;
@@ -169,7 +166,7 @@ pub unsafe extern "C" fn hs_spt_keys(keys: *mut StgPtr, szKeys: c_int) -> c_int 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_spt_key_count() -> c_int {
-    unsafe { transmute(sys::hs_spt_key_count()) }
+    unsafe { sys::hs_spt_key_count() }
 }
 
 #[unsafe(no_mangle)]

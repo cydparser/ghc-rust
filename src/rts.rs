@@ -1,8 +1,7 @@
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
 use std::{
     ffi::{c_char, c_int, c_uint, c_void},
-    mem::transmute, ptr::null,
+    mem::transmute,
+    ptr::null_mut,
 };
 
 #[cfg(feature = "tracing")]
@@ -112,16 +111,16 @@ pub(crate) unsafe fn _warnFail(filename: *const c_char, linenum: c_uint) {
     unsafe { sys::_warnFail(filename, linenum) }
 }
 
-static mut prog_argv: *mut *mut ffi::c_char = unsafe { sys::prog_argv };
+static mut prog_argv: *mut *mut c_char = null_mut();
 
-static mut prog_argc: ffi::c_int = unsafe { sys::prog_argc };
+static mut prog_argc: c_int = 0;
 
-static mut prog_name: *mut ffi::c_char = unsafe { sys::prog_name };
+static mut prog_name: *mut c_char = null_mut();
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn reportStackOverflow(tso: *mut types::StgTSO) {
-    unsafe { sys::reportStackOverflow(transmute(tso)) }
+pub unsafe extern "C" fn reportStackOverflow(tso: *mut sys::StgTSO) {
+    unsafe { sys::reportStackOverflow(tso) }
 }
 
 #[unsafe(no_mangle)]
