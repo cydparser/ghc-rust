@@ -1,4 +1,5 @@
 use std::{
+    borrow::Borrow,
     fs,
     path::{Path, PathBuf},
     process::Command,
@@ -341,18 +342,27 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 
                     let (mutability, ty_owned, arg_from_sys, arg_into, arg_from_owned) =
                         match pat_type.ty.as_ref() {
-                            ty @ syn::Type::Path(type_path) => (
-                                "",
-                                ty.clone(),
-                                match type_path.path.leading_colon {
-                                    Some(_) => parse_quote! { #param_ident },
-                                    None => parse_quote! { transmute(#param_ident) },
-                                },
-                                expr_into(&param_ident),
-                                syn::Pat::Ident(new_pat_ident(&param_ident)),
-                            ),
+                            ty @ syn::Type::Path(type_path) => {
+                                let is_primitive = is_primitive_type_path(symbols, type_path);
+                                (
+                                    "",
+                                    ty.clone(),
+                                    if is_primitive {
+                                        parse_quote! { #param_ident }
+                                    } else {
+                                        parse_quote! { transmute(#param_ident) }
+                                    },
+                                    if is_primitive {
+                                        parse_quote! { #param_ident }
+                                    } else {
+                                        expr_into(&param_ident)
+                                    },
+                                    syn::Pat::Ident(new_pat_ident(&param_ident)),
+                                )
+                            }
                             syn::Type::Ptr(type_ptr) => {
-                                let (ty, expr, pat) = ptr_to_ty_expr_pat(&param_ident, type_ptr);
+                                let (ty, expr, pat) =
+                                    ptr_to_ty_expr_pat(symbols, &param_ident, type_ptr);
                                 let arg_from_sys = parse_quote! { #param_ident as #ty };
                                 (
                                     type_ptr.mutability.map(|_| "mut").unwrap_or(""),
@@ -365,12 +375,24 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                             ty => panic!("Unexpected type in {:?}: {:?}", arg, ty),
                         };
 
-                    let binding: TokenStream =
-                        format!("let {} {} = Default::default();", mutability, &param_ident)
-                            .parse()
-                            .unwrap_or_else(|e| {
-                                panic!("Unable to parse let expression: {:?} {}", arg, e)
-                            });
+                    let binding: TokenStream = {
+                        let binding_rhs = match &ty_owned {
+                            syn::Type::Path(type_path)
+                                if is_primitive_type_path(symbols, type_path) =>
+                            {
+                                "Default::default()"
+                            }
+                            syn::Type::Ptr(type_ptr) => match type_ptr.mutability {
+                                Some(_) => "std::ptr::null_mut()",
+                                None => "std::ptr::null()",
+                            },
+                            _ => "todo!()",
+                        };
+                        parse_token_stream(format!(
+                            "let {} {} = {};",
+                            mutability, &param_ident, binding_rhs
+                        ))
+                    };
 
                     (
                         syn::FnArg::Typed(syn::PatType {
@@ -406,9 +428,15 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
             )
         };
 
-    let call: syn::Expr = match output {
-        syn::ReturnType::Default => parse_quote! { sys::#ident(#(#args_from_sys),*) },
-        syn::ReturnType::Type(_, _) => parse_quote! { transmute(sys::#ident(#(#args_from_sys),*)) },
+    let (call, expected_call): (syn::Expr, syn::Expr) = match &output {
+        syn::ReturnType::Type(_, ty) if !is_primitive_type(symbols, ty.as_ref()) => (
+            parse_quote! { transmute(sys::#ident(#(#args_from_sys),*)) },
+            parse_quote! { transmute(sys::#ident(#(#args_into),*)) },
+        ),
+        _ => (
+            parse_quote! { sys::#ident(#(#args_from_sys),*) },
+            parse_quote! { sys::#ident(#(#args_into),*) },
+        ),
     };
 
     main_file.items.push(Item::Fn(parse_quote! {
@@ -426,7 +454,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
             #[cfg(feature = "sys")]
             #[quickcheck]
             fn #fn_ident(#inputs_owned) -> bool {
-                let expected = unsafe { transmute(sys::#ident(#(#args_into),*)) };
+                let expected = unsafe { #expected_call };
                 let actual = unsafe { #ident(#(#args_from_owned),*) };
                 actual == expected
             }
@@ -445,6 +473,30 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
     }));
 }
 
+fn is_primitive_type<T: Borrow<syn::Type>>(symbols: &Symbols, ty: T) -> bool {
+    match ty.borrow() {
+        syn::Type::Array(type_array) => is_primitive_type(symbols, type_array.elem.borrow()),
+        syn::Type::BareFn(type_bare_fn) => {
+            type_bare_fn
+                .inputs
+                .iter()
+                .any(|arg| is_primitive_type(symbols, arg.ty.borrow()))
+                || match &type_bare_fn.output {
+                    syn::ReturnType::Default => true,
+                    syn::ReturnType::Type(_, rty) => is_primitive_type(symbols, rty.as_ref()),
+                }
+        }
+        syn::Type::Path(type_path) => is_primitive_type_path(symbols, type_path),
+        syn::Type::Ptr(type_ptr) => is_primitive_type(symbols, type_ptr.elem.as_ref()),
+        ty => panic!("Unexpected type: {:?}", ty),
+    }
+}
+
+fn is_primitive_type_path<T: Borrow<syn::TypePath>>(symbols: &Symbols, type_path: T) -> bool {
+    let type_path = type_path.borrow();
+    type_path.path.leading_colon.is_some() || symbols.is_primitive_type(type_path)
+}
+
 fn expr_into(ident: &Ident) -> syn::Expr {
     syn::Expr::MethodCall(parse_quote! { #ident.into() })
 }
@@ -459,14 +511,22 @@ fn new_pat_ident(ident: &Ident) -> syn::PatIdent {
     }
 }
 
-fn ptr_to_ty_expr_pat(ident: &Ident, type_ptr: &syn::TypePtr) -> (syn::Type, syn::Expr, syn::Pat) {
+fn ptr_to_ty_expr_pat(
+    symbols: &Symbols,
+    ident: &Ident,
+    type_ptr: &syn::TypePtr,
+) -> (syn::Type, syn::Expr, syn::Pat) {
     let (ty, expr, pat) = match type_ptr.elem.as_ref() {
-        ty @ syn::Type::Path(_) => (
+        ty @ syn::Type::Path(type_path) => (
             ty.clone(),
-            expr_into(ident),
+            if is_primitive_type_path(symbols, type_path) {
+                parse_quote! { #ident }
+            } else {
+                expr_into(ident)
+            },
             syn::Pat::Ident(new_pat_ident(ident)),
         ),
-        syn::Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(ident, type_ptr),
+        syn::Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(symbols, ident, type_ptr),
         _ => panic!("Unexpected type for {}: {:?}", ident, type_ptr),
     };
 
