@@ -11,78 +11,91 @@ fn main() {
 
     let bindings_builder = utils::bindgen_builder(&ghc).allowlist_recursively(false);
 
-    let headers_by_dir: HashMap<Option<&str>, Vec<&str>> = [
-        (None, vec!["HsFFI", "MachDeps", "Rts", "RtsAPI", "Stg"]),
+    let headers_by_dir: HashMap<Option<&str>, (bool, Vec<&str>)> = [
+        (None, (true, vec!["Capability"])),
+        (
+            None,
+            (false, vec!["HsFFI", "MachDeps", "Rts", "RtsAPI", "Stg"]),
+        ),
         (
             Some("rts"),
-            vec![
-                "Adjustor",
-                "BlockSignals",
-                "Config",
-                "Constants",
-                "EventLogWriter",
-                "ExecPage",
-                "FileLock",
-                "Flags",
-                "ForeignExports",
-                "GetTime",
-                "Globals",
-                "Hpc",
-                "IOInterface",
-                "IPE",
-                "Libdw",
-                "LibdwPool",
-                "Linker",
-                "Main",
-                "Messages",
-                "NonMoving",
-                "OSThreads",
-                "Parallel",
-                "PrimFloat",
-                "Profiling",
-                "Signals",
-                "SpinLock",
-                "StableName",
-                "StablePtr",
-                "StaticPtrTable",
-                "TSANUtils",
-                "TTY",
-                "Threads",
-                "Ticky",
-                "Time",
-                "Timer",
-                "Types",
-                "Utils",
-            ],
+            (
+                false,
+                vec![
+                    "Adjustor",
+                    "BlockSignals",
+                    "Config",
+                    "Constants",
+                    "EventLogWriter",
+                    "ExecPage",
+                    "FileLock",
+                    "Flags",
+                    "ForeignExports",
+                    "GetTime",
+                    "Globals",
+                    "Hpc",
+                    "IOInterface",
+                    "IPE",
+                    "Libdw",
+                    "LibdwPool",
+                    "Linker",
+                    "Main",
+                    "Messages",
+                    "NonMoving",
+                    "OSThreads",
+                    "Parallel",
+                    "PrimFloat",
+                    "Profiling",
+                    "Signals",
+                    "SpinLock",
+                    "StableName",
+                    "StablePtr",
+                    "StaticPtrTable",
+                    "TSANUtils",
+                    "TTY",
+                    "Threads",
+                    "Ticky",
+                    "Time",
+                    "Timer",
+                    "Types",
+                    "Utils",
+                ],
+            ),
         ),
-        (Some("rts/prof"), vec!["CCS", "Heap", "LDV"]),
+        (Some("rts/prof"), (false, vec!["CCS", "Heap", "LDV"])),
         (
             Some("rts/storage"),
-            vec![
-                "Block",
-                "ClosureMacros",
-                "ClosureTypes",
-                "Closures",
-                "FunTypes",
-                "GC",
-                "Heap",
-                "InfoTables",
-                "MBlock",
-                "TSO",
-            ],
+            (
+                false,
+                vec![
+                    "Block",
+                    "ClosureMacros",
+                    "ClosureTypes",
+                    "Closures",
+                    "FunTypes",
+                    "GC",
+                    "Heap",
+                    "InfoTables",
+                    "MBlock",
+                    "TSO",
+                ],
+            ),
         ),
         (
             Some("stg"),
-            vec![
-                "DLL",
-                "MachRegsForHost",
-                "MiscClosures",
-                "Prim",
-                "Regs",
-                "SMP",
-                "Ticky",
-                "Types",
-            ],
+            (
+                false,
+                vec![
+                    "DLL",
+                    "MachRegsForHost",
+                    "MiscClosures",
+                    "Prim",
+                    "Regs",
+                    "SMP",
+                    "Ticky",
+                    "Types",
+                ],
+            ),
         ),
     ]
     .into_iter()
@@ -119,15 +132,30 @@ fn main() {
             .to_string()
     };
 
-    for (path, headers) in &headers_by_dir {
+    for (path, (internal, headers)) in &headers_by_dir {
+        let internal = *internal;
+
+        let mut include_dir = if internal {
+            ghc.rts_dir.clone()
+        } else {
+            ghc.include_dir.clone()
+        };
+
         let (include_dir, out_dir) = match path {
-            None => (ghc.include_dir.clone(), out_dir.clone()),
+            None => (include_dir, out_dir.clone()),
             Some(path) => {
                 let path = PathBuf::from(path);
-                let out_dir = out_dir.join(&path);
+                let out_dir = if internal {
+                    let mut out_dir = out_dir.join("rts");
+                    out_dir.push(&path);
+                    out_dir
+                } else {
+                    out_dir.join(&path)
+                };
                 fs::create_dir_all(&out_dir)
                     .unwrap_or_else(|e| panic!("Unable to create {}: {}", out_dir.display(), e));
-                (ghc.include_dir.join(path), out_dir)
+                include_dir.push(path);
+                (include_dir, out_dir)
             }
         };
 
@@ -147,20 +175,30 @@ fn main() {
                     }
                 );
 
-                if let Some((pre, _)) = rts_h.split_once(&include) {
-                    f.write_all(pre.as_bytes()).unwrap();
-                } else if path.is_some() {
-                    f.write_all(rts_h.as_bytes()).unwrap();
+                if internal {
+                    f.write_all("#include \"Rts.h\"\n".as_bytes()).unwrap();
+                } else {
+                    if let Some((pre, _)) = rts_h.split_once(&include) {
+                        f.write_all(pre.as_bytes()).unwrap();
+                    } else if path.is_some() {
+                        f.write_all(rts_h.as_bytes()).unwrap();
+                    }
                 }
                 f.write_all(include.as_bytes()).unwrap();
             }
-            let bindings = bindings_builder
-                .clone()
+            let bindings = {
+                let builder = bindings_builder.clone();
+
+                if internal {
+                    builder.clang_arg(format!("-I{}", ghc.rts_dir.display()))
+                } else {
+                    builder
+                }
                 .allowlist_file(header_path.to_string_lossy())
                 .header(wrapper_str)
                 .generate()
-                .expect("Unable to generate bindings");
-
+                .expect("Unable to generate bindings")
+            };
             fs::remove_file(&wrapper).unwrap();
 
             let module_name = header_to_module(header);
@@ -225,7 +263,7 @@ enum ImportOrSubmodule {
 }
 
 fn extract_import(
-    headers_by_dir: &HashMap<Option<&str>, Vec<&str>>,
+    headers_by_dir: &HashMap<Option<&str>, (bool, Vec<&str>)>,
     module_path: &str,
     line: &str,
 ) -> Option<ImportOrSubmodule> {
@@ -240,7 +278,7 @@ fn extract_import(
         Some((p, h)) => (Some(p), h),
     };
 
-    let _ = headers_by_dir.get(&p)?.iter().find(|&&s| s == h)?;
+    let _ = headers_by_dir.get(&p)?.1.iter().find(|&&s| s == h)?;
 
     let module_name = header_to_module(h);
 
