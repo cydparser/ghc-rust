@@ -11,9 +11,8 @@ use crate::{
         prof::ccs::CostCentreStack,
         storage::closures::{
             MessageBlackHole_, MessageThrowTo_, MessageWakeup_, StgArrBytes, StgBlockingQueue_,
-            StgHeader, StgTRecHeader_,
+            StgClosure, StgHeader, StgTRecHeader_,
         },
-        types::{StgClosure, StgTSO},
     },
     stg::types::{StgInt, StgInt64, StgPtr, StgWord, StgWord16, StgWord32, StgWord64, StgWord8},
 };
@@ -68,6 +67,8 @@ impl From<StgTSOBlockInfo> for sys::StgTSOBlockInfo {
         unsafe { transmute(x) }
     }
 }
+
+pub type StgTSO = StgTSO_;
 
 #[repr(C)]
 pub struct StgTSO_ {
