@@ -130,6 +130,8 @@ impl Arbitrary for StgClosureInfo__bindgen_ty_1 {
 
 pub(crate) type StgSRTField = StgHalfInt;
 
+pub type StgInfoTable = StgInfoTable_;
+
 #[repr(C)]
 pub struct StgInfoTable_ {
     pub layout: StgClosureInfo,
