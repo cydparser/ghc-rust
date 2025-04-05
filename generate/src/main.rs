@@ -8,7 +8,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::format_ident;
 use syn::{parse_quote, punctuated::Punctuated, token, Ident, Item, Visibility};
 
-use generate::InternalSymbols;
+use generate::Symbols;
 
 fn main() {
     let src_dir = PathBuf::from(String::from(env!("OUT_DIR")));
@@ -24,7 +24,7 @@ fn main() {
 
     dbg!(&src_dir);
 
-    let symbols = InternalSymbols::new();
+    let symbols = Symbols::new();
 
     // Create directories, one for each module, in the destination dir.
     for_each_rs(&src_dir, &|path| {
@@ -114,7 +114,7 @@ struct Transformed {
     tests_file: syn::File,
 }
 
-fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed {
+fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
     let cap = syn_file.items.len() * 2;
 
     let mut transformed = Transformed {
@@ -270,7 +270,7 @@ fn transform_tree(symbols: &InternalSymbols, syn_file: syn::File) -> Transformed
 }
 
 fn transform_const(
-    symbols: &InternalSymbols,
+    symbols: &Symbols,
     mut item_const: syn::ItemConst,
     transformed: &mut Transformed,
 ) {
@@ -298,11 +298,7 @@ fn transform_const(
     }));
 }
 
-fn transform_ffn(
-    symbols: &InternalSymbols,
-    ffn: syn::ForeignItemFn,
-    transformed: &mut Transformed,
-) {
+fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
     let syn::ForeignItemFn {
         vis,
         sig:
@@ -492,7 +488,7 @@ fn ptr_to_ty_expr_pat(ident: &Ident, type_ptr: &syn::TypePtr) -> (syn::Type, syn
 }
 
 fn transform_struct(
-    symbols: &InternalSymbols,
+    symbols: &Symbols,
     mut item_struct: syn::ItemStruct,
     Transformed {
         main_file,

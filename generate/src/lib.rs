@@ -1,23 +1,24 @@
 use std::collections::HashSet;
 
 use proc_macro2::Span;
-use syn::Ident;
+use syn::{parse_quote, Ident, TypePath};
 
-pub struct InternalSymbols {
+pub struct Symbols {
     consts: HashSet<Ident>,
     funcs: HashSet<Ident>,
     extern_statics: HashSet<Ident>,
     structs: HashSet<Ident>,
     types: HashSet<Ident>,
+    primitive_types: HashSet<TypePath>,
 }
 
-impl InternalSymbols {
-    pub fn new() -> InternalSymbols {
+impl Symbols {
+    pub fn new() -> Symbols {
         fn insert_ident(idents: &mut HashSet<Ident>, sym: &str) {
             idents.insert(Ident::new(sym, Span::call_site()));
         }
 
-        InternalSymbols {
+        Symbols {
             consts: {
                 let mut hs = HashSet::new();
                 for s in [
@@ -648,6 +649,82 @@ impl InternalSymbols {
                 }
                 hs
             },
+            primitive_types: {
+                let mut hs = HashSet::new();
+                for s in [
+                    "u32",
+                    "c",
+                    "AdjustorExecutable",
+                    "AdjustorWritable",
+                    "C_",
+                    "F_",
+                    "HsBool",
+                    "HsChar",
+                    "HsDouble",
+                    "HsFloat",
+                    "HsFunPtr",
+                    "HsInt",
+                    "HsInt16",
+                    "HsInt32",
+                    "HsInt64",
+                    "HsInt8",
+                    "HsPtr",
+                    "HsStablePtr",
+                    "HsWord",
+                    "HsWord16",
+                    "HsWord32",
+                    "HsWord64",
+                    "HsWord8",
+                    "I_",
+                    "KernelThreadId",
+                    "Mutex",
+                    "OSThreadId",
+                    "OSThreadProc",
+                    "P_",
+                    "StgAddr",
+                    "StgBool",
+                    "StgByteArray",
+                    "StgChar",
+                    "StgCode",
+                    "StgDouble",
+                    "StgFloat",
+                    "StgFun",
+                    "StgFunPtr",
+                    "StgHalfInt",
+                    "StgHalfWord",
+                    "StgInt",
+                    "StgInt16",
+                    "StgInt32",
+                    "StgInt64",
+                    "StgInt8",
+                    "StgOffset",
+                    "StgPtr",
+                    "StgSRTField",
+                    "StgStablePtr",
+                    "StgThreadID",
+                    "StgThreadReturnCode",
+                    "StgVolatilePtr",
+                    "StgWord",
+                    "StgWord16",
+                    "StgWord32",
+                    "StgWord64",
+                    "StgWord8",
+                    "StgWordArray",
+                    "StringIdx",
+                    "ThreadLocalKey",
+                    "Time",
+                    "W_",
+                    "__tsan_atomic16",
+                    "__tsan_atomic32",
+                    "__tsan_atomic64",
+                    "__tsan_atomic8",
+                    "memcount",
+                    "pathchar",
+                ] {
+                    hs.insert(parse_quote! { #s });
+                }
+                hs
+            },
         }
     }
 
@@ -669,5 +746,9 @@ impl InternalSymbols {
 
     pub fn is_internal_type(&self, ident: &Ident) -> bool {
         self.types.contains(ident)
+    }
+
+    pub fn is_primitive_type(&self, ty_path: &TypePath) -> bool {
+        self.primitive_types.contains(ty_path)
     }
 }
