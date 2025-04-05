@@ -496,6 +496,9 @@ fn transform_struct(
     }: &mut Transformed,
 ) {
     if item_struct.ident.to_string() == "__IncompleteArrayField" {
+        main_file.items.push(Item::Use(parse_quote! {
+            use crate::bindgen;
+        }));
         return;
     }
     let ident = item_struct.ident.clone();
