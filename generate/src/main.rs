@@ -486,6 +486,7 @@ fn is_primitive_type<T: Borrow<syn::Type>>(symbols: &Symbols, ty: T) -> bool {
                     syn::ReturnType::Type(_, rty) => is_primitive_type(symbols, rty.as_ref()),
                 }
         }
+        syn::Type::Never(_) => true,
         syn::Type::Path(type_path) => is_primitive_type_path(symbols, type_path),
         syn::Type::Ptr(type_ptr) => is_primitive_type(symbols, type_ptr.elem.as_ref()),
         ty => panic!("Unexpected type: {:?}", ty),

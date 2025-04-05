@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use proc_macro2::Span;
-use syn::{parse_quote, Ident, TypePath};
+use syn::{Ident, TypePath};
 
 pub struct Symbols {
     consts: HashSet<Ident>,
@@ -721,7 +721,18 @@ impl Symbols {
                     "memcount",
                     "pathchar",
                 ] {
-                    hs.insert(parse_quote! { #s });
+                    hs.insert(syn::TypePath {
+                        qself: None,
+                        path: syn::Path {
+                            leading_colon: None,
+                            segments: [syn::PathSegment {
+                                ident: Ident::new(s, Span::call_site()),
+                                arguments: syn::PathArguments::None,
+                            }]
+                            .into_iter()
+                            .collect(),
+                        },
+                    });
                 }
                 hs
             },
