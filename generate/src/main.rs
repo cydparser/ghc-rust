@@ -339,9 +339,10 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
             syn::FnArg::Typed(pat_type) => {
                 if let syn::Pat::Ident(pat_ident @ syn::PatIdent { .. }) = pat_type.pat.as_ref() {
                     let param_ident = pat_ident.ident.clone();
+                    let pat_ty = pat_type.ty.as_ref();
 
                     let (mutability, ty_owned, arg_from_sys, arg_into, arg_from_owned) =
-                        match pat_type.ty.as_ref() {
+                        match pat_ty {
                             ty @ syn::Type::Path(type_path) => {
                                 let is_primitive = is_primitive_type_path(symbols, type_path);
                                 (
@@ -363,7 +364,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                             syn::Type::Ptr(type_ptr) => {
                                 let (ty, expr, pat) =
                                     ptr_to_ty_expr_pat(symbols, &param_ident, type_ptr);
-                                let arg_from_sys = parse_quote! { #param_ident as #ty };
+                                let arg_from_sys = parse_quote! { #param_ident as #pat_ty };
                                 (
                                     type_ptr.mutability.map(|_| "mut").unwrap_or(""),
                                     ty,
