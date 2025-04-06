@@ -237,7 +237,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                                     Some(_) => parse_quote! { std::ptr::null_mut() },
                                     None => parse_quote! { std::ptr::null() },
                                 },
-                                _ => parse_quote! { Default::default() },
+                                _ => parse_quote! { todo!() },
                             };
 
                             transformed.main_file.items.push(Item::Static(parse_quote! {
