@@ -384,18 +384,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                         };
 
                     let binding: TokenStream = {
-                        let binding_rhs = match &ty_owned {
-                            syn::Type::Path(type_path)
-                                if is_primitive_type_path(symbols, type_path) =>
-                            {
-                                "Default::default()"
-                            }
-                            syn::Type::Ptr(type_ptr) => match type_ptr.mutability {
-                                Some(_) => "std::ptr::null_mut()",
-                                None => "std::ptr::null()",
-                            },
-                            _ => "todo!()",
-                        };
+                        let binding_rhs = "Default::default()";
                         parse_token_stream(format!(
                             "let {} {} = {};",
                             mutability, &param_ident, binding_rhs
