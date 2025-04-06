@@ -366,7 +366,12 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                             syn::Type::Ptr(type_ptr) => {
                                 let (ty, expr, pat) =
                                     ptr_to_ty_expr_pat(symbols, &param_ident, type_ptr);
-                                let arg_from_sys = parse_quote! { #param_ident as #pat_ty };
+                                let arg_from_sys =
+                                    if is_primitive_type(symbols, type_ptr.elem.as_ref()) {
+                                        parse_quote! { #param_ident }
+                                    } else {
+                                        parse_quote! { #param_ident as #pat_ty }
+                                    };
                                 (
                                     type_ptr.mutability.map(|_| "mut").unwrap_or(""),
                                     ty,
