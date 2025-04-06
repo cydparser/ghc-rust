@@ -561,13 +561,11 @@ fn transform_struct(
     }
     let ident = item_struct.ident.clone();
 
-    if ident.to_string().ends_with("_") {
+    if symbols.is_internal_struct(&ident) {
         item_struct
             .attrs
-            .push(parse_quote! { #[doc = "cbindgen:no-export"] })
-    }
+            .push(parse_quote! { #[doc = "cbindgen:no-export"] });
 
-    if symbols.is_internal_struct(&ident) {
         item_struct.vis = parse_quote! { pub(crate) };
     }
 
