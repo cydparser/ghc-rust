@@ -1,9 +1,12 @@
 use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 use proc_macro2::Span;
 use syn::{Ident, TypePath};
 
 pub struct Symbols {
+    internal_module: bool,
+    internal_modules: HashSet<PathBuf>,
     consts: HashSet<Ident>,
     funcs: HashSet<Ident>,
     extern_statics: HashSet<Ident>,
@@ -19,6 +22,14 @@ impl Symbols {
         }
 
         Symbols {
+            internal_module: false,
+            internal_modules: {
+                let mut hs = HashSet::new();
+                for s in ["rts/capability.rs"] {
+                    hs.insert(PathBuf::from(s));
+                }
+                hs
+            },
             consts: {
                 let mut hs = HashSet::new();
                 for s in [
@@ -739,24 +750,28 @@ impl Symbols {
         }
     }
 
+    pub fn with_module(&mut self, path: &Path) {
+        self.internal_module = self.internal_modules.contains(path);
+    }
+
     pub fn is_internal_const(&self, ident: &Ident) -> bool {
-        self.consts.contains(ident)
+        self.internal_module || self.consts.contains(ident)
     }
 
     pub fn is_internal_func(&self, ident: &Ident) -> bool {
-        self.funcs.contains(ident)
+        self.internal_module || self.funcs.contains(ident)
     }
 
     pub fn is_internal_static(&self, ident: &Ident) -> bool {
-        !self.extern_statics.contains(ident)
+        self.internal_module || !self.extern_statics.contains(ident)
     }
 
     pub fn is_internal_struct(&self, ident: &Ident) -> bool {
-        self.structs.contains(ident)
+        self.internal_module || ident.to_string().ends_with("_") || self.structs.contains(ident)
     }
 
     pub fn is_internal_type(&self, ident: &Ident) -> bool {
-        self.types.contains(ident)
+        self.internal_module || self.types.contains(ident)
     }
 
     pub fn is_primitive_type(&self, ty_path: &TypePath) -> bool {

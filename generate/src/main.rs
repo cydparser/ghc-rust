@@ -25,12 +25,13 @@ fn main() {
 
     dbg!(&src_dir);
 
-    let symbols = Symbols::new();
+    let mut symbols = Symbols::new();
 
     // Create directories, one for each module, in the destination dir.
-    for_each_rs(&src_dir, &|path| {
+    for_each_rs(&src_dir, &mut |path| {
         eprintln!("Processing {}", path.display());
-        let mod_rs = dst_dir.join(path.strip_prefix(&src_dir).unwrap());
+        let relative_path = path.strip_prefix(&src_dir).unwrap();
+        let mod_rs = dst_dir.join(relative_path);
         let mod_dir = mod_rs.with_extension("");
         let tests_rs = mod_dir.join("tests.rs");
         let mod_exists = mod_rs.exists();
@@ -40,6 +41,7 @@ fn main() {
             eprintln!("  * Skipping");
             return Ok(());
         }
+        symbols.with_module(relative_path);
 
         let code = fs::read_to_string(path).unwrap();
         let Transformed {
@@ -90,9 +92,9 @@ fn add_blank_lines(src: String) -> String {
     padded
 }
 
-fn for_each_rs<F>(dir: &Path, f: &F) -> Result<(), Box<dyn std::error::Error>>
+fn for_each_rs<F>(dir: &Path, f: &mut F) -> Result<(), Box<dyn std::error::Error>>
 where
-    F: Fn(&Path) -> Result<(), Box<dyn std::error::Error>>,
+    F: FnMut(&Path) -> Result<(), Box<dyn std::error::Error>>,
 {
     for entry in dir.read_dir().unwrap() {
         let entry = entry?;
