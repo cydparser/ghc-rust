@@ -21,8 +21,9 @@ use crate::{
         W_,
     },
 };
-#[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
+
+pub use ghc_rts_sys::{g0, generations, keepCAFs, large_alloc_lim, oldest_gen};
 
 #[cfg(test)]
 mod tests;
@@ -32,6 +33,7 @@ pub(crate) type memcount = StgWord;
 pub type nursery = nursery_;
 
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct nursery_ {
     pub blocks: *mut bdescr,
     pub n_blocks: memcount,
@@ -47,6 +49,7 @@ impl From<nursery_> for sys::nursery_ {
 pub type generation = generation_;
 
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct generation_ {
     pub no: u32,
     pub blocks: *mut bdescr,
@@ -88,6 +91,15 @@ impl From<generation_> for sys::generation_ {
     }
 }
 
+
+#[unsafe(no_mangle)]
+pub static mut _TODO_generations: *mut generation = std::ptr::null_mut();
+
+#[unsafe(no_mangle)]
+pub static mut _TODO_g0: *mut generation = std::ptr::null_mut();
+
+static mut _TODO_oldest_gen: *mut generation = std::ptr::null_mut();
+
 pub(crate) type ListBlocksCb = Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut bdescr)>;
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -98,12 +110,12 @@ pub(crate) unsafe fn listAllBlocks(cb: ListBlocksCb, user: *mut c_void) {
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn allocate(cap: *mut Capability, n: W_) -> StgPtr {
-    unsafe { sys::allocate(transmute(cap), transmute(n)) }
+    unsafe { sys::allocate(cap as *mut sys::Capability, n) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn allocateMightFail(cap: *mut Capability, n: W_) -> StgPtr {
-    unsafe { sys::allocateMightFail(transmute(cap), transmute(n)) }
+    unsafe { sys::allocateMightFail(cap as *mut sys::Capability, n) }
 }
 
 #[unsafe(no_mangle)]
@@ -114,7 +126,7 @@ pub unsafe extern "C" fn allocatePinned(
     alignment: W_,
     align_off: W_,
 ) -> StgPtr {
-    unsafe { sys::allocatePinned(transmute(cap), n, alignment, align_off) }
+    unsafe { sys::allocatePinned(cap as *mut sys::Capability, n, alignment, align_off) }
 }
 
 pub(crate) type AdjustorWritable = *mut c_void;
@@ -124,8 +136,10 @@ pub(crate) type AdjustorExecutable = *mut c_void;
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn flushExec(len: W_, exec_addr: AdjustorExecutable) {
-    unsafe { sys::flushExec(len, transmute(exec_addr)) }
+    unsafe { sys::flushExec(len, exec_addr) }
 }
+
+static mut _TODO_large_alloc_lim: W_ = 0;
 
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
@@ -148,17 +162,32 @@ pub unsafe extern "C" fn performBlockingMajorGC() {
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn newCAF(reg: *mut StgRegTable, caf: *mut StgIndStatic) -> *mut StgInd {
-    unsafe { transmute(sys::newCAF(transmute(reg), transmute(caf))) }
+    unsafe {
+        transmute(sys::newCAF(
+            reg as *mut sys::StgRegTable,
+            caf as *mut sys::StgIndStatic,
+        ))
+    }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn newRetainedCAF(reg: *mut StgRegTable, caf: *mut StgIndStatic) -> *mut StgInd {
-    unsafe { transmute(sys::newRetainedCAF(transmute(reg), transmute(caf))) }
+    unsafe {
+        transmute(sys::newRetainedCAF(
+            reg as *mut sys::StgRegTable,
+            caf as *mut sys::StgIndStatic,
+        ))
+    }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn newGCdCAF(reg: *mut StgRegTable, caf: *mut StgIndStatic) -> *mut StgInd {
-    unsafe { transmute(sys::newGCdCAF(transmute(reg), transmute(caf))) }
+    unsafe {
+        transmute(sys::newGCdCAF(
+            reg as *mut sys::StgRegTable,
+            caf as *mut sys::StgIndStatic,
+        ))
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -186,5 +215,14 @@ pub unsafe extern "C" fn dirty_MUT_VAR(
     mv: *mut StgMutVar,
     old: *mut StgClosure,
 ) {
-    unsafe { sys::dirty_MUT_VAR(transmute(reg), transmute(mv), transmute(old)) }
+    unsafe {
+        sys::dirty_MUT_VAR(
+            reg as *mut sys::StgRegTable,
+            mv as *mut sys::StgMutVar,
+            old as *mut sys::StgClosure,
+        )
+    }
 }
+
+#[unsafe(no_mangle)]
+pub static mut _TODO_keepCAFs: bool = false;
