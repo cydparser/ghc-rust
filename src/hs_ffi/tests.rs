@@ -1,8 +1,9 @@
-use std::{ffi::c_int, mem::transmute};
+use std::{ffi::c_int, ptr::null_mut};
 
 use quickcheck_macros::quickcheck;
 
 use super::*;
+use crate::stg::types::StgWord64;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 
@@ -180,7 +181,7 @@ fn test_hs_unlock_stable_tables() {
 #[test]
 #[ignore]
 fn test_hs_free_stable_ptr_unsafe() {
-    let sp = todo!();
+    let sp = null_mut();
     unsafe { hs_free_stable_ptr_unsafe(sp) };
     todo!("assert")
 }
@@ -188,7 +189,7 @@ fn test_hs_free_stable_ptr_unsafe() {
 #[test]
 #[ignore]
 fn test_hs_free_stable_ptr() {
-    let sp = todo!();
+    let sp = null_mut();
     unsafe { hs_free_stable_ptr(sp) };
     todo!("assert")
 }
@@ -203,9 +204,15 @@ fn test_hs_free_fun_ptr() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_hs_spt_lookup(mut key: StgWord64) -> bool {
-    let expected = unsafe { transmute(sys::hs_spt_lookup(&mut key.into())) };
-    let actual = unsafe { hs_spt_lookup(&mut key) };
+fn equivalent_hs_spt_lookup(key: StgWord64) -> bool {
+    let expected = {
+        let mut key = key;
+        unsafe { sys::hs_spt_lookup(&mut key) }
+    };
+    let actual = {
+        let mut key = key;
+        unsafe { hs_spt_lookup(&mut key) }
+    };
     actual == expected
 }
 
@@ -220,19 +227,23 @@ fn test_hs_spt_lookup() {
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_hs_spt_keys(word: StgWord, szKeys: c_int) -> bool {
-    let mut keys_ = word;
-    let mut keys = &raw mut keys_;
-    let expected = unsafe { transmute(sys::hs_spt_keys(&mut keys, szKeys.into())) };
-    let mut keys_ = word;
-    let mut keys = &raw mut keys_;
-    let actual = unsafe { hs_spt_keys(&mut keys, szKeys) };
+    let expected = {
+        let mut word = word;
+        let mut keys = &raw mut word;
+        unsafe { sys::hs_spt_keys(&mut keys, szKeys) }
+    };
+    let actual = {
+        let mut word = word;
+        let mut keys = &raw mut word;
+        unsafe { hs_spt_keys(&mut keys, szKeys) }
+    };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_hs_spt_keys() {
-    let mut keys = todo!();
+    let mut keys = null_mut();
     let szKeys = Default::default();
     unsafe { hs_spt_keys(&mut keys, szKeys) };
     todo!("assert")
@@ -241,7 +252,7 @@ fn test_hs_spt_keys() {
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_hs_spt_key_count() -> bool {
-    let expected = unsafe { transmute(sys::hs_spt_key_count()) };
+    let expected = unsafe { sys::hs_spt_key_count() };
     let actual = unsafe { hs_spt_key_count() };
     actual == expected
 }
@@ -257,7 +268,7 @@ fn test_hs_spt_key_count() {
 #[ignore]
 fn test_hs_try_putmvar() {
     let capability = Default::default();
-    let sp = todo!();
+    let sp = null_mut();
     unsafe { hs_try_putmvar(capability, sp) };
     todo!("assert")
 }
