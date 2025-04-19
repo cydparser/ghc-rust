@@ -385,7 +385,22 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                         };
 
                     let binding: TokenStream = {
-                        let binding_rhs = "Default::default()";
+                        let binding_rhs = match pat_ty {
+                            syn::Type::Ptr(type_ptr) => {
+                                if type_ptr.mutability.is_some() {
+                                    "std::ptr::null_mut()"
+                                } else {
+                                    "std::ptr::null()"
+                                }
+                            }
+                            _ => {
+                                if is_primitive_type(symbols, pat_ty) {
+                                    "Default::default()"
+                                } else {
+                                    "todo!()"
+                                }
+                            }
+                        };
                         parse_token_stream(format!(
                             "let {} {} = {};",
                             mutability, &param_ident, binding_rhs
