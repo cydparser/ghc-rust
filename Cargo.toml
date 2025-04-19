@@ -27,11 +27,11 @@ crate-type = ["staticlib"]
 
 [features]
 default = ["sys", "tracing"]
-sys = []
+sys = ["dep:ghc-rts-sys"]
 tracing = ["dep:tracing"]
 
 [dependencies]
-ghc-rts-sys = { path = "ghc-rts-sys" }
+ghc-rts-sys = { path = "ghc-rts-sys", optional = true }
 libc.workspace = true
 quickcheck_macros = "1.0.0"
 tracing = { version = "0.1.41", optional = true }
