@@ -148,6 +148,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
             use std::{
                 #ffi,
                 mem::transmute,
+                ptr::{null, null_mut},
                 slice,
             };
         }),
@@ -171,6 +172,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
             use std::{
                 #ffi,
                 mem::{size_of, transmute},
+                ptr::{null, null_mut},
             };
         }),
         Item::Use(parse_quote! {
@@ -235,8 +237,8 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
 
                             let rhs: syn::Expr = match ty.as_ref() {
                                 syn::Type::Ptr(type_ptr) => match type_ptr.mutability {
-                                    Some(_) => parse_quote! { std::ptr::null_mut() },
-                                    None => parse_quote! { std::ptr::null() },
+                                    Some(_) => parse_quote! { null_mut() },
+                                    None => parse_quote! { null() },
                                 },
                                 _ => parse_quote! { todo!() },
                             };
@@ -388,9 +390,9 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                         let binding_rhs = match pat_ty {
                             syn::Type::Ptr(type_ptr) => {
                                 if type_ptr.mutability.is_some() {
-                                    "std::ptr::null_mut()"
+                                    "null_mut()"
                                 } else {
-                                    "std::ptr::null()"
+                                    "null()"
                                 }
                             }
                             _ => {
