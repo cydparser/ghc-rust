@@ -371,7 +371,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                                     if is_primitive_type(symbols, type_ptr.elem.as_ref()) {
                                         parse_quote! { #param_ident }
                                     } else {
-                                        parse_quote! { #param_ident as #pat_ty }
+                                        parse_quote! { #param_ident as sys::#pat_ty }
                                     };
                                 (
                                     type_ptr.mutability.map(|_| "mut").unwrap_or(""),
