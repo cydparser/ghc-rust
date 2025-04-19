@@ -156,9 +156,7 @@
         };
 
         packages = {
-          # NB: Nix cannot build this, because it depends on files outside of this project (headers
-          # and object file).
-          ghc-rts-sys = craneBuildPackage "ghc-rts-sys" { };
+          bindgen-utils = craneBuildPackage "bindgen-utils" { };
         };
 
         devShells.default = crane.devShell {
