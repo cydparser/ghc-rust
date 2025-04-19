@@ -125,7 +125,7 @@ _files=(
 
 rm -f "${_files[@]}"
 
-cargo run -p generate src
+cargo run -p generate ghc-rts/src
 
 sed -i \
   -e 's/::core::option:://g' \
