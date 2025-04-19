@@ -4,3 +4,15 @@
 #![expect(unsafe_op_in_unsafe_fn)]
 
 include!(concat!(env!("OUT_DIR"), "/rts.rs"));
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_links() {
+        assert_eq!(false, unsafe { super::keepCAFs });
+        unsafe {
+            super::setKeepCAFs();
+        };
+        assert_eq!(true, unsafe { super::keepCAFs });
+    }
+}
