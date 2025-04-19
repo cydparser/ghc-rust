@@ -571,7 +571,7 @@ fn transform_struct(
 ) {
     if item_struct.ident.to_string() == "__IncompleteArrayField" {
         main_file.items.push(Item::Use(parse_quote! {
-            use crate::bindgen;
+            use crate::utils::bindgen;
         }));
         return;
     }

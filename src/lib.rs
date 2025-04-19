@@ -4,7 +4,7 @@
 // TODO: Remove after finishing port.
 #![allow(dead_code)]
 
-mod bindgen;
+mod utils;
 
 pub mod hs_ffi;
 pub mod mach_deps;
