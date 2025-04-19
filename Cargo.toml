@@ -1,5 +1,6 @@
 [workspace]
-members = ["bindgen-utils", "generate", "ghc-rts-sys", "include"]
+members = ["bindgen-utils", "generate", "ghc-rts", "ghc-rts-sys", "include"]
+default-members = ["ghc-rts"]
 resolver = "3"
 
 [workspace.package]
@@ -15,26 +16,3 @@ crane.name = "ghc-rts"
 bindgen = { git = "https://github.com/rust-lang/rust-bindgen", rev = "97ab9152b5edb1fda1ced9bc1604f5e4dc9cfaa9" }
 bindgen-utils = { path = "bindgen-utils" }
 libc = "0.2.171"
-
-[package]
-name = "ghc-rts"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-
-[lib]
-crate-type = ["staticlib"]
-
-[features]
-default = ["sys", "tracing"]
-sys = ["dep:ghc-rts-sys"]
-tracing = ["dep:tracing"]
-
-[dependencies]
-ghc-rts-sys = { path = "ghc-rts-sys", optional = true }
-libc.workspace = true
-quickcheck_macros = "1.0.0"
-tracing = { version = "0.1.41", optional = true }
-
-[dev-dependencies]
-quickcheck = "1.0.3"

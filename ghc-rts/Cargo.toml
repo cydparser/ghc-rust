@@ -1,0 +1,22 @@
+[package]
+name = "ghc-rts"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+default = ["sys", "tracing"]
+sys = ["dep:ghc-rts-sys"]
+tracing = ["dep:tracing"]
+
+[dependencies]
+ghc-rts-sys = { path = "../ghc-rts-sys", optional = true }
+libc.workspace = true
+quickcheck_macros = "1.0.0"
+tracing = { version = "0.1.41", optional = true }
+
+[dev-dependencies]
+quickcheck = "1.0.3"
