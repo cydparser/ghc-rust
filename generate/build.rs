@@ -135,23 +135,17 @@ fn main() {
     for (path, (internal, headers)) in &headers_by_dir {
         let internal = *internal;
 
-        let mut include_dir = if internal {
-            ghc.rts_dir.clone()
+        let (mut include_dir, mut out_dir) = if internal {
+            (ghc.rts_dir.clone(), out_dir.join("rts"))
         } else {
-            ghc.include_dir.clone()
+            (ghc.include_dir.clone(), out_dir.clone())
         };
 
         let (include_dir, out_dir) = match path {
             None => (include_dir, out_dir.clone()),
             Some(path) => {
                 let path = PathBuf::from(path);
-                let out_dir = if internal {
-                    let mut out_dir = out_dir.join("rts");
-                    out_dir.push(&path);
-                    out_dir
-                } else {
-                    out_dir.join(&path)
-                };
+                out_dir.push(&path);
                 fs::create_dir_all(&out_dir)
                     .unwrap_or_else(|e| panic!("Unable to create {}: {}", out_dir.display(), e));
                 include_dir.push(path);
