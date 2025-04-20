@@ -17,6 +17,8 @@ fn main() {
 
     let bindings = utils::bindgen_builder(&ghc)
         .header(ghc.include_dir.join("Rts.h").to_string_lossy())
+        // Invalidate bindings when header files change.
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .allowlist_file(format!(
             "{}.*",
             ghc.include_dir.as_os_str().to_string_lossy()

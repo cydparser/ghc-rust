@@ -54,8 +54,6 @@ pub fn bindgen_builder(ghc: &GhcDirs) -> bindgen::Builder {
         .use_core()
         .clang_arg(format!("-I{}", ghc.include_dir.display()))
         .clang_arg(format!("-I{}", ghc.build_dir.join("include").display()))
-        // Invalidate bindings when header files change.
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .blocklist_type(block_types)
 }
 

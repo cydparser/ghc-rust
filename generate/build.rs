@@ -1,7 +1,9 @@
-use std::collections::HashMap;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
+use std::rc::Rc;
 use std::{env, fs};
 
 use bindgen_utils as utils;
@@ -132,6 +134,11 @@ fn main() {
             .to_string()
     };
 
+    let callbacks_state = Rc::new(RefCell::new(CollectCargoCallbacksState {
+        filenames: HashSet::new(),
+        envs: HashSet::new(),
+    }));
+
     for (path, (internal, headers)) in &headers_by_dir {
         let internal = *internal;
 
@@ -197,6 +204,10 @@ fn main() {
                 }
                 .allowlist_file(header_path.to_string_lossy())
                 .header(wrapper_str)
+                // Invalidate bindings when header files change.
+                .parse_callbacks(Box::new(CollectCargoCallbacks {
+                    state: Rc::clone(&callbacks_state),
+                }))
                 .generate()
                 .expect("Unable to generate bindings")
             };
@@ -236,7 +247,53 @@ fn main() {
         }
     }
 
+    callbacks_state.borrow().print_reruns();
+
     fs::write(&marker, commit).unwrap();
+}
+
+#[derive(Debug)]
+struct CollectCargoCallbacks {
+    state: Rc<RefCell<CollectCargoCallbacksState>>,
+}
+
+#[derive(Debug)]
+struct CollectCargoCallbacksState {
+    filenames: HashSet<String>,
+    envs: HashSet<String>,
+}
+
+impl CollectCargoCallbacksState {
+    fn print_reruns(&self) {
+        for filename in self.filenames.iter() {
+            println!("cargo:rerun-if-changed={filename}");
+        }
+        for key in self.envs.iter() {
+            println!("cargo:rerun-if-env-changed={key}");
+        }
+    }
+}
+
+impl bindgen::callbacks::ParseCallbacks for CollectCargoCallbacks {
+    fn header_file(&self, filename: &str) {
+        if !filename.ends_with("wrapper.h") {
+            self.state
+                .borrow_mut()
+                .filenames
+                .insert(filename.to_string());
+        }
+    }
+
+    fn include_file(&self, filename: &str) {
+        self.state
+            .borrow_mut()
+            .filenames
+            .insert(filename.to_string());
+    }
+
+    fn read_env_var(&self, key: &str) {
+        self.state.borrow_mut().envs.insert(key.to_string());
+    }
 }
 
 fn header_to_module(header: &str) -> String {
