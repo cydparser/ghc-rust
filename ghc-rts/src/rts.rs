@@ -6,76 +6,46 @@ use std::{
 
 #[cfg(feature = "tracing")]
 use tracing::instrument;
-pub mod types;
 
-pub mod time;
-
-pub mod config;
-
-pub mod constants;
-
-pub mod flags;
-
-pub mod os_threads;
-
-pub mod spin_lock;
-
-pub mod messages;
-
-pub mod threads;
-
-pub mod non_moving;
-
-pub mod foreign_exports;
-
-pub mod exec_page;
-
-pub mod parallel;
-
-pub mod signals;
-
-pub mod block_signals;
-
-pub mod hpc;
+#[cfg(feature = "sys")]
+use ghc_rts_sys as sys;
 
 pub mod adjustor;
-
-pub mod file_lock;
-
-pub mod get_time;
-
-pub mod globals;
-
-pub mod io_interface;
-
-pub mod linker;
-
-pub mod ticky;
-
-pub mod timer;
-
-pub mod stable_ptr;
-
-pub mod stable_name;
-
-pub mod tty;
-
-pub mod utils;
-
-pub mod prim_float;
-
-pub mod main;
-
-pub mod profiling;
-
-pub mod ipe;
-
-pub mod static_ptr_table;
-
-pub mod libdw;
-
-pub mod libdw_pool;
+pub mod block_signals;
 pub mod capability;
+pub mod config;
+pub mod constants;
+pub mod exec_page;
+pub mod file_lock;
+pub mod flags;
+pub mod foreign_exports;
+pub mod get_time;
+pub mod globals;
+pub mod hpc;
+pub mod io_interface;
+pub mod ipe;
+pub mod libdw;
+pub mod libdw_pool;
+pub mod linker;
+pub mod main;
+pub mod messages;
+pub mod non_moving;
+pub mod os_threads;
+pub mod parallel;
+pub mod prim_float;
+pub mod profiling;
+pub mod signals;
+pub mod spin_lock;
+pub mod stable_name;
+pub mod stable_ptr;
+pub mod static_ptr_table;
+pub mod threads;
+pub mod ticky;
+pub mod time;
+pub mod timer;
+pub mod tty;
+pub mod types;
+pub mod utils;
 
 #[cfg(test)]
 mod tests;
