@@ -142,7 +142,14 @@ fn main() {
         };
 
         let (include_dir, out_dir) = match path {
-            None => (include_dir, out_dir.clone()),
+            None => {
+                if internal {
+                    fs::create_dir_all(&out_dir).unwrap_or_else(|e| {
+                        panic!("Unable to create {}: {}", out_dir.display(), e)
+                    });
+                }
+                (include_dir, out_dir)
+            }
             Some(path) => {
                 let path = PathBuf::from(path);
                 out_dir.push(&path);
