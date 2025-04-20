@@ -211,11 +211,11 @@ fn main() {
 
             let out_path = out_dir.join(format!("{}.rs", module_name));
 
-            let imports_submodules = fs::read_to_string(header_path)
+            let submodules = fs::read_to_string(header_path)
                 .unwrap()
                 .lines()
-                .filter_map(|line| extract_import(&headers_by_dir, &module_path, line))
-                .collect::<Vec<_>>();
+                .filter_map(|line| extract_submodule(&headers_by_dir, &module_path, line))
+                .reduce(|s, t| s + t.as_ref());
 
             let mut out_file = fs::OpenOptions::new()
                 .write(true)
@@ -226,23 +226,8 @@ fn main() {
 
             out_file.write_all(utils::use_libc().as_bytes()).unwrap();
 
-            if !imports_submodules.is_empty() {
-                let mut imports = String::new();
-                let mut submodules = String::new();
-
-                for is in imports_submodules {
-                    match is {
-                        ImportOrSubmodule::Import(i) => imports.push_str(&i),
-                        ImportOrSubmodule::Submodule(s) => submodules.push_str(&s),
-                    }
-                }
-                if !imports.is_empty() {
-                    imports.push_str("\n");
-                    out_file.write_all(imports.as_bytes()).unwrap();
-                }
-                if !submodules.is_empty() {
-                    out_file.write_all(submodules.as_bytes()).unwrap();
-                }
+            if let Some(submodules) = submodules {
+                out_file.write_all(submodules.as_bytes()).unwrap();
             }
 
             bindings
@@ -258,16 +243,11 @@ fn header_to_module(header: &str) -> String {
     stringcase::snake_case(header)
 }
 
-enum ImportOrSubmodule {
-    Import(String),
-    Submodule(String),
-}
-
-fn extract_import(
+fn extract_submodule(
     headers_by_dir: &HashMap<Option<&str>, (bool, Vec<&str>)>,
     module_path: &str,
     line: &str,
-) -> Option<ImportOrSubmodule> {
+) -> Option<String> {
     if !line.starts_with("#include ") {
         return None;
     }
@@ -283,25 +263,13 @@ fn extract_import(
 
     let module_name = header_to_module(h);
 
-    match p {
-        None => Some(ImportOrSubmodule::Import(format!(
-            "use crate::{};\n",
-            &module_name
-        ))),
-        Some(p) => {
-            let parent_module_path = p.replace('/', "::");
+    let parent_path = p?;
 
-            if parent_module_path == module_path {
-                Some(ImportOrSubmodule::Submodule(format!(
-                    "pub mod {};\n",
-                    module_name
-                )))
-            } else {
-                Some(ImportOrSubmodule::Import(format!(
-                    "use crate::{}::{};\n",
-                    parent_module_path, module_name
-                )))
-            }
-        }
+    let parent_module_path = parent_path.replace('/', "::");
+
+    if parent_module_path == module_path {
+        Some(format!("pub mod {};\n", module_name))
+    } else {
+        None
     }
 }
