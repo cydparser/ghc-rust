@@ -18,10 +18,11 @@ pub struct WithReferences<T: HasReferences> {
 
 impl<T: HasReferences> Drop for WithReferences<T> {
     fn drop(&mut self) {
-        // SAFETY: `inner` must be droped before `pointees`.
-        unsafe { ManuallyDrop::drop(&mut self.inner) };
-        // SAFETY: `pointees` is safe to drop after `inner`.
-        let _ = unsafe { Box::from_raw(self.pointees) };
+        // SAFETY: `inner` is droped before `pointees`.
+        unsafe {
+            ManuallyDrop::drop(&mut self.inner);
+            let _box = Box::from_raw(self.pointees);
+        };
     }
 }
 
