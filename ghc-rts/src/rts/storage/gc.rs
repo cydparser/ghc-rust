@@ -91,7 +91,6 @@ impl From<generation_> for sys::generation_ {
     }
 }
 
-
 #[unsafe(no_mangle)]
 pub static mut _TODO_generations: *mut generation = std::ptr::null_mut();
 

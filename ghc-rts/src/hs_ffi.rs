@@ -7,6 +7,7 @@ use crate::stg::types::{
     StgChar, StgDouble, StgFloat, StgInt, StgInt16, StgInt32, StgInt64, StgInt8, StgPtr, StgWord,
     StgWord16, StgWord32, StgWord64, StgWord8,
 };
+#[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 
 #[cfg(test)]
