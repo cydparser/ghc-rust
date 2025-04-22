@@ -156,7 +156,7 @@
         };
 
         packages = {
-          bindgen-utils = craneBuildPackage "bindgen-utils" { };
+          build-utils = craneBuildPackage "build-utils" { };
         };
 
         devShells.default = crane.devShell {

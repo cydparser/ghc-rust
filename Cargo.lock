@@ -31,18 +31,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "bindgen-utils"
+name = "bitflags"
+version = "2.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c8214115b7bf84099f1309324e63141d4c5d7cc26862f97a0a857dbefe165bd"
+
+[[package]]
+name = "build-utils"
 version = "0.0.0"
 dependencies = [
  "bindgen",
  "libc",
 ]
-
-[[package]]
-name = "bitflags"
-version = "2.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c8214115b7bf84099f1309324e63141d4c5d7cc26862f97a0a857dbefe165bd"
 
 [[package]]
 name = "cbindgen"
@@ -131,7 +131,7 @@ name = "generate"
 version = "0.0.0"
 dependencies = [
  "bindgen",
- "bindgen-utils",
+ "build-utils",
  "prettyplease",
  "proc-macro2",
  "quote",
@@ -178,7 +178,7 @@ name = "ghc-rts-sys"
 version = "0.0.0"
 dependencies = [
  "bindgen",
- "bindgen-utils",
+ "build-utils",
  "libc",
 ]
 

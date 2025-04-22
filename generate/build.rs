@@ -6,7 +6,7 @@ use std::process::Command;
 use std::rc::Rc;
 use std::{env, fs};
 
-use bindgen_utils as utils;
+use build_utils as utils;
 
 fn main() {
     let ghc = utils::GhcDirs::new();

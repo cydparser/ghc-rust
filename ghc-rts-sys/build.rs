@@ -4,7 +4,7 @@ use std::os::unix;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
-use bindgen_utils::{self as utils, GhcDirs};
+use build_utils::{self as utils, GhcDirs};
 
 fn main() {
     let ghc = utils::GhcDirs::new();

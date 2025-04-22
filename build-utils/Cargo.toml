@@ -1,5 +1,5 @@
 [package]
-name = "bindgen-utils"
+name = "build-utils"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
