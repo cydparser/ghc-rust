@@ -1,6 +1,6 @@
 [workspace]
-members = ["bindgen-utils", "generate", "ghc-rts", "ghc-rts-sys", "include"]
-default-members = ["ghc-rts"]
+members = ["bindgen-utils", "generate", "ghc-rts-sys", "include", "rts"]
+default-members = ["rts"]
 resolver = "3"
 
 [workspace.package]
