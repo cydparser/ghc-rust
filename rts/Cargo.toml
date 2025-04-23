@@ -3,6 +3,7 @@ name = "ghc-rts"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+build = "build.rs"
 
 [lib]
 crate-type = ["rlib"]
@@ -11,6 +12,9 @@ crate-type = ["rlib"]
 default = ["sys", "tracing"]
 sys = ["dep:ghc-rts-sys"]
 tracing = ["dep:tracing"]
+
+[build-dependencies]
+build-utils.workspace = true
 
 [dependencies]
 ghc-rts-sys = { path = "../ghc-rts-sys", optional = true }

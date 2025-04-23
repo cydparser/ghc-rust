@@ -166,6 +166,7 @@ dependencies = [
 name = "ghc-rts"
 version = "0.0.0"
 dependencies = [
+ "build-utils",
  "ghc-rts-sys",
  "libc",
  "quickcheck",
