@@ -105,11 +105,6 @@ pub unsafe extern "C" fn hs_thread_done() {
     unsafe { sys::hs_thread_done() }
 }
 
-#[cfg_attr(feature = "tracing", instrument)]
-pub(crate) unsafe fn hs_restoreConsoleCP() {
-    unsafe { sys::hs_restoreConsoleCP() }
-}
-
 #[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_perform_gc() {
