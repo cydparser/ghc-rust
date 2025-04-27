@@ -373,7 +373,8 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                                     if is_primitive_type(symbols, type_ptr.elem.as_ref()) {
                                         parse_quote! { #param_ident }
                                     } else {
-                                        parse_quote! { #param_ident as sys::#pat_ty }
+                                        let sys_pat_ty = prefix_with_sys(pat_ty);
+                                        parse_quote! { #param_ident as #sys_pat_ty }
                                     };
                                 (
                                     type_ptr.mutability.map(|_| "mut").unwrap_or(""),
@@ -710,5 +711,22 @@ fn fn_test_size_of(ident: &Ident) -> syn::ItemFn {
         fn #test_size_of() {
             assert_eq!(size_of::<sys::#ident>(), size_of::<#ident>())
         }
+    }
+}
+
+fn prefix_with_sys<T: Borrow<syn::Type>>(ty: T) -> syn::Type {
+    match ty.borrow() {
+        syn::Type::Array(type_array) => {
+            let mut array = type_array.clone();
+            array.elem = Box::new(prefix_with_sys(type_array.elem.as_ref()));
+            syn::Type::Array(array)
+        }
+        syn::Type::Path(type_path) => parse_quote! { sys::#type_path }, // is_primitive_type_path(symbols, type_path),
+        syn::Type::Ptr(type_ptr) => {
+            let mut ptr = type_ptr.clone();
+            ptr.elem = Box::new(prefix_with_sys(type_ptr.elem.as_ref()));
+            syn::Type::Ptr(ptr)
+        }
+        ty => panic!("Unexpected type: {:?}", ty),
     }
 }
