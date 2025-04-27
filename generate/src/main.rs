@@ -227,10 +227,10 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                         }) => {
                             statics.push(ident.clone());
 
-                            let (vis, attr) = if symbols.is_internal_static(&ident) {
-                                (Visibility::Inherited, None)
+                            let (vis, attrs) = if symbols.is_internal_static(&ident) {
+                                (Visibility::Inherited, vec![])
                             } else {
-                                (vis, Some(parse_token_stream("#[unsafe(no_mangle)]")))
+                                (vis, export_attrs(&ident))
                             };
 
                             let unused_ident = format_ident!("_TODO_{}", ident);
@@ -244,7 +244,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                             };
 
                             transformed.main_file.items.push(Item::Static(parse_quote! {
-                                #attr
+                                #(#attrs)*
                                 #vis static #mutability #unused_ident: #ty = #rhs;
                             }));
                         }
@@ -432,15 +432,11 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         .collect();
 
     // Mark all functions as unsafe until the code can be audited.
-    let (vis, abi, attr): (_, Option<syn::Abi>, Option<syn::Attribute>) =
+    let (vis, abi, attrs): (_, Option<syn::Abi>, Vec<syn::Attribute>) =
         if symbols.is_internal_func(&ident) {
-            (parse_quote! { pub(crate) }, None, None)
+            (parse_quote! { pub(crate) }, None, vec![])
         } else {
-            (
-                vis,
-                Some(parse_quote! { extern "C" }),
-                Some(parse_quote! { #[unsafe(no_mangle)] }),
-            )
+            (vis, Some(parse_quote! { extern "C" }), export_attrs(&ident))
         };
 
     let (call, expected_call): (syn::Expr, syn::Expr) = match &output {
@@ -455,7 +451,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
     };
 
     main_file.items.push(Item::Fn(parse_quote! {
-        #attr
+        #(#attrs)*
         #[cfg_attr(feature = "tracing", instrument)]
         #vis unsafe #abi fn #ident(#inputs) #output {
             unsafe { #call }
@@ -486,6 +482,15 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
             todo!("assert")
         }
     }));
+}
+
+fn export_attrs(ident: &Ident) -> Vec<syn::Attribute> {
+    let export_name = parse_token_stream(format!("rust_{}", ident));
+
+    vec![
+        parse_quote! { #[cfg_attr(feature = "sys", export_name = #export_name)] },
+        parse_quote! { #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))] },
+    ]
 }
 
 fn is_primitive_type<T: Borrow<syn::Type>>(symbols: &Symbols, ty: T) -> bool {
