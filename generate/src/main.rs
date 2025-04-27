@@ -486,10 +486,10 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 }
 
 fn export_attrs(ident: &Ident) -> Vec<syn::Attribute> {
-    let export_name = parse_token_stream(format!("rust_{}", ident));
+    let export_name = parse_token_stream(format!("\"rust_{}\"", ident));
 
     vec![
-        parse_quote! { #[cfg_attr(feature = "sys", export_name = #export_name)] },
+        parse_quote! { #[cfg_attr(feature = "sys", unsafe(export_name = #export_name))] },
         parse_quote! { #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))] },
     ]
 }
