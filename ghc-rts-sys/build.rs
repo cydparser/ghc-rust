@@ -7,7 +7,7 @@ use build_utils as utils;
 fn main() {
     let ghc = utils::GhcDirs::new();
 
-    utils::rustc_link_dyn(&ghc, cfg!(unix));
+    utils::rustc_link(&ghc, cfg!(unix));
 
     let bindings = utils::bindgen_builder(&ghc)
         .header(ghc.include_dir.join("Rts.h").to_string_lossy())

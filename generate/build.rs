@@ -143,7 +143,7 @@ fn main() {
         let internal = *internal;
 
         let (mut include_dir, mut out_dir) = if internal {
-            (ghc.rts_dir.clone(), out_dir.join("rts"))
+            (ghc.root_dir.join("rts"), out_dir.join("rts"))
         } else {
             (ghc.include_dir.clone(), out_dir.clone())
         };
@@ -198,7 +198,7 @@ fn main() {
                 let builder = bindings_builder.clone();
 
                 if internal {
-                    builder.clang_arg(format!("-I{}", ghc.rts_dir.display()))
+                    builder.clang_arg(format!("-I{}", include_dir.display()))
                 } else {
                     builder
                 }

@@ -5,24 +5,49 @@ use std::path::{Path, PathBuf};
 
 pub struct GhcDirs {
     pub root_dir: PathBuf,
+    pub lib_dir: PathBuf,
     pub rts_dir: PathBuf,
     pub include_dir: PathBuf,
-    pub build_dir: PathBuf,
 }
 
+const RTS_VER: &str = "1.0.2";
+
+/// The following environmental overrides are available:
+///   - GHC_DIR: Change the path to GHC source
+///   - GHC_LIB_DIR: Change the path to object files and headers
+///     E.g. GHC_LIB_DIR="/nix/store/hash-ghc-ver/lib/ghc-ver/lib"
 impl GhcDirs {
     pub fn new() -> GhcDirs {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-
-        let ghc_dir = std::env::var("GHC_PATH")
+        let ghc_dir = std::env::var("GHC_DIR")
             .map(PathBuf::from)
-            .unwrap_or_else(|_| manifest_dir.parent().unwrap().parent().unwrap().to_owned());
+            .unwrap_or_else(|_| {
+                let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+                manifest_dir.parent().unwrap().parent().unwrap().to_owned()
+            });
+
+        let lib_dir = {
+            let mut lib_dir = std::env::var("GHC_LIB_DIR")
+                .map(PathBuf::from)
+                .unwrap_or_else(|_| ghc_dir.join(PathBuf::from("_build/stage1/lib")));
+
+            dbg!(&lib_dir);
+
+            let arch_os_dir = file_names_starting_with(
+                &lib_dir,
+                &format!("{}-{}-ghc-", std::env::consts::ARCH, std::env::consts::OS),
+            );
+            lib_dir.push(PathBuf::from(&arch_os_dir[0]));
+            lib_dir
+        };
+
+        let rts_dir = lib_dir.join(PathBuf::from(format!("rts-{}", RTS_VER)));
+        let include_dir = rts_dir.join(PathBuf::from("include"));
 
         GhcDirs {
             root_dir: ghc_dir.clone(),
-            rts_dir: ghc_dir.join(PathBuf::from("rts")),
-            include_dir: ghc_dir.join(PathBuf::from("rts/include")),
-            build_dir: ghc_dir.join(PathBuf::from("_build/stage1/rts/build")),
+            lib_dir,
+            rts_dir,
+            include_dir,
         }
     }
 }
@@ -56,7 +81,6 @@ pub fn bindgen_builder(ghc: &GhcDirs) -> bindgen::Builder {
         .default_non_copy_union_style(bindgen::NonCopyUnionStyle::ManuallyDrop)
         .use_core()
         .clang_arg(format!("-I{}", ghc.include_dir.display()))
-        .clang_arg(format!("-I{}", ghc.build_dir.join("include").display()))
         .blocklist_type(block_types)
 }
 
@@ -71,12 +95,29 @@ pub fn use_libc() -> String {
     s
 }
 
-/// Configure linking. NB: This has only been tested on Linux.
-pub fn rustc_link_dyn(ghc: &GhcDirs, create_symlinks: bool) {
+/// Configure linking.
+///
+/// NB: This has only been tested on Linux.
+///
+/// When `create_symlinks` is true and `cfg!(unix)`, _libHS_ shared objects will be symlinked into
+/// _outputs/out/lib_ in order to avoid needing to set LD_LIBRARY_PATH for tests/executables.
+pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
+    // Disable PIE for tests. `cargo::rustc-link-arg-tests` does not work for unit tests
+    // (https://github.com/rust-lang/cargo/issues/10937).
+    println!("cargo::rustc-link-arg=-Wl,--no-pie");
+
+    println!(
+        "cargo::rustc-link-search=native={}",
+        ghc.lib_dir.join(format!("rts-{}", RTS_VER)).display()
+    );
+    println!("cargo::rustc-link-lib=static=HSrts-{}_thr", RTS_VER);
+
+    println!("cargo::rustc-link-search=native={}", ghc.lib_dir.display());
+
     let outputs_lib_dir = if create_symlinks {
         let project_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
 
-        // The executable's RUNPATH includes outputs/out/lib (on Linux, at least).
+        // The test executable's RUNPATH includes outputs/out/lib (on Linux, at least).
         let outputs_lib_dir = project_dir.join("outputs/out/lib");
 
         if outputs_lib_dir.exists() {
@@ -88,62 +129,37 @@ pub fn rustc_link_dyn(ghc: &GhcDirs, create_symlinks: bool) {
         None
     };
 
-    let lib_dir = {
-        let mut lib_dir = ghc.root_dir.join("_build/stage1/lib/");
+    let mut libs = [
+        ("libHSghc-bignum-", None),
+        ("libHSghc-internal-", None),
+        ("libHSghc-prim-", None),
+    ];
 
-        let file_names = file_names_starting_with(
-            &lib_dir,
-            &format!("{}-{}-ghc-", std::env::consts::ARCH, std::env::consts::OS),
-        );
-        assert!(file_names.len() == 1);
-        lib_dir.push(PathBuf::from(&file_names[0]));
-        lib_dir
-    };
-
-    println!("cargo::rustc-link-search=native={}", lib_dir.display());
-
-    let file_names = file_names_starting_with(&lib_dir, "libHS");
-
-    let mut libs = Libs::default();
-
-    for file_name in file_names {
-        if file_name.starts_with("libHSrts-1.0.2_thr-") {
-            assert!(libs.rts.is_none());
-            libs.rts = Some(file_name);
-        } else if file_name.contains("-inplace-ghc") {
-            if file_name.starts_with("libHSghc-bignum-") {
-                assert!(libs.ghc_bignum.is_none());
-                libs.ghc_bignum = Some(file_name);
-            } else if file_name.starts_with("libHSghc-internal-") {
-                assert!(libs.ghc_internal.is_none());
-                libs.ghc_internal = Some(file_name);
-            } else if file_name.starts_with("libHSghc-prim-") {
-                assert!(libs.ghc_prim.is_none());
-                libs.ghc_prim = Some(file_name);
-            }
-        }
+    for file_name in file_names_starting_with(&ghc.lib_dir, "libHS")
+        .into_iter()
+        .filter(|s| s.contains("-inplace-ghc"))
+    {
+        if let Some((prefix, lib)) = libs
+            .iter_mut()
+            .find(|&&mut (prefix, _)| file_name.starts_with(prefix))
+        {
+            assert!(lib.is_none(), "Multiple libs start with {}", prefix);
+            *lib = Some(file_name);
+        };
     }
 
-    for lib in [
-        libs.rts.unwrap(),
-        libs.ghc_bignum.unwrap(),
-        libs.ghc_internal.unwrap(),
-        libs.ghc_prim.unwrap(),
-    ] {
+    for (prefix, lib) in libs {
+        let lib = lib.expect(prefix);
+        println!("cargo::rustc-link-lib=dylib:+verbatim={}", lib);
         #[cfg(unix)]
         if let Some(ref outputs_lib_dir) = outputs_lib_dir {
-            unix::fs::symlink(lib_dir.join(&lib), outputs_lib_dir.join(&lib)).unwrap();
+            unix::fs::symlink(ghc.lib_dir.join(&lib), outputs_lib_dir.join(&lib)).unwrap();
         }
-        println!("cargo::rustc-link-lib=dylib:+verbatim={}", lib);
     }
-}
 
-#[derive(Default)]
-struct Libs {
-    rts: Option<String>,
-    ghc_bignum: Option<String>,
-    ghc_internal: Option<String>,
-    ghc_prim: Option<String>,
+    for lib in ["numa", "ffi", "dw", "elf", "gmp"] {
+        println!("cargo::rustc-link-lib={}", lib);
+    }
 }
 
 fn file_names_starting_with<P: AsRef<Path>, Pat: AsRef<str>>(dir: P, pat: Pat) -> Vec<String> {

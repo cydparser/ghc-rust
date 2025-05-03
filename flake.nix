@@ -170,6 +170,11 @@
               cargo-binutils
               cargo-semver-checks
               llvmPackages.clang
+              # Libraries
+              elfutils.dev
+              gmp.dev
+              libffi.dev
+              numactl.dev
             ]
             ++ self.checks.${system}.pre-commit.enabledPackages;
 
