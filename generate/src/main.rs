@@ -629,7 +629,7 @@ fn transform_struct(
                     let maybe_cloned = if is_primitive_type(symbols, &f.ty) {
                         ""
                     } else {
-                        ".cloned()"
+                        ".clone()"
                     };
                     parse_token_stream(format!(
                         "{}: {}.{}{}",
