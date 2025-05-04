@@ -2,8 +2,8 @@ use std::ffi::{c_int, c_void};
 use std::mem::transmute;
 
 #[cfg(test)]
-use quickcheck::{Arbitrary, Gen};
-
+use crate::utils::test::{Arbitrary, Gen};
+#[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 
 #[cfg(test)]
