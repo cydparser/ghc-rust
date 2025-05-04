@@ -138,7 +138,6 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
 
     let use_stg_types = Item::Use(parse_quote! {
         use crate::{
-            rts,
             stg::types::{StgInt, StgPtr, StgWord, StgWord64},
         };
     });
