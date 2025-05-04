@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use proc_macro2::Span;
-use syn::{Ident, TypePath};
+use syn::{Ident, Type, TypePath};
 
 pub struct Symbols {
     internal_module: bool,
@@ -13,6 +13,7 @@ pub struct Symbols {
     structs: HashSet<Ident>,
     types: HashSet<Ident>,
     primitive_types: HashSet<TypePath>,
+    pointer_types: HashSet<TypePath>,
 }
 
 impl Symbols {
@@ -732,18 +733,33 @@ impl Symbols {
                     "memcount",
                     "pathchar",
                 ] {
-                    hs.insert(syn::TypePath {
-                        qself: None,
-                        path: syn::Path {
-                            leading_colon: None,
-                            segments: [syn::PathSegment {
-                                ident: Ident::new(s, Span::call_site()),
-                                arguments: syn::PathArguments::None,
-                            }]
-                            .into_iter()
-                            .collect(),
-                        },
-                    });
+                    hs.insert(type_path(s));
+                }
+                hs
+            },
+            pointer_types: {
+                let mut hs = HashSet::new();
+                for s in [
+                    "AdjustorExecutable",
+                    "AdjustorWritable",
+                    "HaskellObj",
+                    "HsPtr",
+                    "HsStablePtr",
+                    "ListBlocksCb",
+                    "P_",
+                    "StgAddr",
+                    "StgByteArray",
+                    "StgClosurePtr",
+                    "StgFun",
+                    "StgFunPtr",
+                    "StgInfoTablePtr",
+                    "StgPromptTag",
+                    "StgPtr",
+                    "StgStablePtr",
+                    "StgTSOPtr",
+                    "StgVolatilePtr",
+                ] {
+                    hs.insert(type_path(s));
                 }
                 hs
             },
@@ -776,5 +792,28 @@ impl Symbols {
 
     pub fn is_primitive_type(&self, ty_path: &TypePath) -> bool {
         self.primitive_types.contains(ty_path)
+    }
+
+    pub fn is_pointer_type(&self, ty: &Type) -> bool {
+        match ty {
+            Type::Path(type_path) => self.pointer_types.contains(type_path),
+            Type::Ptr(_) => true,
+            _ => false,
+        }
+    }
+}
+
+fn type_path(ident: &str) -> TypePath {
+    syn::TypePath {
+        qself: None,
+        path: syn::Path {
+            leading_colon: None,
+            segments: [syn::PathSegment {
+                ident: Ident::new(ident, Span::call_site()),
+                arguments: syn::PathArguments::None,
+            }]
+            .into_iter()
+            .collect(),
+        },
     }
 }

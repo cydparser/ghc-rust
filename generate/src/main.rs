@@ -584,12 +584,10 @@ fn transform_struct(
     }
 
     let (ptr_fields, fields): (Vec<syn::Field>, _) = match &item_struct.fields {
-        syn::Fields::Named(syn::FieldsNamed { named, .. }) => {
-            named.iter().cloned().partition(|f| match &f.ty {
-                Type::Ptr(_type_ptr) => true,
-                _ => false,
-            })
-        }
+        syn::Fields::Named(syn::FieldsNamed { named, .. }) => named
+            .iter()
+            .cloned()
+            .partition(|f| symbols.is_pointer_type(&f.ty)),
         _ => panic!("Unexpected struct type: {:?}", &item_struct),
     };
 
@@ -613,7 +611,7 @@ fn transform_struct(
                     f.ty = type_ptr.elem.as_ref().clone();
                     f
                 }
-                _ => panic!("Non-pointer in ptr_fields: {:?}", f),
+                _ => f,
             })
             .collect::<Vec<_>>();
 
