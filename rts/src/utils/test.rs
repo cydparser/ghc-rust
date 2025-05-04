@@ -78,3 +78,69 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    pub use quickcheck::{Arbitrary, Gen};
+
+    struct S {
+        x: i32,
+        y: *mut usize,
+    }
+
+    #[derive(Clone)]
+    struct SO {
+        x: i32,
+    }
+
+    impl Arbitrary for SO {
+        fn arbitrary(g: &mut Gen) -> Self {
+            Self {
+                x: Arbitrary::arbitrary(g),
+            }
+        }
+    }
+
+    #[derive(Clone)]
+    struct SP {
+        y: usize,
+    }
+
+    impl Arbitrary for SP {
+        fn arbitrary(g: &mut Gen) -> Self {
+            Self {
+                y: Arbitrary::arbitrary(g),
+            }
+        }
+    }
+
+    impl HasReferences for S {
+        type Owned = SO;
+        type Pointees = SP;
+
+        fn from_parts(owned: Self::Owned, pointees: *mut Self::Pointees) -> Self {
+            Self {
+                x: owned.x,
+                y: unsafe { &raw mut (*pointees).y },
+            }
+        }
+
+        fn owned(&self) -> Self::Owned {
+            Self::Owned { x: self.x }
+        }
+    }
+
+    #[test]
+    fn arbitrary_has_references() {
+        let mut g = Gen::new(100);
+        let mut w1: WithReferences<S> = Arbitrary::arbitrary(&mut g);
+        let mut w2 = w1.clone();
+        let s1 = w1.as_mut();
+        let s2 = w2.as_mut();
+        assert_eq!(s1.x, s2.x);
+        unsafe {
+            assert_eq!(*s1.y, *s2.y);
+        }
+    }
+}
