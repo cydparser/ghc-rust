@@ -204,8 +204,6 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
         mod tests;
     }));
 
-    let mut statics = vec![];
-
     for item in items {
         match item {
             Item::Const(item_const) => transform_const(symbols, item_const, &mut transformed),
@@ -227,8 +225,6 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                             ty,
                             ..
                         }) => {
-                            statics.push(ident.clone());
-
                             let (vis, attrs) = if symbols.is_internal_static(&ident) {
                                 (Visibility::Inherited, vec![])
                             } else {
@@ -267,12 +263,6 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
             item @ Item::Use(_) => transformed.main_file.items.push(item),
             item => panic!("Unexpected Item: {:#?}", item),
         }
-    }
-
-    if !statics.is_empty() {
-        transformed.main_file.items.extend([Item::Use(parse_quote! {
-            pub use ghc_rts_sys::{#(#statics),*};
-        })]);
     }
 
     transformed
