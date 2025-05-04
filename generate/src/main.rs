@@ -232,8 +232,6 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                                 (vis, export_attrs(&ident))
                             };
 
-                            let unused_ident = format_ident!("_TODO_{}", ident);
-
                             let rhs: syn::Expr = match ty.as_ref() {
                                 syn::Type::Ptr(type_ptr) => match type_ptr.mutability {
                                     Some(_) => parse_quote! { null_mut() },
@@ -242,9 +240,12 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                                 _ => parse_quote! { todo!() },
                             };
 
+                            let export_name = format_ident!("RUST_{}", ident);
+
                             transformed.main_file.items.push(Item::Static(parse_quote! {
                                 #(#attrs)*
-                                #vis static #mutability #unused_ident: #ty = #rhs;
+                                #[cfg_attr(feature = "sys", unsafe(export_name = #export_name))]
+                                #vis static #mutability #ident: #ty = #rhs;
                             }));
                         }
                         fitem => panic!("Unexpected Item: {:#?}", fitem),
@@ -292,7 +293,7 @@ fn transform_const(
         transformed.main_file.items.push(Item::Const(item_const))
     };
 
-    let test_eq = format_ident!("test_eq_{}", ident);
+    let test_eq = format_ident!("sys_eq_{}", ident);
 
     transformed.tests_file.items.push(Item::Fn(parse_quote! {
         #[cfg(feature = "sys")]
@@ -702,7 +703,7 @@ fn impl_from(ident: &Ident) -> syn::ItemImpl {
 }
 
 fn fn_test_size_of(ident: &Ident) -> syn::ItemFn {
-    let test_size_of = format_ident!("test_size_of_{}", ident);
+    let test_size_of = format_ident!("sys_size_{}", ident);
 
     parse_quote! {
         #[cfg(feature = "sys")]
