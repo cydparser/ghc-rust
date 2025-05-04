@@ -157,7 +157,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
         }),
         Item::Use(parse_quote! {
             #[cfg(test)]
-            use quickcheck::{Arbitrary, Gen};
+            use crate::utils::test::{Arbitrary, Gen, HasReferences};
         }),
         Item::Use(parse_quote! {
             #[cfg(feature = "sys")]
@@ -185,6 +185,9 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
             use ghc_rts_sys as sys;
         }),
         use_stg_types,
+        Item::Use(parse_quote! {
+            use crate::utils::test::*;
+        }),
     ]);
 
     // Add original imports and exports.
@@ -593,34 +596,128 @@ fn transform_struct(
         item_struct.vis = parse_quote! { pub(crate) };
     }
 
-    let field_idents: Vec<Ident> = match &item_struct.fields {
+    let (ptr_fields, fields): (Vec<syn::Field>, _) = match &item_struct.fields {
         syn::Fields::Named(syn::FieldsNamed { named, .. }) => {
-            named.iter().map(|f| f.ident.clone().unwrap()).collect()
+            named.iter().cloned().partition(|f| match &f.ty {
+                syn::Type::Ptr(_type_ptr) => true,
+                _ => false,
+            })
         }
         _ => panic!("Unexpected struct type: {:?}", &item_struct),
     };
 
-    let arbitrary_fields: Vec<_> = field_idents
-        .iter()
-        .cloned()
-        .map(|field_ident| parse_token_stream(format!("{}: Arbitrary::arbitrary(g)", field_ident)))
-        .collect();
+    main_file
+        .items
+        .extend([Item::Struct(item_struct), Item::Impl(impl_from(&ident))]);
 
-    main_file.items.extend([
-        Item::Struct(item_struct),
-        Item::Impl(impl_from(&ident)),
-        // impl Arbitrary
-        Item::Impl(parse_quote! {
-            #[cfg(test)]
-            impl Arbitrary for #ident {
-                fn arbitrary(g: &mut Gen) -> Self {
-                    #ident {
-                        #(#arbitrary_fields),*
+    if ptr_fields.is_empty() {
+        main_file
+            .items
+            .push(Item::Impl(impl_arbitrary(&ident, &fields)));
+    } else {
+        let ident_owned = format_ident!("{}Owned", ident);
+        let ident_pointees = format_ident!("{}Pointees", ident);
+
+        let ptr_less_fields = ptr_fields
+            .into_iter()
+            .map(|f| match &f.ty {
+                syn::Type::Ptr(type_ptr) => {
+                    let mut f = f.clone();
+                    f.ty = type_ptr.elem.as_ref().clone();
+                    f
+                }
+                _ => panic!("Non-pointer in ptr_fields: {:?}", f),
+            })
+            .collect::<Vec<_>>();
+
+        fn field_assignments<'a, I: IntoIterator<Item = &'a syn::Field>>(
+            symbols: &Symbols,
+            name: &str,
+            fields: I,
+        ) -> Vec<TokenStream> {
+            fields
+                .into_iter()
+                .map(|f| {
+                    let field_ident = f.ident.clone().unwrap();
+                    let maybe_cloned = if is_primitive_type(symbols, &f.ty) {
+                        ""
+                    } else {
+                        ".cloned()"
+                    };
+                    parse_token_stream(format!(
+                        "{}: {}.{}{}",
+                        field_ident, name, field_ident, maybe_cloned
+                    ))
+                })
+                .collect()
+        }
+
+        main_file.items.extend([
+            Item::Struct({
+                let fields_named = syn::Fields::Named(syn::FieldsNamed {
+                    named: fields.iter().cloned().collect(),
+                    brace_token: token::Brace(Span::mixed_site()),
+                });
+
+                parse_quote! {
+                    #[cfg(test)]
+                    #[derive(Clone)]
+                    struct #ident_owned #fields_named
+                }
+            }),
+            Item::Impl(impl_arbitrary(&ident_owned, &fields)),
+            Item::Struct({
+                let ptr_fields_named = syn::Fields::Named(syn::FieldsNamed {
+                    named: ptr_less_fields.iter().cloned().collect(),
+                    brace_token: token::Brace(Span::mixed_site()),
+                });
+
+                parse_quote! {
+                    #[cfg(test)]
+                    #[derive(Clone)]
+                    struct #ident_pointees #ptr_fields_named
+                }
+            }),
+            Item::Impl(impl_arbitrary(&ident_pointees, &ptr_less_fields)),
+            Item::Impl({
+                let from_parts_assignments = {
+                    let mut assignments: Vec<TokenStream> =
+                        field_assignments(symbols, "owned", &fields);
+
+                    assignments.extend(ptr_less_fields.iter().map(|f| {
+                        let field_ident = f.ident.clone().unwrap();
+                        parse_token_stream(format!(
+                            "{}: unsafe {{ &raw mut (*pointees).{} }}",
+                            field_ident, field_ident
+                        ))
+                    }));
+                    assignments
+                };
+
+                let owned_assignments = field_assignments(symbols, "self", &fields);
+
+                parse_quote! {
+                    #[cfg(test)]
+                    impl HasReferences for #ident {
+                        type Owned = #ident_owned;
+                        type Pointees = #ident_pointees;
+
+                        fn from_parts(owned: Self::Owned, pointees: *mut Self::Pointees) -> Self {
+                            Self {
+                                #(#from_parts_assignments),*
+                            }
+                        }
+
+                        fn owned(&self) -> Self::Owned {
+                            Self::Owned {
+                                #(#owned_assignments),*
+                            }
+                        }
                     }
                 }
-            }
-        }),
-    ]);
+            }),
+        ]);
+    };
 
     tests_file.items.push(Item::Fn(fn_test_size_of(&ident)));
 }
@@ -697,6 +794,32 @@ fn impl_from(ident: &Ident) -> syn::ItemImpl {
         impl From<#ident> for sys::#ident {
             fn from(x: #ident) -> Self {
                 unsafe { transmute(x) }
+            }
+        }
+    }
+}
+
+fn impl_arbitrary<'a, I: IntoIterator<Item = &'a syn::Field>>(
+    ident: &Ident,
+    fields: I,
+) -> syn::ItemImpl {
+    let arbitrary_fields: Vec<_> = fields
+        .into_iter()
+        .map(|field| {
+            parse_token_stream(format!(
+                "{}: Arbitrary::arbitrary(g)",
+                field.ident.clone().unwrap()
+            ))
+        })
+        .collect();
+
+    parse_quote! {
+        #[cfg(test)]
+        impl Arbitrary for #ident {
+            fn arbitrary(g: &mut Gen) -> Self {
+                #ident {
+                    #(#arbitrary_fields),*
+                }
             }
         }
     }
