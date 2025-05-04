@@ -32,6 +32,18 @@ impl<T: HasReferences> AsRef<UnsafeCell<T>> for WithReferences<T> {
     }
 }
 
+impl<T: HasReferences> AsMut<T> for WithReferences<T> {
+    fn as_mut(&mut self) -> &mut T {
+        self.inner.get_mut()
+    }
+}
+
+impl<T: HasReferences> WithReferences<T> {
+    fn as_mut_ptr(&mut self) -> *mut T {
+        self.inner.get_mut() as *mut T
+    }
+}
+
 impl<T: HasReferences> Clone for WithReferences<T>
 where
     T::Owned: Clone,
