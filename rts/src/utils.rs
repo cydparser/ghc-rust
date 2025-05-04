@@ -1,4 +1,4 @@
-mod bindgen;
+pub(crate) mod bindgen;
 
 #[cfg(test)]
-mod test;
+pub(crate) mod test;
