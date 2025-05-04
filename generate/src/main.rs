@@ -7,7 +7,7 @@ use std::{
 
 use proc_macro2::{Span, TokenStream};
 use quote::format_ident;
-use syn::{parse_quote, punctuated::Punctuated, token, Ident, Item, Visibility};
+use syn::{parse_quote, punctuated::Punctuated, token, Ident, Item, Type, Visibility};
 
 use generate::Symbols;
 
@@ -232,11 +232,11 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                             };
 
                             let rhs: syn::Expr = match ty.as_ref() {
-                                syn::Type::Ptr(type_ptr) => match type_ptr.mutability {
+                                Type::Ptr(type_ptr) => match type_ptr.mutability {
                                     Some(_) => parse_quote! { null_mut() },
                                     None => parse_quote! { null() },
                                 },
-                                _ => parse_quote! { todo!() },
+                                _ => parse_quote! { Default::default() },
                             };
 
                             transformed.main_file.items.push(Item::Static(parse_quote! {
@@ -338,7 +338,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 
                     let (mutability, ty_owned, arg_from_sys, arg_into, arg_from_owned) =
                         match pat_ty {
-                            ty @ syn::Type::Path(type_path) => {
+                            ty @ Type::Path(type_path) => {
                                 let is_primitive = is_primitive_type_path(symbols, type_path);
                                 (
                                     "",
@@ -356,7 +356,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                                     syn::Pat::Ident(new_pat_ident(&param_ident)),
                                 )
                             }
-                            syn::Type::Ptr(type_ptr) => {
+                            Type::Ptr(type_ptr) => {
                                 let (ty, expr, pat) =
                                     ptr_to_ty_expr_pat(symbols, &param_ident, type_ptr);
                                 let arg_from_sys =
@@ -379,7 +379,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 
                     let binding: TokenStream = {
                         let binding_rhs = match pat_ty {
-                            syn::Type::Ptr(type_ptr) => {
+                            Type::Ptr(type_ptr) => {
                                 if type_ptr.mutability.is_some() {
                                     "null_mut()"
                                 } else {
@@ -484,10 +484,10 @@ fn export_attrs(ident: &Ident) -> Vec<syn::Attribute> {
     ]
 }
 
-fn is_primitive_type<T: Borrow<syn::Type>>(symbols: &Symbols, ty: T) -> bool {
+fn is_primitive_type<T: Borrow<Type>>(symbols: &Symbols, ty: T) -> bool {
     match ty.borrow() {
-        syn::Type::Array(type_array) => is_primitive_type(symbols, type_array.elem.borrow()),
-        syn::Type::BareFn(type_bare_fn) => {
+        Type::Array(type_array) => is_primitive_type(symbols, type_array.elem.borrow()),
+        Type::BareFn(type_bare_fn) => {
             type_bare_fn
                 .inputs
                 .iter()
@@ -497,9 +497,9 @@ fn is_primitive_type<T: Borrow<syn::Type>>(symbols: &Symbols, ty: T) -> bool {
                     syn::ReturnType::Type(_, rty) => is_primitive_type(symbols, rty.as_ref()),
                 }
         }
-        syn::Type::Never(_) => true,
-        syn::Type::Path(type_path) => is_primitive_type_path(symbols, type_path),
-        syn::Type::Ptr(type_ptr) => is_primitive_type(symbols, type_ptr.elem.as_ref()),
+        Type::Never(_) => true,
+        Type::Path(type_path) => is_primitive_type_path(symbols, type_path),
+        Type::Ptr(type_ptr) => is_primitive_type(symbols, type_ptr.elem.as_ref()),
         ty => panic!("Unexpected type: {:?}", ty),
     }
 }
@@ -529,7 +529,7 @@ fn ptr_to_ty_expr_pat(
     type_ptr: &syn::TypePtr,
 ) -> (syn::Type, syn::Expr, syn::Pat) {
     let (ty, expr, pat) = match type_ptr.elem.as_ref() {
-        ty @ syn::Type::Path(type_path) => (
+        ty @ Type::Path(type_path) => (
             ty.clone(),
             if is_primitive_type_path(symbols, type_path) {
                 parse_quote! { #ident }
@@ -538,7 +538,7 @@ fn ptr_to_ty_expr_pat(
             },
             syn::Pat::Ident(new_pat_ident(ident)),
         ),
-        syn::Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(symbols, ident, type_ptr),
+        Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(symbols, ident, type_ptr),
         _ => panic!("Unexpected type for {}: {:?}", ident, type_ptr),
     };
 
@@ -586,7 +586,7 @@ fn transform_struct(
     let (ptr_fields, fields): (Vec<syn::Field>, _) = match &item_struct.fields {
         syn::Fields::Named(syn::FieldsNamed { named, .. }) => {
             named.iter().cloned().partition(|f| match &f.ty {
-                syn::Type::Ptr(_type_ptr) => true,
+                Type::Ptr(_type_ptr) => true,
                 _ => false,
             })
         }
@@ -608,7 +608,7 @@ fn transform_struct(
         let ptr_less_fields = ptr_fields
             .into_iter()
             .map(|f| match &f.ty {
-                syn::Type::Ptr(type_ptr) => {
+                Type::Ptr(type_ptr) => {
                     let mut f = f.clone();
                     f.ty = type_ptr.elem.as_ref().clone();
                     f
@@ -824,18 +824,18 @@ fn fn_test_size_of(ident: &Ident) -> syn::ItemFn {
     }
 }
 
-fn prefix_with_sys<T: Borrow<syn::Type>>(ty: T) -> syn::Type {
+fn prefix_with_sys<T: Borrow<Type>>(ty: T) -> Type {
     match ty.borrow() {
-        syn::Type::Array(type_array) => {
+        Type::Array(type_array) => {
             let mut array = type_array.clone();
             array.elem = Box::new(prefix_with_sys(type_array.elem.as_ref()));
-            syn::Type::Array(array)
+            Type::Array(array)
         }
-        syn::Type::Path(type_path) => parse_quote! { sys::#type_path }, // is_primitive_type_path(symbols, type_path),
-        syn::Type::Ptr(type_ptr) => {
+        Type::Path(type_path) => parse_quote! { sys::#type_path }, // is_primitive_type_path(symbols, type_path),
+        Type::Ptr(type_ptr) => {
             let mut ptr = type_ptr.clone();
             ptr.elem = Box::new(prefix_with_sys(type_ptr.elem.as_ref()));
-            syn::Type::Ptr(ptr)
+            Type::Ptr(ptr)
         }
         ty => panic!("Unexpected type: {:?}", ty),
     }
