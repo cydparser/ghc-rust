@@ -239,11 +239,8 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                                 _ => parse_quote! { todo!() },
                             };
 
-                            let export_name = format_ident!("RUST_{}", ident);
-
                             transformed.main_file.items.push(Item::Static(parse_quote! {
                                 #(#attrs)*
-                                #[cfg_attr(feature = "sys", unsafe(export_name = #export_name))]
                                 #vis static #mutability #ident: #ty = #rhs;
                             }));
                         }
