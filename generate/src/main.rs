@@ -232,11 +232,12 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                             };
 
                             let rhs: syn::Expr = match ty.as_ref() {
+                                Type::Array(_) => parse_quote! { [] },
                                 Type::Ptr(type_ptr) => match type_ptr.mutability {
                                     Some(_) => parse_quote! { null_mut() },
                                     None => parse_quote! { null() },
                                 },
-                                _ => parse_quote! { Default::default() },
+                                _ => parse_quote! { 0 },
                             };
 
                             transformed.main_file.items.push(Item::Static(parse_quote! {
