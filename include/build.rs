@@ -9,7 +9,7 @@ fn main() {
 
     cbindgen::Builder::new()
         .with_config(config)
-        .with_crate(manifest_dir)
+        .with_crate(manifest_dir.parent().unwrap().join("rts"))
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file("Rts.h");
