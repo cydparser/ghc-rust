@@ -127,5 +127,6 @@ cargo run -p generate rts/src
 sed -i \
   -e 's/::core::option:://g' \
   -e 's/::core::ffi:://g' \
+  -e 's/::core::mem:://g' \
   -e 's/::core::slice::/slice::/g' \
   "${_files[@]}"
