@@ -4,21 +4,27 @@ set -eo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 _files=(
-  # Modified
+  rts/src/hs_ffi.rs
   rts/src/hs_ffi/tests.rs
+  # rts/src/mach_deps.rs
+  # rts/src/mach_deps/tests.rs
   rts/src/rts/capability.rs
   rts/src/rts/capability/tests.rs
-  rts/src/rts/prof/ccs.rs
-  rts/src/rts/prof/ccs/tests.rs
-  rts/src/rts/storage/block.rs
-  rts/src/rts/storage/block/tests.rs
+  # rts/src/rts/prof/ccs.rs
+  # rts/src/rts/prof/ccs/tests.rs
+  # rts/src/rts/storage/block.rs
+  # rts/src/rts/storage/block/tests.rs
   rts/src/rts/storage/gc/tests.rs
-  rts/src/rts/storage/info_tables.rs
-  rts/src/rts/storage/info_tables/tests.rs
-  rts/src/rts/types.rs
+  # rts/src/rts/storage/info_tables.rs
+  # rts/src/rts/storage/info_tables/tests.rs
+  rts/src/rts/storage/tso.rs
+  rts/src/rts/storage/tso/tests.rs
+  # rts/src/rts.rs
+  # rts/src/rts/tests.rs
+  # rts/src/rts/types.rs
+  # rts/src/rts/types/tests.rs
   rts/src/stg/regs.rs
   rts/src/stg/regs/tests.rs
-  # Generated
   rts/src/rts/adjustor/tests.rs
   rts/src/rts/adjustor.rs
   rts/src/rts/block_signals/tests.rs
@@ -109,15 +115,20 @@ _files=(
   rts/src/rts/utils.rs
   rts/src/rts_api/tests.rs
   rts/src/rts_api.rs
+  # rts/src/stg.rs
+  # rts/src/stg/tests.rs
+  # rts/src/stg/mach_regs_for_host.rs
+  # rts/src/stg/mach_regs_for_host/tests.rs
   rts/src/stg/misc_closures/tests.rs
   rts/src/stg/misc_closures.rs
   rts/src/stg/prim/tests.rs
   rts/src/stg/prim.rs
   rts/src/stg/smp/tests.rs
   rts/src/stg/smp.rs
-  rts/src/stg/tests.rs
   rts/src/stg/ticky/tests.rs
   rts/src/stg/ticky.rs
+  # rts/src/stg/types.rs
+  # rts/src/stg/types/tests.rs
 )
 
 rm -f "${_files[@]}"
