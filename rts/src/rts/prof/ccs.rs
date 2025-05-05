@@ -1,23 +1,26 @@
-use std::mem::transmute;
+use std::{ffi::c_char, mem::transmute};
 
-#[cfg(test)]
-use quickcheck::{Arbitrary, Gen};
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 
 use crate::stg::types::{StgBool, StgInt, StgWord, StgWord64};
+#[cfg(test)]
+use crate::utils::test::{Arbitrary, Gen};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 
 #[cfg(test)]
 mod tests;
 
+pub type CostCentre = CostCentre_;
+
 #[repr(C)]
-pub struct CostCentre_ {
+///cbindgen:no-export
+pub(crate) struct CostCentre_ {
     pub ccID: StgInt,
-    pub label: *mut ::core::ffi::c_char,
-    pub module: *mut ::core::ffi::c_char,
-    pub srcloc: *mut ::core::ffi::c_char,
+    pub label: *mut c_char,
+    pub module: *mut c_char,
+    pub srcloc: *mut c_char,
     pub mem_alloc: StgWord64,
     pub time_ticks: StgWord,
     pub is_caf: StgBool,
@@ -31,10 +34,11 @@ impl From<CostCentre_> for sys::CostCentre_ {
     }
 }
 
-pub type CostCentre = CostCentre_;
+pub type CostCentreStack = CostCentreStack_;
 
 #[repr(C)]
-pub struct CostCentreStack_ {
+///cbindgen:no-export
+pub(crate) struct CostCentreStack_ {
     pub ccsID: StgInt,
     pub cc: *mut CostCentre,
     pub prevStack: *mut CostCentreStack_,
@@ -56,23 +60,24 @@ impl From<CostCentreStack_> for sys::CostCentreStack_ {
     }
 }
 
-pub type CostCentreStack = CostCentreStack_;
-
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stopProfTimer"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn stopProfTimer() {
-    unsafe { transmute(sys::stopProfTimer()) }
+    unsafe { sys::stopProfTimer() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_startProfTimer"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn startProfTimer() {
-    unsafe { transmute(sys::startProfTimer()) }
+    unsafe { sys::startProfTimer() }
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct IndexTable_ {
+///cbindgen:no-export
+pub(crate) struct IndexTable_ {
     pub _address: u8,
 }
 

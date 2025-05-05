@@ -1,12 +1,11 @@
 use std::mem::transmute;
 
 #[cfg(test)]
-use quickcheck::{Arbitrary, Gen};
-
+use crate::utils::test::{Arbitrary, Gen};
 use crate::{
-    bindgen::__IncompleteArrayField,
-    rts::types::{StgClosure, StgInfoTable},
+    rts::storage::closures::StgClosure,
     stg::types::{StgCode, StgFun, StgHalfInt, StgHalfWord, StgWord, StgWord16},
+    utils::bindgen::__IncompleteArrayField,
 };
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
@@ -33,6 +32,8 @@ pub(crate) const _IND: u32 = 128;
 pub(crate) const _FRM: u32 = 256;
 
 #[repr(C)]
+///cbindgen:no-export
+#[cfg_attr(test, derive(Clone))]
 pub(crate) struct StgProfInfo {
     pub closure_type_off: StgHalfInt,
     pub __pad_closure_type_off: StgHalfWord,
@@ -47,9 +48,24 @@ impl From<StgProfInfo> for sys::StgProfInfo {
     }
 }
 
-static closure_flags: [StgWord16; 0usize] = unsafe { sys::closure_flags };
+#[cfg(test)]
+impl Arbitrary for StgProfInfo {
+    fn arbitrary(g: &mut Gen) -> Self {
+        StgProfInfo {
+            closure_type_off: Arbitrary::arbitrary(g),
+            __pad_closure_type_off: Arbitrary::arbitrary(g),
+            closure_desc_off: Arbitrary::arbitrary(g),
+            __pad_closure_desc_off: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+static closure_flags: [StgWord16; 0usize] = [];
+
+pub type StgLargeBitmap = StgLargeBitmap_;
 
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct StgLargeBitmap_ {
     pub size: StgWord,
     pub bitmap: __IncompleteArrayField<StgWord>,
@@ -62,12 +78,9 @@ impl From<StgLargeBitmap_> for sys::StgLargeBitmap_ {
     }
 }
 
-pub type StgLargeBitmap = StgLargeBitmap_;
-
 #[repr(C)]
-#[derive(Copy, Clone)]
 pub(crate) union StgClosureInfo {
-    pub payload: StgClosureInfo__bindgen_ty_1,
+    pub payload: StgClosureInfo_anon_union_1,
     pub bitmap: StgWord,
     pub large_bitmap_offset: StgHalfInt,
     pub __pad_large_bitmap_offset: StgHalfWord,
@@ -81,50 +94,18 @@ impl From<StgClosureInfo> for sys::StgClosureInfo {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgClosureInfo {
-    fn arbitrary(g: &mut Gen) -> Self {
-        match <usize as Arbitrary>::arbitrary(g) % 5usize {
-            0 => StgClosureInfo {
-                payload: Arbitrary::arbitrary(g),
-            },
-            1 => StgClosureInfo {
-                bitmap: Arbitrary::arbitrary(g),
-            },
-            2 => StgClosureInfo {
-                large_bitmap_offset: Arbitrary::arbitrary(g),
-            },
-            3 => StgClosureInfo {
-                __pad_large_bitmap_offset: Arbitrary::arbitrary(g),
-            },
-            4.. => StgClosureInfo {
-                selector_offset: Arbitrary::arbitrary(g),
-            },
-        }
-    }
-}
-
 #[repr(C)]
+///cbindgen:no-export
 #[derive(Copy, Clone)]
-pub(crate) struct StgClosureInfo__bindgen_ty_1 {
+pub(crate) struct StgClosureInfo_anon_union_1 {
     pub ptrs: StgHalfWord,
     pub nptrs: StgHalfWord,
 }
 
 #[cfg(feature = "sys")]
-impl From<StgClosureInfo__bindgen_ty_1> for sys::StgClosureInfo__bindgen_ty_1 {
-    fn from(x: StgClosureInfo__bindgen_ty_1) -> Self {
+impl From<StgClosureInfo_anon_union_1> for sys::StgClosureInfo__bindgen_ty_1 {
+    fn from(x: StgClosureInfo_anon_union_1) -> Self {
         unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for StgClosureInfo__bindgen_ty_1 {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgClosureInfo__bindgen_ty_1 {
-            ptrs: Arbitrary::arbitrary(g),
-            nptrs: Arbitrary::arbitrary(g),
-        }
     }
 }
 
@@ -133,7 +114,8 @@ pub(crate) type StgSRTField = StgHalfInt;
 pub type StgInfoTable = StgInfoTable_;
 
 #[repr(C)]
-pub struct StgInfoTable_ {
+///cbindgen:no-export
+pub(crate) struct StgInfoTable_ {
     pub layout: StgClosureInfo,
     pub type_: StgHalfWord,
     pub srt: StgSRTField,
@@ -149,11 +131,14 @@ impl From<StgInfoTable_> for sys::StgInfoTable_ {
 
 pub(crate) type StgInfoTablePtr = *mut StgInfoTable_;
 
+pub type StgFunInfoExtraRev = StgFunInfoExtraRev_;
+
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct StgFunInfoExtraRev_ {
     pub slow_apply_offset: StgHalfInt,
     pub __pad_slow_apply_offset: StgHalfWord,
-    pub b: StgFunInfoExtraRev___bindgen_ty_1,
+    pub b: StgFunInfoExtraRev__anon_union_1,
     pub fun_type: StgHalfWord,
     pub arity: StgHalfWord,
 }
@@ -166,27 +151,28 @@ impl From<StgFunInfoExtraRev_> for sys::StgFunInfoExtraRev_ {
 }
 
 #[repr(C)]
-pub(crate) union StgFunInfoExtraRev___bindgen_ty_1 {
+pub(crate) union StgFunInfoExtraRev__anon_union_1 {
     pub bitmap: StgWord,
     pub bitmap_offset: StgHalfInt,
     pub __pad_bitmap_offset: StgHalfWord,
 }
 
 #[cfg(feature = "sys")]
-impl From<StgFunInfoExtraRev___bindgen_ty_1> for sys::StgFunInfoExtraRev___bindgen_ty_1 {
-    fn from(x: StgFunInfoExtraRev___bindgen_ty_1) -> Self {
+impl From<StgFunInfoExtraRev__anon_union_1> for sys::StgFunInfoExtraRev___bindgen_ty_1 {
+    fn from(x: StgFunInfoExtraRev__anon_union_1) -> Self {
         unsafe { transmute(x) }
     }
 }
 
-pub type StgFunInfoExtraRev = StgFunInfoExtraRev_;
+pub type StgFunInfoExtraFwd = StgFunInfoExtraFwd_;
 
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct StgFunInfoExtraFwd_ {
     pub fun_type: StgHalfWord,
     pub arity: StgHalfWord,
     pub srt: *mut StgClosure,
-    pub b: StgFunInfoExtraFwd___bindgen_ty_1,
+    pub b: StgFunInfoExtraFwd__anon_union_1,
     pub slow_apply: StgFun,
 }
 
@@ -197,20 +183,17 @@ impl From<StgFunInfoExtraFwd_> for sys::StgFunInfoExtraFwd_ {
     }
 }
 
-// TODO: Can `bitmap` be moved into StgFunInfoExtraFwd_?
 #[repr(C)]
-pub(crate) union StgFunInfoExtraFwd___bindgen_ty_1 {
+pub(crate) union StgFunInfoExtraFwd__anon_union_1 {
     pub bitmap: StgWord,
 }
 
 #[cfg(feature = "sys")]
-impl From<StgFunInfoExtraFwd___bindgen_ty_1> for sys::StgFunInfoExtraFwd___bindgen_ty_1 {
-    fn from(x: StgFunInfoExtraFwd___bindgen_ty_1) -> Self {
+impl From<StgFunInfoExtraFwd__anon_union_1> for sys::StgFunInfoExtraFwd___bindgen_ty_1 {
+    fn from(x: StgFunInfoExtraFwd__anon_union_1) -> Self {
         unsafe { transmute(x) }
     }
 }
-
-pub type StgFunInfoExtraFwd = StgFunInfoExtraFwd_;
 
 #[repr(C)]
 pub struct StgFunInfoTable {
@@ -225,8 +208,9 @@ impl From<StgFunInfoTable> for sys::StgFunInfoTable {
     }
 }
 
-#[unsafe(no_mangle)]
-pub static stg_arg_bitmaps: [StgWord; 0usize] = unsafe { sys::stg_arg_bitmaps };
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_arg_bitmaps"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+pub static stg_arg_bitmaps: [StgWord; 0usize] = [];
 
 #[repr(C)]
 pub struct StgRetInfoTable {
@@ -240,7 +224,10 @@ impl From<StgRetInfoTable> for sys::StgRetInfoTable {
     }
 }
 
+pub(crate) type StgThunkInfoTable = StgThunkInfoTable_;
+
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct StgThunkInfoTable_ {
     pub i: StgInfoTable,
 }
@@ -252,9 +239,10 @@ impl From<StgThunkInfoTable_> for sys::StgThunkInfoTable_ {
     }
 }
 
-pub(crate) type StgThunkInfoTable = StgThunkInfoTable_;
+pub type StgConInfoTable = StgConInfoTable_;
 
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct StgConInfoTable_ {
     pub con_desc: StgHalfInt,
     pub __pad_con_desc: StgHalfWord,
@@ -267,5 +255,3 @@ impl From<StgConInfoTable_> for sys::StgConInfoTable_ {
         unsafe { transmute(x) }
     }
 }
-
-pub type StgConInfoTable = StgConInfoTable_;

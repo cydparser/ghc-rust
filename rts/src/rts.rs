@@ -1,12 +1,12 @@
 use std::{
     ffi::{c_char, c_int, c_uint, c_void},
-    mem::transmute,
     ptr::null_mut,
 };
 
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 
+use crate::rts::types::StgTSO;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 
@@ -70,14 +70,15 @@ pub(crate) const EXIT_KILLED: u32 = 250;
 
 pub(crate) const DEBUG_IS_ON: u32 = 0;
 
-#[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) {
+pub(crate) unsafe fn _assertFail(filename: *const c_char, linenum: c_uint) /* -> ! */
+{
     unsafe { sys::_assertFail(filename, linenum) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
-pub(crate) unsafe fn _warnFail(filename: *const c_char, linenum: c_uint) {
+pub(crate) unsafe fn _warnFail(filename: *const c_char, linenum: c_uint) /* -> ! */
+{
     unsafe { sys::_warnFail(filename, linenum) }
 }
 
@@ -87,55 +88,65 @@ static mut prog_argc: c_int = 0;
 
 static mut prog_name: *mut c_char = null_mut();
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_reportStackOverflow"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn reportStackOverflow(tso: *mut sys::StgTSO) {
-    unsafe { sys::reportStackOverflow(tso) }
+pub unsafe extern "C" fn reportStackOverflow(tso: *mut StgTSO) {
+    unsafe { sys::reportStackOverflow(tso as *mut sys::StgTSO) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_reportHeapOverflow"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn reportHeapOverflow() {
-    unsafe { transmute(sys::reportHeapOverflow()) }
+    unsafe { sys::reportHeapOverflow() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_exit"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn stg_exit(n: c_int) {
+pub unsafe extern "C" fn stg_exit(n: c_int) /* -> ! */
+{
     unsafe { sys::stg_exit(n) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_sig_install"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn stg_sig_install(arg1: c_int, arg2: c_int, arg3: *mut c_void) -> c_int {
     unsafe { sys::stg_sig_install(arg1, arg2, arg3) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_isProfiled"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn rts_isProfiled() -> c_int {
     unsafe { sys::rts_isProfiled() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_isDynamic"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn rts_isDynamic() -> c_int {
     unsafe { sys::rts_isDynamic() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_isThreaded"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn rts_isThreaded() -> c_int {
     unsafe { sys::rts_isThreaded() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_isDebugged"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn rts_isDebugged() -> c_int {
     unsafe { sys::rts_isDebugged() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_isTracing"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn rts_isTracing() -> c_int {
     unsafe { sys::rts_isTracing() }
