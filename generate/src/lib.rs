@@ -176,6 +176,7 @@ impl Symbols {
                 for s in [
                     "__int_encodeFloat",
                     "__word_encodeFloat",
+                    "_assertFail",
                     "_warnFail",
                     "allocBlockOnNode_lock",
                     "allocBlock_lock",
@@ -252,6 +253,7 @@ impl Symbols {
                     "setThreadLocalVar",
                     "setThreadNode",
                     "shutdownHaskell",
+                    "shutdownThread",
                     "signalCondition",
                     "startupHaskell",
                     "startupHpc",
