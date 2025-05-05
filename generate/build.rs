@@ -59,7 +59,6 @@ fn main() {
                     "Ticky",
                     "Time",
                     "Timer",
-                    "Types",
                     "Utils",
                 ],
             ),
@@ -88,7 +87,6 @@ fn main() {
             (
                 false,
                 vec![
-                    "DLL",
                     "MachRegsForHost",
                     "MiscClosures",
                     "Prim",
