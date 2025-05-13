@@ -1,0 +1,4 @@
+# https://embarkstudios.github.io/cargo-deny/checks/cfg.html
+
+[licenses]
+allow = ["MIT"]
