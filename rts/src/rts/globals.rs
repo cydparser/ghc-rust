@@ -1,103 +1,156 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+#[cfg(test)]
+use crate::utils::test::{Arbitrary, Gen, HasReferences};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
-#[cfg(test)]
-use quickcheck::{Arbitrary, Gen};
+use std::ffi::{c_char, c_int, c_uint, c_void};
 use std::mem::transmute;
+use std::ptr::{null, null_mut};
+use std::slice;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 #[cfg(test)]
 mod tests;
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetGHCConcSignalSignalHandlerStore")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetGHCConcSignalSignalHandlerStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetGHCConcSignalSignalHandlerStore(ptr)) }
+    unsafe { sys::getOrSetGHCConcSignalSignalHandlerStore(ptr) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetGHCConcWindowsPendingDelaysStore")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetGHCConcWindowsPendingDelaysStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetGHCConcWindowsPendingDelaysStore(ptr)) }
+    unsafe { sys::getOrSetGHCConcWindowsPendingDelaysStore(ptr) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetGHCConcWindowsIOManagerThreadStore")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetGHCConcWindowsIOManagerThreadStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetGHCConcWindowsIOManagerThreadStore(ptr)) }
+    unsafe { sys::getOrSetGHCConcWindowsIOManagerThreadStore(ptr) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetGHCConcWindowsProddingStore")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetGHCConcWindowsProddingStore(ptr: StgStablePtr) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetGHCConcWindowsProddingStore(ptr)) }
+    unsafe { sys::getOrSetGHCConcWindowsProddingStore(ptr) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetSystemEventThreadEventManagerStore")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetSystemEventThreadEventManagerStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetSystemEventThreadEventManagerStore(ptr)) }
+    unsafe { sys::getOrSetSystemEventThreadEventManagerStore(ptr) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetSystemEventThreadIOManagerThreadStore")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetSystemEventThreadIOManagerThreadStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetSystemEventThreadIOManagerThreadStore(ptr)) }
+    unsafe { sys::getOrSetSystemEventThreadIOManagerThreadStore(ptr) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetSystemTimerThreadEventManagerStore")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetSystemTimerThreadEventManagerStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetSystemTimerThreadEventManagerStore(ptr)) }
+    unsafe { sys::getOrSetSystemTimerThreadEventManagerStore(ptr) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetSystemTimerThreadIOManagerThreadStore")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetSystemTimerThreadIOManagerThreadStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetSystemTimerThreadIOManagerThreadStore(ptr)) }
+    unsafe { sys::getOrSetSystemTimerThreadIOManagerThreadStore(ptr) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetLibHSghcFastStringTable")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetLibHSghcFastStringTable(ptr: StgStablePtr) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetLibHSghcFastStringTable(ptr)) }
+    unsafe { sys::getOrSetLibHSghcFastStringTable(ptr) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetLibHSghcGlobalHasPprDebug")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetLibHSghcGlobalHasPprDebug(ptr: StgStablePtr) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetLibHSghcGlobalHasPprDebug(ptr)) }
+    unsafe { sys::getOrSetLibHSghcGlobalHasPprDebug(ptr) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetLibHSghcGlobalHasNoDebugOutput")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetLibHSghcGlobalHasNoDebugOutput(ptr: StgStablePtr) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetLibHSghcGlobalHasNoDebugOutput(ptr)) }
+    unsafe { sys::getOrSetLibHSghcGlobalHasNoDebugOutput(ptr) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_getOrSetLibHSghcGlobalHasNoStateHack")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getOrSetLibHSghcGlobalHasNoStateHack(ptr: StgStablePtr) -> StgStablePtr {
-    unsafe { transmute(sys::getOrSetLibHSghcGlobalHasNoStateHack(ptr)) }
+    unsafe { sys::getOrSetLibHSghcGlobalHasNoStateHack(ptr) }
 }
 
-#[unsafe(no_mangle)]
-pub static mut ghc_unique_counter64: HsWord64 = unsafe { sys::ghc_unique_counter64 };
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_ghc_unique_counter64"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+pub static mut ghc_unique_counter64: HsWord64 = 0;
 
-#[unsafe(no_mangle)]
-pub static mut ghc_unique_inc: HsInt = unsafe { sys::ghc_unique_inc };
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_ghc_unique_inc"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+pub static mut ghc_unique_inc: HsInt = 0;

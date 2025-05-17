@@ -1,18 +1,22 @@
+use super::*;
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use crate::utils::test::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use quickcheck_macros::quickcheck;
-use std::mem::{size_of, transmute};
+use std::ffi::{c_char, c_int, c_uint, c_void};
+use std::mem::transmute;
+use std::ptr::{null, null_mut};
 #[cfg(feature = "sys")]
 #[test]
-fn test_eq_PATH_FMT() {
-    assert_eq!(sys::PATH_FMT, super::PATH_FMT);
+fn sys_eq_PATH_FMT() {
+    assert_eq!(sys::PATH_FMT, PATH_FMT);
 }
 
 #[test]
 #[ignore]
 fn test_initLinker() {
-    unsafe { super::initLinker() };
+    unsafe { initLinker() };
     todo!("assert")
 }
 
@@ -20,249 +24,226 @@ fn test_initLinker() {
 #[ignore]
 fn test_initLinker_() {
     let retain_cafs = Default::default();
-    unsafe { super::initLinker_(retain_cafs) };
+    unsafe { initLinker_(retain_cafs) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_insertSymbol(
-    obj_name: pathchar,
-    key: ::core::ffi::c_char,
-    data: ::core::ffi::c_void,
-) -> bool {
-    let expected = unsafe {
-        transmute(sys::insertSymbol(
-            &mut obj_name.into(),
-            &mut key.into(),
-            &mut data.into(),
-        ))
-    };
-    let actual = unsafe { super::insertSymbol(&mut obj_name, &mut key, &mut data) };
+fn equivalent_insertSymbol(obj_name: pathchar, key: c_char, data: c_void) -> bool {
+    let expected = unsafe { sys::insertSymbol(&mut obj_name, &mut key, &mut data) };
+    let actual = unsafe { insertSymbol(&mut obj_name, &mut key, &mut data) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_insertSymbol() {
-    let mut obj_name = Default::default();
-    let mut key = Default::default();
-    let mut data = Default::default();
-    unsafe { super::insertSymbol(&mut obj_name, &mut key, &mut data) };
+    let mut obj_name = null_mut();
+    let mut key = null_mut();
+    let mut data = null_mut();
+    unsafe { insertSymbol(&mut obj_name, &mut key, &mut data) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_lookupSymbol(lbl: ::core::ffi::c_char) -> bool {
-    let expected = unsafe { transmute(sys::lookupSymbol(&mut lbl.into())) };
-    let actual = unsafe { super::lookupSymbol(&mut lbl) };
+fn equivalent_lookupSymbol(lbl: c_char) -> bool {
+    let expected = unsafe { sys::lookupSymbol(&mut lbl) };
+    let actual = unsafe { lookupSymbol(&mut lbl) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_lookupSymbol() {
-    let mut lbl = Default::default();
-    unsafe { super::lookupSymbol(&mut lbl) };
+    let mut lbl = null_mut();
+    unsafe { lookupSymbol(&mut lbl) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_getObjectLoadStatus(path: pathchar) -> bool {
-    let expected = unsafe { transmute(sys::getObjectLoadStatus(&mut path.into())) };
-    let actual = unsafe { super::getObjectLoadStatus(&mut path) };
+    let expected = unsafe { transmute(sys::getObjectLoadStatus(&mut path)) };
+    let actual = unsafe { getObjectLoadStatus(&mut path) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_getObjectLoadStatus() {
-    let mut path = Default::default();
-    unsafe { super::getObjectLoadStatus(&mut path) };
+    let mut path = null_mut();
+    unsafe { getObjectLoadStatus(&mut path) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_unloadObj(path: pathchar) -> bool {
-    let expected = unsafe { transmute(sys::unloadObj(&mut path.into())) };
-    let actual = unsafe { super::unloadObj(&mut path) };
+    let expected = unsafe { sys::unloadObj(&mut path) };
+    let actual = unsafe { unloadObj(&mut path) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_unloadObj() {
-    let mut path = Default::default();
-    unsafe { super::unloadObj(&mut path) };
+    let mut path = null_mut();
+    unsafe { unloadObj(&mut path) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_purgeObj(path: pathchar) -> bool {
-    let expected = unsafe { transmute(sys::purgeObj(&mut path.into())) };
-    let actual = unsafe { super::purgeObj(&mut path) };
+    let expected = unsafe { sys::purgeObj(&mut path) };
+    let actual = unsafe { purgeObj(&mut path) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_purgeObj() {
-    let mut path = Default::default();
-    unsafe { super::purgeObj(&mut path) };
+    let mut path = null_mut();
+    unsafe { purgeObj(&mut path) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_loadObj(path: pathchar) -> bool {
-    let expected = unsafe { transmute(sys::loadObj(&mut path.into())) };
-    let actual = unsafe { super::loadObj(&mut path) };
+    let expected = unsafe { sys::loadObj(&mut path) };
+    let actual = unsafe { loadObj(&mut path) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_loadObj() {
-    let mut path = Default::default();
-    unsafe { super::loadObj(&mut path) };
+    let mut path = null_mut();
+    unsafe { loadObj(&mut path) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_loadArchive(path: pathchar) -> bool {
-    let expected = unsafe { transmute(sys::loadArchive(&mut path.into())) };
-    let actual = unsafe { super::loadArchive(&mut path) };
+    let expected = unsafe { sys::loadArchive(&mut path) };
+    let actual = unsafe { loadArchive(&mut path) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_loadArchive() {
-    let mut path = Default::default();
-    unsafe { super::loadArchive(&mut path) };
+    let mut path = null_mut();
+    unsafe { loadArchive(&mut path) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_resolveObjs() -> bool {
-    let expected = unsafe { transmute(sys::resolveObjs()) };
-    let actual = unsafe { super::resolveObjs() };
+    let expected = unsafe { sys::resolveObjs() };
+    let actual = unsafe { resolveObjs() };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_resolveObjs() {
-    unsafe { super::resolveObjs() };
+    unsafe { resolveObjs() };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_loadNativeObj(path: pathchar, errmsg: ::core::ffi::c_char) -> bool {
-    let expected = unsafe {
-        transmute(sys::loadNativeObj(
-            &mut path.into(),
-            &mut &mut errmsg.into(),
-        ))
-    };
-    let actual = unsafe { super::loadNativeObj(&mut path, &mut &mut errmsg) };
+fn equivalent_loadNativeObj(path: pathchar, errmsg: c_char) -> bool {
+    let expected = unsafe { sys::loadNativeObj(&mut path, &mut &mut errmsg) };
+    let actual = unsafe { loadNativeObj(&mut path, &mut &mut errmsg) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_loadNativeObj() {
-    let mut path = Default::default();
-    let mut errmsg = Default::default();
-    unsafe { super::loadNativeObj(&mut path, &mut &mut errmsg) };
+    let mut path = null_mut();
+    let mut errmsg = null_mut();
+    unsafe { loadNativeObj(&mut path, &mut &mut errmsg) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_unloadNativeObj(handle: ::core::ffi::c_void) -> bool {
-    let expected = unsafe { transmute(sys::unloadNativeObj(&mut handle.into())) };
-    let actual = unsafe { super::unloadNativeObj(&mut handle) };
+fn equivalent_unloadNativeObj(handle: c_void) -> bool {
+    let expected = unsafe { sys::unloadNativeObj(&mut handle) };
+    let actual = unsafe { unloadNativeObj(&mut handle) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_unloadNativeObj() {
-    let mut handle = Default::default();
-    unsafe { super::unloadNativeObj(&mut handle) };
+    let mut handle = null_mut();
+    unsafe { unloadNativeObj(&mut handle) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_lookupSymbolInNativeObj(
-    handle: ::core::ffi::c_void,
-    symbol_name: ::core::ffi::c_char,
-) -> bool {
-    let expected = unsafe {
-        transmute(sys::lookupSymbolInNativeObj(
-            &mut handle.into(),
-            &symbol_name.into(),
-        ))
-    };
-    let actual = unsafe { super::lookupSymbolInNativeObj(&mut handle, &symbol_name) };
+fn equivalent_lookupSymbolInNativeObj(handle: c_void, symbol_name: c_char) -> bool {
+    let expected = unsafe { sys::lookupSymbolInNativeObj(&mut handle, &symbol_name) };
+    let actual = unsafe { lookupSymbolInNativeObj(&mut handle, &symbol_name) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_lookupSymbolInNativeObj() {
-    let mut handle = Default::default();
-    let symbol_name = Default::default();
-    unsafe { super::lookupSymbolInNativeObj(&mut handle, &symbol_name) };
+    let mut handle = null_mut();
+    let symbol_name = null();
+    unsafe { lookupSymbolInNativeObj(&mut handle, &symbol_name) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_addDLL(dll_name: pathchar) -> bool {
-    let expected = unsafe { transmute(sys::addDLL(&mut dll_name.into())) };
-    let actual = unsafe { super::addDLL(&mut dll_name) };
+    let expected = unsafe { sys::addDLL(&mut dll_name) };
+    let actual = unsafe { addDLL(&mut dll_name) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_addDLL() {
-    let mut dll_name = Default::default();
-    unsafe { super::addDLL(&mut dll_name) };
+    let mut dll_name = null_mut();
+    unsafe { addDLL(&mut dll_name) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_addLibrarySearchPath(dll_path: pathchar) -> bool {
-    let expected = unsafe { transmute(sys::addLibrarySearchPath(&mut dll_path.into())) };
-    let actual = unsafe { super::addLibrarySearchPath(&mut dll_path) };
+    let expected = unsafe { sys::addLibrarySearchPath(&mut dll_path) };
+    let actual = unsafe { addLibrarySearchPath(&mut dll_path) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_addLibrarySearchPath() {
-    let mut dll_path = Default::default();
-    unsafe { super::addLibrarySearchPath(&mut dll_path) };
+    let mut dll_path = null_mut();
+    unsafe { addLibrarySearchPath(&mut dll_path) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_removeLibrarySearchPath(dll_path_index: HsPtr) -> bool {
-    let expected = unsafe { transmute(sys::removeLibrarySearchPath(dll_path_index.into())) };
-    let actual = unsafe { super::removeLibrarySearchPath(dll_path_index) };
+    let expected = unsafe { sys::removeLibrarySearchPath(dll_path_index) };
+    let actual = unsafe { removeLibrarySearchPath(dll_path_index) };
     actual == expected
 }
 
@@ -270,38 +251,38 @@ fn equivalent_removeLibrarySearchPath(dll_path_index: HsPtr) -> bool {
 #[ignore]
 fn test_removeLibrarySearchPath() {
     let dll_path_index = Default::default();
-    unsafe { super::removeLibrarySearchPath(dll_path_index) };
+    unsafe { removeLibrarySearchPath(dll_path_index) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_warnMissingKBLibraryPaths() {
-    unsafe { super::warnMissingKBLibraryPaths() };
+    unsafe { warnMissingKBLibraryPaths() };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_findSystemLibrary(dll_name: pathchar) -> bool {
-    let expected = unsafe { transmute(sys::findSystemLibrary(&mut dll_name.into())) };
-    let actual = unsafe { super::findSystemLibrary(&mut dll_name) };
+    let expected = unsafe { sys::findSystemLibrary(&mut dll_name) };
+    let actual = unsafe { findSystemLibrary(&mut dll_name) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_findSystemLibrary() {
-    let mut dll_name = Default::default();
-    unsafe { super::findSystemLibrary(&mut dll_name) };
+    let mut dll_name = null_mut();
+    unsafe { findSystemLibrary(&mut dll_name) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_foreignExportStablePtr(p: StgPtr) -> bool {
-    let expected = unsafe { transmute(sys::foreignExportStablePtr(p.into())) };
-    let actual = unsafe { super::foreignExportStablePtr(p) };
+    let expected = unsafe { sys::foreignExportStablePtr(p) };
+    let actual = unsafe { foreignExportStablePtr(p) };
     actual == expected
 }
 
@@ -309,6 +290,6 @@ fn equivalent_foreignExportStablePtr(p: StgPtr) -> bool {
 #[ignore]
 fn test_foreignExportStablePtr() {
     let p = Default::default();
-    unsafe { super::foreignExportStablePtr(p) };
+    unsafe { foreignExportStablePtr(p) };
     todo!("assert")
 }

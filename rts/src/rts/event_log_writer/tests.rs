@@ -1,43 +1,47 @@
+use super::*;
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use crate::utils::test::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use quickcheck_macros::quickcheck;
-use std::mem::{size_of, transmute};
+use std::ffi::{c_char, c_int, c_uint, c_void};
+use std::mem::transmute;
+use std::ptr::{null, null_mut};
 #[cfg(feature = "sys")]
 #[test]
-fn test_size_of_EventLogWriter() {
+fn sys_size_EventLogWriter() {
     assert_eq!(
         size_of::<sys::EventLogWriter>(),
-        size_of::<super::EventLogWriter>()
+        size_of::<EventLogWriter>()
     )
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of EventLogWriter"][::core::mem::size_of::<EventLogWriter>() - 32usize];
-    ["Alignment of EventLogWriter"][::core::mem::align_of::<EventLogWriter>() - 8usize];
+    ["Size of EventLogWriter"][size_of::<EventLogWriter>() - 32usize];
+    ["Alignment of EventLogWriter"][align_of::<EventLogWriter>() - 8usize];
     ["Offset of field: EventLogWriter::initEventLogWriter"]
-        [::core::mem::offset_of!(EventLogWriter, initEventLogWriter) - 0usize];
+        [offset_of!(EventLogWriter, initEventLogWriter) - 0usize];
     ["Offset of field: EventLogWriter::writeEventLog"]
-        [::core::mem::offset_of!(EventLogWriter, writeEventLog) - 8usize];
+        [offset_of!(EventLogWriter, writeEventLog) - 8usize];
     ["Offset of field: EventLogWriter::flushEventLog"]
-        [::core::mem::offset_of!(EventLogWriter, flushEventLog) - 16usize];
+        [offset_of!(EventLogWriter, flushEventLog) - 16usize];
     ["Offset of field: EventLogWriter::stopEventLogWriter"]
-        [::core::mem::offset_of!(EventLogWriter, stopEventLogWriter) - 24usize];
+        [offset_of!(EventLogWriter, stopEventLogWriter) - 24usize];
 };
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_eventLogStatus() -> bool {
     let expected = unsafe { transmute(sys::eventLogStatus()) };
-    let actual = unsafe { super::eventLogStatus() };
+    let actual = unsafe { eventLogStatus() };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_eventLogStatus() {
-    unsafe { super::eventLogStatus() };
+    unsafe { eventLogStatus() };
     todo!("assert")
 }
 
@@ -45,29 +49,29 @@ fn test_eventLogStatus() {
 #[quickcheck]
 fn equivalent_startEventLogging(writer: EventLogWriter) -> bool {
     let expected = unsafe { transmute(sys::startEventLogging(&writer.into())) };
-    let actual = unsafe { super::startEventLogging(&writer) };
+    let actual = unsafe { startEventLogging(&writer) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_startEventLogging() {
-    let writer = Default::default();
-    unsafe { super::startEventLogging(&writer) };
+    let writer = null();
+    unsafe { startEventLogging(&writer) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_endEventLogging() {
-    unsafe { super::endEventLogging() };
+    unsafe { endEventLogging() };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_flushEventLog() {
-    let mut cap = Default::default();
-    unsafe { super::flushEventLog(&mut &mut cap) };
+    let mut cap = null_mut();
+    unsafe { flushEventLog(&mut &mut cap) };
     todo!("assert")
 }

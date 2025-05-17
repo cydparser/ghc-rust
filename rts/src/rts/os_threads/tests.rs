@@ -1,57 +1,60 @@
+use super::*;
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use crate::utils::test::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use quickcheck_macros::quickcheck;
-use std::mem::{size_of, transmute};
+use std::ffi::{c_char, c_int, c_uint, c_void};
+use std::mem::transmute;
+use std::ptr::{null, null_mut};
 #[cfg(feature = "sys")]
 #[test]
-fn test_size_of_Condition() {
-    assert_eq!(size_of::<sys::Condition>(), size_of::<super::Condition>())
+fn sys_size_Condition() {
+    assert_eq!(size_of::<sys::Condition>(), size_of::<Condition>())
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of Condition"][::core::mem::size_of::<Condition>() - 56usize];
-    ["Alignment of Condition"][::core::mem::align_of::<Condition>() - 8usize];
-    ["Offset of field: Condition::cond"][::core::mem::offset_of!(Condition, cond) - 0usize];
-    ["Offset of field: Condition::timeout_clk"]
-        [::core::mem::offset_of!(Condition, timeout_clk) - 48usize];
+    ["Size of Condition"][size_of::<Condition>() - 56usize];
+    ["Alignment of Condition"][align_of::<Condition>() - 8usize];
+    ["Offset of field: Condition::cond"][offset_of!(Condition, cond) - 0usize];
+    ["Offset of field: Condition::timeout_clk"][offset_of!(Condition, timeout_clk) - 48usize];
 };
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_osThreadId() -> bool {
-    let expected = unsafe { transmute(sys::osThreadId()) };
-    let actual = unsafe { super::osThreadId() };
+    let expected = unsafe { sys::osThreadId() };
+    let actual = unsafe { osThreadId() };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_osThreadId() {
-    unsafe { super::osThreadId() };
+    unsafe { osThreadId() };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_shutdownThread() -> bool {
-    let expected = unsafe { transmute(sys::shutdownThread()) };
-    let actual = unsafe { super::shutdownThread() };
+    let expected = unsafe { sys::shutdownThread() };
+    let actual = unsafe { shutdownThread() };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_shutdownThread() {
-    unsafe { super::shutdownThread() };
+    unsafe { shutdownThread() };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_yieldThread() {
-    unsafe { super::yieldThread() };
+    unsafe { yieldThread() };
     todo!("assert")
 }
 
@@ -59,30 +62,23 @@ fn test_yieldThread() {
 #[quickcheck]
 fn equivalent_createOSThread(
     tid: OSThreadId,
-    name: ::core::ffi::c_char,
+    name: c_char,
     startProc: OSThreadProc,
-    param: ::core::ffi::c_void,
+    param: c_void,
 ) -> bool {
-    let expected = unsafe {
-        transmute(sys::createOSThread(
-            &mut tid.into(),
-            &name.into(),
-            startProc.into(),
-            &mut param.into(),
-        ))
-    };
-    let actual = unsafe { super::createOSThread(&mut tid, &name, startProc, &mut param) };
+    let expected = unsafe { sys::createOSThread(&mut tid, &name, startProc, &mut param) };
+    let actual = unsafe { createOSThread(&mut tid, &name, startProc, &mut param) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_createOSThread() {
-    let mut tid = Default::default();
-    let name = Default::default();
+    let mut tid = null_mut();
+    let name = null();
     let startProc = Default::default();
-    let mut param = Default::default();
-    unsafe { super::createOSThread(&mut tid, &name, startProc, &mut param) };
+    let mut param = null_mut();
+    unsafe { createOSThread(&mut tid, &name, startProc, &mut param) };
     todo!("assert")
 }
 
@@ -90,38 +86,31 @@ fn test_createOSThread() {
 #[quickcheck]
 fn equivalent_createAttachedOSThread(
     tid: OSThreadId,
-    name: ::core::ffi::c_char,
+    name: c_char,
     startProc: OSThreadProc,
-    param: ::core::ffi::c_void,
+    param: c_void,
 ) -> bool {
-    let expected = unsafe {
-        transmute(sys::createAttachedOSThread(
-            &mut tid.into(),
-            &name.into(),
-            startProc.into(),
-            &mut param.into(),
-        ))
-    };
-    let actual = unsafe { super::createAttachedOSThread(&mut tid, &name, startProc, &mut param) };
+    let expected = unsafe { sys::createAttachedOSThread(&mut tid, &name, startProc, &mut param) };
+    let actual = unsafe { createAttachedOSThread(&mut tid, &name, startProc, &mut param) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_createAttachedOSThread() {
-    let mut tid = Default::default();
-    let name = Default::default();
+    let mut tid = null_mut();
+    let name = null();
     let startProc = Default::default();
-    let mut param = Default::default();
-    unsafe { super::createAttachedOSThread(&mut tid, &name, startProc, &mut param) };
+    let mut param = null_mut();
+    unsafe { createAttachedOSThread(&mut tid, &name, startProc, &mut param) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_osThreadIsAlive(id: OSThreadId) -> bool {
-    let expected = unsafe { transmute(sys::osThreadIsAlive(id.into())) };
-    let actual = unsafe { super::osThreadIsAlive(id) };
+    let expected = unsafe { transmute(sys::osThreadIsAlive(id)) };
+    let actual = unsafe { osThreadIsAlive(id) };
     actual == expected
 }
 
@@ -129,7 +118,7 @@ fn equivalent_osThreadIsAlive(id: OSThreadId) -> bool {
 #[ignore]
 fn test_osThreadIsAlive() {
     let id = Default::default();
-    unsafe { super::osThreadIsAlive(id) };
+    unsafe { osThreadIsAlive(id) };
     todo!("assert")
 }
 
@@ -137,7 +126,7 @@ fn test_osThreadIsAlive() {
 #[ignore]
 fn test_interruptOSThread() {
     let id = Default::default();
-    unsafe { super::interruptOSThread(id) };
+    unsafe { interruptOSThread(id) };
     todo!("assert")
 }
 
@@ -145,48 +134,48 @@ fn test_interruptOSThread() {
 #[ignore]
 fn test_joinOSThread() {
     let id = Default::default();
-    unsafe { super::joinOSThread(id) };
+    unsafe { joinOSThread(id) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_initCondition() {
-    let mut pCond = Default::default();
-    unsafe { super::initCondition(&mut pCond) };
+    let mut pCond = null_mut();
+    unsafe { initCondition(&mut pCond) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_closeCondition() {
-    let mut pCond = Default::default();
-    unsafe { super::closeCondition(&mut pCond) };
+    let mut pCond = null_mut();
+    unsafe { closeCondition(&mut pCond) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_broadcastCondition() {
-    let mut pCond = Default::default();
-    unsafe { super::broadcastCondition(&mut pCond) };
+    let mut pCond = null_mut();
+    unsafe { broadcastCondition(&mut pCond) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_signalCondition() {
-    let mut pCond = Default::default();
-    unsafe { super::signalCondition(&mut pCond) };
+    let mut pCond = null_mut();
+    unsafe { signalCondition(&mut pCond) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_waitCondition() {
-    let mut pCond = Default::default();
-    let mut pMut = Default::default();
-    unsafe { super::waitCondition(&mut pCond, &mut pMut) };
+    let mut pCond = null_mut();
+    let mut pMut = null_mut();
+    unsafe { waitCondition(&mut pCond, &mut pMut) };
     todo!("assert")
 }
 
@@ -196,78 +185,78 @@ fn equivalent_timedWaitCondition(pCond: Condition, pMut: Mutex, timeout: Time) -
     let expected = unsafe {
         transmute(sys::timedWaitCondition(
             &mut pCond.into(),
-            &mut pMut.into(),
-            timeout.into(),
+            &mut pMut,
+            timeout,
         ))
     };
-    let actual = unsafe { super::timedWaitCondition(&mut pCond, &mut pMut, timeout) };
+    let actual = unsafe { timedWaitCondition(&mut pCond, &mut pMut, timeout) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_timedWaitCondition() {
-    let mut pCond = Default::default();
-    let mut pMut = Default::default();
+    let mut pCond = null_mut();
+    let mut pMut = null_mut();
     let timeout = Default::default();
-    unsafe { super::timedWaitCondition(&mut pCond, &mut pMut, timeout) };
+    unsafe { timedWaitCondition(&mut pCond, &mut pMut, timeout) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_initMutex() {
-    let mut pMut = Default::default();
-    unsafe { super::initMutex(&mut pMut) };
+    let mut pMut = null_mut();
+    unsafe { initMutex(&mut pMut) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_closeMutex() {
-    let mut pMut = Default::default();
-    unsafe { super::closeMutex(&mut pMut) };
+    let mut pMut = null_mut();
+    unsafe { closeMutex(&mut pMut) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_newThreadLocalKey() {
-    let mut key = Default::default();
-    unsafe { super::newThreadLocalKey(&mut key) };
+    let mut key = null_mut();
+    unsafe { newThreadLocalKey(&mut key) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_getThreadLocalVar(key: ThreadLocalKey) -> bool {
-    let expected = unsafe { transmute(sys::getThreadLocalVar(&mut key.into())) };
-    let actual = unsafe { super::getThreadLocalVar(&mut key) };
+    let expected = unsafe { sys::getThreadLocalVar(&mut key) };
+    let actual = unsafe { getThreadLocalVar(&mut key) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_getThreadLocalVar() {
-    let mut key = Default::default();
-    unsafe { super::getThreadLocalVar(&mut key) };
+    let mut key = null_mut();
+    unsafe { getThreadLocalVar(&mut key) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_setThreadLocalVar() {
-    let mut key = Default::default();
-    let mut value = Default::default();
-    unsafe { super::setThreadLocalVar(&mut key, &mut value) };
+    let mut key = null_mut();
+    let mut value = null_mut();
+    unsafe { setThreadLocalVar(&mut key, &mut value) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_freeThreadLocalKey() {
-    let mut key = Default::default();
-    unsafe { super::freeThreadLocalKey(&mut key) };
+    let mut key = null_mut();
+    unsafe { freeThreadLocalKey(&mut key) };
     todo!("assert")
 }
 
@@ -276,7 +265,7 @@ fn test_freeThreadLocalKey() {
 fn test_setThreadAffinity() {
     let n = Default::default();
     let m = Default::default();
-    unsafe { super::setThreadAffinity(n, m) };
+    unsafe { setThreadAffinity(n, m) };
     todo!("assert")
 }
 
@@ -284,22 +273,22 @@ fn test_setThreadAffinity() {
 #[ignore]
 fn test_setThreadNode() {
     let node = Default::default();
-    unsafe { super::setThreadNode(node) };
+    unsafe { setThreadNode(node) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_releaseThreadNode() {
-    unsafe { super::releaseThreadNode() };
+    unsafe { releaseThreadNode() };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_forkOS_createThread(entry: HsStablePtr) -> bool {
-    let expected = unsafe { transmute(sys::forkOS_createThread(entry.into())) };
-    let actual = unsafe { super::forkOS_createThread(entry) };
+    let expected = unsafe { sys::forkOS_createThread(entry) };
+    let actual = unsafe { forkOS_createThread(entry) };
     actual == expected
 }
 
@@ -307,43 +296,43 @@ fn equivalent_forkOS_createThread(entry: HsStablePtr) -> bool {
 #[ignore]
 fn test_forkOS_createThread() {
     let entry = Default::default();
-    unsafe { super::forkOS_createThread(entry) };
+    unsafe { forkOS_createThread(entry) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_freeThreadingResources() {
-    unsafe { super::freeThreadingResources() };
+    unsafe { freeThreadingResources() };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_getNumberOfProcessors() -> bool {
-    let expected = unsafe { transmute(sys::getNumberOfProcessors()) };
-    let actual = unsafe { super::getNumberOfProcessors() };
+    let expected = unsafe { sys::getNumberOfProcessors() };
+    let actual = unsafe { getNumberOfProcessors() };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_getNumberOfProcessors() {
-    unsafe { super::getNumberOfProcessors() };
+    unsafe { getNumberOfProcessors() };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_kernelThreadId() -> bool {
-    let expected = unsafe { transmute(sys::kernelThreadId()) };
-    let actual = unsafe { super::kernelThreadId() };
+    let expected = unsafe { sys::kernelThreadId() };
+    let actual = unsafe { kernelThreadId() };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_kernelThreadId() {
-    unsafe { super::kernelThreadId() };
+    unsafe { kernelThreadId() };
     todo!("assert")
 }

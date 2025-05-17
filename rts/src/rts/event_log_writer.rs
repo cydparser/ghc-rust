@@ -1,10 +1,13 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+#[cfg(test)]
+use crate::utils::test::{Arbitrary, Gen, HasReferences};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
-#[cfg(test)]
-use quickcheck::{Arbitrary, Gen};
+use std::ffi::{c_char, c_int, c_uint, c_void};
 use std::mem::transmute;
+use std::ptr::{null, null_mut};
+use std::slice;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 #[cfg(test)]
@@ -13,12 +16,11 @@ mod tests;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct EventLogWriter {
-    pub initEventLogWriter: ::core::option::Option<unsafe extern "C" fn()>,
-    pub writeEventLog: ::core::option::Option<
-        unsafe extern "C" fn(eventlog: *mut ::core::ffi::c_void, eventlog_size: usize) -> bool,
-    >,
-    pub flushEventLog: ::core::option::Option<unsafe extern "C" fn()>,
-    pub stopEventLogWriter: ::core::option::Option<unsafe extern "C" fn()>,
+    pub initEventLogWriter: Option<unsafe extern "C" fn()>,
+    pub writeEventLog:
+        Option<unsafe extern "C" fn(eventlog: *mut c_void, eventlog_size: usize) -> bool>,
+    pub flushEventLog: Option<unsafe extern "C" fn()>,
+    pub stopEventLogWriter: Option<unsafe extern "C" fn()>,
 }
 
 #[cfg(feature = "sys")]
@@ -40,9 +42,9 @@ impl Arbitrary for EventLogWriter {
     }
 }
 
-static FileEventLogWriter: EventLogWriter = unsafe { sys::FileEventLogWriter };
+static FileEventLogWriter: EventLogWriter = 0;
 
-static NullEventLogWriter: EventLogWriter = unsafe { sys::NullEventLogWriter };
+static NullEventLogWriter: EventLogWriter = 0;
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -57,20 +59,23 @@ pub(crate) unsafe fn eventLogStatus() -> EventLogStatus {
     unsafe { transmute(sys::eventLogStatus()) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_startEventLogging"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn startEventLogging(writer: *const EventLogWriter) -> bool {
-    unsafe { transmute(sys::startEventLogging(writer)) }
+    unsafe { transmute(sys::startEventLogging(writer as *const sys::EventLogWriter)) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_endEventLogging"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn endEventLogging() {
     unsafe { sys::endEventLogging() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_flushEventLog"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn flushEventLog(cap: *mut *mut Capability) {
-    unsafe { sys::flushEventLog(cap) }
+    unsafe { sys::flushEventLog(cap as *mut *mut sys::Capability) }
 }

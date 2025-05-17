@@ -1,8 +1,12 @@
+use super::*;
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use crate::utils::test::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use quickcheck_macros::quickcheck;
-use std::mem::{size_of, transmute};
+use std::ffi::{c_char, c_int, c_uint, c_void};
+use std::mem::transmute;
+use std::ptr::{null, null_mut};
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_heap_view_closurePtrs(cap: Capability, closure: StgClosure) -> bool {
@@ -12,29 +16,29 @@ fn equivalent_heap_view_closurePtrs(cap: Capability, closure: StgClosure) -> boo
             &mut closure.into(),
         ))
     };
-    let actual = unsafe { super::heap_view_closurePtrs(&mut cap, &mut closure) };
+    let actual = unsafe { heap_view_closurePtrs(&mut cap, &mut closure) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_heap_view_closurePtrs() {
-    let mut cap = Default::default();
-    let mut closure = Default::default();
-    unsafe { super::heap_view_closurePtrs(&mut cap, &mut closure) };
+    let mut cap = null_mut();
+    let mut closure = null_mut();
+    unsafe { heap_view_closurePtrs(&mut cap, &mut closure) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_heap_view_closure_ptrs_in_pap_payload() {
-    let mut ptrs = Default::default();
-    let mut nptrs = Default::default();
-    let mut fun = Default::default();
-    let mut payload = Default::default();
+    let mut ptrs = null_mut();
+    let mut nptrs = null_mut();
+    let mut fun = null_mut();
+    let mut payload = null_mut();
     let size = Default::default();
     unsafe {
-        super::heap_view_closure_ptrs_in_pap_payload(
+        heap_view_closure_ptrs_in_pap_payload(
             &mut &mut ptrs,
             &mut nptrs,
             &mut fun,
@@ -48,37 +52,32 @@ fn test_heap_view_closure_ptrs_in_pap_payload() {
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_heap_view_closureSize(closure: StgClosure) -> bool {
-    let expected = unsafe { transmute(sys::heap_view_closureSize(&mut closure.into())) };
-    let actual = unsafe { super::heap_view_closureSize(&mut closure) };
+    let expected = unsafe { sys::heap_view_closureSize(&mut closure.into()) };
+    let actual = unsafe { heap_view_closureSize(&mut closure) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_heap_view_closureSize() {
-    let mut closure = Default::default();
-    unsafe { super::heap_view_closureSize(&mut closure) };
+    let mut closure = null_mut();
+    unsafe { heap_view_closureSize(&mut closure) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_collect_pointers(closure: StgClosure, ptrs: StgClosure) -> bool {
-    let expected = unsafe {
-        transmute(sys::collect_pointers(
-            &mut closure.into(),
-            &mut &mut ptrs.into(),
-        ))
-    };
-    let actual = unsafe { super::collect_pointers(&mut closure, &mut &mut ptrs) };
+    let expected = unsafe { sys::collect_pointers(&mut closure.into(), &mut &mut ptrs.into()) };
+    let actual = unsafe { collect_pointers(&mut closure, &mut &mut ptrs) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_collect_pointers() {
-    let mut closure = Default::default();
-    let mut ptrs = Default::default();
-    unsafe { super::collect_pointers(&mut closure, &mut &mut ptrs) };
+    let mut closure = null_mut();
+    let mut ptrs = null_mut();
+    unsafe { collect_pointers(&mut closure, &mut &mut ptrs) };
     todo!("assert")
 }

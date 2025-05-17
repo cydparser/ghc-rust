@@ -1,19 +1,19 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+#[cfg(test)]
+use crate::utils::test::{Arbitrary, Gen, HasReferences};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
-#[cfg(test)]
-use quickcheck::{Arbitrary, Gen};
+use std::ffi::{c_char, c_int, c_uint, c_void};
 use std::mem::transmute;
+use std::ptr::{null, null_mut};
+use std::slice;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 #[cfg(test)]
 mod tests;
 
-#[repr(C)]
-#[derive(Default)]
-pub struct __IncompleteArrayField<T>(::core::marker::PhantomData<T>, [T; 0]);
-
+use crate::utils::bindgen;
 impl<T> __IncompleteArrayField<T> {
     #[inline]
     pub const fn new() -> Self {
@@ -29,11 +29,11 @@ impl<T> __IncompleteArrayField<T> {
     }
     #[inline]
     pub unsafe fn as_slice(&self, len: usize) -> &[T] {
-        ::core::slice::from_raw_parts(self.as_ptr(), len)
+        slice::from_raw_parts(self.as_ptr(), len)
     }
     #[inline]
     pub unsafe fn as_mut_slice(&mut self, len: usize) -> &mut [T] {
-        ::core::slice::from_raw_parts_mut(self.as_mut_ptr(), len)
+        slice::from_raw_parts_mut(self.as_mut_ptr(), len)
     }
 }
 
@@ -45,6 +45,7 @@ impl<T> ::core::fmt::Debug for __IncompleteArrayField<T> {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+///cbindgen:no-export
 pub(crate) struct _ObjectCode {
     _unused: [u8; 0],
 }
@@ -68,7 +69,7 @@ impl Arbitrary for _ObjectCode {
 #[repr(C)]
 pub struct ForeignExportsList {
     pub next: *mut ForeignExportsList,
-    pub n_entries: ::core::ffi::c_int,
+    pub n_entries: c_int,
     pub oc: *mut _ObjectCode,
     pub stable_ptrs: *mut *mut StgStablePtr,
     pub exports: __IncompleteArrayField<StgPtr>,
@@ -82,20 +83,65 @@ impl From<ForeignExportsList> for sys::ForeignExportsList {
 }
 
 #[cfg(test)]
-impl Arbitrary for ForeignExportsList {
+#[derive(Clone)]
+struct ForeignExportsListOwned {
+    pub n_entries: c_int,
+    pub exports: __IncompleteArrayField<StgPtr>,
+}
+
+#[cfg(test)]
+impl Arbitrary for ForeignExportsListOwned {
     fn arbitrary(g: &mut Gen) -> Self {
-        ForeignExportsList {
-            next: Arbitrary::arbitrary(g),
+        ForeignExportsListOwned {
             n_entries: Arbitrary::arbitrary(g),
-            oc: Arbitrary::arbitrary(g),
-            stable_ptrs: Arbitrary::arbitrary(g),
             exports: Arbitrary::arbitrary(g),
         }
     }
 }
 
-#[unsafe(no_mangle)]
+#[cfg(test)]
+#[derive(Clone)]
+struct ForeignExportsListPointees {
+    pub next: ForeignExportsList,
+    pub oc: _ObjectCode,
+    pub stable_ptrs: *mut StgStablePtr,
+}
+
+#[cfg(test)]
+impl Arbitrary for ForeignExportsListPointees {
+    fn arbitrary(g: &mut Gen) -> Self {
+        ForeignExportsListPointees {
+            next: Arbitrary::arbitrary(g),
+            oc: Arbitrary::arbitrary(g),
+            stable_ptrs: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+#[cfg(test)]
+impl HasReferences for ForeignExportsList {
+    type Owned = ForeignExportsListOwned;
+    type Pointees = ForeignExportsListPointees;
+    fn from_parts(owned: Self::Owned, pointees: *mut Self::Pointees) -> Self {
+        Self {
+            n_entries: owned.n_entries,
+            exports: owned.exports.clone(),
+            next: unsafe { &raw mut (*pointees).next },
+            oc: unsafe { &raw mut (*pointees).oc },
+            stable_ptrs: unsafe { &raw mut (*pointees).stable_ptrs },
+        }
+    }
+    fn owned(&self) -> Self::Owned {
+        Self::Owned {
+            n_entries: self.n_entries,
+            exports: self.exports.clone(),
+        }
+    }
+}
+
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_registerForeignExports"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn registerForeignExports(exports: *mut ForeignExportsList) {
-    unsafe { sys::registerForeignExports(exports) }
+    unsafe { sys::registerForeignExports(exports as *mut sys::ForeignExportsList) }
 }

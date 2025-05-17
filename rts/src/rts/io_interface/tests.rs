@@ -1,14 +1,18 @@
+use super::*;
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use crate::utils::test::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use quickcheck_macros::quickcheck;
-use std::mem::{size_of, transmute};
+use std::ffi::{c_char, c_int, c_uint, c_void};
+use std::mem::transmute;
+use std::ptr::{null, null_mut};
 #[test]
 #[ignore]
 fn test_setIOManagerControlFd() {
     let cap_no = Default::default();
     let fd = Default::default();
-    unsafe { super::setIOManagerControlFd(cap_no, fd) };
+    unsafe { setIOManagerControlFd(cap_no, fd) };
     todo!("assert")
 }
 
@@ -16,7 +20,7 @@ fn test_setIOManagerControlFd() {
 #[ignore]
 fn test_setTimerManagerControlFd() {
     let fd = Default::default();
-    unsafe { super::setTimerManagerControlFd(fd) };
+    unsafe { setTimerManagerControlFd(fd) };
     todo!("assert")
 }
 
@@ -24,6 +28,6 @@ fn test_setTimerManagerControlFd() {
 #[ignore]
 fn test_setIOManagerWakeupFd() {
     let fd = Default::default();
-    unsafe { super::setIOManagerWakeupFd(fd) };
+    unsafe { setIOManagerWakeupFd(fd) };
     todo!("assert")
 }

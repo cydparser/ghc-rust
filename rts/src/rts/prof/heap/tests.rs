@@ -1,26 +1,30 @@
+use super::*;
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use crate::utils::test::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use quickcheck_macros::quickcheck;
-use std::mem::{size_of, transmute};
+use std::ffi::{c_char, c_int, c_uint, c_void};
+use std::mem::transmute;
+use std::ptr::{null, null_mut};
 #[test]
 #[ignore]
 fn test_requestHeapCensus() {
-    unsafe { super::requestHeapCensus() };
+    unsafe { requestHeapCensus() };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_startHeapProfTimer() {
-    unsafe { super::startHeapProfTimer() };
+    unsafe { startHeapProfTimer() };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_stopHeapProfTimer() {
-    unsafe { super::stopHeapProfTimer() };
+    unsafe { stopHeapProfTimer() };
     todo!("assert")
 }
 
@@ -28,30 +32,30 @@ fn test_stopHeapProfTimer() {
 #[ignore]
 fn test_setUserEra() {
     let w = Default::default();
-    unsafe { super::setUserEra(w) };
+    unsafe { setUserEra(w) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_getUserEra() -> bool {
-    let expected = unsafe { transmute(sys::getUserEra()) };
-    let actual = unsafe { super::getUserEra() };
+    let expected = unsafe { sys::getUserEra() };
+    let actual = unsafe { getUserEra() };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_getUserEra() {
-    unsafe { super::getUserEra() };
+    unsafe { getUserEra() };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_incrementUserEra(w: StgWord) -> bool {
-    let expected = unsafe { transmute(sys::incrementUserEra(w.into())) };
-    let actual = unsafe { super::incrementUserEra(w) };
+    let expected = unsafe { sys::incrementUserEra(w) };
+    let actual = unsafe { incrementUserEra(w) };
     actual == expected
 }
 
@@ -59,6 +63,6 @@ fn equivalent_incrementUserEra(w: StgWord) -> bool {
 #[ignore]
 fn test_incrementUserEra() {
     let w = Default::default();
-    unsafe { super::incrementUserEra(w) };
+    unsafe { incrementUserEra(w) };
     todo!("assert")
 }

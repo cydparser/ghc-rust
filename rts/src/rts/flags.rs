@@ -1,11 +1,13 @@
-use crate::stg::types;
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+#[cfg(test)]
+use crate::utils::test::{Arbitrary, Gen, HasReferences};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
-#[cfg(test)]
-use quickcheck::{Arbitrary, Gen};
+use std::ffi::{c_char, c_int, c_uint, c_void};
 use std::mem::transmute;
+use std::ptr::{null, null_mut};
+use std::slice;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 #[cfg(test)]
@@ -82,6 +84,7 @@ pub(crate) const TIME_FILENAME_FMT: &[u8; 13] = b"%0.122s.time\0";
 pub(crate) const TIME_FILENAME_FMT_GUM: &[u8; 18] = b"%0.118s.%03d.time\0";
 
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct _GC_FLAGS {
     pub statsFile: *mut FILE,
     pub giveStats: u32,
@@ -127,10 +130,47 @@ impl From<_GC_FLAGS> for sys::_GC_FLAGS {
 }
 
 #[cfg(test)]
-impl Arbitrary for _GC_FLAGS {
+#[derive(Clone)]
+struct _GC_FLAGSOwned {
+    pub giveStats: u32,
+    pub maxStkSize: u32,
+    pub initialStkSize: u32,
+    pub stkChunkSize: u32,
+    pub stkChunkBufferSize: u32,
+    pub maxHeapSize: u32,
+    pub minAllocAreaSize: u32,
+    pub largeAllocLim: u32,
+    pub nurseryChunkSize: u32,
+    pub minOldGenSize: u32,
+    pub heapSizeSuggestion: u32,
+    pub heapSizeSuggestionAuto: bool,
+    pub oldGenFactor: f64,
+    pub returnDecayFactor: f64,
+    pub pcFreeHeap: f64,
+    pub useNonmoving: bool,
+    pub nonmovingDenseAllocatorCount: u16,
+    pub generations: u32,
+    pub squeezeUpdFrames: bool,
+    pub compact: bool,
+    pub compactThreshold: f64,
+    pub sweep: bool,
+    pub ringBell: bool,
+    pub idleGCDelayTime: Time,
+    pub interIdleGCWait: Time,
+    pub doIdleGC: bool,
+    pub longGCSync: Time,
+    pub heapBase: StgWord,
+    pub allocLimitGrace: StgWord,
+    pub heapLimitGrace: StgWord,
+    pub numa: bool,
+    pub numaMask: StgWord,
+    pub addressSpaceSize: StgWord64,
+}
+
+#[cfg(test)]
+impl Arbitrary for _GC_FLAGSOwned {
     fn arbitrary(g: &mut Gen) -> Self {
-        _GC_FLAGS {
-            statsFile: Arbitrary::arbitrary(g),
+        _GC_FLAGSOwned {
             giveStats: Arbitrary::arbitrary(g),
             maxStkSize: Arbitrary::arbitrary(g),
             initialStkSize: Arbitrary::arbitrary(g),
@@ -168,10 +208,107 @@ impl Arbitrary for _GC_FLAGS {
     }
 }
 
+#[cfg(test)]
+#[derive(Clone)]
+struct _GC_FLAGSPointees {
+    pub statsFile: FILE,
+}
+
+#[cfg(test)]
+impl Arbitrary for _GC_FLAGSPointees {
+    fn arbitrary(g: &mut Gen) -> Self {
+        _GC_FLAGSPointees {
+            statsFile: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+#[cfg(test)]
+impl HasReferences for _GC_FLAGS {
+    type Owned = _GC_FLAGSOwned;
+    type Pointees = _GC_FLAGSPointees;
+    fn from_parts(owned: Self::Owned, pointees: *mut Self::Pointees) -> Self {
+        Self {
+            giveStats: owned.giveStats,
+            maxStkSize: owned.maxStkSize,
+            initialStkSize: owned.initialStkSize,
+            stkChunkSize: owned.stkChunkSize,
+            stkChunkBufferSize: owned.stkChunkBufferSize,
+            maxHeapSize: owned.maxHeapSize,
+            minAllocAreaSize: owned.minAllocAreaSize,
+            largeAllocLim: owned.largeAllocLim,
+            nurseryChunkSize: owned.nurseryChunkSize,
+            minOldGenSize: owned.minOldGenSize,
+            heapSizeSuggestion: owned.heapSizeSuggestion,
+            heapSizeSuggestionAuto: owned.heapSizeSuggestionAuto.clone(),
+            oldGenFactor: owned.oldGenFactor.clone(),
+            returnDecayFactor: owned.returnDecayFactor.clone(),
+            pcFreeHeap: owned.pcFreeHeap.clone(),
+            useNonmoving: owned.useNonmoving.clone(),
+            nonmovingDenseAllocatorCount: owned.nonmovingDenseAllocatorCount.clone(),
+            generations: owned.generations,
+            squeezeUpdFrames: owned.squeezeUpdFrames.clone(),
+            compact: owned.compact.clone(),
+            compactThreshold: owned.compactThreshold.clone(),
+            sweep: owned.sweep.clone(),
+            ringBell: owned.ringBell.clone(),
+            idleGCDelayTime: owned.idleGCDelayTime,
+            interIdleGCWait: owned.interIdleGCWait,
+            doIdleGC: owned.doIdleGC.clone(),
+            longGCSync: owned.longGCSync,
+            heapBase: owned.heapBase,
+            allocLimitGrace: owned.allocLimitGrace,
+            heapLimitGrace: owned.heapLimitGrace,
+            numa: owned.numa.clone(),
+            numaMask: owned.numaMask,
+            addressSpaceSize: owned.addressSpaceSize,
+            statsFile: unsafe { &raw mut (*pointees).statsFile },
+        }
+    }
+    fn owned(&self) -> Self::Owned {
+        Self::Owned {
+            giveStats: self.giveStats,
+            maxStkSize: self.maxStkSize,
+            initialStkSize: self.initialStkSize,
+            stkChunkSize: self.stkChunkSize,
+            stkChunkBufferSize: self.stkChunkBufferSize,
+            maxHeapSize: self.maxHeapSize,
+            minAllocAreaSize: self.minAllocAreaSize,
+            largeAllocLim: self.largeAllocLim,
+            nurseryChunkSize: self.nurseryChunkSize,
+            minOldGenSize: self.minOldGenSize,
+            heapSizeSuggestion: self.heapSizeSuggestion,
+            heapSizeSuggestionAuto: self.heapSizeSuggestionAuto.clone(),
+            oldGenFactor: self.oldGenFactor.clone(),
+            returnDecayFactor: self.returnDecayFactor.clone(),
+            pcFreeHeap: self.pcFreeHeap.clone(),
+            useNonmoving: self.useNonmoving.clone(),
+            nonmovingDenseAllocatorCount: self.nonmovingDenseAllocatorCount.clone(),
+            generations: self.generations,
+            squeezeUpdFrames: self.squeezeUpdFrames.clone(),
+            compact: self.compact.clone(),
+            compactThreshold: self.compactThreshold.clone(),
+            sweep: self.sweep.clone(),
+            ringBell: self.ringBell.clone(),
+            idleGCDelayTime: self.idleGCDelayTime,
+            interIdleGCWait: self.interIdleGCWait,
+            doIdleGC: self.doIdleGC.clone(),
+            longGCSync: self.longGCSync,
+            heapBase: self.heapBase,
+            allocLimitGrace: self.allocLimitGrace,
+            heapLimitGrace: self.heapLimitGrace,
+            numa: self.numa.clone(),
+            numaMask: self.numaMask,
+            addressSpaceSize: self.addressSpaceSize,
+        }
+    }
+}
+
 pub type GC_FLAGS = _GC_FLAGS;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+///cbindgen:no-export
 pub(crate) struct _DEBUG_FLAGS {
     pub scheduler: bool,
     pub interpreter: bool,
@@ -238,11 +375,12 @@ pub type DEBUG_FLAGS = _DEBUG_FLAGS;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+///cbindgen:no-export
 pub(crate) struct _COST_CENTRE_FLAGS {
     pub doCostCentres: u32,
-    pub profilerTicks: ::core::ffi::c_int,
-    pub msecsPerTick: ::core::ffi::c_int,
-    pub outputFileNameStem: *const ::core::ffi::c_char,
+    pub profilerTicks: c_int,
+    pub msecsPerTick: c_int,
+    pub outputFileNameStem: *const c_char,
 }
 
 #[cfg(feature = "sys")]
@@ -253,13 +391,56 @@ impl From<_COST_CENTRE_FLAGS> for sys::_COST_CENTRE_FLAGS {
 }
 
 #[cfg(test)]
-impl Arbitrary for _COST_CENTRE_FLAGS {
+#[derive(Clone)]
+struct _COST_CENTRE_FLAGSOwned {
+    pub doCostCentres: u32,
+    pub profilerTicks: c_int,
+    pub msecsPerTick: c_int,
+}
+
+#[cfg(test)]
+impl Arbitrary for _COST_CENTRE_FLAGSOwned {
     fn arbitrary(g: &mut Gen) -> Self {
-        _COST_CENTRE_FLAGS {
+        _COST_CENTRE_FLAGSOwned {
             doCostCentres: Arbitrary::arbitrary(g),
             profilerTicks: Arbitrary::arbitrary(g),
             msecsPerTick: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone)]
+struct _COST_CENTRE_FLAGSPointees {
+    pub outputFileNameStem: c_char,
+}
+
+#[cfg(test)]
+impl Arbitrary for _COST_CENTRE_FLAGSPointees {
+    fn arbitrary(g: &mut Gen) -> Self {
+        _COST_CENTRE_FLAGSPointees {
             outputFileNameStem: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+#[cfg(test)]
+impl HasReferences for _COST_CENTRE_FLAGS {
+    type Owned = _COST_CENTRE_FLAGSOwned;
+    type Pointees = _COST_CENTRE_FLAGSPointees;
+    fn from_parts(owned: Self::Owned, pointees: *mut Self::Pointees) -> Self {
+        Self {
+            doCostCentres: owned.doCostCentres,
+            profilerTicks: owned.profilerTicks,
+            msecsPerTick: owned.msecsPerTick,
+            outputFileNameStem: unsafe { &raw mut (*pointees).outputFileNameStem },
+        }
+    }
+    fn owned(&self) -> Self::Owned {
+        Self::Owned {
+            doCostCentres: self.doCostCentres,
+            profilerTicks: self.profilerTicks,
+            msecsPerTick: self.msecsPerTick,
         }
     }
 }
@@ -267,6 +448,7 @@ impl Arbitrary for _COST_CENTRE_FLAGS {
 pub type COST_CENTRE_FLAGS = _COST_CENTRE_FLAGS;
 
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct _PROFILING_FLAGS {
     pub doHeapProfile: u32,
     pub heapProfileInterval: Time,
@@ -277,14 +459,14 @@ pub(crate) struct _PROFILING_FLAGS {
     pub showCCSOnException: bool,
     pub maxRetainerSetSize: u32,
     pub ccsLength: u32,
-    pub modSelector: *const ::core::ffi::c_char,
-    pub descrSelector: *const ::core::ffi::c_char,
-    pub typeSelector: *const ::core::ffi::c_char,
-    pub ccSelector: *const ::core::ffi::c_char,
-    pub ccsSelector: *const ::core::ffi::c_char,
-    pub retainerSelector: *const ::core::ffi::c_char,
+    pub modSelector: *const c_char,
+    pub descrSelector: *const c_char,
+    pub typeSelector: *const c_char,
+    pub ccSelector: *const c_char,
+    pub ccsSelector: *const c_char,
+    pub retainerSelector: *const c_char,
     pub eraSelector: StgWord,
-    pub bioSelector: *const ::core::ffi::c_char,
+    pub bioSelector: *const c_char,
 }
 
 #[cfg(feature = "sys")]
@@ -295,9 +477,24 @@ impl From<_PROFILING_FLAGS> for sys::_PROFILING_FLAGS {
 }
 
 #[cfg(test)]
-impl Arbitrary for _PROFILING_FLAGS {
+#[derive(Clone)]
+struct _PROFILING_FLAGSOwned {
+    pub doHeapProfile: u32,
+    pub heapProfileInterval: Time,
+    pub heapProfileIntervalTicks: u32,
+    pub startHeapProfileAtStartup: bool,
+    pub startTimeProfileAtStartup: bool,
+    pub incrementUserEra: bool,
+    pub showCCSOnException: bool,
+    pub maxRetainerSetSize: u32,
+    pub ccsLength: u32,
+    pub eraSelector: StgWord,
+}
+
+#[cfg(test)]
+impl Arbitrary for _PROFILING_FLAGSOwned {
     fn arbitrary(g: &mut Gen) -> Self {
-        _PROFILING_FLAGS {
+        _PROFILING_FLAGSOwned {
             doHeapProfile: Arbitrary::arbitrary(g),
             heapProfileInterval: Arbitrary::arbitrary(g),
             heapProfileIntervalTicks: Arbitrary::arbitrary(g),
@@ -307,14 +504,75 @@ impl Arbitrary for _PROFILING_FLAGS {
             showCCSOnException: Arbitrary::arbitrary(g),
             maxRetainerSetSize: Arbitrary::arbitrary(g),
             ccsLength: Arbitrary::arbitrary(g),
+            eraSelector: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone)]
+struct _PROFILING_FLAGSPointees {
+    pub modSelector: c_char,
+    pub descrSelector: c_char,
+    pub typeSelector: c_char,
+    pub ccSelector: c_char,
+    pub ccsSelector: c_char,
+    pub retainerSelector: c_char,
+    pub bioSelector: c_char,
+}
+
+#[cfg(test)]
+impl Arbitrary for _PROFILING_FLAGSPointees {
+    fn arbitrary(g: &mut Gen) -> Self {
+        _PROFILING_FLAGSPointees {
             modSelector: Arbitrary::arbitrary(g),
             descrSelector: Arbitrary::arbitrary(g),
             typeSelector: Arbitrary::arbitrary(g),
             ccSelector: Arbitrary::arbitrary(g),
             ccsSelector: Arbitrary::arbitrary(g),
             retainerSelector: Arbitrary::arbitrary(g),
-            eraSelector: Arbitrary::arbitrary(g),
             bioSelector: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+#[cfg(test)]
+impl HasReferences for _PROFILING_FLAGS {
+    type Owned = _PROFILING_FLAGSOwned;
+    type Pointees = _PROFILING_FLAGSPointees;
+    fn from_parts(owned: Self::Owned, pointees: *mut Self::Pointees) -> Self {
+        Self {
+            doHeapProfile: owned.doHeapProfile,
+            heapProfileInterval: owned.heapProfileInterval,
+            heapProfileIntervalTicks: owned.heapProfileIntervalTicks,
+            startHeapProfileAtStartup: owned.startHeapProfileAtStartup.clone(),
+            startTimeProfileAtStartup: owned.startTimeProfileAtStartup.clone(),
+            incrementUserEra: owned.incrementUserEra.clone(),
+            showCCSOnException: owned.showCCSOnException.clone(),
+            maxRetainerSetSize: owned.maxRetainerSetSize,
+            ccsLength: owned.ccsLength,
+            eraSelector: owned.eraSelector,
+            modSelector: unsafe { &raw mut (*pointees).modSelector },
+            descrSelector: unsafe { &raw mut (*pointees).descrSelector },
+            typeSelector: unsafe { &raw mut (*pointees).typeSelector },
+            ccSelector: unsafe { &raw mut (*pointees).ccSelector },
+            ccsSelector: unsafe { &raw mut (*pointees).ccsSelector },
+            retainerSelector: unsafe { &raw mut (*pointees).retainerSelector },
+            bioSelector: unsafe { &raw mut (*pointees).bioSelector },
+        }
+    }
+    fn owned(&self) -> Self::Owned {
+        Self::Owned {
+            doHeapProfile: self.doHeapProfile,
+            heapProfileInterval: self.heapProfileInterval,
+            heapProfileIntervalTicks: self.heapProfileIntervalTicks,
+            startHeapProfileAtStartup: self.startHeapProfileAtStartup.clone(),
+            startTimeProfileAtStartup: self.startTimeProfileAtStartup.clone(),
+            incrementUserEra: self.incrementUserEra.clone(),
+            showCCSOnException: self.showCCSOnException.clone(),
+            maxRetainerSetSize: self.maxRetainerSetSize,
+            ccsLength: self.ccsLength,
+            eraSelector: self.eraSelector,
         }
     }
 }
@@ -322,8 +580,9 @@ impl Arbitrary for _PROFILING_FLAGS {
 pub type PROFILING_FLAGS = _PROFILING_FLAGS;
 
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct _TRACE_FLAGS {
-    pub tracing: ::core::ffi::c_int,
+    pub tracing: c_int,
     pub timestamp: bool,
     pub scheduler: bool,
     pub gc: bool,
@@ -333,8 +592,8 @@ pub(crate) struct _TRACE_FLAGS {
     pub ticky: bool,
     pub user: bool,
     pub eventlogFlushTime: Time,
-    pub eventlogFlushTicks: ::core::ffi::c_int,
-    pub trace_output: *mut ::core::ffi::c_char,
+    pub eventlogFlushTicks: c_int,
+    pub trace_output: *mut c_char,
     pub nullWriter: bool,
 }
 
@@ -346,9 +605,26 @@ impl From<_TRACE_FLAGS> for sys::_TRACE_FLAGS {
 }
 
 #[cfg(test)]
-impl Arbitrary for _TRACE_FLAGS {
+#[derive(Clone)]
+struct _TRACE_FLAGSOwned {
+    pub tracing: c_int,
+    pub timestamp: bool,
+    pub scheduler: bool,
+    pub gc: bool,
+    pub nonmoving_gc: bool,
+    pub sparks_sampled: bool,
+    pub sparks_full: bool,
+    pub ticky: bool,
+    pub user: bool,
+    pub eventlogFlushTime: Time,
+    pub eventlogFlushTicks: c_int,
+    pub nullWriter: bool,
+}
+
+#[cfg(test)]
+impl Arbitrary for _TRACE_FLAGSOwned {
     fn arbitrary(g: &mut Gen) -> Self {
-        _TRACE_FLAGS {
+        _TRACE_FLAGSOwned {
             tracing: Arbitrary::arbitrary(g),
             timestamp: Arbitrary::arbitrary(g),
             scheduler: Arbitrary::arbitrary(g),
@@ -360,8 +636,61 @@ impl Arbitrary for _TRACE_FLAGS {
             user: Arbitrary::arbitrary(g),
             eventlogFlushTime: Arbitrary::arbitrary(g),
             eventlogFlushTicks: Arbitrary::arbitrary(g),
-            trace_output: Arbitrary::arbitrary(g),
             nullWriter: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone)]
+struct _TRACE_FLAGSPointees {
+    pub trace_output: c_char,
+}
+
+#[cfg(test)]
+impl Arbitrary for _TRACE_FLAGSPointees {
+    fn arbitrary(g: &mut Gen) -> Self {
+        _TRACE_FLAGSPointees {
+            trace_output: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+#[cfg(test)]
+impl HasReferences for _TRACE_FLAGS {
+    type Owned = _TRACE_FLAGSOwned;
+    type Pointees = _TRACE_FLAGSPointees;
+    fn from_parts(owned: Self::Owned, pointees: *mut Self::Pointees) -> Self {
+        Self {
+            tracing: owned.tracing,
+            timestamp: owned.timestamp.clone(),
+            scheduler: owned.scheduler.clone(),
+            gc: owned.gc.clone(),
+            nonmoving_gc: owned.nonmoving_gc.clone(),
+            sparks_sampled: owned.sparks_sampled.clone(),
+            sparks_full: owned.sparks_full.clone(),
+            ticky: owned.ticky.clone(),
+            user: owned.user.clone(),
+            eventlogFlushTime: owned.eventlogFlushTime,
+            eventlogFlushTicks: owned.eventlogFlushTicks,
+            nullWriter: owned.nullWriter.clone(),
+            trace_output: unsafe { &raw mut (*pointees).trace_output },
+        }
+    }
+    fn owned(&self) -> Self::Owned {
+        Self::Owned {
+            tracing: self.tracing,
+            timestamp: self.timestamp.clone(),
+            scheduler: self.scheduler.clone(),
+            gc: self.gc.clone(),
+            nonmoving_gc: self.nonmoving_gc.clone(),
+            sparks_sampled: self.sparks_sampled.clone(),
+            sparks_full: self.sparks_full.clone(),
+            ticky: self.ticky.clone(),
+            user: self.user.clone(),
+            eventlogFlushTime: self.eventlogFlushTime,
+            eventlogFlushTicks: self.eventlogFlushTicks,
+            nullWriter: self.nullWriter.clone(),
         }
     }
 }
@@ -369,9 +698,10 @@ impl Arbitrary for _TRACE_FLAGS {
 pub type TRACE_FLAGS = _TRACE_FLAGS;
 
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct _CONCURRENT_FLAGS {
     pub ctxtSwitchTime: Time,
-    pub ctxtSwitchTicks: ::core::ffi::c_int,
+    pub ctxtSwitchTicks: c_int,
 }
 
 #[cfg(feature = "sys")]
@@ -406,6 +736,7 @@ pub(crate) enum _IO_MANAGER_FLAG {
 pub use self::_IO_MANAGER_FLAG as IO_MANAGER_FLAG;
 
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct _MISC_FLAGS {
     pub tickInterval: Time,
     pub install_signal_handlers: bool,
@@ -452,6 +783,7 @@ pub type MISC_FLAGS = _MISC_FLAGS;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+///cbindgen:no-export
 pub(crate) struct _PAR_FLAGS {
     pub nCapabilities: u32,
     pub migrate: bool,
@@ -504,6 +836,7 @@ pub use self::_HPC_READ_FILE as HPC_READ_FILE;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+///cbindgen:no-export
 pub(crate) struct _HPC_FLAGS {
     pub writeTixFile: bool,
     pub readTixFile: HPC_READ_FILE,
@@ -530,6 +863,7 @@ pub type HPC_FLAGS = _HPC_FLAGS;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+///cbindgen:no-export
 pub(crate) struct _TICKY_FLAGS {
     pub showTickyStats: bool,
     pub tickyFile: *mut FILE,
@@ -543,11 +877,48 @@ impl From<_TICKY_FLAGS> for sys::_TICKY_FLAGS {
 }
 
 #[cfg(test)]
-impl Arbitrary for _TICKY_FLAGS {
+#[derive(Clone)]
+struct _TICKY_FLAGSOwned {
+    pub showTickyStats: bool,
+}
+
+#[cfg(test)]
+impl Arbitrary for _TICKY_FLAGSOwned {
     fn arbitrary(g: &mut Gen) -> Self {
-        _TICKY_FLAGS {
+        _TICKY_FLAGSOwned {
             showTickyStats: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone)]
+struct _TICKY_FLAGSPointees {
+    pub tickyFile: FILE,
+}
+
+#[cfg(test)]
+impl Arbitrary for _TICKY_FLAGSPointees {
+    fn arbitrary(g: &mut Gen) -> Self {
+        _TICKY_FLAGSPointees {
             tickyFile: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+#[cfg(test)]
+impl HasReferences for _TICKY_FLAGS {
+    type Owned = _TICKY_FLAGSOwned;
+    type Pointees = _TICKY_FLAGSPointees;
+    fn from_parts(owned: Self::Owned, pointees: *mut Self::Pointees) -> Self {
+        Self {
+            showTickyStats: owned.showTickyStats.clone(),
+            tickyFile: unsafe { &raw mut (*pointees).tickyFile },
+        }
+    }
+    fn owned(&self) -> Self::Owned {
+        Self::Owned {
+            showTickyStats: self.showTickyStats.clone(),
         }
     }
 }
@@ -555,6 +926,7 @@ impl Arbitrary for _TICKY_FLAGS {
 pub type TICKY_FLAGS = _TICKY_FLAGS;
 
 #[repr(C)]
+///cbindgen:no-export
 pub(crate) struct _RTS_FLAGS {
     pub GcFlags: GC_FLAGS,
     pub ConcFlags: CONCURRENT_FLAGS,
@@ -595,9 +967,10 @@ impl Arbitrary for _RTS_FLAGS {
 
 pub type RTS_FLAGS = _RTS_FLAGS;
 
-#[unsafe(no_mangle)]
-pub static mut RtsFlags: RTS_FLAGS = unsafe { sys::RtsFlags };
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_RtsFlags"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+pub static mut RtsFlags: RTS_FLAGS = 0;
 
-static mut rts_argc: ::core::ffi::c_int = unsafe { sys::rts_argc };
+static mut rts_argc: c_int = 0;
 
-static mut rts_argv: *mut *mut ::core::ffi::c_char = unsafe { sys::rts_argv };
+static mut rts_argv: *mut *mut c_char = null_mut();

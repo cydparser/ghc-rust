@@ -1,25 +1,29 @@
+use super::*;
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use crate::utils::test::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use quickcheck_macros::quickcheck;
-use std::mem::{size_of, transmute};
+use std::ffi::{c_char, c_int, c_uint, c_void};
+use std::mem::transmute;
+use std::ptr::{null, null_mut};
 #[cfg(feature = "sys")]
 #[quickcheck]
 fn equivalent_hs_main(
-    argc: ::core::ffi::c_int,
-    argv: ::core::ffi::c_char,
+    argc: c_int,
+    argv: c_char,
     main_closure: StgClosure,
     rts_config: RtsConfig,
 ) -> bool {
     let expected = unsafe {
-        transmute(sys::hs_main(
-            argc.into(),
-            &mut &mut argv.into(),
+        sys::hs_main(
+            argc,
+            &mut &mut argv,
             &mut main_closure.into(),
             rts_config.into(),
-        ))
+        )
     };
-    let actual = unsafe { super::hs_main(argc, &mut &mut argv, &mut main_closure, rts_config) };
+    let actual = unsafe { hs_main(argc, &mut &mut argv, &mut main_closure, rts_config) };
     actual == expected
 }
 
@@ -27,9 +31,9 @@ fn equivalent_hs_main(
 #[ignore]
 fn test_hs_main() {
     let argc = Default::default();
-    let mut argv = Default::default();
-    let mut main_closure = Default::default();
-    let rts_config = Default::default();
-    unsafe { super::hs_main(argc, &mut &mut argv, &mut main_closure, rts_config) };
+    let mut argv = null_mut();
+    let mut main_closure = null_mut();
+    let rts_config = todo!();
+    unsafe { hs_main(argc, &mut &mut argv, &mut main_closure, rts_config) };
     todo!("assert")
 }

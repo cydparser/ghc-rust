@@ -1,13 +1,17 @@
+use super::*;
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+use crate::utils::test::*;
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use quickcheck_macros::quickcheck;
-use std::mem::{size_of, transmute};
+use std::ffi::{c_char, c_int, c_uint, c_void};
+use std::mem::transmute;
+use std::ptr::{null, null_mut};
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent___hscore_get_saved_termios(fd: ::core::ffi::c_int) -> bool {
-    let expected = unsafe { transmute(sys::__hscore_get_saved_termios(fd.into())) };
-    let actual = unsafe { super::__hscore_get_saved_termios(fd) };
+fn equivalent___hscore_get_saved_termios(fd: c_int) -> bool {
+    let expected = unsafe { sys::__hscore_get_saved_termios(fd) };
+    let actual = unsafe { __hscore_get_saved_termios(fd) };
     actual == expected
 }
 
@@ -15,7 +19,7 @@ fn equivalent___hscore_get_saved_termios(fd: ::core::ffi::c_int) -> bool {
 #[ignore]
 fn test___hscore_get_saved_termios() {
     let fd = Default::default();
-    unsafe { super::__hscore_get_saved_termios(fd) };
+    unsafe { __hscore_get_saved_termios(fd) };
     todo!("assert")
 }
 
@@ -23,7 +27,7 @@ fn test___hscore_get_saved_termios() {
 #[ignore]
 fn test___hscore_set_saved_termios() {
     let fd = Default::default();
-    let mut ts = Default::default();
-    unsafe { super::__hscore_set_saved_termios(fd, &mut ts) };
+    let mut ts = null_mut();
+    unsafe { __hscore_set_saved_termios(fd, &mut ts) };
     todo!("assert")
 }

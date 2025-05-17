@@ -1,22 +1,33 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+#[cfg(test)]
+use crate::utils::test::{Arbitrary, Gen, HasReferences};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
-#[cfg(test)]
-use quickcheck::{Arbitrary, Gen};
+use std::ffi::{c_char, c_int, c_uint, c_void};
 use std::mem::transmute;
+use std::ptr::{null, null_mut};
+use std::slice;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 #[cfg(test)]
 mod tests;
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_main"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_main(
-    argc: ::core::ffi::c_int,
-    argv: *mut *mut ::core::ffi::c_char,
+    argc: c_int,
+    argv: *mut *mut c_char,
     main_closure: *mut StgClosure,
     rts_config: RtsConfig,
 ) -> ! {
-    unsafe { transmute(sys::hs_main(argc, argv, main_closure, rts_config)) }
+    unsafe {
+        sys::hs_main(
+            argc,
+            argv,
+            main_closure as *mut sys::StgClosure,
+            transmute(rts_config),
+        )
+    }
 }

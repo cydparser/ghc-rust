@@ -1,15 +1,15 @@
-use std::ffi::{c_char, c_int, c_void};
-
-#[cfg(feature = "tracing")]
-use tracing::instrument;
-
-use crate::stg::types::{
-    StgChar, StgDouble, StgFloat, StgInt, StgInt16, StgInt32, StgInt64, StgInt8, StgPtr, StgWord,
-    StgWord16, StgWord32, StgWord64, StgWord8,
-};
+use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+#[cfg(test)]
+use crate::utils::test::{Arbitrary, Gen, HasReferences};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
-
+use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
+use std::ffi::{c_char, c_int, c_uint, c_void};
+use std::mem::transmute;
+use std::ptr::{null, null_mut};
+use std::slice;
+#[cfg(feature = "tracing")]
+use tracing::instrument;
 #[cfg(test)]
 mod tests;
 
@@ -77,13 +77,15 @@ pub(crate) type HsFunPtr = Option<unsafe extern "C" fn()>;
 
 pub type HsStablePtr = *mut c_void;
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_init"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_init(argc: *mut c_int, argv: *mut *mut *mut c_char) {
     unsafe { sys::hs_init(argc, argv) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_exit"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_exit() {
     unsafe { sys::hs_exit() }
@@ -99,13 +101,20 @@ pub(crate) unsafe fn hs_set_argv(argc: c_int, argv: *mut *mut c_char) {
     unsafe { sys::hs_set_argv(argc, argv) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_thread_done"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_thread_done() {
     unsafe { sys::hs_thread_done() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "tracing", instrument)]
+pub(crate) unsafe fn hs_restoreConsoleCP() {
+    unsafe { sys::hs_restoreConsoleCP() }
+}
+
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_perform_gc"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_perform_gc() {
     unsafe { sys::hs_perform_gc() }
@@ -136,7 +145,8 @@ pub(crate) unsafe fn hs_free_stable_ptr_unsafe(sp: HsStablePtr) {
     unsafe { sys::hs_free_stable_ptr_unsafe(sp) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_free_stable_ptr"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_free_stable_ptr(sp: HsStablePtr) {
     unsafe { sys::hs_free_stable_ptr(sp) }
@@ -147,25 +157,29 @@ pub(crate) unsafe fn hs_free_fun_ptr(fp: HsFunPtr) {
     unsafe { sys::hs_free_fun_ptr(fp) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_spt_lookup"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_spt_lookup(key: *mut StgWord64) -> StgPtr {
     unsafe { sys::hs_spt_lookup(key) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_spt_keys"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_spt_keys(keys: *mut StgPtr, szKeys: c_int) -> c_int {
     unsafe { sys::hs_spt_keys(keys, szKeys) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_spt_key_count"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_spt_key_count() -> c_int {
     unsafe { sys::hs_spt_key_count() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_try_putmvar"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn hs_try_putmvar(capability: c_int, sp: HsStablePtr) {
     unsafe { sys::hs_try_putmvar(capability, sp) }

@@ -1,10 +1,13 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+#[cfg(test)]
+use crate::utils::test::{Arbitrary, Gen, HasReferences};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
-#[cfg(test)]
-use quickcheck::{Arbitrary, Gen};
+use std::ffi::{c_char, c_int, c_uint, c_void};
 use std::mem::transmute;
+use std::ptr::{null, null_mut};
+use std::slice;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 #[cfg(test)]
@@ -41,13 +44,12 @@ pub(crate) type ThreadLocalKey = pthread_key_t;
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn osThreadId() -> OSThreadId {
-    unsafe { transmute(sys::osThreadId()) }
+    unsafe { sys::osThreadId() }
 }
 
-#[unsafe(no_mangle)]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn shutdownThread() -> ! {
-    unsafe { transmute(sys::shutdownThread()) }
+pub(crate) unsafe fn shutdownThread() -> ! {
+    unsafe { sys::shutdownThread() }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -55,28 +57,27 @@ pub(crate) unsafe fn yieldThread() {
     unsafe { sys::yieldThread() }
 }
 
-pub type OSThreadProc = ::core::option::Option<
-    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void) -> *mut ::core::ffi::c_void,
->;
-#[unsafe(no_mangle)]
+pub type OSThreadProc = Option<unsafe extern "C" fn(arg1: *mut c_void) -> *mut c_void>;
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_createOSThread"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn createOSThread(
     tid: *mut OSThreadId,
-    name: *const ::core::ffi::c_char,
+    name: *const c_char,
     startProc: OSThreadProc,
-    param: *mut ::core::ffi::c_void,
-) -> ::core::ffi::c_int {
-    unsafe { transmute(sys::createOSThread(tid, name, startProc, param)) }
+    param: *mut c_void,
+) -> c_int {
+    unsafe { sys::createOSThread(tid, name, startProc, param) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn createAttachedOSThread(
     tid: *mut OSThreadId,
-    name: *const ::core::ffi::c_char,
+    name: *const c_char,
     startProc: OSThreadProc,
-    param: *mut ::core::ffi::c_void,
-) -> ::core::ffi::c_int {
-    unsafe { transmute(sys::createAttachedOSThread(tid, name, startProc, param)) }
+    param: *mut c_void,
+) -> c_int {
+    unsafe { sys::createAttachedOSThread(tid, name, startProc, param) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -94,32 +95,35 @@ pub(crate) unsafe fn joinOSThread(id: OSThreadId) {
     unsafe { sys::joinOSThread(id) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_initCondition"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn initCondition(pCond: *mut Condition) {
-    unsafe { sys::initCondition(pCond) }
+    unsafe { sys::initCondition(pCond as *mut sys::Condition) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn closeCondition(pCond: *mut Condition) {
-    unsafe { sys::closeCondition(pCond) }
+    unsafe { sys::closeCondition(pCond as *mut sys::Condition) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_broadcastCondition"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn broadcastCondition(pCond: *mut Condition) {
-    unsafe { sys::broadcastCondition(pCond) }
+    unsafe { sys::broadcastCondition(pCond as *mut sys::Condition) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn signalCondition(pCond: *mut Condition) {
-    unsafe { sys::signalCondition(pCond) }
+    unsafe { sys::signalCondition(pCond as *mut sys::Condition) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_waitCondition"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn waitCondition(pCond: *mut Condition, pMut: *mut Mutex) {
-    unsafe { sys::waitCondition(pCond, pMut) }
+    unsafe { sys::waitCondition(pCond as *mut sys::Condition, pMut) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -128,10 +132,17 @@ pub(crate) unsafe fn timedWaitCondition(
     pMut: *mut Mutex,
     timeout: Time,
 ) -> bool {
-    unsafe { transmute(sys::timedWaitCondition(pCond, pMut, timeout)) }
+    unsafe {
+        transmute(sys::timedWaitCondition(
+            pCond as *mut sys::Condition,
+            pMut,
+            timeout,
+        ))
+    }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_initMutex"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn initMutex(pMut: *mut Mutex) {
     unsafe { sys::initMutex(pMut) }
@@ -148,12 +159,12 @@ pub(crate) unsafe fn newThreadLocalKey(key: *mut ThreadLocalKey) {
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
-pub(crate) unsafe fn getThreadLocalVar(key: *mut ThreadLocalKey) -> *mut ::core::ffi::c_void {
-    unsafe { transmute(sys::getThreadLocalVar(key)) }
+pub(crate) unsafe fn getThreadLocalVar(key: *mut ThreadLocalKey) -> *mut c_void {
+    unsafe { sys::getThreadLocalVar(key) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
-pub(crate) unsafe fn setThreadLocalVar(key: *mut ThreadLocalKey, value: *mut ::core::ffi::c_void) {
+pub(crate) unsafe fn setThreadLocalVar(key: *mut ThreadLocalKey, value: *mut c_void) {
     unsafe { sys::setThreadLocalVar(key, value) }
 }
 
@@ -177,10 +188,11 @@ pub(crate) unsafe fn releaseThreadNode() {
     unsafe { sys::releaseThreadNode() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_forkOS_createThread"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn forkOS_createThread(entry: HsStablePtr) -> ::core::ffi::c_int {
-    unsafe { transmute(sys::forkOS_createThread(entry)) }
+pub unsafe extern "C" fn forkOS_createThread(entry: HsStablePtr) -> c_int {
+    unsafe { sys::forkOS_createThread(entry) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -188,15 +200,16 @@ pub(crate) unsafe fn freeThreadingResources() {
     unsafe { sys::freeThreadingResources() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_getNumberOfProcessors"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getNumberOfProcessors() -> u32 {
-    unsafe { transmute(sys::getNumberOfProcessors()) }
+    unsafe { sys::getNumberOfProcessors() }
 }
 
 pub(crate) type KernelThreadId = StgWord64;
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn kernelThreadId() -> KernelThreadId {
-    unsafe { transmute(sys::kernelThreadId()) }
+    unsafe { sys::kernelThreadId() }
 }

@@ -1,10 +1,13 @@
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
+#[cfg(test)]
+use crate::utils::test::{Arbitrary, Gen, HasReferences};
 #[cfg(feature = "sys")]
 use ghc_rts_sys as sys;
 use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
-#[cfg(test)]
-use quickcheck::{Arbitrary, Gen};
+use std::ffi::{c_char, c_int, c_uint, c_void};
 use std::mem::transmute;
+use std::ptr::{null, null_mut};
+use std::slice;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 #[cfg(test)]
@@ -12,33 +15,36 @@ mod tests;
 
 pub const PATH_FMT: &[u8; 2] = b"s\0";
 
-pub type pathchar = ::core::ffi::c_char;
+pub type pathchar = c_char;
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_initLinker"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn initLinker() {
     unsafe { sys::initLinker() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_initLinker_"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn initLinker_(retain_cafs: ::core::ffi::c_int) {
+pub unsafe extern "C" fn initLinker_(retain_cafs: c_int) {
     unsafe { sys::initLinker_(retain_cafs) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn insertSymbol(
     obj_name: *mut pathchar,
-    key: *mut ::core::ffi::c_char,
-    data: *mut ::core::ffi::c_void,
+    key: *mut c_char,
+    data: *mut c_void,
 ) -> HsInt {
-    unsafe { transmute(sys::insertSymbol(obj_name, key, data)) }
+    unsafe { sys::insertSymbol(obj_name, key, data) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_lookupSymbol"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn lookupSymbol(lbl: *mut ::core::ffi::c_char) -> *mut ::core::ffi::c_void {
-    unsafe { transmute(sys::lookupSymbol(lbl)) }
+pub unsafe extern "C" fn lookupSymbol(lbl: *mut c_char) -> *mut c_void {
+    unsafe { sys::lookupSymbol(lbl) }
 }
 
 #[repr(u32)]
@@ -53,82 +59,94 @@ pub(crate) enum OStatus {
     OBJECT_NOT_LOADED = 6,
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_getObjectLoadStatus"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn getObjectLoadStatus(path: *mut pathchar) -> OStatus {
     unsafe { transmute(sys::getObjectLoadStatus(path)) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_unloadObj"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn unloadObj(path: *mut pathchar) -> HsInt {
-    unsafe { transmute(sys::unloadObj(path)) }
+    unsafe { sys::unloadObj(path) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_purgeObj"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn purgeObj(path: *mut pathchar) -> HsInt {
-    unsafe { transmute(sys::purgeObj(path)) }
+    unsafe { sys::purgeObj(path) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_loadObj"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn loadObj(path: *mut pathchar) -> HsInt {
-    unsafe { transmute(sys::loadObj(path)) }
+    unsafe { sys::loadObj(path) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_loadArchive"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn loadArchive(path: *mut pathchar) -> HsInt {
-    unsafe { transmute(sys::loadArchive(path)) }
+    unsafe { sys::loadArchive(path) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_resolveObjs"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn resolveObjs() -> HsInt {
-    unsafe { transmute(sys::resolveObjs()) }
+    unsafe { sys::resolveObjs() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_loadNativeObj"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn loadNativeObj(
     path: *mut pathchar,
-    errmsg: *mut *mut ::core::ffi::c_char,
-) -> *mut ::core::ffi::c_void {
-    unsafe { transmute(sys::loadNativeObj(path, errmsg)) }
+    errmsg: *mut *mut c_char,
+) -> *mut c_void {
+    unsafe { sys::loadNativeObj(path, errmsg) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_unloadNativeObj"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn unloadNativeObj(handle: *mut ::core::ffi::c_void) -> HsInt {
-    unsafe { transmute(sys::unloadNativeObj(handle)) }
+pub unsafe extern "C" fn unloadNativeObj(handle: *mut c_void) -> HsInt {
+    unsafe { sys::unloadNativeObj(handle) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_lookupSymbolInNativeObj"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn lookupSymbolInNativeObj(
-    handle: *mut ::core::ffi::c_void,
-    symbol_name: *const ::core::ffi::c_char,
-) -> *mut ::core::ffi::c_void {
-    unsafe { transmute(sys::lookupSymbolInNativeObj(handle, symbol_name)) }
+    handle: *mut c_void,
+    symbol_name: *const c_char,
+) -> *mut c_void {
+    unsafe { sys::lookupSymbolInNativeObj(handle, symbol_name) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_addDLL"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
-pub unsafe extern "C" fn addDLL(dll_name: *mut pathchar) -> *const ::core::ffi::c_char {
-    unsafe { transmute(sys::addDLL(dll_name)) }
+pub unsafe extern "C" fn addDLL(dll_name: *mut pathchar) -> *const c_char {
+    unsafe { sys::addDLL(dll_name) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_addLibrarySearchPath"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn addLibrarySearchPath(dll_path: *mut pathchar) -> HsPtr {
-    unsafe { transmute(sys::addLibrarySearchPath(dll_path)) }
+    unsafe { sys::addLibrarySearchPath(dll_path) }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_removeLibrarySearchPath"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn removeLibrarySearchPath(dll_path_index: HsPtr) -> HsBool {
-    unsafe { transmute(sys::removeLibrarySearchPath(dll_path_index)) }
+    unsafe { sys::removeLibrarySearchPath(dll_path_index) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
@@ -136,13 +154,14 @@ pub(crate) unsafe fn warnMissingKBLibraryPaths() {
     unsafe { sys::warnMissingKBLibraryPaths() }
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_findSystemLibrary"))]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[cfg_attr(feature = "tracing", instrument)]
 pub unsafe extern "C" fn findSystemLibrary(dll_name: *mut pathchar) -> *mut pathchar {
-    unsafe { transmute(sys::findSystemLibrary(dll_name)) }
+    unsafe { sys::findSystemLibrary(dll_name) }
 }
 
 #[cfg_attr(feature = "tracing", instrument)]
 pub(crate) unsafe fn foreignExportStablePtr(p: StgPtr) -> StgStablePtr {
-    unsafe { transmute(sys::foreignExportStablePtr(p)) }
+    unsafe { sys::foreignExportStablePtr(p) }
 }
