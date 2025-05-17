@@ -101,8 +101,8 @@ _files=(
   rts/src/rts/storage/m_block.rs
   rts/src/rts/threads/tests.rs
   rts/src/rts/threads.rs
-  rts/src/rts/ticky/tests.rs
-  rts/src/rts/ticky.rs
+  # rts/src/rts/ticky/tests.rs
+  # rts/src/rts/ticky.rs
   rts/src/rts/time/tests.rs
   rts/src/rts/time.rs
   rts/src/rts/timer/tests.rs
