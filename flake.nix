@@ -110,6 +110,8 @@
             }
             // args
           );
+
+        ghc = pkgs.haskell.compiler.ghc912;
       in
       {
         checks = {
@@ -167,13 +169,13 @@
           packages =
             with pkgs;
             [
-              cargo-binutils
-              cargo-semver-checks
               llvmPackages.clang
               # Libraries
-              elfutils.dev
               gmp.dev
               libffi.dev
+            ]
+            ++ lib.optionals pkgs.stdenv.isLinux [
+              elfutils.dev
               numactl.dev
             ]
             ++ self.checks.${system}.pre-commit.enabledPackages;
@@ -185,6 +187,8 @@
               export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
               export TAPLO_CONFIG=" $FLAKE_ROOT/taplo.toml";
               export RUST_BACKTRACE=1;
+
+              export GHC_LIB_DIR=${lib.optionalString pkgs.stdenv.isDarwin "${ghc}/lib/ghc-${ghc.version}/lib"}
             ''
             + self.checks.${system}.pre-commit.shellHook;
         };
