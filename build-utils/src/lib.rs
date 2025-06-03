@@ -32,9 +32,14 @@ impl GhcDirs {
 
             dbg!(&lib_dir);
 
+            let os = match std::env::consts::OS {
+                "macos" => "osx",
+                os => os,
+            };
+
             let arch_os_dir = file_names_starting_with(
                 &lib_dir,
-                &format!("{}-{}-ghc-", std::env::consts::ARCH, std::env::consts::OS),
+                &format!("{}-{}-ghc-", std::env::consts::ARCH, os),
             );
             lib_dir.push(PathBuf::from(&arch_os_dir[0]));
             lib_dir
