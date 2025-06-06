@@ -92,7 +92,16 @@ pub fn bindgen_builder(ghc: &GhcDirs) -> bindgen::Builder {
 pub fn use_libc() -> String {
     let mut s = String::from("use libc::{");
 
-    for ty in LIBC_TYPES {
+    let libc_types: Vec<&str> = if std::env::consts::OS == "macos" {
+        LIBC_TYPES
+            .into_iter()
+            .filter(|s| *s != "clockid_t")
+            .collect()
+    } else {
+        LIBC_TYPES.into()
+    };
+
+    for ty in libc_types {
         s.push_str(ty);
         s.push_str(",");
     }
