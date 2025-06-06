@@ -117,6 +117,7 @@ pub fn use_libc() -> String {
 pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
     // Disable PIE for tests. `cargo::rustc-link-arg-tests` does not work for unit tests
     // (https://github.com/rust-lang/cargo/issues/10937).
+    #[cfg(target_os = "linux")]
     println!("cargo::rustc-link-arg=-Wl,--no-pie");
 
     println!(
@@ -170,7 +171,16 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
         }
     }
 
-    for lib in ["numa", "ffi", "dw", "elf", "gmp"] {
+    for lib in [
+        #[cfg(target_os = "linux")]
+        "numa",
+        #[cfg(target_os = "linux")]
+        "dw",
+        #[cfg(target_os = "linux")]
+        "elf",
+        "ffi",
+        "gmp",
+    ] {
         println!("cargo::rustc-link-lib={}", lib);
     }
 }
