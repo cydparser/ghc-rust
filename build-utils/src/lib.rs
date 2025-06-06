@@ -3,6 +3,7 @@ use std::fs;
 use std::os::unix;
 use std::path::{Path, PathBuf};
 
+#[derive(Debug)]
 pub struct GhcDirs {
     pub root_dir: PathBuf,
     pub lib_dir: PathBuf,
@@ -29,8 +30,6 @@ impl GhcDirs {
             let mut lib_dir = std::env::var("GHC_LIB_DIR")
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| ghc_dir.join(PathBuf::from("_build/stage1/lib")));
-
-            dbg!(&lib_dir);
 
             let os = match std::env::consts::OS {
                 "macos" => "osx",
