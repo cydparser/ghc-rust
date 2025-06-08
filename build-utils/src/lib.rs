@@ -13,6 +13,8 @@ pub struct GhcDirs {
 
 const RTS_VER: &str = "1.0.2";
 
+const GHC_LIB_DIR: &str = "GHC_LIB_DIR";
+
 /// The following environmental overrides are available:
 ///   - GHC_DIR: Change the path to GHC source
 ///   - GHC_LIB_DIR: Change the path to object files and headers
@@ -27,9 +29,15 @@ impl GhcDirs {
             });
 
         let lib_dir = {
-            let mut lib_dir = std::env::var("GHC_LIB_DIR")
-                .map(PathBuf::from)
-                .unwrap_or_else(|_| ghc_dir.join(PathBuf::from("_build/stage1/lib")));
+            let mut lib_dir = option_env!("GHC_LIB_DIR")
+                .map(|s| {
+                    let path = PathBuf::from(s);
+                    if !path.exists() {
+                        panic!("Invalid {GHC_LIB_DIR} path: {}", path.display());
+                    }
+                    path
+                })
+                .unwrap_or(ghc_dir.join(PathBuf::from("_build/stage1/lib")));
 
             let os = match std::env::consts::OS {
                 "macos" => "osx",
@@ -149,9 +157,15 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
         ("libHSghc-prim-", None),
     ];
 
+    let lib_predicate: fn(&String) -> bool = if std::env::var("GHC_LIB_DIR").is_ok() {
+        |s| !s.contains("_p-ghc")
+    } else {
+        |s| s.contains("-inplace-ghc") || s.starts_with("libHSrts")
+    };
+
     for file_name in file_names_starting_with(&ghc.lib_dir, "libHS")
         .into_iter()
-        .filter(|s| s.contains("-inplace-ghc") || s.starts_with("libHSrts"))
+        .filter(lib_predicate)
     {
         if let Some((prefix, lib)) = libs
             .iter_mut()
