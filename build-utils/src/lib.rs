@@ -30,6 +30,7 @@ impl GhcDirs {
 
         let lib_dir = {
             let mut lib_dir = option_env!("GHC_LIB_DIR")
+                .filter(|s| !s.is_empty())
                 .map(|s| {
                     let path = PathBuf::from(s);
                     if !path.exists() {
@@ -157,7 +158,7 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
         ("libHSghc-prim-", None),
     ];
 
-    let lib_predicate: fn(&String) -> bool = if std::env::var("GHC_LIB_DIR").is_ok() {
+    let lib_predicate: fn(&String) -> bool = if std::env::var(GHC_LIB_DIR).is_ok() {
         |s| !s.contains("_p-ghc")
     } else {
         |s| s.contains("-inplace-ghc") || s.starts_with("libHSrts")
