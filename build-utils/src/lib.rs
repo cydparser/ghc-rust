@@ -1,5 +1,5 @@
 use std::fs;
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 use std::os::unix;
 use std::path::{Path, PathBuf};
 
@@ -110,25 +110,22 @@ pub fn use_libc() -> String {
 
 /// Configure linking.
 ///
-/// NB: This has only been tested on Linux.
-///
-/// When `create_symlinks` is true and `cfg!(unix)`, _libHS_ shared objects will be symlinked into
-/// _outputs/out/lib_ in order to avoid needing to set LD_LIBRARY_PATH for tests/executables.
+/// When `create_symlinks` is true and `cfg!(target_os = "linux")`, _libHS_ shared objects will be
+/// symlinked into _outputs/out/lib_ in order to avoid needing to set LD_LIBRARY_PATH for
+/// tests/executables.
 pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
     // Disable PIE for tests. `cargo::rustc-link-arg-tests` does not work for unit tests
     // (https://github.com/rust-lang/cargo/issues/10937).
     #[cfg(target_os = "linux")]
     println!("cargo::rustc-link-arg=-Wl,--no-pie");
 
-    println!(
-        "cargo::rustc-link-search=native={}",
-        ghc.lib_dir.join(format!("rts-{}", RTS_VER)).display()
-    );
-    println!("cargo::rustc-link-lib=static=HSrts-{}_thr", RTS_VER);
+    #[cfg(target_os = "macos")]
+    println!("cargo::rustc-link-arg=-Wl,-rpath,{}", ghc.lib_dir.display());
 
     println!("cargo::rustc-link-search=native={}", ghc.lib_dir.display());
 
-    let outputs_lib_dir = if create_symlinks {
+    #[allow(unused_variables)]
+    let outputs_lib_dir = if create_symlinks && cfg!(target_os = "linux") {
         let project_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
 
         // The test executable's RUNPATH includes outputs/out/lib (on Linux, at least).
@@ -143,7 +140,10 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
         None
     };
 
+    let lib_rts = format!("libHSrts-{}_thr-ghc", RTS_VER);
+
     let mut libs = [
+        (lib_rts.as_ref(), None),
         ("libHSghc-bignum-", None),
         ("libHSghc-internal-", None),
         ("libHSghc-prim-", None),
@@ -151,7 +151,7 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
 
     for file_name in file_names_starting_with(&ghc.lib_dir, "libHS")
         .into_iter()
-        .filter(|s| s.contains("-inplace-ghc"))
+        .filter(|s| s.contains("-inplace-ghc") || s.starts_with("libHSrts"))
     {
         if let Some((prefix, lib)) = libs
             .iter_mut()
@@ -164,8 +164,17 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
 
     for (prefix, lib) in libs {
         let lib = lib.expect(prefix);
-        println!("cargo::rustc-link-lib=dylib:+verbatim={}", lib);
-        #[cfg(unix)]
+
+        // The linker on Linux doesn't accept the library names produced by GHC, so we use
+        // `+verbatim`. On macOS, ld64 doesn't support verbatim.
+        if cfg!(target_os = "macos") {
+            let lib = lib[3..].strip_suffix(".dylib").unwrap();
+            println!("cargo::rustc-link-lib=dylib={}", lib);
+        } else {
+            println!("cargo::rustc-link-lib=dylib:+verbatim={}", lib);
+        }
+
+        #[cfg(target_os = "linux")]
         if let Some(ref outputs_lib_dir) = outputs_lib_dir {
             unix::fs::symlink(ghc.lib_dir.join(&lib), outputs_lib_dir.join(&lib)).unwrap();
         }
