@@ -5,14 +5,25 @@
 
 include!(concat!(env!("OUT_DIR"), "/rts.rs"));
 
+/// Ensure doctests are linked correctly.
+/// ```
+/// use ghc_rts_sys::*;
+/// assert_eq!(false, unsafe { keepCAFs });
+/// unsafe { setKeepCAFs(); };
+/// assert_eq!(true, unsafe { keepCAFs });
+/// ````
+const _: [(); 0] = [];
+
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn it_links() {
-        assert_eq!(false, unsafe { super::keepCAFs });
+        assert_eq!(false, unsafe { keepCAFs });
         unsafe {
-            super::setKeepCAFs();
+            setKeepCAFs();
         };
-        assert_eq!(true, unsafe { super::keepCAFs });
+        assert_eq!(true, unsafe { keepCAFs });
     }
 }
