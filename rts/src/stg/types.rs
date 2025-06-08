@@ -15,43 +15,17 @@ pub const STG_INT8_MAX: u32 = 127;
 
 pub const STG_WORD8_MAX: u32 = 255;
 
-pub(crate) const FMT_Word8: &[u8; 2] = b"u\0";
-
-pub(crate) const FMT_HexWord8: &[u8; 2] = b"x\0";
-
 pub(crate) const STG_INT16_MIN: i32 = -32768;
 
 pub const STG_INT16_MAX: u32 = 32767;
 
 pub const STG_WORD16_MAX: u32 = 65535;
 
-pub(crate) const FMT_Word16: &[u8; 2] = b"u\0";
-
-pub(crate) const FMT_HexWord16: &[u8; 2] = b"x\0";
-
 pub(crate) const STG_INT32_MIN: i32 = -2147483648;
 
 pub const STG_INT32_MAX: u32 = 2147483647;
 
 pub const STG_WORD32_MAX: u32 = 4294967295;
-
-pub const FMT_Word32: &[u8; 2] = b"u\0";
-
-pub(crate) const FMT_HexWord32: &[u8; 2] = b"x\0";
-
-pub(crate) const FMT_Int32: &[u8; 2] = b"d\0";
-
-pub(crate) const FMT_Word64: &[u8; 3] = b"lu\0";
-
-pub(crate) const FMT_HexWord64: &[u8; 3] = b"lx\0";
-
-pub(crate) const FMT_Int64: &[u8; 3] = b"ld\0";
-
-pub const FMT_Word: &[u8; 3] = b"lu\0";
-
-pub(crate) const FMT_HexWord: &[u8; 3] = b"lx\0";
-
-pub const FMT_Int: &[u8; 3] = b"ld\0";
 
 pub type StgInt8 = i8;
 
