@@ -1,13 +1,5 @@
-use std::{ffi::c_char, mem::transmute};
-
-#[cfg(feature = "tracing")]
-use tracing::instrument;
-
+use crate::prelude::*;
 use crate::stg::types::{StgBool, StgInt, StgWord, StgWord64};
-#[cfg(test)]
-use crate::utils::test::{Arbitrary, Gen};
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
 
 #[cfg(test)]
 mod tests;

@@ -1,6 +1,5 @@
 use super::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
+use crate::prelude::*;
 
 #[cfg(feature = "sys")]
 #[test]

@@ -4,6 +4,7 @@
 // TODO: Remove after finishing port.
 #![allow(dead_code)]
 
+mod prelude;
 mod utils;
 
 pub mod hs_ffi;

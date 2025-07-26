@@ -1,17 +1,9 @@
-use std::mem::transmute;
-
-#[cfg(feature = "tracing")]
-use tracing::instrument;
-
-#[cfg(test)]
-use crate::utils::test::{Arbitrary, Gen};
+use crate::prelude::*;
 use crate::{
     rts::storage::gc::generation_,
     stg::types::{StgPtr, StgWord, StgWord16, StgWord32},
     stg::W_,
 };
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
 
 #[cfg(test)]
 mod tests;

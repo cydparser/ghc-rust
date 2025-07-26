@@ -15,3 +15,5 @@ crane.name = "ghc-rts"
 bindgen = "0.72.0"
 build-utils = { path = "build-utils" }
 libc = "0.2.171"
+tracing = "0.1.41"
+# XXX tracing-attributes = "0.1.30"

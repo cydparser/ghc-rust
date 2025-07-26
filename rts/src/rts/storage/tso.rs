@@ -1,47 +1,9 @@
+use crate::prelude::*;
 use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-#[cfg(test)]
-use crate::utils::test::{Arbitrary, Gen, HasReferences};
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
 use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
-use std::slice;
-#[cfg(feature = "tracing")]
-use tracing::instrument;
+
 #[cfg(test)]
 mod tests;
-
-use crate::utils::bindgen;
-impl<T> __IncompleteArrayField<T> {
-    #[inline]
-    pub const fn new() -> Self {
-        __IncompleteArrayField(::core::marker::PhantomData, [])
-    }
-    #[inline]
-    pub fn as_ptr(&self) -> *const T {
-        self as *const _ as *const T
-    }
-    #[inline]
-    pub fn as_mut_ptr(&mut self) -> *mut T {
-        self as *mut _ as *mut T
-    }
-    #[inline]
-    pub unsafe fn as_slice(&self, len: usize) -> &[T] {
-        slice::from_raw_parts(self.as_ptr(), len)
-    }
-    #[inline]
-    pub unsafe fn as_mut_slice(&mut self, len: usize) -> &mut [T] {
-        slice::from_raw_parts_mut(self.as_mut_ptr(), len)
-    }
-}
-
-impl<T> ::core::fmt::Debug for __IncompleteArrayField<T> {
-    fn fmt(&self, fmt: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        fmt.write_str("__IncompleteArrayField")
-    }
-}
 
 pub(crate) const FMT_StgThreadID: &[u8; 3] = b"lu\0";
 
@@ -151,6 +113,8 @@ impl Arbitrary for StgTSOBlockInfo {
         }
     }
 }
+
+pub type StgTSO = StgTSO_;
 
 #[repr(C)]
 ///cbindgen:no-export

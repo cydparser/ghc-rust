@@ -134,62 +134,25 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
     };
     let mut items = syn_file.items.into_iter().peekable();
 
-    let use_ffi = Item::Use(parse_quote! {
-        use std::ffi::{c_char, c_int, c_uint, c_void};
-    });
-
     let use_stg_types = Item::Use(parse_quote! {
         use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
     });
 
     transformed.main_file.items.extend([
-        use_ffi.clone(),
         Item::Use(parse_quote! {
-            use std::mem::transmute;
-        }),
-        Item::Use(parse_quote! {
-            use std::ptr::{null, null_mut};
-        }),
-        Item::Use(parse_quote! {
-            use std::slice;
-        }),
-        Item::Use(parse_quote! {
-            #[cfg(feature = "tracing")]
-            use tracing::instrument;
-        }),
-        Item::Use(parse_quote! {
-            #[cfg(test)]
-            use crate::utils::test::{Arbitrary, Gen, HasReferences};
-        }),
-        Item::Use(parse_quote! {
-            #[cfg(feature = "sys")]
-            use ghc_rts_sys as sys;
+            use crate::prelude::*;
         }),
         use_stg_types.clone(),
     ]);
 
     transformed.tests_file.items.extend([
-        use_ffi,
-        Item::Use(parse_quote! {
-            use std::mem::transmute;
-        }),
-        Item::Use(parse_quote! {
-            use std::ptr::{null, null_mut};
-        }),
-        Item::Use(parse_quote! {
-            use quickcheck_macros::quickcheck;
-        }),
         Item::Use(parse_quote! {
             use super::*;
         }),
         Item::Use(parse_quote! {
-            #[cfg(feature = "sys")]
-            use ghc_rts_sys as sys;
+            use crate::prelude::*;
         }),
         use_stg_types,
-        Item::Use(parse_quote! {
-            use crate::utils::test::*;
-        }),
     ]);
 
     // Add original imports and exports.
@@ -571,9 +534,6 @@ fn transform_struct(
     }: &mut Transformed,
 ) {
     if item_struct.ident.to_string() == "__IncompleteArrayField" {
-        main_file.items.push(Item::Use(parse_quote! {
-            use crate::utils::bindgen;
-        }));
         return;
     }
     let ident = item_struct.ident.clone();
