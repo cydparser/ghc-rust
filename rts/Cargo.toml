@@ -20,7 +20,7 @@ build-utils.workspace = true
 ghc-rts-sys = { path = "../ghc-rts-sys", optional = true }
 libc.workspace = true
 quickcheck_macros = "1.0.0"
-tracing = { version = "0.1.41", optional = true }
+tracing = { workspace = true, optional = true }
 
 [dev-dependencies]
 quickcheck = "1.0.3"
