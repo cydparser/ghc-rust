@@ -80,13 +80,13 @@ fn add_blank_lines(src: String) -> String {
 
     for line in src.lines() {
         padded.push_str(line);
-        padded.push_str("\n");
+        padded.push('\n');
 
         if line.starts_with("}")
             || ((line.starts_with("pub") || line.starts_with("static")) && line.ends_with(";"))
             || line == "mod tests;"
         {
-            padded.push_str("\n")
+            padded.push('\n');
         }
     }
     padded
@@ -210,7 +210,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                                 #vis static #mutability #ident: #ty = #rhs;
                             }));
                         }
-                        fitem => panic!("Unexpected Item: {:#?}", fitem),
+                        fitem => panic!("Unexpected Item: {fitem:#?}"),
                     }
                 }
             }
@@ -224,7 +224,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
             }
             Item::Union(item_union) => transform_union(item_union, &mut transformed),
             item @ Item::Use(_) => transformed.main_file.items.push(item),
-            item => panic!("Unexpected Item: {:#?}", item),
+            item => panic!("Unexpected Item: {item:#?}"),
         }
     }
 
@@ -242,7 +242,7 @@ fn transform_const(
         item_const.vis = parse_quote! { pub(crate) };
     }
 
-    if ident.to_string() == "_" {
+    if ident == "_" {
         transformed.tests_file.items.push(Item::Const(item_const));
         return;
     } else {
@@ -284,10 +284,11 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 
     // TODO: There are variadic functions in rts::messages.
     if variadic.is_some() {
-        eprintln!("Ignoring variadic function: {}", ident);
+        eprintln!("Ignoring variadic function: {ident}");
         return;
     }
 
+    #[expect(clippy::type_complexity)]
     let (inputs_owned, args_from_sys, args_into, args_from_owned, bindings): (
         Punctuated<_, token::Comma>,
         Vec<syn::Expr>,
@@ -340,7 +341,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                                     pat,
                                 )
                             }
-                            ty => panic!("Unexpected type in {:?}: {:?}", arg, ty),
+                            ty => panic!("Unexpected type in {arg:?}: {ty:?}"),
                         };
 
                     let binding: TokenStream = {
@@ -370,7 +371,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                         syn::FnArg::Typed(syn::PatType {
                             attrs: pat_type.attrs.clone(),
                             pat: pat_type.pat.clone(),
-                            colon_token: pat_type.colon_token.clone(),
+                            colon_token: pat_type.colon_token,
                             ty: Box::new(ty_owned),
                         }),
                         arg_from_sys,
@@ -379,11 +380,11 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                         binding,
                     )
                 } else {
-                    panic!("Expected only syn::Pat::Ident: {:#?}", arg);
+                    panic!("Expected only syn::Pat::Ident: {arg:#?}");
                 }
             }
             syn::FnArg::Receiver(_) => {
-                panic!("Unexpected FnArg::Recever: {:#?}", arg)
+                panic!("Unexpected FnArg::Recever: {arg:#?}")
             }
         })
         .collect();
@@ -442,7 +443,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 }
 
 fn export_attrs(ident: &Ident) -> Vec<syn::Attribute> {
-    let export_name = parse_token_stream(format!("\"rust_{}\"", ident));
+    let export_name = parse_token_stream(format!("\"rust_{ident}\""));
 
     vec![
         parse_quote! { #[cfg_attr(feature = "sys", unsafe(export_name = #export_name))] },
@@ -466,7 +467,7 @@ fn is_primitive_type<T: Borrow<Type>>(symbols: &Symbols, ty: T) -> bool {
         Type::Never(_) => true,
         Type::Path(type_path) => is_primitive_type_path(symbols, type_path),
         Type::Ptr(type_ptr) => is_primitive_type(symbols, type_ptr.elem.as_ref()),
-        ty => panic!("Unexpected type: {:?}", ty),
+        ty => panic!("Unexpected type: {ty:?}"),
     }
 }
 
@@ -505,7 +506,7 @@ fn ptr_to_ty_expr_pat(
             syn::Pat::Ident(new_pat_ident(ident)),
         ),
         Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(symbols, ident, type_ptr),
-        _ => panic!("Unexpected type for {}: {:?}", ident, type_ptr),
+        _ => panic!("Unexpected type for {ident}: {type_ptr:?}"),
     };
 
     (
@@ -533,7 +534,7 @@ fn transform_struct(
         tests_file,
     }: &mut Transformed,
 ) {
-    if item_struct.ident.to_string() == "__IncompleteArrayField" {
+    if item_struct.ident == "__IncompleteArrayField" {
         return;
     }
     let ident = item_struct.ident.clone();
@@ -592,10 +593,7 @@ fn transform_struct(
                     } else {
                         ".clone()"
                     };
-                    parse_token_stream(format!(
-                        "{}: {}.{}{}",
-                        field_ident, name, field_ident, maybe_cloned
-                    ))
+                    parse_token_stream(format!("{field_ident}: {name}.{field_ident}{maybe_cloned}"))
                 })
                 .collect()
         }
@@ -635,8 +633,7 @@ fn transform_struct(
                     assignments.extend(ptr_less_fields.iter().map(|f| {
                         let field_ident = f.ident.clone().unwrap();
                         parse_token_stream(format!(
-                            "{}: unsafe {{ &raw mut (*pointees).{} }}",
-                            field_ident, field_ident
+                            "{field_ident}: unsafe {{ &raw mut (*pointees).{field_ident} }}"
                         ))
                     }));
                     assignments
@@ -698,7 +695,7 @@ fn transform_union(
             parse_token_stream(format!(
                 "{} => {} {{ {}: Arbitrary::arbitrary(g) }}",
                 if i + 1 == field_count {
-                    format!("{}..", i)
+                    format!("{i}..")
                 } else {
                     i.to_string()
                 },
@@ -733,7 +730,7 @@ where
 {
     s.as_ref()
         .parse::<TokenStream>()
-        .unwrap_or_else(|e| panic!("Unable to parse TokenStream: {}: {}", s, e))
+        .unwrap_or_else(|e| panic!("Unable to parse TokenStream: {s}: {e}"))
 }
 
 fn impl_from(ident: &Ident) -> syn::ItemImpl {
@@ -798,6 +795,6 @@ fn prefix_with_sys<T: Borrow<Type>>(ty: T) -> Type {
             ptr.elem = Box::new(prefix_with_sys(type_ptr.elem.as_ref()));
             Type::Ptr(ptr)
         }
-        ty => panic!("Unexpected type: {:?}", ty),
+        ty => panic!("Unexpected type: {ty:?}"),
     }
 }
