@@ -17,6 +17,7 @@ pub struct Symbols {
 }
 
 impl Symbols {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Symbols {
         fn insert_ident(idents: &mut HashSet<Ident>, sym: &str) {
             idents.insert(Ident::new(sym, Span::call_site()));
@@ -26,6 +27,7 @@ impl Symbols {
             internal_module: false,
             internal_modules: {
                 let mut hs = HashSet::new();
+                #[expect(clippy::single_element_loop)]
                 for s in ["rts/capability.rs"] {
                     hs.insert(PathBuf::from(s));
                 }
