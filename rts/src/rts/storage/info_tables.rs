@@ -66,9 +66,9 @@ pub type StgLargeBitmap = StgLargeBitmap_;
 
 #[repr(C)]
 ///cbindgen:no-export
-pub(crate) struct StgLargeBitmap_ {
-    pub size: StgWord,
-    pub bitmap: __IncompleteArrayField<StgWord>,
+pub struct StgLargeBitmap_ {
+    size: StgWord,
+    bitmap: __IncompleteArrayField<StgWord>,
 }
 
 #[cfg(feature = "sys")]
@@ -115,11 +115,11 @@ pub type StgInfoTable = StgInfoTable_;
 
 #[repr(C)]
 ///cbindgen:no-export
-pub(crate) struct StgInfoTable_ {
-    pub layout: StgClosureInfo,
-    pub type_: StgHalfWord,
-    pub srt: StgSRTField,
-    pub code: __IncompleteArrayField<StgCode>,
+pub struct StgInfoTable_ {
+    layout: StgClosureInfo,
+    type_: StgHalfWord,
+    srt: StgSRTField,
+    code: __IncompleteArrayField<StgCode>,
 }
 
 #[cfg(feature = "sys")]
@@ -135,12 +135,12 @@ pub type StgFunInfoExtraRev = StgFunInfoExtraRev_;
 
 #[repr(C)]
 ///cbindgen:no-export
-pub(crate) struct StgFunInfoExtraRev_ {
-    pub slow_apply_offset: StgHalfInt,
-    pub __pad_slow_apply_offset: StgHalfWord,
-    pub b: StgFunInfoExtraRev__anon_union_1,
-    pub fun_type: StgHalfWord,
-    pub arity: StgHalfWord,
+pub struct StgFunInfoExtraRev_ {
+    slow_apply_offset: StgHalfInt,
+    __pad_slow_apply_offset: StgHalfWord,
+    b: StgFunInfoExtraRev__anon_union_1,
+    fun_type: StgHalfWord,
+    arity: StgHalfWord,
 }
 
 #[cfg(feature = "sys")]
@@ -168,12 +168,12 @@ pub type StgFunInfoExtraFwd = StgFunInfoExtraFwd_;
 
 #[repr(C)]
 ///cbindgen:no-export
-pub(crate) struct StgFunInfoExtraFwd_ {
-    pub fun_type: StgHalfWord,
-    pub arity: StgHalfWord,
-    pub srt: *mut StgClosure,
-    pub b: StgFunInfoExtraFwd__anon_union_1,
-    pub slow_apply: StgFun,
+pub struct StgFunInfoExtraFwd_ {
+    fun_type: StgHalfWord,
+    arity: StgHalfWord,
+    srt: *mut StgClosure,
+    b: StgFunInfoExtraFwd__anon_union_1,
+    slow_apply: StgFun,
 }
 
 #[cfg(feature = "sys")]
@@ -243,10 +243,10 @@ pub type StgConInfoTable = StgConInfoTable_;
 
 #[repr(C)]
 ///cbindgen:no-export
-pub(crate) struct StgConInfoTable_ {
-    pub con_desc: StgHalfInt,
-    pub __pad_con_desc: StgHalfWord,
-    pub i: StgInfoTable,
+pub struct StgConInfoTable_ {
+    con_desc: StgHalfInt,
+    __pad_con_desc: StgHalfWord,
+    i: StgInfoTable,
 }
 
 #[cfg(feature = "sys")]
