@@ -544,13 +544,21 @@ fn transform_struct(
             .attrs
             .push(parse_quote! { #[doc = "cbindgen:no-export"] });
 
-        item_struct.vis = parse_quote! { pub(crate) };
+        if let syn::Fields::Named(syn::FieldsNamed { named, .. }) = &mut item_struct.fields {
+            for f in named {
+                f.vis = Visibility::Inherited;
+            }
+        }
     }
 
     let (ptr_fields, fields): (Vec<syn::Field>, _) = match &item_struct.fields {
         syn::Fields::Named(syn::FieldsNamed { named, .. }) => named
             .iter()
             .cloned()
+            .map(|mut f| {
+                f.vis = Visibility::Inherited;
+                f
+            })
             .partition(|f| symbols.is_pointer_type(&f.ty)),
         _ => panic!("Unexpected struct type: {:?}", &item_struct),
     };
