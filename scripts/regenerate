@@ -25,8 +25,8 @@ _files=(
   # rts/src/rts/types/tests.rs
   rts/src/stg/regs.rs
   rts/src/stg/regs/tests.rs
-  rts/src/rts/adjustor/tests.rs
-  rts/src/rts/adjustor.rs
+  # rts/src/rts/adjustor/tests.rs
+  # rts/src/rts/adjustor.rs
   rts/src/rts/block_signals/tests.rs
   rts/src/rts/block_signals.rs
   rts/src/rts/config/tests.rs
