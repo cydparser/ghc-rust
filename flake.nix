@@ -145,6 +145,13 @@
           pre-commit = inputs.git-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
+              custom = {
+                enable = true;
+                name = "custom";
+                entry = "${scripts/pre-commit}";
+                pass_filenames = false;
+              };
+
               treefmt = {
                 enable = true;
                 settings.formatters = [
