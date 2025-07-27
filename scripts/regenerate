@@ -131,6 +131,10 @@ _files=(
   # rts/src/stg/types/tests.rs
 )
 
+if [[ $# -gt 0 ]]; then
+  _files=("$@")
+fi
+
 rm -f "${_files[@]}"
 
 cargo run -p generate rts/src
