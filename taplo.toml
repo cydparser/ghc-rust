@@ -2,7 +2,15 @@
 allowed_blank_lines = 1
 
 [[rule]]
-keys = ["*dependencies"]
+include = ["**/Cargo.toml"]
+keys = ["dependencies", "*-dependencies", "workspace.dependencies"]
 
 [rule.formatting]
 reorder_keys = true
+
+[[rule]]
+include = ["**/Cargo.toml"]
+keys = ["features"]
+
+[rule.formatting]
+reorder_arrays = true
