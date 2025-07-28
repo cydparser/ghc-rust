@@ -1,10 +1,5 @@
-use std::{ffi::c_int, ptr::null_mut};
-
-use quickcheck_macros::quickcheck;
-
 use super::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
+use crate::prelude::*;
 
 #[cfg(feature = "sys")]
 #[test]

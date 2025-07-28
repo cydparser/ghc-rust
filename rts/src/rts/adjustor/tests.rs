@@ -1,6 +1,5 @@
 use super::*;
 use crate::stg::types::{StgFunPtr, StgStablePtr};
-use std::ffi::CString;
 
 #[cfg(feature = "sys")]
 #[quickcheck]
