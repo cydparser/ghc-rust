@@ -5,8 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 build = "build.rs"
 
-[lib]
-crate-type = ["rlib"]
+# [lib]
+# crate-type = ["lib", "staticlib", "cdylib"]
 
 [features]
 default = ["sys", "tracing"]
