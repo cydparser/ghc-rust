@@ -6,7 +6,6 @@ includes = ["*.nix"]
 
 [formatter.rust]
 command = "rustfmt"
-options = ["--edition", "2024"]
 includes = ["*.rs"]
 
 [formatter.toml]
