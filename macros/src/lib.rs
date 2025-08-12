@@ -10,18 +10,17 @@ pub fn instrument(args: TokenStream, item: TokenStream) -> TokenStream {
         return item;
     }
 
-    let attr: TokenStream2 = {
+    let attr: TokenStream = {
         let args: TokenStream2 = if args.is_empty() {
             TokenTree::Ident(Ident::new("skip_all", Span::call_site())).into()
         } else {
             args.into()
         };
-        quote!(#[::tracing::instrument(#args)])
+        quote!(#[::tracing::instrument(#args)]).into()
     };
 
-    let mut ts = TokenStream2::new();
+    let mut ts = TokenStream::new();
     ts.extend(attr);
-    ts.extend(TokenStream2::from(item));
-
-    ts.into()
+    ts.extend(item);
+    ts
 }
