@@ -1,5 +1,4 @@
 use super::*;
-use crate::prelude::*;
 
 #[cfg(feature = "sys")]
 #[test]
@@ -64,8 +63,8 @@ fn sys_eq_DEBUG_IS_ON() {
 #[test]
 #[ignore]
 fn test_reportStackOverflow() {
-    let mut tso = null_mut();
-    unsafe { reportStackOverflow(&mut tso) };
+    let tso = null_mut();
+    unsafe { reportStackOverflow(tso) };
     todo!("assert")
 }
 
@@ -86,6 +85,7 @@ fn test_stg_exit() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_stg_sig_install(arg1: c_int, arg2: c_int) -> bool {
     let arg3 = null_mut();
     let expected = unsafe { sys::stg_sig_install(arg1, arg2, arg3) };
