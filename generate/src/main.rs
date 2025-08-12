@@ -7,7 +7,7 @@ use std::{
 
 use proc_macro2::{Span, TokenStream};
 use quote::format_ident;
-use syn::{parse_quote, punctuated::Punctuated, token, Ident, Item, Type, Visibility};
+use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
 use generate::Symbols;
 
