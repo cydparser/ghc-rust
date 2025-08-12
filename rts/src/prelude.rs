@@ -11,5 +11,3 @@ pub use quickcheck_macros::quickcheck;
 pub use std::ffi::{CStr, CString, c_char, c_int, c_uint, c_void};
 pub use std::mem::{offset_of, transmute};
 pub use std::ptr::{null, null_mut};
-#[cfg(feature = "tracing")]
-pub use tracing::instrument;
