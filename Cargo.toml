@@ -6,7 +6,7 @@ resolver = "3"
 [workspace.package]
 version = "0.0.0"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.89"
 license = "MIT OR Apache-2.0"
 
 [workspace.metadata]
@@ -20,4 +20,3 @@ proc-macro2 = "1.0.93"
 quote = "1.0.38"
 syn = { version = "2.0.98", features = ["extra-traits"] }
 tracing = "0.1.41"
-# XXX tracing-attributes = "0.1.30"
