@@ -1,5 +1,5 @@
 [workspace]
-members = ["build-utils", "generate", "ghc-rts-sys", "include", "rts"]
+members = ["build-utils", "generate", "ghc-rts-sys", "include", "macros", "rts"]
 default-members = ["rts"]
 resolver = "3"
 

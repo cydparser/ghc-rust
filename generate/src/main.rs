@@ -410,7 +410,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 
     main_file.items.push(Item::Fn(parse_quote! {
         #(#attrs)*
-        #[cfg_attr(feature = "tracing", instrument)]
+        #[instrument]
         #vis unsafe #abi fn #ident(#inputs) #output {
             unsafe { #call }
         }

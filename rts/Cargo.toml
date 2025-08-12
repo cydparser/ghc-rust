@@ -12,12 +12,13 @@ license-file = "LICENSE"
 [features]
 default = ["sys", "tracing"]
 sys = ["dep:ghc-rts-sys"]
-tracing = ["dep:tracing"]
+tracing = ["dep:tracing", "ghc-macros/tracing"]
 
 [build-dependencies]
 build-utils.workspace = true
 
 [dependencies]
+ghc-macros = { path = "../macros" }
 ghc-rts-sys = { path = "../ghc-rts-sys", optional = true }
 libc.workspace = true
 quickcheck_macros = "1.0.0"
