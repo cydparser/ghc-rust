@@ -1,3 +1,5 @@
+#![allow(clippy::new_without_default)]
+
 use std::fs;
 #[cfg(target_os = "linux")]
 use std::os::unix;
@@ -47,7 +49,7 @@ impl GhcDirs {
 
             let arch_os_dir = file_names_starting_with(
                 &lib_dir,
-                &format!("{}-{}-ghc-", std::env::consts::ARCH, os),
+                format!("{}-{}-ghc-", std::env::consts::ARCH, os),
             );
             lib_dir.push(PathBuf::from(&arch_os_dir[0]));
             lib_dir
@@ -79,8 +81,9 @@ pub fn bindgen_builder(ghc: &GhcDirs) -> bindgen::Builder {
         let mut s = String::from("\\b(");
         let mut types = LIBC_TYPES.iter();
         s.push_str(types.next().unwrap());
-        while let Some(ty) = types.next() {
-            s.push_str("|");
+
+        for ty in types {
+            s.push('|');
             s.push_str(ty);
         }
         s.push_str(")\\b");
@@ -111,7 +114,7 @@ pub fn use_libc() -> String {
 
     for ty in libc_types {
         s.push_str(ty);
-        s.push_str(",");
+        s.push(',');
     }
     s.push_str("};\n");
     s
@@ -123,6 +126,9 @@ pub fn use_libc() -> String {
 /// symlinked into _outputs/out/lib_ in order to avoid needing to set LD_LIBRARY_PATH for
 /// tests/executables.
 pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
+    dbg!(ghc);
+    println!("cargo::rustc-link-arg=--verbose");
+
     // Disable PIE for tests. `cargo::rustc-link-arg-tests` does not work for unit tests
     // (https://github.com/rust-lang/cargo/issues/10937).
     #[cfg(target_os = "linux")]
@@ -221,5 +227,5 @@ fn file_names_starting_with<P: AsRef<Path>, Pat: AsRef<str>>(dir: P, pat: Pat) -
             file_names.push(file_name.to_string());
         }
     }
-    return file_names;
+    file_names
 }
