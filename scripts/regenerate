@@ -4,8 +4,8 @@ set -eo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 _files=(
-  rts/src/hs_ffi.rs
-  rts/src/hs_ffi/tests.rs
+  # rts/src/hs_ffi.rs
+  # rts/src/hs_ffi/tests.rs
   # rts/src/mach_deps.rs
   # rts/src/mach_deps/tests.rs
   rts/src/rts/capability.rs

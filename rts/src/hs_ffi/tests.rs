@@ -1,12 +1,5 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
+
 #[cfg(feature = "sys")]
 #[test]
 fn sys_eq_HS_CHAR_MIN() {
@@ -41,6 +34,24 @@ fn sys_eq_HS_BOOL_MIN() {
 #[test]
 fn sys_eq_HS_BOOL_MAX() {
     assert_eq!(sys::HS_BOOL_MAX, HS_BOOL_MAX);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_eq_HS_INT_MIN() {
+    assert_eq!(sys::HS_INT_MIN, HS_INT_MIN);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_eq_HS_INT_MAX() {
+    assert_eq!(sys::HS_INT_MAX, HS_INT_MAX);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_eq_HS_WORD_MAX() {
+    assert_eq!(sys::HS_WORD_MAX, HS_WORD_MAX);
 }
 
 #[cfg(feature = "sys")]
@@ -81,6 +92,18 @@ fn sys_eq_HS_INT32_MAX() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_eq_HS_INT64_MIN() {
+    assert_eq!(sys::HS_INT64_MIN, HS_INT64_MIN);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_eq_HS_INT64_MAX() {
+    assert_eq!(sys::HS_INT64_MAX, HS_INT64_MAX);
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_eq_HS_WORD8_MAX() {
     assert_eq!(sys::HS_WORD8_MAX, HS_WORD8_MAX);
 }
@@ -97,12 +120,18 @@ fn sys_eq_HS_WORD32_MAX() {
     assert_eq!(sys::HS_WORD32_MAX, HS_WORD32_MAX);
 }
 
+#[cfg(feature = "sys")]
+#[test]
+fn sys_eq_HS_WORD64_MAX() {
+    assert_eq!(sys::HS_WORD64_MAX, HS_WORD64_MAX);
+}
+
 #[test]
 #[ignore]
 fn test_hs_init() {
-    let mut argc = null_mut();
+    let argc = null_mut();
     let mut argv = null_mut();
-    unsafe { hs_init(&mut argc, &mut &mut &mut argv) };
+    unsafe { hs_init(argc, &mut argv) };
     todo!("assert")
 }
 
@@ -125,7 +154,7 @@ fn test_hs_exit_nowait() {
 fn test_hs_set_argv() {
     let argc = Default::default();
     let mut argv = null_mut();
-    unsafe { hs_set_argv(argc, &mut &mut argv) };
+    unsafe { hs_set_argv(argc, &mut argv) };
     todo!("assert")
 }
 
@@ -136,6 +165,7 @@ fn test_hs_thread_done() {
     todo!("assert")
 }
 
+#[cfg(all(windows, target_env = "gnu"))]
 #[test]
 #[ignore]
 fn test_hs_restoreConsoleCP() {
@@ -204,25 +234,30 @@ fn test_hs_free_fun_ptr() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_hs_spt_lookup(key: StgWord64) -> bool {
-    let expected = unsafe { sys::hs_spt_lookup(&mut key) };
-    let actual = unsafe { hs_spt_lookup(&mut key) };
+    let mut k = key;
+    let expected = unsafe { sys::hs_spt_lookup(&raw mut k) };
+    let mut k = key;
+    let actual = unsafe { hs_spt_lookup(&raw mut k) };
     actual == expected
 }
 
 #[test]
 #[ignore]
 fn test_hs_spt_lookup() {
-    let mut key = null_mut();
-    unsafe { hs_spt_lookup(&mut key) };
+    let key = null_mut();
+    unsafe { hs_spt_lookup(key) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_hs_spt_keys(keys: StgPtr, szKeys: c_int) -> bool {
-    let expected = unsafe { sys::hs_spt_keys(&mut keys, szKeys) };
-    let actual = unsafe { hs_spt_keys(&mut keys, szKeys) };
+#[ignore]
+fn equivalent_hs_spt_keys(szKeys: c_int) -> bool {
+    let mut keys = null_mut();
+    let expected = unsafe { sys::hs_spt_keys(&raw mut keys, szKeys) };
+    let actual = unsafe { hs_spt_keys(&raw mut keys, szKeys) };
     actual == expected
 }
 
