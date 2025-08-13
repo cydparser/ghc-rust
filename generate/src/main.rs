@@ -149,9 +149,6 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
         Item::Use(parse_quote! {
             use super::*;
         }),
-        Item::Use(parse_quote! {
-            use crate::prelude::*;
-        }),
         use_stg_types,
     ]);
 
