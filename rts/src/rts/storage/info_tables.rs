@@ -1,14 +1,8 @@
-use std::mem::transmute;
-
-#[cfg(test)]
-use crate::utils::test::{Arbitrary, Gen};
+use crate::prelude::*;
 use crate::{
     rts::storage::closures::StgClosure,
     stg::types::{StgCode, StgFun, StgHalfInt, StgHalfWord, StgWord, StgWord16},
-    utils::bindgen::__IncompleteArrayField,
 };
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
 
 #[cfg(test)]
 mod tests;

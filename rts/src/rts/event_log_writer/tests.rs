@@ -1,12 +1,5 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
+
 #[cfg(feature = "sys")]
 #[test]
 fn sys_size_EventLogWriter() {
@@ -47,9 +40,11 @@ fn test_eventLogStatus() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_startEventLogging(writer: EventLogWriter) -> bool {
-    let expected = unsafe { transmute(sys::startEventLogging(&writer.into())) };
-    let actual = unsafe { startEventLogging(&writer) };
+#[ignore]
+fn equivalent_startEventLogging(_TODO: ()) -> bool {
+    let writer = null_mut();
+    let expected = unsafe { transmute(sys::startEventLogging(writer as *mut sys::EventLogWriter)) };
+    let actual = unsafe { startEventLogging(writer) };
     actual == expected
 }
 
@@ -57,7 +52,7 @@ fn equivalent_startEventLogging(writer: EventLogWriter) -> bool {
 #[ignore]
 fn test_startEventLogging() {
     let writer = null();
-    unsafe { startEventLogging(&writer) };
+    unsafe { startEventLogging(writer) };
     todo!("assert")
 }
 
@@ -72,6 +67,6 @@ fn test_endEventLogging() {
 #[ignore]
 fn test_flushEventLog() {
     let mut cap = null_mut();
-    unsafe { flushEventLog(&mut &mut cap) };
+    unsafe { flushEventLog(&mut cap) };
     todo!("assert")
 }

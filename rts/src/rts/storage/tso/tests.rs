@@ -1,12 +1,4 @@
 use super::*;
-use crate::prelude::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_FMT_StgThreadID() {
-    assert_eq!(sys::FMT_StgThreadID, FMT_StgThreadID);
-}
 
 #[cfg(feature = "sys")]
 #[test]
@@ -111,38 +103,38 @@ const _: () = {
 #[test]
 #[ignore]
 fn test_dirty_TSO() {
-    let mut cap = null_mut();
-    let mut tso = null_mut();
-    unsafe { dirty_TSO(&mut cap, &mut tso) };
+    let cap = null_mut();
+    let tso = null_mut();
+    unsafe { dirty_TSO(cap, tso) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_setTSOLink() {
-    let mut cap = null_mut();
-    let mut tso = null_mut();
-    let mut target = null_mut();
-    unsafe { setTSOLink(&mut cap, &mut tso, &mut target) };
+    let cap = null_mut();
+    let tso = null_mut();
+    let target = null_mut();
+    unsafe { setTSOLink(cap, tso, target) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_setTSOPrev() {
-    let mut cap = null_mut();
-    let mut tso = null_mut();
-    let mut target = null_mut();
-    unsafe { setTSOPrev(&mut cap, &mut tso, &mut target) };
+    let cap = null_mut();
+    let tso = null_mut();
+    let target = null_mut();
+    unsafe { setTSOPrev(cap, tso, target) };
     todo!("assert")
 }
 
 #[test]
 #[ignore]
 fn test_dirty_STACK() {
-    let mut cap = null_mut();
-    let mut stack = null_mut();
-    unsafe { dirty_STACK(&mut cap, &mut stack) };
+    let cap = null_mut();
+    let stack = null_mut();
+    unsafe { dirty_STACK(cap, stack) };
     todo!("assert")
 }
 

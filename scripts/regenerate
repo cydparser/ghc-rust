@@ -8,23 +8,26 @@ _files=(
   # rts/src/hs_ffi/tests.rs
   # rts/src/mach_deps.rs
   # rts/src/mach_deps/tests.rs
-  rts/src/rts/capability.rs
-  rts/src/rts/capability/tests.rs
+  # rts/src/rts/capability.rs
+  # rts/src/rts/capability/tests.rs
+  # rts/event_log_writer.rs
+  # rts/event_log_writer/tests.rs
   # rts/src/rts/prof/ccs.rs
   # rts/src/rts/prof/ccs/tests.rs
   # rts/src/rts/storage/block.rs
   # rts/src/rts/storage/block/tests.rs
-  rts/src/rts/storage/gc/tests.rs
+  # rts/src/rts/storage/gc.rs
+  # rts/src/rts/storage/gc/tests.rs
   # rts/src/rts/storage/info_tables.rs
   # rts/src/rts/storage/info_tables/tests.rs
-  rts/src/rts/storage/tso.rs
-  rts/src/rts/storage/tso/tests.rs
+  # rts/src/rts/storage/tso.rs
+  # rts/src/rts/storage/tso/tests.rs
   # rts/src/rts.rs
   # rts/src/rts/tests.rs
   # rts/src/rts/types.rs
   # rts/src/rts/types/tests.rs
-  rts/src/stg/regs.rs
-  rts/src/stg/regs/tests.rs
+  # rts/src/stg/regs.rs
+  # rts/src/stg/regs/tests.rs
   # rts/src/rts/adjustor/tests.rs
   # rts/src/rts/adjustor.rs
   rts/src/rts/block_signals/tests.rs
@@ -91,8 +94,8 @@ _files=(
   rts/src/rts/storage/closure_macros.rs
   rts/src/rts/storage/closure_types/tests.rs
   rts/src/rts/storage/closure_types.rs
-  rts/src/rts/storage/closures/tests.rs
-  rts/src/rts/storage/closures.rs
+  # rts/src/rts/storage/closures/tests.rs
+  # rts/src/rts/storage/closures.rs
   rts/src/rts/storage/fun_types/tests.rs
   rts/src/rts/storage/fun_types.rs
   rts/src/rts/storage/heap/tests.rs
@@ -103,8 +106,8 @@ _files=(
   rts/src/rts/threads.rs
   # rts/src/rts/ticky/tests.rs
   # rts/src/rts/ticky.rs
-  rts/src/rts/time/tests.rs
-  rts/src/rts/time.rs
+  # rts/src/rts/time/tests.rs
+  # rts/src/rts/time.rs
   rts/src/rts/timer/tests.rs
   rts/src/rts/timer.rs
   rts/src/rts/tsan_utils/tests.rs

@@ -1,8 +1,8 @@
 use crate::prelude::*;
 use crate::{
     rts::storage::gc::generation_,
-    stg::types::{StgPtr, StgWord, StgWord16, StgWord32},
     stg::W_,
+    stg::types::{StgPtr, StgWord, StgWord16, StgWord32},
 };
 
 #[cfg(test)]
@@ -125,73 +125,73 @@ impl From<bdescr__anon_union_2> for sys::bdescr___bindgen_ty_2 {
     }
 }
 
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub(crate) unsafe fn initBlockAllocator() {
     unsafe { sys::initBlockAllocator() }
 }
 
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub(crate) unsafe fn allocGroup(n: W_) -> *mut bdescr {
     unsafe { transmute(sys::allocGroup(n)) }
 }
 
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub(crate) unsafe fn allocGroupOnNode(node: u32, n: W_) -> *mut bdescr {
     unsafe { transmute(sys::allocGroupOnNode(node, n)) }
 }
 
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_allocAlignedGroupOnNode"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub unsafe extern "C" fn allocAlignedGroupOnNode(node: u32, n: W_) -> *mut bdescr {
     unsafe { transmute(sys::allocAlignedGroupOnNode(node, n)) }
 }
 
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub(crate) unsafe fn allocMBlockAlignedGroupOnNode(node: u32, n: W_) -> *mut bdescr {
     unsafe { transmute(sys::allocMBlockAlignedGroupOnNode(node, n)) }
 }
 
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_allocGroup_lock"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub unsafe extern "C" fn allocGroup_lock(n: W_) -> *mut bdescr {
     unsafe { transmute(sys::allocGroup_lock(n)) }
 }
 
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub(crate) unsafe fn allocBlock_lock() -> *mut bdescr {
     unsafe { transmute(sys::allocBlock_lock()) }
 }
 
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub(crate) unsafe fn allocGroupOnNode_lock(node: u32, n: W_) -> *mut bdescr {
     unsafe { transmute(sys::allocGroupOnNode_lock(node, n)) }
 }
 
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub(crate) unsafe fn allocBlockOnNode_lock(node: u32) -> *mut bdescr {
     unsafe { transmute(sys::allocBlockOnNode_lock(node)) }
 }
 
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub(crate) unsafe fn freeGroup(p: *mut bdescr) {
     unsafe { sys::freeGroup(p as *mut sys::bdescr) }
 }
 
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub(crate) unsafe fn freeChain(p: *mut bdescr) {
     unsafe { sys::freeChain(p as *mut sys::bdescr) }
 }
 
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_freeGroup_lock"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub unsafe extern "C" fn freeGroup_lock(p: *mut bdescr) {
     unsafe { sys::freeGroup_lock(p as *mut sys::bdescr) }
 }
 
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub(crate) unsafe fn freeChain_lock(p: *mut bdescr) {
     unsafe { sys::freeChain_lock(p as *mut sys::bdescr) }
 }
