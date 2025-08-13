@@ -84,7 +84,7 @@ static mut numa_map: [u32; 16] = [0; _];
 pub(crate) type PutMVar = PutMVar_;
 
 ///cbindgen:no-export
-struct PutMVar_ {
+pub struct PutMVar_ {
     mvar: StgStablePtr,
     link: *mut PutMVar_,
 }

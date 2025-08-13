@@ -34,14 +34,15 @@ pub(crate) type StgThreadID = StgWord64;
 pub(crate) type StgThreadReturnCode = c_uint;
 
 #[repr(C)]
-pub(crate) union StgTSOBlockInfo {
-    pub closure: *mut StgClosure,
-    pub prev: *mut StgTSO,
-    pub bh: *mut MessageBlackHole_,
-    pub throwto: *mut MessageThrowTo_,
-    pub wakeup: *mut MessageWakeup_,
-    pub fd: StgInt,
-    pub target: StgWord,
+///cbindgen:no-export
+pub union StgTSOBlockInfo {
+    closure: *mut StgClosure,
+    prev: *mut StgTSO,
+    bh: *mut MessageBlackHole_,
+    throwto: *mut MessageThrowTo_,
+    wakeup: *mut MessageWakeup_,
+    fd: StgInt,
+    target: StgWord,
 }
 
 #[cfg(feature = "sys")]
@@ -90,13 +91,13 @@ pub type StgStack = StgStack_;
 
 #[repr(C)]
 ///cbindgen:no-export
-pub(crate) struct StgStack_ {
-    pub header: StgHeader,
-    pub stack_size: StgWord32,
-    pub dirty: StgWord8,
-    pub marking: StgWord8,
-    pub sp: StgPtr,
-    pub stack: __IncompleteArrayField<StgWord>,
+pub struct StgStack_ {
+    header: StgHeader,
+    stack_size: StgWord32,
+    dirty: StgWord8,
+    marking: StgWord8,
+    sp: StgPtr,
+    stack: __IncompleteArrayField<StgWord>,
 }
 
 #[cfg(feature = "sys")]
@@ -141,8 +142,8 @@ pub(crate) unsafe fn dirty_STACK(cap: *mut Capability, stack: *mut StgStack) {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 ///cbindgen:no-export
-pub(crate) struct InCall_ {
-    pub _address: u8,
+pub struct InCall_ {
+    _address: u8,
 }
 
 #[cfg(feature = "sys")]

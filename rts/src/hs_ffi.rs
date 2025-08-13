@@ -11,9 +11,9 @@ pub(crate) const HS_CHAR_MIN: u32 = 0;
 
 pub(crate) const HS_CHAR_MAX: u32 = 1114111;
 
-pub(crate) const HS_BOOL_FALSE: u32 = 0;
+pub const HS_BOOL_FALSE: i64 = 0;
 
-pub const HS_BOOL_TRUE: u32 = 1;
+pub const HS_BOOL_TRUE: i64 = 1;
 
 pub(crate) const HS_BOOL_MIN: u32 = 0;
 

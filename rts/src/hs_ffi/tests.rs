@@ -15,13 +15,13 @@ fn sys_eq_HS_CHAR_MAX() {
 #[cfg(feature = "sys")]
 #[test]
 fn sys_eq_HS_BOOL_FALSE() {
-    assert_eq!(sys::HS_BOOL_FALSE, HS_BOOL_FALSE);
+    assert_eq!(sys::HS_BOOL_FALSE as i64, HS_BOOL_FALSE);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_eq_HS_BOOL_TRUE() {
-    assert_eq!(sys::HS_BOOL_TRUE, HS_BOOL_TRUE);
+    assert_eq!(sys::HS_BOOL_TRUE as i64, HS_BOOL_TRUE);
 }
 
 #[cfg(feature = "sys")]

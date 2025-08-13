@@ -40,9 +40,9 @@ pub type StgWord64 = u64;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 ///cbindgen:no-export
-pub(crate) struct StgWord128 {
-    pub h: StgWord64,
-    pub l: StgWord64,
+pub struct StgWord128 {
+    h: StgWord64,
+    l: StgWord64,
 }
 
 #[cfg(feature = "sys")]
@@ -65,9 +65,9 @@ impl Arbitrary for StgWord128 {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 ///cbindgen:no-export
-pub(crate) struct StgWord256 {
-    pub h: StgWord128,
-    pub l: StgWord128,
+pub struct StgWord256 {
+    h: StgWord128,
+    l: StgWord128,
 }
 
 #[cfg(feature = "sys")]
@@ -90,9 +90,9 @@ impl Arbitrary for StgWord256 {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 ///cbindgen:no-export
-pub(crate) struct StgWord512 {
-    pub h: StgWord256,
-    pub l: StgWord256,
+pub struct StgWord512 {
+    h: StgWord256,
+    l: StgWord256,
 }
 
 #[cfg(feature = "sys")]

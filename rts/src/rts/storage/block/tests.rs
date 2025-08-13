@@ -342,27 +342,27 @@ fn test_allocBlockOnNode_lock() {
 #[test]
 #[ignore]
 fn test_freeGroup() {
-    let mut p = todo!();
-    unsafe { freeGroup(&mut p) };
+    let p = null_mut();
+    unsafe { freeGroup(p) };
 }
 
 #[test]
 #[ignore]
 fn test_freeChain() {
-    let mut p = todo!();
-    unsafe { freeChain(&mut p) };
+    let p = null_mut();
+    unsafe { freeChain(p) };
 }
 
 #[test]
 #[ignore]
 fn test_freeGroup_lock() {
-    let mut p = todo!();
-    unsafe { freeGroup_lock(&mut p) };
+    let p = null_mut();
+    unsafe { freeGroup_lock(p) };
 }
 
 #[test]
 #[ignore]
 fn test_freeChain_lock() {
-    let mut p = todo!();
-    unsafe { freeChain_lock(&mut p) };
+    let p = null_mut();
+    unsafe { freeChain_lock(p) };
 }

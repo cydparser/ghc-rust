@@ -24,10 +24,10 @@ impl From<StgProfHeader> for sys::StgProfHeader {
 
 #[repr(C)]
 #[derive(Copy, Clone)]
-pub(crate) union StgProfHeader__bindgen_ty_1 {
-    pub trav: StgWord,
-    pub ldvw: StgWord,
-    pub era: StgWord,
+pub union StgProfHeader__bindgen_ty_1 {
+    trav: StgWord,
+    ldvw: StgWord,
+    era: StgWord,
 }
 
 #[cfg(feature = "sys")]

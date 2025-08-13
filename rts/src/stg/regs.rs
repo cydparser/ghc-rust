@@ -27,13 +27,14 @@ impl From<StgFunTable> for sys::StgFunTable {
 }
 
 #[repr(C)]
-pub(crate) union StgUnion {
-    pub w: StgWord,
-    pub a: StgAddr,
-    pub c: StgChar,
-    pub f: StgFloat,
-    pub i: StgInt,
-    pub p: StgPtr,
+///cbindgen:no-export
+pub union StgUnion {
+    w: StgWord,
+    a: StgAddr,
+    c: StgChar,
+    f: StgFloat,
+    i: StgInt,
+    p: StgPtr,
 }
 
 #[cfg(feature = "sys")]

@@ -77,18 +77,18 @@ pub type bdescr = bdescr_;
 
 #[repr(C)]
 ///cbindgen:no-export
-pub(crate) struct bdescr_ {
-    pub start: StgPtr,
-    pub _anon_union_1: bdescr__anon_union_1,
-    pub link: *mut bdescr_,
-    pub u: bdescr__anon_union_2,
-    pub gen_: *mut generation_,
-    pub gen_no: StgWord16,
-    pub dest_no: StgWord16,
-    pub node: StgWord16,
-    pub flags: StgWord16,
-    pub blocks: StgWord32,
-    pub _padding: [StgWord32; 3usize],
+pub struct bdescr_ {
+    start: StgPtr,
+    _anon_union_1: bdescr__anon_union_1,
+    link: *mut bdescr_,
+    u: bdescr__anon_union_2,
+    gen_: *mut generation_,
+    gen_no: StgWord16,
+    dest_no: StgWord16,
+    node: StgWord16,
+    flags: StgWord16,
+    blocks: StgWord32,
+    _padding: [StgWord32; 3usize],
 }
 
 #[cfg(feature = "sys")]
