@@ -568,7 +568,8 @@ fn transform_struct(
         main_file
             .items
             .push(Item::Impl(impl_arbitrary(&ident, &fields)));
-    } else {
+    } else if false {
+        // TODO: Delete or move into a proc-macro.
         let ident_owned = format_ident!("{}Owned", ident);
         let ident_pointees = format_ident!("{}Pointees", ident);
 
