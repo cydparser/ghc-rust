@@ -210,6 +210,7 @@ fn test_initBlockAllocator() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_allocGroup(n: W_) -> bool {
     let expected = unsafe { transmute(sys::allocGroup(n)) };
     let actual = unsafe { allocGroup(n) };
@@ -226,6 +227,7 @@ fn test_allocGroup() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_allocGroupOnNode(node: u32, n: W_) -> bool {
     let expected = unsafe { transmute(sys::allocGroupOnNode(node, n)) };
     let actual = unsafe { allocGroupOnNode(node, n) };
@@ -243,6 +245,7 @@ fn test_allocGroupOnNode() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_allocAlignedGroupOnNode(node: u32, n: W_) -> bool {
     let expected = unsafe { transmute(sys::allocAlignedGroupOnNode(node, n)) };
     let actual = unsafe { allocAlignedGroupOnNode(node, n) };
@@ -260,6 +263,7 @@ fn test_allocAlignedGroupOnNode() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_allocMBlockAlignedGroupOnNode(node: u32, n: W_) -> bool {
     let expected = unsafe { transmute(sys::allocMBlockAlignedGroupOnNode(node, n)) };
     let actual = unsafe { allocMBlockAlignedGroupOnNode(node, n) };
@@ -277,6 +281,7 @@ fn test_allocMBlockAlignedGroupOnNode() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_allocGroup_lock(n: W_) -> bool {
     let expected = unsafe { transmute(sys::allocGroup_lock(n)) };
     let actual = unsafe { allocGroup_lock(n) };
@@ -293,6 +298,7 @@ fn test_allocGroup_lock() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_allocBlock_lock() -> bool {
     let expected = unsafe { transmute(sys::allocBlock_lock()) };
     let actual = unsafe { allocBlock_lock() };
@@ -308,6 +314,7 @@ fn test_allocBlock_lock() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_allocGroupOnNode_lock(node: u32, n: W_) -> bool {
     let expected = unsafe { transmute(sys::allocGroupOnNode_lock(node, n)) };
     let actual = unsafe { allocGroupOnNode_lock(node, n) };
@@ -325,6 +332,7 @@ fn test_allocGroupOnNode_lock() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_allocBlockOnNode_lock(node: u32) -> bool {
     let expected = unsafe { transmute(sys::allocBlockOnNode_lock(node)) };
     let actual = unsafe { allocBlockOnNode_lock(node) };

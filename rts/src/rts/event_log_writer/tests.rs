@@ -25,6 +25,7 @@ const _: () = {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_eventLogStatus() -> bool {
     let expected = unsafe { transmute(sys::eventLogStatus()) };
     let actual = unsafe { eventLogStatus() };

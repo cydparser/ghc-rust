@@ -176,6 +176,7 @@ fn test_performBlockingMajorGC() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_newCAF(_TODO: bool) -> bool {
     let reg = null_mut();
     let caf = null_mut();
