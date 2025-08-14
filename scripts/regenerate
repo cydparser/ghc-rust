@@ -32,18 +32,18 @@ _files=(
   # rts/src/rts/adjustor.rs
   rts/src/rts/block_signals/tests.rs
   rts/src/rts/block_signals.rs
-  rts/src/rts/config/tests.rs
-  rts/src/rts/config.rs
-  rts/src/rts/constants/tests.rs
-  rts/src/rts/constants.rs
+  # rts/src/rts/config/tests.rs
+  # rts/src/rts/config.rs
+  # rts/src/rts/constants/tests.rs
+  # rts/src/rts/constants.rs
   rts/src/rts/event_log_writer/tests.rs
   rts/src/rts/event_log_writer.rs
   rts/src/rts/exec_page/tests.rs
   rts/src/rts/exec_page.rs
   rts/src/rts/file_lock/tests.rs
   rts/src/rts/file_lock.rs
-  rts/src/rts/flags/tests.rs
-  rts/src/rts/flags.rs
+  # rts/src/rts/flags/tests.rs
+  # rts/src/rts/flags.rs
   rts/src/rts/foreign_exports/tests.rs
   rts/src/rts/foreign_exports.rs
   rts/src/rts/get_time/tests.rs
@@ -116,8 +116,8 @@ _files=(
   rts/src/rts/tty.rs
   rts/src/rts/utils/tests.rs
   rts/src/rts/utils.rs
-  rts/src/rts_api/tests.rs
-  rts/src/rts_api.rs
+  # rts/src/rts_api/tests.rs
+  # rts/src/rts_api.rs
   # rts/src/stg.rs
   # rts/src/stg/tests.rs
   # rts/src/stg/mach_regs_for_host.rs

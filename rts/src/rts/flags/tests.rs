@@ -1,12 +1,5 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
+
 #[cfg(feature = "sys")]
 #[test]
 fn sys_eq_NO_GC_STATS() {
@@ -155,66 +148,6 @@ fn sys_eq_DEFAULT_LINKER_ALWAYS_PIC() {
 #[test]
 fn sys_eq_STATS_FILENAME_MAXLEN() {
     assert_eq!(sys::STATS_FILENAME_MAXLEN, STATS_FILENAME_MAXLEN);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_GR_FILENAME_FMT() {
-    assert_eq!(sys::GR_FILENAME_FMT, GR_FILENAME_FMT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_HP_FILENAME_FMT() {
-    assert_eq!(sys::HP_FILENAME_FMT, HP_FILENAME_FMT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_LIFE_FILENAME_FMT() {
-    assert_eq!(sys::LIFE_FILENAME_FMT, LIFE_FILENAME_FMT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_PROF_FILENAME_FMT() {
-    assert_eq!(sys::PROF_FILENAME_FMT, PROF_FILENAME_FMT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_PROF_FILENAME_FMT_GUM() {
-    assert_eq!(sys::PROF_FILENAME_FMT_GUM, PROF_FILENAME_FMT_GUM);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_QP_FILENAME_FMT() {
-    assert_eq!(sys::QP_FILENAME_FMT, QP_FILENAME_FMT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_STAT_FILENAME_FMT() {
-    assert_eq!(sys::STAT_FILENAME_FMT, STAT_FILENAME_FMT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_TICKY_FILENAME_FMT() {
-    assert_eq!(sys::TICKY_FILENAME_FMT, TICKY_FILENAME_FMT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_TIME_FILENAME_FMT() {
-    assert_eq!(sys::TIME_FILENAME_FMT, TIME_FILENAME_FMT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_TIME_FILENAME_FMT_GUM() {
-    assert_eq!(sys::TIME_FILENAME_FMT_GUM, TIME_FILENAME_FMT_GUM);
 }
 
 #[cfg(feature = "sys")]

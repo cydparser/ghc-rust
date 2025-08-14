@@ -1,15 +1,3 @@
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-#[cfg(test)]
-use crate::utils::test::{Arbitrary, Gen, HasReferences};
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use libc::{clockid_t, pid_t, pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
-use std::slice;
-#[cfg(feature = "tracing")]
-use tracing::instrument;
 #[cfg(test)]
 mod tests;
 
@@ -53,11 +41,9 @@ pub(crate) const INFO_FIRST_TAG: u32 = 0;
 
 pub const RESERVED_C_STACK_BYTES: u32 = 16384;
 
-pub(crate) const STG_RUN_STACK_FRAME_SIZE: u32 = 48;
+pub(crate) const STG_RUN: &[u8; 8] = b"_StgRun\0";
 
-pub(crate) const STG_RUN: &[u8; 7] = b"StgRun\0";
-
-pub(crate) const STG_RETURN: &[u8; 10] = b"StgReturn\0";
+pub(crate) const STG_RETURN: &[u8; 11] = b"_StgReturn\0";
 
 pub const RESERVED_STACK_WORDS: u32 = 21;
 
