@@ -64,8 +64,8 @@ _files=(
   rts/src/rts/linker.rs
   rts/src/rts/main/tests.rs
   rts/src/rts/main.rs
-  rts/src/rts/messages/tests.rs
-  rts/src/rts/messages.rs
+  # rts/src/rts/messages/tests.rs
+  # rts/src/rts/messages.rs
   rts/src/rts/non_moving/tests.rs
   rts/src/rts/non_moving.rs
   rts/src/rts/os_threads/tests.rs
@@ -74,10 +74,10 @@ _files=(
   rts/src/rts/parallel.rs
   rts/src/rts/prim_float/tests.rs
   rts/src/rts/prim_float.rs
-  rts/src/rts/prof/heap/tests.rs
-  rts/src/rts/prof/heap.rs
-  rts/src/rts/prof/ldv/tests.rs
-  rts/src/rts/prof/ldv.rs
+  # rts/src/rts/prof/heap/tests.rs
+  # rts/src/rts/prof/heap.rs
+  # rts/src/rts/prof/ldv/tests.rs
+  # rts/src/rts/prof/ldv.rs
   rts/src/rts/profiling/tests.rs
   rts/src/rts/profiling.rs
   rts/src/rts/signals/tests.rs

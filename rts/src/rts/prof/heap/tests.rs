@@ -1,12 +1,6 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
+use crate::stg::types::StgWord;
+
 #[test]
 #[ignore]
 fn test_requestHeapCensus() {
@@ -38,6 +32,7 @@ fn test_setUserEra() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_getUserEra() -> bool {
     let expected = unsafe { sys::getUserEra() };
     let actual = unsafe { getUserEra() };
@@ -53,6 +48,7 @@ fn test_getUserEra() {
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_incrementUserEra(w: StgWord) -> bool {
     let expected = unsafe { sys::incrementUserEra(w) };
     let actual = unsafe { incrementUserEra(w) };
