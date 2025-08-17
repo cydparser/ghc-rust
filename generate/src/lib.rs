@@ -796,6 +796,13 @@ impl Symbols {
 
     pub fn is_primitive_type(&self, ty_path: &TypePath) -> bool {
         self.primitive_types.contains(ty_path)
+            || ty_path.path.segments.last().is_some_and(|p| {
+                p.ident
+                    .to_string()
+                    .chars()
+                    .next()
+                    .is_some_and(char::is_lowercase)
+            })
     }
 
     pub fn is_pointer_type(&self, ty: &Type) -> bool {
