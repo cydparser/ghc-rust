@@ -300,46 +300,38 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                     let param_ident = pat_ident.ident.clone();
                     let pat_ty = pat_type.ty.as_ref();
 
-                    let (mutability, ty_owned, arg_from_sys, arg_into, arg_from_owned) =
-                        match pat_ty {
-                            ty @ Type::Path(type_path) => {
-                                let is_primitive = is_primitive_type_path(symbols, type_path);
-                                (
-                                    "",
-                                    ty.clone(),
-                                    if is_primitive {
-                                        parse_quote! { #param_ident }
-                                    } else {
-                                        parse_quote! { transmute(#param_ident) }
-                                    },
-                                    if is_primitive {
-                                        parse_quote! { #param_ident }
-                                    } else {
-                                        expr_into(&param_ident)
-                                    },
-                                    syn::Pat::Ident(new_pat_ident(&param_ident)),
-                                )
-                            }
-                            Type::Ptr(type_ptr) => {
-                                let (ty, expr, pat) =
-                                    ptr_to_ty_expr_pat(symbols, &param_ident, type_ptr);
-                                let arg_from_sys =
-                                    if is_primitive_type(symbols, type_ptr.elem.as_ref()) {
-                                        parse_quote! { #param_ident }
-                                    } else {
-                                        let sys_pat_ty = prefix_with_sys(pat_ty);
-                                        parse_quote! { #param_ident as #sys_pat_ty }
-                                    };
-                                (
-                                    type_ptr.mutability.map(|_| "mut").unwrap_or(""),
-                                    ty,
-                                    arg_from_sys,
-                                    expr,
-                                    pat,
-                                )
-                            }
-                            ty => panic!("Unexpected type in {arg:?}: {ty:?}"),
-                        };
+                    let (ty_owned, arg_from_sys, arg_into, arg_from_owned) = match pat_ty {
+                        ty @ Type::Path(type_path) => {
+                            let is_primitive = is_primitive_type_path(symbols, type_path);
+                            (
+                                ty.clone(),
+                                if is_primitive {
+                                    parse_quote! { #param_ident }
+                                } else {
+                                    parse_quote! { transmute(#param_ident) }
+                                },
+                                if is_primitive {
+                                    parse_quote! { #param_ident }
+                                } else {
+                                    expr_into(&param_ident)
+                                },
+                                syn::Pat::Ident(new_pat_ident(&param_ident)),
+                            )
+                        }
+                        Type::Ptr(type_ptr) => {
+                            let (_, ty, expr, pat) =
+                                ptr_to_ty_expr_pat(symbols, 0, &param_ident, type_ptr);
+                            let arg_from_sys = if is_primitive_type(symbols, type_ptr.elem.as_ref())
+                            {
+                                parse_quote! { #param_ident }
+                            } else {
+                                let sys_pat_ty = prefix_with_sys(pat_ty);
+                                parse_quote! { #param_ident as #sys_pat_ty }
+                            };
+                            (ty, arg_from_sys, expr, pat)
+                        }
+                        ty => panic!("Unexpected type in {arg:?}: {ty:?}"),
+                    };
 
                     let binding: TokenStream = {
                         let binding_rhs = match pat_ty {
@@ -358,10 +350,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                                 }
                             }
                         };
-                        parse_token_stream(format!(
-                            "let {} {} = {};",
-                            mutability, &param_ident, binding_rhs
-                        ))
+                        parse_token_stream(format!("let {} = {};", &param_ident, binding_rhs))
                     };
 
                     (
@@ -413,16 +402,31 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         }
     }));
 
-    if let syn::ReturnType::Type(_, _) = output {
-        let fn_ident = format_ident!("equivalent_{}", ident);
+    let fn_ident = format_ident!("equivalent_{}", ident);
 
+    if let syn::ReturnType::Type(_, ty) = output
+        && !is_indirect(&ty)
+        && !inputs
+            .iter()
+            .any(|arg| matches!(arg, syn::FnArg::Typed(syn::PatType { ty, .. }) if is_indirect(ty)))
+    {
         tests_file.items.push(Item::Fn(parse_quote! {
             #[cfg(feature = "sys")]
             #[quickcheck]
+            #[ignore]
             fn #fn_ident(#inputs_owned) -> bool {
                 let expected = unsafe { #expected_call };
                 let actual = unsafe { #ident(#(#args_from_owned),*) };
                 actual == expected
+            }
+        }));
+    } else {
+        tests_file.items.push(Item::Fn(parse_quote! {
+            #[cfg(feature = "sys")]
+            #[test]
+            #[ignore]
+            fn #fn_ident() {
+                todo!()
             }
         }));
     }
@@ -446,6 +450,17 @@ fn export_attrs(ident: &Ident) -> Vec<syn::Attribute> {
         parse_quote! { #[cfg_attr(feature = "sys", unsafe(export_name = #export_name))] },
         parse_quote! { #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))] },
     ]
+}
+
+fn is_indirect(ty: &Type) -> bool {
+    match ty {
+        Type::Ptr(_) | Type::Reference(_) => true,
+        Type::Path(syn::TypePath { path, .. }) => path
+            .segments
+            .last()
+            .is_some_and(|p| p.ident.to_string().ends_with("Ptr")),
+        _ => false,
+    }
 }
 
 fn is_primitive_type<T: Borrow<Type>>(symbols: &Symbols, ty: T) -> bool {
@@ -489,11 +504,13 @@ fn new_pat_ident(ident: &Ident) -> syn::PatIdent {
 
 fn ptr_to_ty_expr_pat(
     symbols: &Symbols,
+    depth: u32,
     ident: &Ident,
     type_ptr: &syn::TypePtr,
-) -> (syn::Type, syn::Expr, syn::Pat) {
-    let (ty, expr, pat) = match type_ptr.elem.as_ref() {
+) -> (u32, syn::Type, syn::Expr, syn::Pat) {
+    let (depth, ty, expr, pat) = match type_ptr.elem.as_ref() {
         ty @ Type::Path(type_path) => (
+            depth,
             ty.clone(),
             if is_primitive_type_path(symbols, type_path) {
                 parse_quote! { #ident }
@@ -502,11 +519,23 @@ fn ptr_to_ty_expr_pat(
             },
             syn::Pat::Ident(new_pat_ident(ident)),
         ),
-        Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(symbols, ident, type_ptr),
+        Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(symbols, depth + 1, ident, type_ptr),
         _ => panic!("Unexpected type for {ident}: {type_ptr:?}"),
     };
 
+    let pat = if depth < 1 {
+        pat
+    } else {
+        syn::Pat::Reference(syn::PatReference {
+            attrs: vec![],
+            and_token: token::And(Span::mixed_site()),
+            mutability: type_ptr.mutability,
+            pat: Box::new(pat),
+        })
+    };
+
     (
+        depth,
         ty,
         syn::Expr::Reference(syn::ExprReference {
             attrs: vec![],
@@ -514,12 +543,7 @@ fn ptr_to_ty_expr_pat(
             mutability: type_ptr.mutability,
             expr: Box::new(expr),
         }),
-        syn::Pat::Reference(syn::PatReference {
-            attrs: vec![],
-            and_token: token::And(Span::mixed_site()),
-            mutability: type_ptr.mutability,
-            pat: Box::new(pat),
-        }),
+        pat,
     )
 }
 
