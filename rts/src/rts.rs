@@ -33,7 +33,7 @@ pub mod storage;
 // TODO: pub mod stable_ptr;
 // TODO: pub mod static_ptr_table;
 mod task;
-// TODO: pub mod threads;
+pub mod threads;
 // TODO: pub mod ticky;
 pub mod time;
 // TODO: pub mod timer;

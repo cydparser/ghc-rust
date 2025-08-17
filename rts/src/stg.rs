@@ -1,7 +1,7 @@
 use crate::stg::types::{StgChar, StgFunPtr, StgInt, StgWord};
 
 pub mod mach_regs_for_host;
-// TODO: pub mod misc_closures;
+pub mod misc_closures;
 // TODO: pub mod prim;
 pub mod regs;
 // TODO: pub mod smp;

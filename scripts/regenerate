@@ -92,18 +92,18 @@ _files=(
   rts/src/rts/static_ptr_table.rs
   rts/src/rts/storage/closure_macros/tests.rs
   rts/src/rts/storage/closure_macros.rs
-  rts/src/rts/storage/closure_types/tests.rs
-  rts/src/rts/storage/closure_types.rs
+  # rts/src/rts/storage/closure_types/tests.rs
+  # rts/src/rts/storage/closure_types.rs
   # rts/src/rts/storage/closures/tests.rs
   # rts/src/rts/storage/closures.rs
-  rts/src/rts/storage/fun_types/tests.rs
-  rts/src/rts/storage/fun_types.rs
+  # rts/src/rts/storage/fun_types/tests.rs
+  # rts/src/rts/storage/fun_types.rs
   rts/src/rts/storage/heap/tests.rs
   rts/src/rts/storage/heap.rs
   rts/src/rts/storage/m_block/tests.rs
   rts/src/rts/storage/m_block.rs
-  rts/src/rts/threads/tests.rs
-  rts/src/rts/threads.rs
+  # rts/src/rts/threads/tests.rs
+  # rts/src/rts/threads.rs
   # rts/src/rts/ticky/tests.rs
   # rts/src/rts/ticky.rs
   # rts/src/rts/time/tests.rs
@@ -122,8 +122,8 @@ _files=(
   # rts/src/stg/tests.rs
   # rts/src/stg/mach_regs_for_host.rs
   # rts/src/stg/mach_regs_for_host/tests.rs
-  rts/src/stg/misc_closures/tests.rs
-  rts/src/stg/misc_closures.rs
+  # rts/src/stg/misc_closures/tests.rs
+  # rts/src/stg/misc_closures.rs
   rts/src/stg/prim/tests.rs
   rts/src/stg/prim.rs
   rts/src/stg/smp/tests.rs

@@ -110,10 +110,10 @@ pub type StgInfoTable = StgInfoTable_;
 #[repr(C)]
 ///cbindgen:no-export
 pub struct StgInfoTable_ {
-    layout: StgClosureInfo,
-    type_: StgHalfWord,
-    srt: StgSRTField,
-    code: __IncompleteArrayField<StgCode>,
+    pub(crate) layout: StgClosureInfo,
+    pub(crate) type_: StgHalfWord,
+    pub(crate) srt: StgSRTField,
+    pub(crate) code: __IncompleteArrayField<StgCode>,
 }
 
 #[cfg(feature = "sys")]
@@ -130,11 +130,11 @@ pub type StgFunInfoExtraRev = StgFunInfoExtraRev_;
 #[repr(C)]
 ///cbindgen:no-export
 pub struct StgFunInfoExtraRev_ {
-    slow_apply_offset: StgHalfInt,
-    __pad_slow_apply_offset: StgHalfWord,
-    b: StgFunInfoExtraRev__anon_union_1,
-    fun_type: StgHalfWord,
-    arity: StgHalfWord,
+    pub(crate) slow_apply_offset: StgHalfInt,
+    pub(crate) __pad_slow_apply_offset: StgHalfWord,
+    pub(crate) b: StgFunInfoExtraRev__anon_union_1,
+    pub(crate) fun_type: StgHalfWord,
+    pub(crate) arity: StgHalfWord,
 }
 
 #[cfg(feature = "sys")]

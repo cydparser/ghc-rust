@@ -4,11 +4,11 @@ use crate::{rts::storage::gc::generation, stg::W_};
 
 pub mod block;
 // TODO: pub mod closure_macros;
-// TODO: pub mod closure_types;
+pub mod closure_types;
 pub mod closures;
-// TODO: pub mod fun_types;
+pub mod fun_types;
 pub mod gc;
-// TODO: pub mod heap;
+pub mod heap;
 pub mod info_tables;
 // TODO: pub mod m_block;
 pub mod tso;

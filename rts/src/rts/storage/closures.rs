@@ -108,8 +108,8 @@ pub type StgClosure = StgClosure_;
 #[derive(Debug)]
 ///cbindgen:no-export
 pub struct StgClosure_ {
-    header: StgHeader,
-    payload: __IncompleteArrayField<*mut StgClosure_>,
+    pub(crate) header: StgHeader,
+    pub(crate) payload: __IncompleteArrayField<*mut StgClosure_>,
 }
 
 #[cfg(feature = "sys")]
