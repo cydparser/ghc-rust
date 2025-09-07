@@ -9,16 +9,7 @@ fn main() {
 
     utils::rustc_link(&ghc, cfg!(unix));
 
-    let bindings = utils::bindgen_builder(&ghc)
-        .header(ghc.include_dir.join("Rts.h").to_string_lossy())
-        // Invalidate bindings when header files change.
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
-        .allowlist_file(format!(
-            "{}.*",
-            ghc.include_dir.as_os_str().to_string_lossy()
-        ))
-        .generate()
-        .expect("Unable to generate bindings");
+    let bindings = ghc.rts_bindings();
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 

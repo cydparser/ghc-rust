@@ -65,6 +65,19 @@ impl GhcDirs {
             include_dir,
         }
     }
+
+    pub fn rts_bindings(&self) -> bindgen::Bindings {
+        bindgen_builder(self)
+            .header(self.include_dir.join("Rts.h").to_string_lossy())
+            // Invalidate bindings when header files change.
+            .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
+            .allowlist_file(format!(
+                "{}.*",
+                self.include_dir.as_os_str().to_string_lossy()
+            ))
+            .generate()
+            .expect("unable to generate bindings")
+    }
 }
 
 static LIBC_TYPES: [&str; 6] = [
