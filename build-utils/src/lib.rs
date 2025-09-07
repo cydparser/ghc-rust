@@ -13,7 +13,7 @@ pub struct GhcDirs {
     pub include_dir: PathBuf,
 }
 
-const RTS_VER: &str = "1.0.2";
+const RTS_VER: &str = "1.0.3";
 
 const GHC_LIB_DIR: &str = "GHC_LIB_DIR";
 
