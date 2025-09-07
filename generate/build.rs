@@ -165,7 +165,7 @@ fn main() {
             }
         };
 
-        let parent_module_path = path.clone().map(|s| s.to_string().replace('/', "::"));
+        let parent_module_path = (*path).map(|s| s.to_string().replace('/', "::"));
 
         for header in headers {
             let header_path = include_dir.join(format!("{}.h", header));
@@ -183,12 +183,10 @@ fn main() {
 
                 if internal {
                     f.write_all("#include \"Rts.h\"\n".as_bytes()).unwrap();
-                } else {
-                    if let Some((pre, _)) = rts_h.split_once(&include) {
-                        f.write_all(pre.as_bytes()).unwrap();
-                    } else if path.is_some() {
-                        f.write_all(rts_h.as_bytes()).unwrap();
-                    }
+                } else if let Some((pre, _)) = rts_h.split_once(&include) {
+                    f.write_all(pre.as_bytes()).unwrap();
+                } else if path.is_some() {
+                    f.write_all(rts_h.as_bytes()).unwrap();
                 }
                 f.write_all(include.as_bytes()).unwrap();
             }
@@ -307,7 +305,7 @@ fn extract_submodule(
         return None;
     }
 
-    let (imp, _) = line.split('"').skip(1).next()?.split_once('.')?;
+    let (imp, _) = line.split('"').nth(1)?.split_once('.')?;
 
     let (p, h) = match imp.rsplit_once('/') {
         None => (None, imp),
