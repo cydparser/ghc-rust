@@ -319,8 +319,8 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                             )
                         }
                         Type::Ptr(type_ptr) => {
-                            let (_, ty, expr, pat) =
-                                ptr_to_ty_expr_pat(symbols, 0, &param_ident, type_ptr);
+                            let (ty, expr, pat) =
+                                ptr_to_ty_expr_pat(symbols, &param_ident, type_ptr);
                             let arg_from_sys = if is_primitive_type(symbols, type_ptr.elem.as_ref())
                             {
                                 parse_quote! { #param_ident }
@@ -504,13 +504,11 @@ fn new_pat_ident(ident: &Ident) -> syn::PatIdent {
 
 fn ptr_to_ty_expr_pat(
     symbols: &Symbols,
-    depth: u32,
     ident: &Ident,
     type_ptr: &syn::TypePtr,
-) -> (u32, syn::Type, syn::Expr, syn::Pat) {
-    let (depth, ty, expr, pat) = match type_ptr.elem.as_ref() {
+) -> (syn::Type, syn::Expr, syn::Pat) {
+    let (ty, expr, pat) = match type_ptr.elem.as_ref() {
         ty @ Type::Path(type_path) => (
-            depth,
             ty.clone(),
             if is_primitive_type_path(symbols, type_path) {
                 parse_quote! { #ident }
@@ -519,23 +517,11 @@ fn ptr_to_ty_expr_pat(
             },
             syn::Pat::Ident(new_pat_ident(ident)),
         ),
-        Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(symbols, depth + 1, ident, type_ptr),
+        Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(symbols, ident, type_ptr),
         _ => panic!("Unexpected type for {ident}: {type_ptr:?}"),
     };
 
-    let pat = if depth < 1 {
-        pat
-    } else {
-        syn::Pat::Reference(syn::PatReference {
-            attrs: vec![],
-            and_token: token::And(Span::mixed_site()),
-            mutability: type_ptr.mutability,
-            pat: Box::new(pat),
-        })
-    };
-
     (
-        depth,
         ty,
         syn::Expr::Reference(syn::ExprReference {
             attrs: vec![],
