@@ -66,17 +66,19 @@ impl GhcDirs {
         }
     }
 
-    pub fn rts_bindings(&self) -> bindgen::Bindings {
-        bindgen_builder(self)
+    pub fn rts_bindings(&self, build_rs: bool) -> bindgen::Bindings {
+        let mut builder = bindgen_builder(self)
             .header(self.include_dir.join("Rts.h").to_string_lossy())
-            // Invalidate bindings when header files change.
-            .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
             .allowlist_file(format!(
                 "{}.*",
                 self.include_dir.as_os_str().to_string_lossy()
-            ))
-            .generate()
-            .expect("unable to generate bindings")
+            ));
+        if build_rs {
+            // Invalidate bindings when header files change.
+            builder = builder.parse_callbacks(Box::new(bindgen::CargoCallbacks::new()));
+        }
+
+        builder.generate().expect("unable to generate bindings")
     }
 }
 

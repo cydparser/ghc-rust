@@ -9,7 +9,7 @@ fn main() {
 
     utils::rustc_link(&ghc, cfg!(unix));
 
-    let bindings = ghc.rts_bindings();
+    let bindings = ghc.rts_bindings(false);
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 
