@@ -188,16 +188,15 @@
             ]
             ++ self.checks.${system}.pre-commit.enabledPackages;
 
-          shellHook =
-            ''
-              FLAKE_ROOT="$(git rev-parse --show-toplevel)"
+          shellHook = ''
+            FLAKE_ROOT="$(git rev-parse --show-toplevel)"
 
-              export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
-              export TAPLO_CONFIG=" $FLAKE_ROOT/taplo.toml";
+            export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
+            export TAPLO_CONFIG=" $FLAKE_ROOT/taplo.toml";
 
-              export GHC_LIB_DIR=${lib.optionalString pkgs.stdenv.isDarwin "${ghc}/lib/ghc-${ghc.version}/lib"}
-            ''
-            + self.checks.${system}.pre-commit.shellHook;
+            export GHC_LIB_DIR=${lib.optionalString pkgs.stdenv.isDarwin "${ghc}/lib/ghc-${ghc.version}/lib"}
+          ''
+          + self.checks.${system}.pre-commit.shellHook;
         };
       }
     );
