@@ -177,6 +177,7 @@
             with pkgs;
             [
               llvmPackages.clang
+              just
               # Libraries
               gmp.dev
               libffi.dev

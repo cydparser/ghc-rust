@@ -1,5 +1,13 @@
 [workspace]
-members = ["build-utils", "generate", "ghc-rts-sys", "include", "macros", "rts"]
+members = [
+  "build-utils",
+  "generate",
+  "ghc-rts-sys",
+  "include",
+  "macros",
+  "rts",
+  "scripts",
+]
 default-members = ["rts"]
 resolver = "3"
 
@@ -18,5 +26,5 @@ build-utils = { path = "build-utils" }
 libc = "0.2.171"
 proc-macro2 = "1.0.93"
 quote = "1.0.38"
-syn = { version = "2.0.98", features = ["extra-traits"] }
+syn = { version = "2.0.98", features = ["extra-traits", "visit"] }
 tracing = "0.1.41"
