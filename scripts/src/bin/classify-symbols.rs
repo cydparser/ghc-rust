@@ -89,7 +89,7 @@ impl SymbolVisitor {
 }
 
 #[rustfmt::skip]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Place {
     Compiler  = 0b000001,
     Docs      = 0b000010,
@@ -108,26 +108,44 @@ static PLACE_VARIANTS: [Place; 6] = [
     Place::Utils,
 ];
 
-struct Places(u32);
+impl Place {
+    fn bang_glob(&self) -> &'static str {
+        match self {
+            Place::Compiler => "!/compiler",
+            Place::Docs => "!/docs",
+            Place::Driver => "!/driver",
+            Place::Libraries => "!/libraries",
+            Place::Testsuite => "!/testsuite",
+            Place::Utils => "!/utils",
+        }
+    }
+}
+
+struct Places(BTreeSet<Place>);
 
 impl Places {
     fn new() -> Self {
-        Places(0)
+        Places(BTreeSet::new())
     }
 
     fn insert(&mut self, place: Place) {
-        self.0 |= place as u32;
+        self.0.insert(place);
     }
 
-    fn union(mut self, other: Places) -> Places {
-        self.0 |= other.0;
-        self
+    fn union(&self, other: &Places) -> Places {
+        Places(&self.0 | &other.0)
     }
 }
 
 impl std::fmt::Debug for Places {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Places({:#0b})", self.0)
+        let mut places: u32 = 0;
+
+        for p in self.0.iter() {
+            places |= *p as u32;
+        }
+
+        write!(f, "Places({:#0b})", places)
     }
 }
 
@@ -272,16 +290,19 @@ fn find_places<P: AsRef<Path>, S: AsRef<str>>(path: P, sym: S) -> Places {
         &["-g", "*.{c,h,hsc}", &format!("\\b{}\\b", sym.as_ref())],
     );
 
-    let places_hs = search(
-        path.as_ref(),
-        &[
-            "-g",
-            "*.hs",
-            &format!("^foreign import .*\\b{}\\b", sym.as_ref()),
-        ],
-    );
+    let mut args = vec![];
 
-    places_c.union(places_hs)
+    for p in places_c.0.iter() {
+        args.extend(["-g", p.bang_glob()]);
+    }
+
+    let foreign_pat = format!("^foreign import .*\\b{}\\b", sym.as_ref());
+
+    args.extend(["-g", "*.hs", &foreign_pat]);
+
+    let places_hs = search(path.as_ref(), &args);
+
+    places_c.union(&places_hs)
 }
 
 fn print_static_array<T: std::fmt::Debug>(
