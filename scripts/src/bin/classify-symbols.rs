@@ -28,8 +28,6 @@ pub fn main() {
         visitor
     };
 
-    dbg!(&visitor);
-
     let ghc_path = &ghc.root_dir;
 
     let mut symbols = BTreeMap::new();
