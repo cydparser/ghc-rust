@@ -856,7 +856,7 @@ fn prefix_with_sys<T: Borrow<Type>>(ty: T) -> Type {
 }
 
 fn doc_places(places: Places) -> syn::Attribute {
-    let mut s = "- GHC_PLACES: {".to_string();
+    let mut s = " - GHC_PLACES: {".to_string();
     let mut is_first = true;
 
     for p in places {
