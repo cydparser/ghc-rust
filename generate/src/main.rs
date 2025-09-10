@@ -742,8 +742,27 @@ fn transform_union(
 
     if places.is_empty() {
         item_union.vis = parse_quote! { pub(crate) };
+
+        for f in item_union.fields.named.iter_mut() {
+            f.vis = Visibility::Inherited;
+        }
     } else {
         item_union.attrs.push(doc_places(places));
+    }
+
+    // Remove ManuallyDrop for primitive/pointer types.
+    for f in item_union.fields.named.iter_mut() {
+        if let Type::Path(type_path) = &f.ty
+            && let Some(ps) = type_path.path.segments.last()
+            && ps.ident == "ManuallyDrop"
+            && let syn::PathArguments::AngleBracketed(angle_args) = &ps.arguments
+            && angle_args.args.len() == 1
+            && let Some(syn::GenericArgument::Type(param_ty)) = angle_args.args.first()
+            && (matches!(param_ty, Type::Path(tp) if symbols.is_primitive_type(tp))
+                || symbols.is_pointer_type(param_ty))
+        {
+            f.ty = param_ty.clone();
+        }
     }
 
     let field_idents: Vec<Ident> = item_union
