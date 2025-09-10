@@ -80,8 +80,10 @@ impl Symbols {
 
     pub fn is_pointer_type(&self, ty: &Type) -> bool {
         match ty {
+            Type::BareFn(_) => true,
             Type::Path(type_path) => self.pointer_types.contains(type_path),
             Type::Ptr(_) => true,
+            Type::Reference(_) => true,
             _ => false,
         }
     }
