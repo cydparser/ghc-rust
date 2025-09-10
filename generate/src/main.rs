@@ -9,7 +9,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::format_ident;
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
-use generate::Symbols;
+use generate::{Places, Symbols};
 
 fn main() {
     let src_dir = PathBuf::from(String::from(env!("OUT_DIR")));
@@ -170,8 +170,13 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
         match item {
             Item::Const(item_const) => transform_const(symbols, item_const, &mut transformed),
             Item::Enum(mut item_enum) => {
-                // Enums are not referrenced outside of C files.
-                item_enum.vis = parse_quote! { pub(crate) };
+                let places = symbols.places(&item_enum.ident);
+
+                if places.is_empty() {
+                    item_enum.vis = parse_quote! { pub(crate) };
+                } else {
+                    item_enum.attrs.push(doc_places(places));
+                }
                 transformed.main_file.items.push(Item::Enum(item_enum));
             }
             Item::ForeignMod(foreign_mod) => {
@@ -187,11 +192,13 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                             ty,
                             ..
                         }) => {
-                            let (vis, attrs) = if symbols.is_internal_static(&ident) {
-                                (Visibility::Inherited, vec![])
-                            } else {
-                                (vis, export_attrs(&ident))
-                            };
+                            let places = symbols.places(&ident);
+
+                            if places.is_empty() {
+                                continue;
+                            }
+
+                            let attrs = export_attrs(&ident, places);
 
                             let rhs: syn::Expr = match ty.as_ref() {
                                 Type::Array(_) => parse_quote! { [] },
@@ -211,15 +218,25 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                     }
                 }
             }
-            Item::Impl(item_impl) => transformed.main_file.items.push(Item::Impl(item_impl)),
+            Item::Impl(item_impl) => {
+                if matches!(item_impl.self_ty.as_ref(), Type::Path(type_path) if type_path.path.is_ident(BINDGEN_INCOMPLETE_ARRAY_FIELD))
+                {
+                    continue;
+                }
+                transformed.main_file.items.push(Item::Impl(item_impl))
+            }
             Item::Struct(item_struct) => transform_struct(symbols, item_struct, &mut transformed),
             Item::Type(mut item_type) => {
-                if symbols.is_internal_type(&item_type.ident) {
+                let places = symbols.places(&item_type.ident);
+
+                if places.is_empty() {
                     item_type.vis = parse_quote! { pub(crate) };
+                } else {
+                    item_type.attrs.push(doc_places(places));
                 }
                 transformed.main_file.items.push(Item::Type(item_type));
             }
-            Item::Union(item_union) => transform_union(item_union, &mut transformed),
+            Item::Union(item_union) => transform_union(symbols, item_union, &mut transformed),
             item @ Item::Use(_) => transformed.main_file.items.push(item),
             item => panic!("Unexpected Item: {item:#?}"),
         }
@@ -235,16 +252,19 @@ fn transform_const(
 ) {
     let ident = item_const.ident.clone();
 
-    if symbols.is_internal_const(&ident) {
-        item_const.vis = parse_quote! { pub(crate) };
-    }
-
     if ident == "_" {
         transformed.tests_file.items.push(Item::Const(item_const));
         return;
+    }
+
+    let places = symbols.places(&ident);
+
+    if places.is_empty() {
+        item_const.vis = parse_quote! { pub(crate) };
     } else {
-        transformed.main_file.items.push(Item::Const(item_const))
+        item_const.attrs.push(doc_places(places));
     };
+    transformed.main_file.items.push(Item::Const(item_const));
 
     let test_eq = format_ident!("sys_eq_{}", ident);
 
@@ -259,7 +279,6 @@ fn transform_const(
 
 fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
     let syn::ForeignItemFn {
-        vis,
         sig:
             syn::Signature {
                 ident,
@@ -273,6 +292,12 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
     } = ffn;
 
     assert!(generics.gt_token.is_none() && generics.where_clause.is_none());
+
+    let places = symbols.places(&ident);
+
+    if places.is_empty() {
+        return;
+    }
 
     let Transformed {
         main_file,
@@ -375,13 +400,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         })
         .collect();
 
-    // Mark all functions as unsafe until the code can be audited.
-    let (vis, abi, attrs): (_, Option<syn::Abi>, Vec<syn::Attribute>) =
-        if symbols.is_internal_func(&ident) {
-            (parse_quote! { pub(crate) }, None, vec![])
-        } else {
-            (vis, Some(parse_quote! { extern "C" }), export_attrs(&ident))
-        };
+    let attrs = export_attrs(&ident, places);
 
     let (call, expected_call): (syn::Expr, syn::Expr) = match &output {
         syn::ReturnType::Type(_, ty) if !is_primitive_type(symbols, ty.as_ref()) => (
@@ -394,10 +413,11 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         ),
     };
 
+    // Mark all functions as unsafe until the code can be audited.
     main_file.items.push(Item::Fn(parse_quote! {
         #(#attrs)*
         #[instrument]
-        #vis unsafe #abi fn #ident(#inputs) #output {
+        pub unsafe extern "C" fn #ident(#inputs) #output {
             unsafe { #call }
         }
     }));
@@ -443,13 +463,20 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
     }));
 }
 
-fn export_attrs(ident: &Ident) -> Vec<syn::Attribute> {
+fn export_attrs(ident: &Ident, places: Places) -> Vec<syn::Attribute> {
     let export_name = parse_token_stream(format!("\"rust_{ident}\""));
 
-    vec![
+    let mut attrs = Vec::with_capacity(3);
+    attrs.extend([
         parse_quote! { #[cfg_attr(feature = "sys", unsafe(export_name = #export_name))] },
         parse_quote! { #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))] },
-    ]
+    ]);
+
+    if !places.is_empty() {
+        attrs.push(doc_places(places));
+    }
+
+    attrs
 }
 
 fn is_indirect(ty: &Type) -> bool {
@@ -533,6 +560,8 @@ fn ptr_to_ty_expr_pat(
     )
 }
 
+static BINDGEN_INCOMPLETE_ARRAY_FIELD: &str = "__IncompleteArrayField";
+
 fn transform_struct(
     symbols: &Symbols,
     mut item_struct: syn::ItemStruct,
@@ -541,12 +570,14 @@ fn transform_struct(
         tests_file,
     }: &mut Transformed,
 ) {
-    if item_struct.ident == "__IncompleteArrayField" {
+    if item_struct.ident == BINDGEN_INCOMPLETE_ARRAY_FIELD {
         return;
     }
     let ident = item_struct.ident.clone();
 
-    if symbols.is_internal_struct(&ident) {
+    let places = symbols.places(&ident);
+
+    if places.is_empty() || ident.to_string().ends_with("_") {
         item_struct
             .attrs
             .push(parse_quote! { #[doc = "cbindgen:no-export"] });
@@ -556,6 +587,8 @@ fn transform_struct(
                 f.vis = Visibility::Inherited;
             }
         }
+    } else {
+        item_struct.attrs.push(doc_places(places));
     }
 
     let (ptr_fields, fields): (Vec<syn::Field>, _) = match &item_struct.fields {
@@ -684,6 +717,7 @@ fn transform_struct(
 }
 
 fn transform_union(
+    symbols: &Symbols,
     mut item_union: syn::ItemUnion,
     Transformed {
         main_file,
@@ -692,7 +726,13 @@ fn transform_union(
 ) {
     let ident = item_union.ident.clone();
 
-    item_union.vis = parse_quote! { pub(crate) };
+    let places = symbols.places(&ident);
+
+    if places.is_empty() {
+        item_union.vis = parse_quote! { pub(crate) };
+    } else {
+        item_union.attrs.push(doc_places(places));
+    }
 
     let field_idents: Vec<Ident> = item_union
         .fields
@@ -813,4 +853,20 @@ fn prefix_with_sys<T: Borrow<Type>>(ty: T) -> Type {
         }
         ty => panic!("Unexpected type: {ty:?}"),
     }
+}
+
+fn doc_places(places: Places) -> syn::Attribute {
+    let mut s = "- GHC_PLACES: {".to_string();
+    let mut is_first = true;
+
+    for p in places {
+        if is_first {
+            is_first = false;
+        } else {
+            s.push_str(", ");
+        }
+        s.push_str(p.to_str());
+    }
+    s.push('}');
+    parse_quote! { #[doc = #s] }
 }
