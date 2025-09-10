@@ -260,6 +260,13 @@ fn transform_const(
     if ident == "_" {
         transformed.tests_file.items.push(Item::Const(item_const));
         return;
+    } else {
+        let s = ident.to_string();
+
+        if s.starts_with("FMT_") || s.contains("_FMT_") {
+            eprintln!("    * Ignoring formatting const: {ident}");
+            return;
+        }
     }
 
     let places = symbols.places(&ident);
