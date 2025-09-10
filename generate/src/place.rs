@@ -29,18 +29,14 @@ impl Iterator for PlacesIter {
     type Item = Place;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match symbols::PLACE_VARIANTS.get(self.index) {
-            Some(place) => {
-                self.index += 1;
+        while let Some(place) = symbols::PLACE_VARIANTS.get(self.index) {
+            self.index += 1;
 
-                if (*place as u32) & self.places != 0 {
-                    Some(*place)
-                } else {
-                    None
-                }
+            if ((*place as u32) & self.places) != 0 {
+                return Some(*place);
             }
-            None => None,
         }
+        None
     }
 }
 
