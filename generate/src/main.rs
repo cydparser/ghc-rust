@@ -264,7 +264,7 @@ fn transform_const(
         let s = ident.to_string();
 
         if s.starts_with("FMT_") || s.contains("_FMT_") {
-            eprintln!("    * Ignoring formatting const: {ident}");
+            eprintln!("  * Ignoring formatting const: {ident}");
             return;
         }
     }
@@ -318,7 +318,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 
     // TODO: There are variadic functions in rts::messages.
     if variadic.is_some() {
-        eprintln!("Ignoring variadic function: {ident}");
+        eprintln!("  * Ignoring variadic function: {ident}");
         return;
     }
 
