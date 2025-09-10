@@ -219,7 +219,12 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                 }
             }
             Item::Impl(item_impl) => {
-                if matches!(item_impl.self_ty.as_ref(), Type::Path(type_path) if type_path.path.is_ident(BINDGEN_INCOMPLETE_ARRAY_FIELD))
+                if let Type::Path(type_path) = item_impl.self_ty.as_ref()
+                    && type_path
+                        .path
+                        .segments
+                        .first()
+                        .is_some_and(|ps| ps.ident == BINDGEN_INCOMPLETE_ARRAY_FIELD)
                 {
                     continue;
                 }
