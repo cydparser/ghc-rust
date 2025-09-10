@@ -765,48 +765,9 @@ fn transform_union(
         }
     }
 
-    let field_idents: Vec<Ident> = item_union
-        .fields
-        .named
-        .iter()
-        .map(|f| f.ident.clone().unwrap())
-        .collect();
-
-    let field_count = field_idents.len();
-
-    let arbitrary_fields: Vec<_> = field_idents
-        .iter()
-        .cloned()
-        .enumerate()
-        .map(|(i, field_ident)| {
-            parse_token_stream(format!(
-                "{} => {} {{ {}: Arbitrary::arbitrary(g) }}",
-                if i + 1 == field_count {
-                    format!("{i}..")
-                } else {
-                    i.to_string()
-                },
-                &ident,
-                field_ident
-            ))
-        })
-        .collect();
-
-    main_file.items.extend([
-        Item::Union(item_union),
-        Item::Impl(impl_from(&ident)),
-        // impl Arbitrary
-        Item::Impl(parse_quote! {
-            #[cfg(test)]
-            impl Arbitrary for #ident {
-                fn arbitrary(g: &mut Gen) -> Self {
-                    match <usize as Arbitrary>::arbitrary(g) % #field_count {
-                        #(#arbitrary_fields),*
-                    }
-                }
-            }
-        }),
-    ]);
+    main_file
+        .items
+        .extend([Item::Union(item_union), Item::Impl(impl_from(&ident))]);
 
     tests_file.items.push(Item::Fn(fn_test_size_of(&ident)));
 }
