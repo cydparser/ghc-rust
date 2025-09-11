@@ -20,6 +20,12 @@ impl Places {
     }
 }
 
+impl PartialEq<Place> for Places {
+    fn eq(&self, place: &Place) -> bool {
+        self.0 == *place as u32
+    }
+}
+
 pub struct PlacesIter {
     places: u32,
     index: usize,

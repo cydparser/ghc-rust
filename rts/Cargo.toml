@@ -10,7 +10,8 @@ license-file = "LICENSE"
 # crate-type = ["lib", "staticlib", "cdylib"]
 
 [features]
-default = ["sys"]
+default = ["ghc_testsuite", "sys"]
+ghc_testsuite = []
 sys = ["dep:ghc-rts-sys"]
 tracing = ["dep:tracing", "ghc-macros/tracing"]
 

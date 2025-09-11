@@ -9,7 +9,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::format_ident;
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
-use generate::{Places, Symbols};
+use generate::{Place, Places, Symbols};
 
 fn main() {
     let src_dir = PathBuf::from(String::from(env!("OUT_DIR")));
@@ -481,7 +481,7 @@ fn export_attrs(ident: &Ident, places: Places) -> Vec<syn::Attribute> {
     let mut attrs = Vec::with_capacity(3);
 
     if !places.is_empty() {
-        attrs.push(doc_places(places));
+        attrs.push(attr_places(places));
     }
 
     attrs.extend([
@@ -643,12 +643,14 @@ fn transform_union(
 
     if places.is_empty() {
         item_union.vis = parse_quote! { pub(crate) };
+    } else {
+        item_union.attrs.insert(0, attr_places(places));
+    }
 
+    if places.is_empty() || places == Place::Testsuite {
         for f in item_union.fields.named.iter_mut() {
             f.vis = Visibility::Inherited;
         }
-    } else {
-        item_union.attrs.insert(0, doc_places(places));
     }
 
     // Remove ManuallyDrop for primitive/pointer types.
@@ -745,6 +747,14 @@ fn prefix_with_sys<T: Borrow<Type>>(ty: T) -> Type {
             Type::Ptr(ptr)
         }
         ty => panic!("Unexpected type: {ty:?}"),
+    }
+}
+
+fn attr_places(places: Places) -> syn::Attribute {
+    if places == generate::Place::Testsuite {
+        parse_quote! { #[cfg(feature = "ghc_testsuite")] }
+    } else {
+        doc_places(places)
     }
 }
 
