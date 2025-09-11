@@ -175,7 +175,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                 if places.is_empty() {
                     item_enum.vis = parse_quote! { pub(crate) };
                 } else {
-                    item_enum.attrs.push(doc_places(places));
+                    item_enum.attrs.insert(0, doc_places(places));
                 }
                 transformed.main_file.items.push(Item::Enum(item_enum));
             }
@@ -237,7 +237,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                 if places.is_empty() {
                     item_type.vis = parse_quote! { pub(crate) };
                 } else {
-                    item_type.attrs.push(doc_places(places));
+                    item_type.attrs.insert(0, doc_places(places));
                 }
                 transformed.main_file.items.push(Item::Type(item_type));
             }
@@ -274,7 +274,7 @@ fn transform_const(
     if places.is_empty() {
         item_const.vis = parse_quote! { pub(crate) };
     } else {
-        item_const.attrs.push(doc_places(places));
+        item_const.attrs.insert(0, doc_places(places));
     };
     transformed.main_file.items.push(Item::Const(item_const));
 
@@ -479,14 +479,15 @@ fn export_attrs(ident: &Ident, places: Places) -> Vec<syn::Attribute> {
     let export_name = parse_token_stream(format!("\"rust_{ident}\""));
 
     let mut attrs = Vec::with_capacity(3);
-    attrs.extend([
-        parse_quote! { #[cfg_attr(feature = "sys", unsafe(export_name = #export_name))] },
-        parse_quote! { #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))] },
-    ]);
 
     if !places.is_empty() {
         attrs.push(doc_places(places));
     }
+
+    attrs.extend([
+        parse_quote! { #[cfg_attr(feature = "sys", unsafe(export_name = #export_name))] },
+        parse_quote! { #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))] },
+    ]);
 
     attrs
 }
@@ -600,7 +601,7 @@ fn transform_struct(
             }
         }
     } else {
-        item_struct.attrs.push(doc_places(places));
+        item_struct.attrs.insert(0, doc_places(places));
     }
 
     let (ptr_fields, fields): (Vec<syn::Field>, _) = match &item_struct.fields {
@@ -747,7 +748,7 @@ fn transform_union(
             f.vis = Visibility::Inherited;
         }
     } else {
-        item_union.attrs.push(doc_places(places));
+        item_union.attrs.insert(0, doc_places(places));
     }
 
     // Remove ManuallyDrop for primitive/pointer types.
