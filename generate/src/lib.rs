@@ -78,6 +78,20 @@ impl Symbols {
             })
     }
 
+    /// True for primitives and arrays, slices, tuples containing only "simple" types.
+    pub fn is_simple_type(&self, ty: &Type) -> bool {
+        match ty {
+            Type::Array(type_array) => self.is_simple_type(type_array.elem.as_ref()),
+            Type::Path(type_path) => self.is_primitive_type(type_path),
+            Type::Slice(type_slice) => self.is_simple_type(type_slice.elem.as_ref()),
+            Type::Tuple(type_tuple) => type_tuple
+                .elems
+                .iter()
+                .all(|param_ty| self.is_simple_type(param_ty)),
+            _ => false,
+        }
+    }
+
     pub fn is_pointer_type(&self, ty: &Type) -> bool {
         match ty {
             Type::BareFn(_) => true,
