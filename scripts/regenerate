@@ -8,8 +8,6 @@ _files=(
   # rts/src/hs_ffi/tests.rs
   # rts/src/mach_deps.rs
   # rts/src/mach_deps/tests.rs
-  # rts/src/rts/capability.rs
-  # rts/src/rts/capability/tests.rs
   # rts/event_log_writer.rs
   # rts/event_log_writer/tests.rs
   # rts/src/rts/prof/ccs.rs
