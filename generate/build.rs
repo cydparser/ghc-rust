@@ -124,24 +124,11 @@ fn main() {
         envs: HashSet::new(),
     }));
 
-    for (path, (internal, headers)) in &headers_by_dir {
-        let internal = *internal;
-
-        let (mut include_dir, mut out_dir) = if internal {
-            (ghc.root_dir.join("rts"), out_dir.join("rts"))
-        } else {
-            (ghc.include_dir.clone(), out_dir.clone())
-        };
+    for (path, headers) in &headers_by_dir {
+        let (mut include_dir, mut out_dir) = (ghc.include_dir.clone(), out_dir.clone());
 
         let (include_dir, out_dir) = match path {
-            None => {
-                if internal {
-                    fs::create_dir_all(&out_dir).unwrap_or_else(|e| {
-                        panic!("Unable to create {}: {}", out_dir.display(), e)
-                    });
-                }
-                (include_dir, out_dir)
-            }
+            None => (include_dir, out_dir),
             Some(path) => {
                 let path = PathBuf::from(path);
                 out_dir.push(&path);
@@ -168,9 +155,7 @@ fn main() {
                     }
                 );
 
-                if internal {
-                    f.write_all("#include \"Rts.h\"\n".as_bytes()).unwrap();
-                } else if let Some((pre, _)) = rts_h.split_once(&include) {
+                if let Some((pre, _)) = rts_h.split_once(&include) {
                     f.write_all(pre.as_bytes()).unwrap();
                 } else if path.is_some() {
                     f.write_all(rts_h.as_bytes()).unwrap();
@@ -178,21 +163,16 @@ fn main() {
                 f.write_all(include.as_bytes()).unwrap();
             }
             let bindings = {
-                let builder = bindings_builder.clone();
-
-                if internal {
-                    builder.clang_arg(format!("-I{}", include_dir.display()))
-                } else {
-                    builder
-                }
-                .allowlist_file(header_path.to_string_lossy())
-                .header(wrapper_str)
-                // Invalidate bindings when header files change.
-                .parse_callbacks(Box::new(CollectCargoCallbacks {
-                    state: Rc::clone(&callbacks_state),
-                }))
-                .generate()
-                .expect("Unable to generate bindings")
+                bindings_builder
+                    .clone()
+                    .allowlist_file(header_path.to_string_lossy())
+                    .header(wrapper_str)
+                    // Invalidate bindings when header files change.
+                    .parse_callbacks(Box::new(CollectCargoCallbacks {
+                        state: Rc::clone(&callbacks_state),
+                    }))
+                    .generate()
+                    .expect("Unable to generate bindings")
             };
             fs::remove_file(&wrapper).unwrap();
 
@@ -284,7 +264,7 @@ fn header_to_module(header: &str) -> String {
 }
 
 fn extract_submodule(
-    headers_by_dir: &HashMap<Option<&str>, (bool, Vec<&str>)>,
+    headers_by_dir: &HashMap<Option<&str>, Vec<&str>>,
     module_path: &str,
     line: &str,
 ) -> Option<String> {
@@ -299,7 +279,7 @@ fn extract_submodule(
         Some((p, h)) => (Some(p), h),
     };
 
-    let _ = headers_by_dir.get(&p)?.1.iter().find(|&&s| s == h)?;
+    let _ = headers_by_dir.get(&p)?.iter().find(|&&s| s == h)?;
 
     let module_name = header_to_module(h);
 
