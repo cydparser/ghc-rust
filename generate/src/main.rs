@@ -604,23 +604,21 @@ fn transform_struct(
         item_struct.attrs.insert(0, doc_places(places));
     }
 
-    let (ptr_fields, fields): (Vec<syn::Field>, _) = match &item_struct.fields {
-        syn::Fields::Named(syn::FieldsNamed { named, .. }) => named
-            .iter()
-            .cloned()
-            .map(|mut f| {
-                f.vis = Visibility::Inherited;
-                f
-            })
-            .partition(|f| symbols.is_pointer_type(&f.ty)),
-        _ => panic!("Unexpected struct type: {:?}", &item_struct),
+    let arbitrary_fields = if let syn::Fields::Named(syn::FieldsNamed { named, .. }) =
+        &item_struct.fields
+        && named.iter().all(|f| {
+            symbols.is_simple_type(&f.ty) && f.ident.as_ref().is_some_and(|i| i != "_unused")
+        }) {
+        Some(named.clone())
+    } else {
+        None
     };
 
     main_file
         .items
         .extend([Item::Struct(item_struct), Item::Impl(impl_from(&ident))]);
 
-    if ptr_fields.is_empty() {
+    if let Some(fields) = arbitrary_fields {
         main_file
             .items
             .push(Item::Impl(impl_arbitrary(&ident, &fields)));
