@@ -37,17 +37,19 @@ fn main() {
         let mod_exists = mod_rs.exists();
         let tests_exists = tests_rs.exists();
 
+        symbols.with_module(relative_path);
+
+        let code = fs::read_to_string(path).unwrap();
+        // Traverse the AST even when skipping to record "simple" types.
+        let Transformed {
+            main_file,
+            tests_file,
+        } = transform_tree(&mut symbols, syn::parse_file(&code).unwrap());
+
         if mod_exists && tests_exists {
             eprintln!("  * Skipping");
             return Ok(());
         }
-        symbols.with_module(relative_path);
-
-        let code = fs::read_to_string(path).unwrap();
-        let Transformed {
-            main_file,
-            tests_file,
-        } = transform_tree(&symbols, syn::parse_file(&code).unwrap());
 
         fs::create_dir_all(&mod_dir)?;
 

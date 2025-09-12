@@ -15,6 +15,7 @@ pub struct Symbols {
     internal_modules: HashSet<PathBuf>,
     symbols: HashMap<Ident, Places>,
     primitive_types: HashSet<TypePath>,
+    simple_types: HashSet<Ident>,
     pointer_types: HashSet<TypePath>,
 }
 
@@ -45,6 +46,7 @@ impl Symbols {
                 }
                 hs
             },
+            simple_types: HashSet::new(),
             pointer_types: {
                 let mut hs = HashSet::new();
                 for s in symbols::POINTER_TYPES {
@@ -57,6 +59,10 @@ impl Symbols {
 
     pub fn with_module(&mut self, path: &Path) {
         self.internal_module = self.internal_modules.contains(path);
+    }
+
+    pub fn insert_simple_type(&mut self, ident: Ident) {
+        self.simple_types.insert(ident);
     }
 
     pub fn is_internal_module(&self) -> bool {
@@ -78,11 +84,14 @@ impl Symbols {
             })
     }
 
-    /// True for primitives and arrays, slices, tuples containing only "simple" types.
+    /// True for primitives and structs/enums/arrays/slices/tuples containing only "simple" types.
     pub fn is_simple_type(&self, ty: &Type) -> bool {
         match ty {
             Type::Array(type_array) => self.is_simple_type(type_array.elem.as_ref()),
-            Type::Path(type_path) => self.is_primitive_type(type_path),
+            Type::Path(type_path) => match type_path.path.get_ident() {
+                Some(ident) if self.simple_types.contains(ident) => true,
+                _ => self.is_primitive_type(type_path),
+            },
             Type::Slice(type_slice) => self.is_simple_type(type_slice.elem.as_ref()),
             Type::Tuple(type_tuple) => type_tuple
                 .elems
