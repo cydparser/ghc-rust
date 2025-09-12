@@ -5,6 +5,7 @@ use std::{
     process::Command,
 };
 
+use proc_macro2 as proc2;
 use proc_macro2::{Span, TokenStream};
 use quote::format_ident;
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
@@ -119,7 +120,7 @@ struct Transformed {
     tests_file: syn::File,
 }
 
-fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
+fn transform_tree(symbols: &mut Symbols, syn_file: syn::File) -> Transformed {
     let cap = syn_file.items.len() * 2;
 
     let mut transformed = Transformed {
@@ -179,7 +180,23 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                 } else {
                     item_enum.attrs.insert(0, doc_places(places));
                 }
+
+                let ident_variants = if item_enum
+                    .variants
+                    .iter()
+                    .all(|v| all_fields_simple_types(symbols, &v.fields))
+                {
+                    symbols.insert_simple_type(item_enum.ident.clone());
+                    Some((item_enum.ident.clone(), item_enum.variants.clone()))
+                } else {
+                    None
+                };
+
                 transformed.main_file.items.push(Item::Enum(item_enum));
+
+                if let Some((ident, variants)) = ident_variants {
+                    impl_arbitrary_enum(&ident, &variants);
+                }
             }
             Item::ForeignMod(foreign_mod) => {
                 for fitem in foreign_mod.items.into_iter() {
@@ -578,7 +595,7 @@ fn ptr_to_ty_expr_pat(
 static BINDGEN_INCOMPLETE_ARRAY_FIELD: &str = "__IncompleteArrayField";
 
 fn transform_struct(
-    symbols: &Symbols,
+    symbols: &mut Symbols,
     mut item_struct: syn::ItemStruct,
     Transformed {
         main_file,
@@ -606,12 +623,9 @@ fn transform_struct(
         item_struct.attrs.insert(0, doc_places(places));
     }
 
-    let arbitrary_fields = if let syn::Fields::Named(syn::FieldsNamed { named, .. }) =
-        &item_struct.fields
-        && named.iter().all(|f| {
-            symbols.is_simple_type(&f.ty) && f.ident.as_ref().is_some_and(|i| i != "_unused")
-        }) {
-        Some(named.clone())
+    let fields = if all_fields_simple_types(symbols, &item_struct.fields) {
+        symbols.insert_simple_type(ident.clone());
+        Some(item_struct.fields.clone())
     } else {
         None
     };
@@ -620,10 +634,23 @@ fn transform_struct(
         .items
         .extend([Item::Struct(item_struct), Item::Impl(impl_from(&ident))]);
 
-    if let Some(fields) = arbitrary_fields {
-        main_file
-            .items
-            .push(Item::Impl(impl_arbitrary(&ident, &fields)));
+    if let Some(fields) = fields {
+        match &fields {
+            syn::Fields::Named(fs)
+                if fs.named.len() == 1
+                    && fs
+                        .named
+                        .first()
+                        .is_some_and(|f| f.ident.as_ref().is_some_and(|i| i == "_unused")) =>
+            {
+                // Ignore opaque types.
+            }
+            fields => {
+                main_file
+                    .items
+                    .push(Item::Impl(impl_arbitrary_struct(&ident, fields)));
+            }
+        }
     }
 
     tests_file.items.push(Item::Fn(fn_test_size_of(&ident)));
@@ -695,17 +722,43 @@ fn impl_from(ident: &Ident) -> syn::ItemImpl {
     }
 }
 
-fn impl_arbitrary<'a, I: IntoIterator<Item = &'a syn::Field>>(
+fn impl_arbitrary_struct(ident: &Ident, fields: &syn::Fields) -> syn::ItemImpl {
+    let arbitrary_fields = arbitrary_data_constructor(ident, fields);
+
+    parse_quote! {
+        #[cfg(test)]
+        impl Arbitrary for #ident {
+            fn arbitrary(g: &mut Gen) -> Self {
+                #arbitrary_fields
+            }
+        }
+    }
+}
+
+fn impl_arbitrary_enum(
     ident: &Ident,
-    fields: I,
+    variants: &Punctuated<syn::Variant, token::Comma>,
 ) -> syn::ItemImpl {
-    let arbitrary_fields: Vec<_> = fields
+    let variant_count = variants.len();
+
+    let arbitrary_variants: Vec<syn::Arm> = variants
         .into_iter()
-        .map(|field| {
-            parse_token_stream(format!(
-                "{}: Arbitrary::arbitrary(g)",
-                field.ident.clone().unwrap()
-            ))
+        .enumerate()
+        .map(|(i, v)| {
+            let arbitrary_variant = arbitrary_data_constructor(&v.ident, &v.fields);
+
+            let pat = if i < variant_count - 1 {
+                syn::Pat::Lit(syn::ExprLit {
+                    attrs: vec![],
+                    lit: syn::Lit::Int(proc2::Literal::usize_unsuffixed(i).into()),
+                })
+            } else {
+                parse_quote! { #i.. }
+            };
+
+            parse_quote! {
+                #pat => #arbitrary_variant
+            }
         })
         .collect();
 
@@ -713,11 +766,63 @@ fn impl_arbitrary<'a, I: IntoIterator<Item = &'a syn::Field>>(
         #[cfg(test)]
         impl Arbitrary for #ident {
             fn arbitrary(g: &mut Gen) -> Self {
+                match <usize as Arbitrary>::arbitrary(g) % #variant_count {
+                    #(#arbitrary_variants),*
+                }
+            }
+        }
+    }
+}
+
+fn arbitrary_data_constructor(ident: &Ident, fields: &syn::Fields) -> syn::Expr {
+    match fields {
+        syn::Fields::Named(fields_named) => {
+            let arbitrary_fields: Vec<_> = fields_named
+                .named
+                .iter()
+                .map(|f| {
+                    parse_token_stream(format!(
+                        "{}: Arbitrary::arbitrary(g)",
+                        f.ident.clone().unwrap()
+                    ))
+                })
+                .collect();
+
+            parse_quote! {
                 #ident {
                     #(#arbitrary_fields),*
                 }
             }
         }
+        syn::Fields::Unnamed(fields_unnamed) => {
+            let arbitrary_fields: Vec<syn::Expr> = std::iter::repeat_n(
+                parse_quote! { Arbitrary::arbitrary(g) },
+                fields_unnamed.unnamed.len(),
+            )
+            .collect();
+
+            parse_quote! {
+                #ident(#(#arbitrary_fields),*)
+            }
+        }
+        syn::Fields::Unit => parse_quote!(#ident),
+    }
+}
+
+fn all_fields_simple_types(symbols: &Symbols, fields: &syn::Fields) -> bool {
+    fn all_simple<'a>(symbols: &Symbols, fields: impl IntoIterator<Item = &'a syn::Field>) -> bool {
+        for f in fields {
+            if !symbols.is_simple_type(&f.ty) {
+                return false;
+            }
+        }
+        true
+    }
+
+    match fields {
+        syn::Fields::Named(fields_named) => all_simple(symbols, &fields_named.named),
+        syn::Fields::Unnamed(fields_unnamed) => all_simple(symbols, &fields_unnamed.unnamed),
+        syn::Fields::Unit => true,
     }
 }
 
