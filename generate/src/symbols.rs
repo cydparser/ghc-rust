@@ -1806,9 +1806,10 @@ pub(crate) static SYMBOLS: [(&str, Places); 1769] = [
     ("yieldThread", Places(0b0)),
 ];
 
-pub(crate) static POINTER_TYPES: [&str; 26] = [
+pub(crate) static POINTER_TYPES: [&str; 27] = [
     "AdjustorExecutable",
     "AdjustorWritable",
+    "F_",
     "HaskellObj",
     "HsFunPtr",
     "HsPtr",
@@ -1896,4 +1897,41 @@ pub(crate) static PRIMITIVE_TYPES: [&str; 60] = [
     "nat",
     "nursery",
     "pathchar",
+];
+
+pub(crate) static SIMPLE_TYPES: [&str; 34] = [
+    "CONCURRENT_FLAGS",
+    "Condition",
+    "DEBUG_FLAGS",
+    "EventLogStatus",
+    "ExecPage",
+    "GCDetails",
+    "GCDetails_",
+    "InCall_",
+    "IndexTable_",
+    "IpeBufferEntry",
+    "NonmovingSegmentInfo",
+    "OStatus",
+    "PAR_FLAGS",
+    "RTSStats",
+    "RtsOptsEnabledEnum",
+    "SchedulerStatus",
+    "StgProfInfo",
+    "StgSMPThunkHeader",
+    "StgWord128",
+    "StgWord256",
+    "StgWord512",
+    "TRecState",
+    "_CONCURRENT_FLAGS",
+    "_DEBUG_FLAGS",
+    "_HPC_READ_FILE",
+    "_IO_MANAGER_FLAG",
+    "_PAR_FLAGS",
+    "_RTSStats",
+    "__darwin_pthread_cond_t",
+    "__darwin_pthread_mutex_t",
+    "_opaque_pthread_cond_t",
+    "_opaque_pthread_mutex_t",
+    "hashtable",
+    "mblock_address_range",
 ];
