@@ -612,7 +612,7 @@ fn transform_struct(
     if places.is_empty() || ident.to_string().ends_with("_") {
         item_struct
             .attrs
-            .push(parse_quote! { #[doc = " cbindgen:no-export"] });
+            .insert(0, parse_quote! { #[doc = " cbindgen:no-export"] });
 
         if let syn::Fields::Named(syn::FieldsNamed { named, .. }) = &mut item_struct.fields {
             for f in named {
