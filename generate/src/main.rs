@@ -181,16 +181,20 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                     item_enum.attrs.insert(0, doc_places(places));
                 }
 
-                let ident_variants = if symbols.is_simple(&item_enum.ident) {
-                    Some((item_enum.ident.clone(), item_enum.variants.clone()))
+                let impl_arb = if symbols.is_simple(&item_enum.ident) {
+                    item_enum.attrs.push(parse_quote! { #[derive(Clone)] });
+                    Some(Item::Impl(impl_arbitrary_enum(
+                        &item_enum.ident,
+                        &item_enum.variants,
+                    )))
                 } else {
                     None
                 };
 
                 transformed.main_file.items.push(Item::Enum(item_enum));
 
-                if let Some((ident, variants)) = ident_variants {
-                    impl_arbitrary_enum(&ident, &variants);
+                if let Some(impl_arb) = impl_arb {
+                    transformed.main_file.items.push(impl_arb);
                 }
             }
             Item::ForeignMod(foreign_mod) => {
@@ -619,8 +623,22 @@ fn transform_struct(
         item_struct.attrs.insert(0, doc_places(places));
     }
 
-    let fields = if symbols.is_simple(&item_struct.ident) {
-        Some(item_struct.fields.clone())
+    let impl_arb = if symbols.is_simple(&item_struct.ident) {
+        match &item_struct.fields {
+            syn::Fields::Named(fs)
+                if fs.named.len() == 1
+                    && fs
+                        .named
+                        .first()
+                        .is_some_and(|f| f.ident.as_ref().is_some_and(|i| i == "_unused")) =>
+            {
+                None
+            } // Opaque type
+            fields => {
+                item_struct.attrs.push(parse_quote! { #[derive(Clone)] });
+                Some(Item::Impl(impl_arbitrary_struct(&ident, fields)))
+            }
+        }
     } else {
         None
     };
@@ -629,23 +647,8 @@ fn transform_struct(
         .items
         .extend([Item::Struct(item_struct), Item::Impl(impl_from(&ident))]);
 
-    if let Some(fields) = fields {
-        match &fields {
-            syn::Fields::Named(fs)
-                if fs.named.len() == 1
-                    && fs
-                        .named
-                        .first()
-                        .is_some_and(|f| f.ident.as_ref().is_some_and(|i| i == "_unused")) =>
-            {
-                // Ignore opaque types.
-            }
-            fields => {
-                main_file
-                    .items
-                    .push(Item::Impl(impl_arbitrary_struct(&ident, fields)));
-            }
-        }
+    if let Some(impl_arb) = impl_arb {
+        main_file.items.push(impl_arb);
     }
 
     tests_file.items.push(Item::Fn(fn_test_size_of(&ident)));
