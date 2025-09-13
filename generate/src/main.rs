@@ -38,19 +38,19 @@ fn main() {
         let mod_exists = mod_rs.exists();
         let tests_exists = tests_rs.exists();
 
-        symbols.with_module(relative_path);
-
-        let code = fs::read_to_string(path).unwrap();
-        // Traverse the AST even when skipping to record "simple" types.
-        let Transformed {
-            main_file,
-            tests_file,
-        } = transform_tree(&mut symbols, syn::parse_file(&code).unwrap());
-
         if mod_exists && tests_exists {
             eprintln!("  * Skipping");
             return Ok(());
         }
+
+        symbols.with_module(relative_path);
+
+        let code = fs::read_to_string(path).unwrap();
+
+        let Transformed {
+            main_file,
+            tests_file,
+        } = transform_tree(&symbols, syn::parse_file(&code).unwrap());
 
         fs::create_dir_all(&mod_dir)?;
 
@@ -120,7 +120,7 @@ struct Transformed {
     tests_file: syn::File,
 }
 
-fn transform_tree(symbols: &mut Symbols, syn_file: syn::File) -> Transformed {
+fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
     let cap = syn_file.items.len() * 2;
 
     let mut transformed = Transformed {
@@ -181,12 +181,7 @@ fn transform_tree(symbols: &mut Symbols, syn_file: syn::File) -> Transformed {
                     item_enum.attrs.insert(0, doc_places(places));
                 }
 
-                let ident_variants = if item_enum
-                    .variants
-                    .iter()
-                    .all(|v| all_fields_simple_types(symbols, &v.fields))
-                {
-                    symbols.insert_simple_type(item_enum.ident.clone());
+                let ident_variants = if symbols.is_simple(&item_enum.ident) {
                     Some((item_enum.ident.clone(), item_enum.variants.clone()))
                 } else {
                     None
@@ -358,7 +353,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 
                     let (ty_owned, arg_from_sys, arg_into, arg_from_owned) = match pat_ty {
                         ty @ Type::Path(type_path) => {
-                            let is_primitive = is_primitive_type_path(symbols, type_path);
+                            let is_primitive = same_as_sys_type_path(symbols, type_path);
                             (
                                 ty.clone(),
                                 if is_primitive {
@@ -377,7 +372,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                         Type::Ptr(type_ptr) => {
                             let (ty, expr, pat) =
                                 ptr_to_ty_expr_pat(symbols, &param_ident, type_ptr);
-                            let arg_from_sys = if is_primitive_type(symbols, type_ptr.elem.as_ref())
+                            let arg_from_sys = if same_as_sys_type(symbols, type_ptr.elem.as_ref())
                             {
                                 parse_quote! { #param_ident }
                             } else {
@@ -399,8 +394,8 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                                 }
                             }
                             _ => {
-                                if is_primitive_type(symbols, pat_ty) {
-                                    "Default::default()"
+                                if symbols.is_simple_type(pat_ty) {
+                                    "Arbitrary::arbitrary()"
                                 } else {
                                     "todo!()"
                                 }
@@ -434,10 +429,21 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
     let attrs = export_attrs(&ident, places);
 
     let (call, expected_call): (syn::Expr, syn::Expr) = match &output {
-        syn::ReturnType::Type(_, ty) if !is_primitive_type(symbols, ty.as_ref()) => (
-            parse_quote! { transmute(sys::#ident(#(#args_from_sys),*)) },
-            parse_quote! { transmute(sys::#ident(#(#args_into),*)) },
-        ),
+        syn::ReturnType::Type(_, ret_ty) if !same_as_sys_type(symbols, ret_ty.as_ref()) => {
+            if matches!(ret_ty.as_ref(), Type::Ptr(_)) {
+                let sys_ret_ty = prefix_with_sys(ret_ty.as_ref());
+
+                (
+                    parse_quote! { sys::#ident(#(#args_from_sys),*) as #sys_ret_ty },
+                    parse_quote! { sys::#ident(#(#args_into),*) as #sys_ret_ty },
+                )
+            } else {
+                (
+                    parse_quote! { transmute(sys::#ident(#(#args_from_sys),*)) },
+                    parse_quote! { transmute(sys::#ident(#(#args_into),*)) },
+                )
+            }
+        }
         _ => (
             parse_quote! { sys::#ident(#(#args_from_sys),*) },
             parse_quote! { sys::#ident(#(#args_into),*) },
@@ -456,10 +462,10 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
     let fn_ident = format_ident!("equivalent_{}", ident);
 
     if let syn::ReturnType::Type(_, ty) = output
-        && !is_indirect(&ty)
+        && !symbols.is_pointer_type(&ty)
         && !inputs
             .iter()
-            .any(|arg| matches!(arg, syn::FnArg::Typed(syn::PatType { ty, .. }) if is_indirect(ty)))
+            .any(|arg| matches!(arg, syn::FnArg::Typed(syn::PatType { ty, .. }) if symbols.is_pointer_type(ty)))
     {
         tests_file.items.push(Item::Fn(parse_quote! {
             #[cfg(feature = "sys")]
@@ -511,40 +517,30 @@ fn export_attrs(ident: &Ident, places: Places) -> Vec<syn::Attribute> {
     attrs
 }
 
-fn is_indirect(ty: &Type) -> bool {
-    match ty {
-        Type::Ptr(_) | Type::Reference(_) => true,
-        Type::Path(syn::TypePath { path, .. }) => path
-            .segments
-            .last()
-            .is_some_and(|p| p.ident.to_string().ends_with("Ptr")),
-        _ => false,
-    }
-}
-
-fn is_primitive_type<T: Borrow<Type>>(symbols: &Symbols, ty: T) -> bool {
+fn same_as_sys_type<T: Borrow<Type>>(symbols: &Symbols, ty: T) -> bool {
     match ty.borrow() {
-        Type::Array(type_array) => is_primitive_type(symbols, type_array.elem.borrow()),
+        Type::Array(type_array) => same_as_sys_type(symbols, type_array.elem.borrow()),
         Type::BareFn(type_bare_fn) => {
             type_bare_fn
                 .inputs
                 .iter()
-                .any(|arg| is_primitive_type(symbols, arg.ty.borrow()))
-                || match &type_bare_fn.output {
+                .all(|arg| same_as_sys_type(symbols, &arg.ty))
+                && match &type_bare_fn.output {
                     syn::ReturnType::Default => true,
-                    syn::ReturnType::Type(_, rty) => is_primitive_type(symbols, rty.as_ref()),
+                    syn::ReturnType::Type(_, rty) => same_as_sys_type(symbols, rty.as_ref()),
                 }
         }
         Type::Never(_) => true,
-        Type::Path(type_path) => is_primitive_type_path(symbols, type_path),
-        Type::Ptr(type_ptr) => is_primitive_type(symbols, type_ptr.elem.as_ref()),
+        Type::Path(type_path) => same_as_sys_type_path(symbols, type_path),
+        Type::Ptr(type_ptr) => same_as_sys_type(symbols, type_ptr.elem.as_ref()),
+        Type::Reference(type_ref) => same_as_sys_type(symbols, type_ref.elem.as_ref()),
         ty => panic!("Unexpected type: {ty:?}"),
     }
 }
 
-fn is_primitive_type_path<T: Borrow<syn::TypePath>>(symbols: &Symbols, type_path: T) -> bool {
-    let type_path = type_path.borrow();
-    type_path.path.leading_colon.is_some() || symbols.is_primitive_type(type_path)
+fn same_as_sys_type_path(symbols: &Symbols, type_path: &syn::TypePath) -> bool {
+    symbols.is_primitive_type_path(type_path)
+        || matches!(type_path.path.segments.last(), Some(ps) if ps.ident == "c_void")
 }
 
 fn expr_into(ident: &Ident) -> syn::Expr {
@@ -569,7 +565,7 @@ fn ptr_to_ty_expr_pat(
     let (ty, expr, pat) = match type_ptr.elem.as_ref() {
         ty @ Type::Path(type_path) => (
             ty.clone(),
-            if is_primitive_type_path(symbols, type_path) {
+            if symbols.is_primitive_type_path(type_path) {
                 parse_quote! { #ident }
             } else {
                 expr_into(ident)
@@ -595,7 +591,7 @@ fn ptr_to_ty_expr_pat(
 static BINDGEN_INCOMPLETE_ARRAY_FIELD: &str = "__IncompleteArrayField";
 
 fn transform_struct(
-    symbols: &mut Symbols,
+    symbols: &Symbols,
     mut item_struct: syn::ItemStruct,
     Transformed {
         main_file,
@@ -623,8 +619,7 @@ fn transform_struct(
         item_struct.attrs.insert(0, doc_places(places));
     }
 
-    let fields = if all_fields_simple_types(symbols, &item_struct.fields) {
-        symbols.insert_simple_type(ident.clone());
+    let fields = if symbols.is_simple(&item_struct.ident) {
         Some(item_struct.fields.clone())
     } else {
         None
@@ -688,8 +683,7 @@ fn transform_union(
             && let syn::PathArguments::AngleBracketed(angle_args) = &ps.arguments
             && angle_args.args.len() == 1
             && let Some(syn::GenericArgument::Type(param_ty)) = angle_args.args.first()
-            && (matches!(param_ty, Type::Path(tp) if symbols.is_primitive_type(tp))
-                || symbols.is_pointer_type(param_ty))
+            && (symbols.is_primitive_type(param_ty) || symbols.is_pointer_type(param_ty))
         {
             f.ty = param_ty.clone();
         }
@@ -809,23 +803,6 @@ fn arbitrary_data_constructor(ident: &Ident, fields: &syn::Fields) -> syn::Expr 
     }
 }
 
-fn all_fields_simple_types(symbols: &Symbols, fields: &syn::Fields) -> bool {
-    fn all_simple<'a>(symbols: &Symbols, fields: impl IntoIterator<Item = &'a syn::Field>) -> bool {
-        for f in fields {
-            if !symbols.is_simple_type(&f.ty) {
-                return false;
-            }
-        }
-        true
-    }
-
-    match fields {
-        syn::Fields::Named(fields_named) => all_simple(symbols, &fields_named.named),
-        syn::Fields::Unnamed(fields_unnamed) => all_simple(symbols, &fields_unnamed.unnamed),
-        syn::Fields::Unit => true,
-    }
-}
-
 fn fn_test_size_of(ident: &Ident) -> syn::ItemFn {
     let test_size_of = format_ident!("sys_size_{}", ident);
 
@@ -845,7 +822,7 @@ fn prefix_with_sys<T: Borrow<Type>>(ty: T) -> Type {
             array.elem = Box::new(prefix_with_sys(type_array.elem.as_ref()));
             Type::Array(array)
         }
-        Type::Path(type_path) => parse_quote! { sys::#type_path }, // is_primitive_type_path(symbols, type_path),
+        Type::Path(type_path) => parse_quote! { sys::#type_path },
         Type::Ptr(type_ptr) => {
             let mut ptr = type_ptr.clone();
             ptr.elem = Box::new(prefix_with_sys(type_ptr.elem.as_ref()));
