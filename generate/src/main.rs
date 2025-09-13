@@ -435,11 +435,9 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
     let (call, expected_call): (syn::Expr, syn::Expr) = match &output {
         syn::ReturnType::Type(_, ret_ty) if !same_as_sys_type(symbols, ret_ty.as_ref()) => {
             if matches!(ret_ty.as_ref(), Type::Ptr(_)) {
-                let sys_ret_ty = prefix_with_sys(ret_ty.as_ref());
-
                 (
-                    parse_quote! { sys::#ident(#(#args_from_sys),*) as #sys_ret_ty },
-                    parse_quote! { sys::#ident(#(#args_into),*) as #sys_ret_ty },
+                    parse_quote! { sys::#ident(#(#args_from_sys),*) as #ret_ty },
+                    parse_quote! { sys::#ident(#(#args_into),*) as #ret_ty },
                 )
             } else {
                 (
