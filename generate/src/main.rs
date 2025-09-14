@@ -283,7 +283,7 @@ fn transform_const(
     } else {
         let s = ident.to_string();
 
-        if s.starts_with("FMT_") || s.contains("_FMT_") {
+        if s.starts_with("FMT_") || s.contains("_FMT_") || s.ends_with("_FMT") {
             eprintln!("  * Ignoring formatting const: {ident}");
             return;
         }
