@@ -181,10 +181,9 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                     item_enum.attrs.insert(0, doc_places(places));
                 }
 
+                item_enum.attrs.push(parse_quote! { #[derive(Copy)] });
+
                 let impl_arb = if symbols.is_simple(&item_enum.ident) {
-                    item_enum
-                        .attrs
-                        .push(parse_quote! { #[cfg_attr(test, derive(Clone))] });
                     Some(Item::Impl(impl_arbitrary_enum(
                         &item_enum.ident,
                         &item_enum.variants,
