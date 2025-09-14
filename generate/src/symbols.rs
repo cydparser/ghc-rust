@@ -22,7 +22,7 @@ pub(crate) static PLACE_VARIANTS: [Place; 6] = [
 #[derive(Clone, Copy, Default)]
 pub struct Places(pub(crate) u32);
 
-pub(crate) static SYMBOLS: [(&str, Places); 1769] = [
+pub(crate) static SYMBOLS: [(&str, Places); 1771] = [
     ("ALIGNMENT_CHAR", Places(0b0)),
     ("ALIGNMENT_DOUBLE", Places(0b0)),
     ("ALIGNMENT_FLOAT", Places(0b0)),
@@ -358,6 +358,7 @@ pub(crate) static SYMBOLS: [(&str, Places); 1769] = [
     ("HOST_OS", Places(0b0)),
     ("HOST_VENDOR", Places(0b0)),
     ("HPC_FLAGS", Places(0b1000)),
+    ("HPC_READ_FILE", Places(0b0)),
     ("HP_FILENAME_FMT", Places(0b0)),
     ("HS_BOOL_FALSE", Places(0b0)),
     ("HS_BOOL_MAX", Places(0b0)),
@@ -412,6 +413,7 @@ pub(crate) static SYMBOLS: [(&str, Places); 1769] = [
     ("IOMGR_BUILD_SELECT", Places(0b0)),
     ("IOMGR_DEFAULT_NON_THREADED_SELECT", Places(0b0)),
     ("IOMGR_DEFAULT_THREADED_MIO", Places(0b0)),
+    ("IO_MANAGER_FLAG", Places(0b0)),
     ("I_", Places(0b0)),
     ("InCall_", Places(0b0)),
     ("IndexTable_", Places(0b1000)),
@@ -1899,7 +1901,7 @@ pub(crate) static PRIMITIVE_TYPES: [&str; 60] = [
     "pathchar",
 ];
 
-pub(crate) static SIMPLE_TYPES: [&str; 34] = [
+pub(crate) static SIMPLE_TYPES: [&str; 40] = [
     "CONCURRENT_FLAGS",
     "Condition",
     "DEBUG_FLAGS",
@@ -1907,9 +1909,13 @@ pub(crate) static SIMPLE_TYPES: [&str; 34] = [
     "ExecPage",
     "GCDetails",
     "GCDetails_",
+    "HPC_FLAGS",
+    "HPC_READ_FILE",
+    "IO_MANAGER_FLAG",
     "InCall_",
     "IndexTable_",
     "IpeBufferEntry",
+    "MISC_FLAGS",
     "NonmovingSegmentInfo",
     "OStatus",
     "PAR_FLAGS",
@@ -1924,8 +1930,10 @@ pub(crate) static SIMPLE_TYPES: [&str; 34] = [
     "TRecState",
     "_CONCURRENT_FLAGS",
     "_DEBUG_FLAGS",
+    "_HPC_FLAGS",
     "_HPC_READ_FILE",
     "_IO_MANAGER_FLAG",
+    "_MISC_FLAGS",
     "_PAR_FLAGS",
     "_RTSStats",
     "__darwin_pthread_cond_t",
