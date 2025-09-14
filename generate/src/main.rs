@@ -182,7 +182,9 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                 }
 
                 let impl_arb = if symbols.is_simple(&item_enum.ident) {
-                    item_enum.attrs.push(parse_quote! { #[derive(Clone)] });
+                    item_enum
+                        .attrs
+                        .push(parse_quote! { #[cfg_attr(test, derive(Clone))] });
                     Some(Item::Impl(impl_arbitrary_enum(
                         &item_enum.ident,
                         &item_enum.variants,
@@ -633,7 +635,9 @@ fn transform_struct(
                 None
             } // Opaque type
             fields => {
-                item_struct.attrs.push(parse_quote! { #[derive(Clone)] });
+                item_struct
+                    .attrs
+                    .push(parse_quote! { #[cfg_attr(test, derive(Clone))] });
                 Some(Item::Impl(impl_arbitrary_struct(&ident, fields)))
             }
         }
