@@ -748,6 +748,7 @@ fn impl_arbitrary_enum(
                     lit: syn::Lit::Int(proc2::Literal::usize_unsuffixed(i).into()),
                 })
             } else {
+                let i = syn::Lit::Int(proc2::Literal::usize_unsuffixed(i).into());
                 parse_quote! { #i.. }
             };
 
@@ -757,11 +758,14 @@ fn impl_arbitrary_enum(
         })
         .collect();
 
+    let variant_count = syn::Lit::Int(proc2::Literal::usize_unsuffixed(variant_count).into());
+
     parse_quote! {
         #[cfg(test)]
         impl Arbitrary for #ident {
             fn arbitrary(g: &mut Gen) -> Self {
-                match <usize as Arbitrary>::arbitrary(g) % #variant_count {
+                use #ident::*;
+                match usize::arbitrary(g) % #variant_count {
                     #(#arbitrary_variants),*
                 }
             }
