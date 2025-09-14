@@ -305,6 +305,21 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
             self.add_symbol(s);
         }
     }
+
+    fn visit_use_rename(&mut self, i: &'ast syn::UseRename) {
+        self.add_symbol(i.rename.to_string());
+
+        let ident = &i.ident;
+        let rename = &i.rename;
+
+        if self.is_primitive_type(ident) {
+            self.primitive_types.insert(rename.clone());
+        } else if self.pointer_types.contains(ident) {
+            self.pointer_types.insert(rename.clone());
+        } else if self.simple_types.contains(ident) {
+            self.simple_types.insert(rename.clone());
+        }
+    }
 }
 
 fn is_bindgen(s: &str) -> bool {

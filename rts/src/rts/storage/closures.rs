@@ -9,10 +9,11 @@ mod tests;
 
 pub(crate) const TREC_CHUNK_NUM_ENTRIES: u32 = 16;
 
+/// cbindgen:no-export
 #[repr(C)]
 pub struct StgProfHeader {
-    pub ccs: *mut CostCentreStack,
-    pub hp: StgProfHeader__bindgen_ty_1,
+    ccs: *mut CostCentreStack,
+    hp: StgProfHeader__bindgen_ty_1,
 }
 
 #[cfg(feature = "sys")]
@@ -23,8 +24,7 @@ impl From<StgProfHeader> for sys::StgProfHeader {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
-pub union StgProfHeader__bindgen_ty_1 {
+pub(crate) union StgProfHeader__bindgen_ty_1 {
     trav: StgWord,
     ldvw: StgWord,
     era: StgWord,
@@ -37,27 +37,11 @@ impl From<StgProfHeader__bindgen_ty_1> for sys::StgProfHeader__bindgen_ty_1 {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgProfHeader__bindgen_ty_1 {
-    fn arbitrary(g: &mut Gen) -> Self {
-        match <usize as Arbitrary>::arbitrary(g) % 3usize {
-            0 => StgProfHeader__bindgen_ty_1 {
-                trav: Arbitrary::arbitrary(g),
-            },
-            1 => StgProfHeader__bindgen_ty_1 {
-                ldvw: Arbitrary::arbitrary(g),
-            },
-            2.. => StgProfHeader__bindgen_ty_1 {
-                era: Arbitrary::arbitrary(g),
-            },
-        }
-    }
-}
-
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Clone)]
 pub struct StgSMPThunkHeader {
-    pub pad: StgWord,
+    pad: StgWord,
 }
 
 #[cfg(feature = "sys")]
@@ -76,6 +60,7 @@ impl Arbitrary for StgSMPThunkHeader {
     }
 }
 
+/// - GHC_PLACES: {libraries}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct StgHeader {
@@ -89,10 +74,11 @@ impl From<StgHeader> for sys::StgHeader {
     }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 pub struct StgThunkHeader {
-    pub info: *const StgInfoTable,
-    pub smp: StgSMPThunkHeader,
+    info: *const StgInfoTable,
+    smp: StgSMPThunkHeader,
 }
 
 #[cfg(feature = "sys")]
@@ -102,14 +88,12 @@ impl From<StgThunkHeader> for sys::StgThunkHeader {
     }
 }
 
-pub type StgClosure = StgClosure_;
-
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
-///cbindgen:no-export
 pub struct StgClosure_ {
-    pub(crate) header: StgHeader,
-    pub(crate) payload: __IncompleteArrayField<*mut StgClosure_>,
+    header: StgHeader,
+    payload: __IncompleteArrayField<*mut StgClosure_>,
 }
 
 #[cfg(feature = "sys")]
@@ -119,12 +103,11 @@ impl From<StgClosure_> for sys::StgClosure_ {
     }
 }
 
+/// - GHC_PLACES: {libraries}
 pub type StgClosurePtr = *mut StgClosure_;
 
-pub(crate) type StgThunk = StgThunk_;
-
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
 pub struct StgThunk_ {
     header: StgThunkHeader,
     payload: __IncompleteArrayField<*mut StgClosure_>,
@@ -137,10 +120,13 @@ impl From<StgThunk_> for sys::StgThunk_ {
     }
 }
 
+pub(crate) type StgThunk = StgThunk_;
+
+/// cbindgen:no-export
 #[repr(C)]
 pub struct StgSelector {
-    pub header: StgThunkHeader,
-    pub selectee: *mut StgClosure,
+    header: StgThunkHeader,
+    selectee: *mut StgClosure,
 }
 
 #[cfg(feature = "sys")]
@@ -150,13 +136,14 @@ impl From<StgSelector> for sys::StgSelector {
     }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 pub struct StgPAP {
-    pub header: StgHeader,
-    pub arity: StgHalfWord,
-    pub n_args: StgHalfWord,
-    pub fun: *mut StgClosure,
-    pub payload: __IncompleteArrayField<*mut StgClosure>,
+    header: StgHeader,
+    arity: StgHalfWord,
+    n_args: StgHalfWord,
+    fun: *mut StgClosure,
+    payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
 #[cfg(feature = "sys")]
@@ -166,13 +153,14 @@ impl From<StgPAP> for sys::StgPAP {
     }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 pub struct StgAP {
-    pub header: StgThunkHeader,
-    pub arity: StgHalfWord,
-    pub n_args: StgHalfWord,
-    pub fun: *mut StgClosure,
-    pub payload: __IncompleteArrayField<*mut StgClosure>,
+    header: StgThunkHeader,
+    arity: StgHalfWord,
+    n_args: StgHalfWord,
+    fun: *mut StgClosure,
+    payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
 #[cfg(feature = "sys")]
@@ -182,12 +170,13 @@ impl From<StgAP> for sys::StgAP {
     }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 pub struct StgAP_STACK {
-    pub header: StgThunkHeader,
-    pub size: StgWord,
-    pub fun: *mut StgClosure,
-    pub payload: __IncompleteArrayField<*mut StgClosure>,
+    header: StgThunkHeader,
+    size: StgWord,
+    fun: *mut StgClosure,
+    payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
 #[cfg(feature = "sys")]
@@ -197,6 +186,7 @@ impl From<StgAP_STACK> for sys::StgAP_STACK {
     }
 }
 
+/// - GHC_PLACES: {libraries}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct StgInd {
@@ -211,9 +201,9 @@ impl From<StgInd> for sys::StgInd {
     }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct StgIndStatic {
     header: StgHeader,
     indirectee: *mut StgClosure,
@@ -228,11 +218,9 @@ impl From<StgIndStatic> for sys::StgIndStatic {
     }
 }
 
-pub type StgBlockingQueue = StgBlockingQueue_;
-
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct StgBlockingQueue_ {
     header: StgHeader,
     link: *mut StgBlockingQueue_,
@@ -248,6 +236,9 @@ impl From<StgBlockingQueue_> for sys::StgBlockingQueue_ {
     }
 }
 
+pub(crate) type StgBlockingQueue = StgBlockingQueue_;
+
+/// - GHC_PLACES: {libraries}
 #[repr(C)]
 pub struct StgArrBytes {
     pub header: StgHeader,
@@ -262,10 +253,8 @@ impl From<StgArrBytes> for sys::StgArrBytes {
     }
 }
 
-pub type StgMutArrPtrs = _StgMutArrPtrs;
-
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
 pub struct _StgMutArrPtrs {
     header: StgHeader,
     ptrs: StgWord,
@@ -280,11 +269,15 @@ impl From<_StgMutArrPtrs> for sys::_StgMutArrPtrs {
     }
 }
 
+/// - GHC_PLACES: {libraries}
+pub type StgMutArrPtrs = _StgMutArrPtrs;
+
+/// cbindgen:no-export
 #[repr(C)]
 pub struct StgSmallMutArrPtrs {
-    pub header: StgHeader,
-    pub ptrs: StgWord,
-    pub payload: __IncompleteArrayField<*mut StgClosure>,
+    header: StgHeader,
+    ptrs: StgWord,
+    payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
 #[cfg(feature = "sys")]
@@ -294,11 +287,12 @@ impl From<StgSmallMutArrPtrs> for sys::StgSmallMutArrPtrs {
     }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct StgMutVar {
-    pub header: StgHeader,
-    pub var: *mut StgClosure,
+    header: StgHeader,
+    var: *mut StgClosure,
 }
 
 #[cfg(feature = "sys")]
@@ -308,11 +302,9 @@ impl From<StgMutVar> for sys::StgMutVar {
     }
 }
 
-pub type StgUpdateFrame = _StgUpdateFrame;
-
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct _StgUpdateFrame {
     header: StgHeader,
     updatee: *mut StgClosure,
@@ -325,11 +317,12 @@ impl From<_StgUpdateFrame> for sys::_StgUpdateFrame {
     }
 }
 
-pub type StgOrigThunkInfoFrame = _StgOrigThunkInfoFrame;
+/// - GHC_PLACES: {libraries}
+pub type StgUpdateFrame = _StgUpdateFrame;
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct _StgOrigThunkInfoFrame {
     header: StgHeader,
     info_ptr: *mut StgInfoTable,
@@ -342,9 +335,11 @@ impl From<_StgOrigThunkInfoFrame> for sys::_StgOrigThunkInfoFrame {
     }
 }
 
+pub(crate) type StgOrigThunkInfoFrame = _StgOrigThunkInfoFrame;
+
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct StgKeepAliveFrame {
     header: StgHeader,
     c: *mut StgClosure,
@@ -357,6 +352,7 @@ impl From<StgKeepAliveFrame> for sys::StgKeepAliveFrame {
     }
 }
 
+/// - GHC_PLACES: {libraries}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct StgCatchFrame {
@@ -371,6 +367,7 @@ impl From<StgCatchFrame> for sys::StgCatchFrame {
     }
 }
 
+/// - GHC_PLACES: {libraries}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct StgUnderflowFrame {
@@ -385,6 +382,7 @@ impl From<StgUnderflowFrame> for sys::StgUnderflowFrame {
     }
 }
 
+/// - GHC_PLACES: {libraries}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct StgStopFrame {
@@ -398,11 +396,12 @@ impl From<StgStopFrame> for sys::StgStopFrame {
     }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct StgDeadThreadFrame {
-    pub header: StgHeader,
-    pub result: *mut StgClosure,
+    header: StgHeader,
+    result: *mut StgClosure,
 }
 
 #[cfg(feature = "sys")]
@@ -412,6 +411,7 @@ impl From<StgDeadThreadFrame> for sys::StgDeadThreadFrame {
     }
 }
 
+/// - GHC_PLACES: {libraries}
 #[repr(C)]
 pub struct StgRetFun {
     pub info: *const StgInfoTable,
@@ -427,8 +427,8 @@ impl From<StgRetFun> for sys::StgRetFun {
     }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
 pub struct StgIntCharlikeClosure {
     header: StgHeader,
     data: StgWord,
@@ -441,10 +441,8 @@ impl From<StgIntCharlikeClosure> for sys::StgIntCharlikeClosure {
     }
 }
 
-pub type StgStableName = _StgStableName;
-
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
 pub struct _StgStableName {
     header: StgHeader,
     sn: StgWord,
@@ -457,11 +455,11 @@ impl From<_StgStableName> for sys::_StgStableName {
     }
 }
 
-pub type StgWeak = _StgWeak;
+pub(crate) type StgStableName = _StgStableName;
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct _StgWeak {
     header: StgHeader,
     cfinalizers: *mut StgClosure,
@@ -478,10 +476,10 @@ impl From<_StgWeak> for sys::_StgWeak {
     }
 }
 
-pub type StgCFinalizerList = _StgCFinalizerList;
+pub(crate) type StgWeak = _StgWeak;
 
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
 pub struct _StgCFinalizerList {
     header: StgHeader,
     link: *mut StgClosure,
@@ -498,8 +496,9 @@ impl From<_StgCFinalizerList> for sys::_StgCFinalizerList {
     }
 }
 
-pub type StgMVarTSOQueue = StgMVarTSOQueue_;
+pub(crate) type StgCFinalizerList = _StgCFinalizerList;
 
+/// - GHC_PLACES: {libraries}
 #[repr(C)]
 pub struct StgBCO {
     pub header: StgHeader,
@@ -518,9 +517,9 @@ impl From<StgBCO> for sys::StgBCO {
     }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct StgMVarTSOQueue_ {
     header: StgHeader,
     link: *mut StgMVarTSOQueue_,
@@ -534,15 +533,16 @@ impl From<StgMVarTSOQueue_> for sys::StgMVarTSOQueue_ {
     }
 }
 
-pub type StgTRecHeader = StgTRecHeader_;
+pub(crate) type StgMVarTSOQueue = StgMVarTSOQueue_;
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct StgMVar {
-    pub header: StgHeader,
-    pub head: *mut StgMVarTSOQueue_,
-    pub tail: *mut StgMVarTSOQueue_,
-    pub value: *mut StgClosure,
+    header: StgHeader,
+    head: *mut StgMVarTSOQueue_,
+    tail: *mut StgMVarTSOQueue_,
+    value: *mut StgClosure,
 }
 
 #[cfg(feature = "sys")]
@@ -552,11 +552,11 @@ impl From<StgMVar> for sys::StgMVar {
     }
 }
 
-pub type StgTVarWatchQueue = StgTVarWatchQueue_;
+pub(crate) type StgTRecHeader = StgTRecHeader_;
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct StgTVarWatchQueue_ {
     header: StgHeader,
     closure: *mut StgClosure,
@@ -571,12 +571,15 @@ impl From<StgTVarWatchQueue_> for sys::StgTVarWatchQueue_ {
     }
 }
 
+pub(crate) type StgTVarWatchQueue = StgTVarWatchQueue_;
+
+/// cbindgen:no-export
 #[repr(C)]
 pub struct StgTVar {
-    pub header: StgHeader,
-    pub current_value: *mut StgClosure,
-    pub first_watch_queue_entry: *mut StgTVarWatchQueue,
-    pub num_updates: StgInt,
+    header: StgHeader,
+    current_value: *mut StgClosure,
+    first_watch_queue_entry: *mut StgTVarWatchQueue,
+    num_updates: StgInt,
 }
 
 #[cfg(feature = "sys")]
@@ -586,11 +589,9 @@ impl From<StgTVar> for sys::StgTVar {
     }
 }
 
-pub(crate) type StgTRecChunk = StgTRecChunk_;
-
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct TRecEntry {
     tvar: *mut StgTVar,
     expected_value: *mut StgClosure,
@@ -604,8 +605,8 @@ impl From<TRecEntry> for sys::TRecEntry {
     }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
 pub struct StgTRecChunk_ {
     header: StgHeader,
     prev_chunk: *mut StgTRecChunk_,
@@ -620,8 +621,10 @@ impl From<StgTRecChunk_> for sys::StgTRecChunk_ {
     }
 }
 
+pub(crate) type StgTRecChunk = StgTRecChunk_;
+
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Clone)]
 pub(crate) enum TRecState {
     TREC_ACTIVE = 0,
     TREC_CONDEMNED = 1,
@@ -629,9 +632,21 @@ pub(crate) enum TRecState {
     TREC_WAITING = 3,
 }
 
+#[cfg(test)]
+impl Arbitrary for TRecState {
+    fn arbitrary(g: &mut Gen) -> Self {
+        match <usize as Arbitrary>::arbitrary(g) % 4usize {
+            0 => TRecState::TREC_ACTIVE,
+            1 => TRecState::TREC_CONDEMNED,
+            2 => TRecState::TREC_ABORTED,
+            3.. => TRecState::TREC_WAITING,
+        }
+    }
+}
+
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct StgTRecHeader_ {
     header: StgHeader,
     enclosing_trec: *mut StgTRecHeader_,
@@ -646,6 +661,7 @@ impl From<StgTRecHeader_> for sys::StgTRecHeader_ {
     }
 }
 
+/// - GHC_PLACES: {libraries}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct StgAtomicallyFrame {
@@ -661,6 +677,7 @@ impl From<StgAtomicallyFrame> for sys::StgAtomicallyFrame {
     }
 }
 
+/// - GHC_PLACES: {libraries}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct StgCatchSTMFrame {
@@ -676,6 +693,7 @@ impl From<StgCatchSTMFrame> for sys::StgCatchSTMFrame {
     }
 }
 
+/// - GHC_PLACES: {libraries}
 #[repr(C)]
 pub struct StgCatchRetryFrame {
     pub header: StgHeader,
@@ -691,11 +709,9 @@ impl From<StgCatchRetryFrame> for sys::StgCatchRetryFrame {
     }
 }
 
-pub type Message = Message_;
-
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct Message_ {
     header: StgHeader,
     link: *mut Message_,
@@ -708,11 +724,12 @@ impl From<Message_> for sys::Message_ {
     }
 }
 
-pub(crate) type MessageWakeup = MessageWakeup_;
+/// - GHC_PLACES: {libraries}
+pub type Message = Message_;
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct MessageWakeup_ {
     header: StgHeader,
     link: *mut Message,
@@ -726,11 +743,11 @@ impl From<MessageWakeup_> for sys::MessageWakeup_ {
     }
 }
 
-pub(crate) type MessageThrowTo = MessageThrowTo_;
+pub(crate) type MessageWakeup = MessageWakeup_;
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct MessageThrowTo_ {
     header: StgHeader,
     link: *mut MessageThrowTo_,
@@ -746,11 +763,11 @@ impl From<MessageThrowTo_> for sys::MessageThrowTo_ {
     }
 }
 
-pub type MessageBlackHole = MessageBlackHole_;
+pub(crate) type MessageThrowTo = MessageThrowTo_;
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct MessageBlackHole_ {
     header: StgHeader,
     link: *mut MessageBlackHole_,
@@ -765,17 +782,11 @@ impl From<MessageBlackHole_> for sys::MessageBlackHole_ {
     }
 }
 
-#[cfg(test)]
-#[derive(Clone)]
-struct MessageBlackHole_Owned {
-    header: StgHeader,
-}
+pub(crate) type MessageBlackHole = MessageBlackHole_;
 
-pub type MessageCloneStack = MessageCloneStack_;
-
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct MessageCloneStack_ {
     header: StgHeader,
     link: *mut Message,
@@ -790,11 +801,11 @@ impl From<MessageCloneStack_> for sys::MessageCloneStack_ {
     }
 }
 
-pub type StgCompactNFDataBlock = StgCompactNFDataBlock_;
+pub(crate) type MessageCloneStack = MessageCloneStack_;
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct StgCompactNFDataBlock_ {
     self_: *mut StgCompactNFDataBlock_,
     owner: *mut StgCompactNFData_,
@@ -808,10 +819,10 @@ impl From<StgCompactNFDataBlock_> for sys::StgCompactNFDataBlock_ {
     }
 }
 
-pub type StgCompactNFData = StgCompactNFData_;
+pub(crate) type StgCompactNFDataBlock = StgCompactNFDataBlock_;
 
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
 pub struct StgCompactNFData_ {
     header: StgHeader,
     totalW: StgWord,
@@ -832,11 +843,13 @@ impl From<StgCompactNFData_> for sys::StgCompactNFData_ {
     }
 }
 
+pub(crate) type StgCompactNFData = StgCompactNFData_;
+
 pub(crate) type StgPromptTag = *mut StgClosure;
 
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
 pub struct StgPromptFrame {
     header: StgHeader,
     tag: StgPromptTag,
@@ -849,13 +862,14 @@ impl From<StgPromptFrame> for sys::StgPromptFrame {
     }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 pub struct StgContinuation {
-    pub header: StgHeader,
-    pub apply_mask_frame: *const StgInfoTable,
-    pub mask_frame_offset: StgWord,
-    pub stack_size: StgWord,
-    pub stack: __IncompleteArrayField<StgWord>,
+    header: StgHeader,
+    apply_mask_frame: *const StgInfoTable,
+    mask_frame_offset: StgWord,
+    stack_size: StgWord,
+    stack: __IncompleteArrayField<StgWord>,
 }
 
 #[cfg(feature = "sys")]
@@ -865,8 +879,9 @@ impl From<StgContinuation> for sys::StgContinuation {
     }
 }
 
+/// - GHC_PLACES: {utils}
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Clone)]
 pub struct hashtable {
     pub _address: u8,
 }

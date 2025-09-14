@@ -13,14 +13,15 @@ mod tests;
 
 pub(crate) const BITS_PER_BYTE: u32 = 8;
 
-pub type C_ = StgChar;
+pub(crate) type C_ = StgChar;
 
+/// - GHC_PLACES: {libraries, testsuite}
 pub type W_ = StgWord;
 
-pub type P_ = *mut StgWord;
+pub(crate) type P_ = *mut StgWord;
 
-pub type I_ = StgInt;
+pub(crate) type I_ = StgInt;
 
-pub type StgWordArray = [StgWord; 0usize];
+pub(crate) type StgWordArray = [StgWord; 0usize];
 
-pub type F_ = StgFunPtr;
+pub(crate) type F_ = StgFunPtr;
