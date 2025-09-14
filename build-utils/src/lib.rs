@@ -110,6 +110,7 @@ pub fn bindgen_builder(ghc: &GhcDirs) -> bindgen::Builder {
             non_exhaustive: false,
         })
         .default_non_copy_union_style(bindgen::NonCopyUnionStyle::ManuallyDrop)
+        .generate_cstr(true)
         .use_core()
         .clang_arg(format!("-I{}", ghc.include_dir.display()))
         .blocklist_type(block_types)
