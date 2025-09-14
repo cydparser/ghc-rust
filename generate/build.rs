@@ -11,7 +11,9 @@ use build_utils as utils;
 fn main() {
     let ghc = utils::GhcDirs::new();
 
-    let bindings_builder = utils::bindgen_builder(&ghc).allowlist_recursively(false);
+    let bindings_builder = utils::bindgen_builder(&ghc)
+        .allowlist_recursively(false)
+        .derive_copy(false);
 
     let headers_by_dir: HashMap<Option<&str>, Vec<&str>> = [
         (None, vec!["HsFFI", "MachDeps", "Rts", "RtsAPI", "Stg"]),
