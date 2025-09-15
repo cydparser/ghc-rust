@@ -4,10 +4,12 @@
 mod tests;
 
 // TODO: Set to 1 when defined(UnregisterisedCompiler) || defined(javascript_HOST_ARCH)
+/// - GHC_PLACES: {compiler}
 pub const MACHREGS_NO_REGS: u32 = 0;
 
 // Target Architecture Constants
 
+/// - GHC_PLACES: {compiler}
 #[cfg(target_arch = "aarch64")]
 pub const MACHREGS_aarch64: u32 = 1;
 
@@ -38,5 +40,6 @@ pub const MACHREGS_x86_64: u32 = 1;
 
 // Target OS Constants
 
+/// - GHC_PLACES: {compiler}
 #[cfg(target_os = "macos")]
 pub const MACHREGS_darwin: u32 = 1;

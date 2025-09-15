@@ -41,9 +41,9 @@ pub(crate) const INFO_FIRST_TAG: u32 = 0;
 
 pub(crate) const RESERVED_C_STACK_BYTES: u32 = 16384;
 
-pub(crate) const STG_RUN: &[u8; 8] = b"_StgRun\0";
+pub(crate) const STG_RUN: &CStr = c"_StgRun";
 
-pub(crate) const STG_RETURN: &[u8; 11] = b"_StgReturn\0";
+pub(crate) const STG_RETURN: &CStr = c"_StgReturn";
 
 /// - GHC_PLACES: {libraries}
 pub const RESERVED_STACK_WORDS: u32 = 21;

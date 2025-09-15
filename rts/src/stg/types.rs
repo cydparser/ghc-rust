@@ -67,9 +67,10 @@ pub type StgInt64 = i64;
 /// - GHC_PLACES: {libraries, testsuite}
 pub type StgWord64 = u64;
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
 /// cbindgen:no-export
+#[repr(C)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 pub struct StgWord128 {
     h: StgWord64,
     l: StgWord64,
@@ -92,9 +93,10 @@ impl Arbitrary for StgWord128 {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
 /// cbindgen:no-export
+#[repr(C)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 pub struct StgWord256 {
     h: StgWord128,
     l: StgWord128,
@@ -117,9 +119,10 @@ impl Arbitrary for StgWord256 {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
 /// cbindgen:no-export
+#[repr(C)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 pub struct StgWord512 {
     h: StgWord256,
     l: StgWord256,

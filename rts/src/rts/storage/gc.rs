@@ -12,10 +12,9 @@ mod tests;
 
 pub(crate) type memcount = StgWord;
 
-pub type nursery = nursery_;
-
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
+#[cfg_attr(test, derive(Clone))]
 pub struct nursery_ {
     blocks: *mut bdescr,
     n_blocks: memcount,
@@ -28,10 +27,21 @@ impl From<nursery_> for sys::nursery_ {
     }
 }
 
-pub type generation = generation_;
+#[cfg(test)]
+impl Arbitrary for nursery_ {
+    fn arbitrary(g: &mut Gen) -> Self {
+        nursery_ {
+            blocks: Arbitrary::arbitrary(g),
+            n_blocks: Arbitrary::arbitrary(g),
+        }
+    }
+}
 
+pub(crate) type nursery = nursery_;
+
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
+#[cfg_attr(test, derive(Clone))]
 pub struct generation_ {
     no: u32,
     blocks: *mut bdescr,
@@ -73,22 +83,61 @@ impl From<generation_> for sys::generation_ {
     }
 }
 
+#[cfg(test)]
+impl Arbitrary for generation_ {
+    fn arbitrary(g: &mut Gen) -> Self {
+        generation_ {
+            no: Arbitrary::arbitrary(g),
+            blocks: Arbitrary::arbitrary(g),
+            n_blocks: Arbitrary::arbitrary(g),
+            n_words: Arbitrary::arbitrary(g),
+            large_objects: Arbitrary::arbitrary(g),
+            n_large_blocks: Arbitrary::arbitrary(g),
+            n_large_words: Arbitrary::arbitrary(g),
+            n_new_large_words: Arbitrary::arbitrary(g),
+            compact_objects: Arbitrary::arbitrary(g),
+            n_compact_blocks: Arbitrary::arbitrary(g),
+            compact_blocks_in_import: Arbitrary::arbitrary(g),
+            n_compact_blocks_in_import: Arbitrary::arbitrary(g),
+            max_blocks: Arbitrary::arbitrary(g),
+            threads: Arbitrary::arbitrary(g),
+            weak_ptr_list: Arbitrary::arbitrary(g),
+            to: Arbitrary::arbitrary(g),
+            collections: Arbitrary::arbitrary(g),
+            par_collections: Arbitrary::arbitrary(g),
+            failed_promotions: Arbitrary::arbitrary(g),
+            mark: Arbitrary::arbitrary(g),
+            compact: Arbitrary::arbitrary(g),
+            old_blocks: Arbitrary::arbitrary(g),
+            n_old_blocks: Arbitrary::arbitrary(g),
+            live_estimate: Arbitrary::arbitrary(g),
+            scavenged_large_objects: Arbitrary::arbitrary(g),
+            n_scavenged_large_blocks: Arbitrary::arbitrary(g),
+            live_compact_objects: Arbitrary::arbitrary(g),
+            n_live_compact_blocks: Arbitrary::arbitrary(g),
+            bitmap: Arbitrary::arbitrary(g),
+            old_threads: Arbitrary::arbitrary(g),
+            old_weak_ptr_list: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+/// - GHC_PLACES: {libraries}
+pub type generation = generation_;
+
+/// - GHC_PLACES: {libraries}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_generations"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 pub static mut generations: *mut generation = null_mut();
 
+/// - GHC_PLACES: {libraries}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_g0"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 pub static mut g0: *mut generation = null_mut();
 
-static mut oldest_gen: *mut generation = null_mut();
-
 pub(crate) type ListBlocksCb = Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut bdescr)>;
-#[instrument]
-pub(crate) unsafe fn listAllBlocks(cb: ListBlocksCb, user: *mut c_void) {
-    unsafe { sys::listAllBlocks(transmute(cb), user) }
-}
 
+/// - GHC_PLACES: {libraries, testsuite}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_allocate"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
@@ -96,36 +145,19 @@ pub unsafe extern "C" fn allocate(cap: *mut Capability, n: W_) -> StgPtr {
     unsafe { sys::allocate(cap as *mut sys::Capability, n) }
 }
 
-#[instrument]
-pub(crate) unsafe fn allocateMightFail(cap: *mut Capability, n: W_) -> StgPtr {
-    unsafe { sys::allocateMightFail(cap as *mut sys::Capability, n) }
-}
-
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_allocatePinned"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
-#[instrument]
-pub unsafe extern "C" fn allocatePinned(
-    cap: *mut Capability,
-    n: W_,
-    alignment: W_,
-    align_off: W_,
-) -> StgPtr {
-    unsafe { sys::allocatePinned(cap as *mut sys::Capability, n, alignment, align_off) }
-}
-
 pub(crate) type AdjustorWritable = *mut c_void;
 
 pub(crate) type AdjustorExecutable = *mut c_void;
 
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_flushExec"))]
+/// - GHC_PLACES: {libraries}
+#[cfg_attr(feature = "sys", unsafe(export_name = "rust_setAllocLimitKill"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
-pub unsafe extern "C" fn flushExec(len: W_, exec_addr: AdjustorExecutable) {
-    unsafe { sys::flushExec(len, exec_addr) }
+pub unsafe extern "C" fn setAllocLimitKill(arg1: bool, arg2: bool) {
+    unsafe { sys::setAllocLimitKill(arg1, arg2) }
 }
 
-static mut large_alloc_lim: W_ = 0;
-
+/// - GHC_PLACES: {libraries}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_performGC"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
@@ -133,6 +165,7 @@ pub unsafe extern "C" fn performGC() {
     unsafe { sys::performGC() }
 }
 
+/// - GHC_PLACES: {libraries, testsuite}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_performMajorGC"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
@@ -140,6 +173,7 @@ pub unsafe extern "C" fn performMajorGC() {
     unsafe { sys::performMajorGC() }
 }
 
+/// - GHC_PLACES: {libraries}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_performBlockingMajorGC"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
@@ -147,38 +181,7 @@ pub unsafe extern "C" fn performBlockingMajorGC() {
     unsafe { sys::performBlockingMajorGC() }
 }
 
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_newCAF"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
-#[instrument]
-pub unsafe extern "C" fn newCAF(reg: *mut StgRegTable, caf: *mut StgIndStatic) -> *mut StgInd {
-    unsafe {
-        transmute(sys::newCAF(
-            reg as *mut sys::StgRegTable,
-            caf as *mut sys::StgIndStatic,
-        ))
-    }
-}
-
-#[instrument]
-pub(crate) unsafe fn newRetainedCAF(reg: *mut StgRegTable, caf: *mut StgIndStatic) -> *mut StgInd {
-    unsafe {
-        transmute(sys::newRetainedCAF(
-            reg as *mut sys::StgRegTable,
-            caf as *mut sys::StgIndStatic,
-        ))
-    }
-}
-
-#[instrument]
-pub(crate) unsafe fn newGCdCAF(reg: *mut StgRegTable, caf: *mut StgIndStatic) -> *mut StgInd {
-    unsafe {
-        transmute(sys::newGCdCAF(
-            reg as *mut sys::StgRegTable,
-            caf as *mut sys::StgIndStatic,
-        ))
-    }
-}
-
+/// - GHC_PLACES: {libraries}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_revertCAFs"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
@@ -186,6 +189,7 @@ pub unsafe extern "C" fn revertCAFs() {
     unsafe { sys::revertCAFs() }
 }
 
+/// - GHC_PLACES: {compiler}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_setKeepCAFs"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
@@ -193,6 +197,7 @@ pub unsafe extern "C" fn setKeepCAFs() {
     unsafe { sys::setKeepCAFs() }
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_setHighMemDynamic"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
@@ -200,23 +205,7 @@ pub unsafe extern "C" fn setHighMemDynamic() {
     unsafe { sys::setHighMemDynamic() }
 }
 
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_dirty_MUT_VAR"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
-#[instrument]
-pub unsafe extern "C" fn dirty_MUT_VAR(
-    reg: *mut StgRegTable,
-    mv: *mut StgMutVar,
-    old: *mut StgClosure,
-) {
-    unsafe {
-        sys::dirty_MUT_VAR(
-            reg as *mut sys::StgRegTable,
-            mv as *mut sys::StgMutVar,
-            old as *mut sys::StgClosure,
-        )
-    }
-}
-
+/// - GHC_PLACES: {compiler}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_keepCAFs"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 pub static mut keepCAFs: bool = false;

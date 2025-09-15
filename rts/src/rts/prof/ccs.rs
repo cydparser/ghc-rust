@@ -4,10 +4,8 @@ use crate::stg::types::{StgBool, StgInt, StgWord, StgWord64};
 #[cfg(test)]
 mod tests;
 
-pub type CostCentre = CostCentre_;
-
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
 pub struct CostCentre_ {
     ccID: StgInt,
     label: *mut c_char,
@@ -26,10 +24,11 @@ impl From<CostCentre_> for sys::CostCentre_ {
     }
 }
 
-pub type CostCentreStack = CostCentreStack_;
+/// - GHC_PLACES: {libraries}
+pub type CostCentre = CostCentre_;
 
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
 pub struct CostCentreStack_ {
     ccsID: StgInt,
     cc: *mut CostCentre,
@@ -52,25 +51,31 @@ impl From<CostCentreStack_> for sys::CostCentreStack_ {
     }
 }
 
+/// - GHC_PLACES: {libraries}
+pub type CostCentreStack = CostCentreStack_;
+
+/// - GHC_PLACES: {libraries}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_stopProfTimer"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub unsafe extern "C" fn stopProfTimer() {
     unsafe { sys::stopProfTimer() }
 }
 
+/// - GHC_PLACES: {libraries}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_startProfTimer"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
-#[cfg_attr(feature = "tracing", instrument)]
+#[instrument]
 pub unsafe extern "C" fn startProfTimer() {
     unsafe { sys::startProfTimer() }
 }
 
+/// cbindgen:no-export
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
-pub(crate) struct IndexTable_ {
-    pub _address: u8,
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
+pub struct IndexTable_ {
+    _address: u8,
 }
 
 #[cfg(feature = "sys")]

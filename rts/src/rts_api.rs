@@ -15,7 +15,7 @@ use crate::stg::regs::{StgFunTable, StgRegTable};
 mod tests;
 
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
 pub(crate) enum SchedulerStatus {
     NoStatus = 0,
     Success = 1,
@@ -23,6 +23,21 @@ pub(crate) enum SchedulerStatus {
     Interrupted = 3,
     HeapExhausted = 4,
     SchedulerStatus_End = 5,
+}
+
+#[cfg(test)]
+impl Arbitrary for SchedulerStatus {
+    fn arbitrary(g: &mut Gen) -> Self {
+        use SchedulerStatus::*;
+        match usize::arbitrary(g) % 6 {
+            0 => NoStatus,
+            1 => Success,
+            2 => Killed,
+            3 => Interrupted,
+            4 => HeapExhausted,
+            5.. => SchedulerStatus_End,
+        }
+    }
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -33,21 +48,7 @@ pub type Capability = Capability_;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Capability_ {
-    _unused: [u8; 0],
-}
-
-#[cfg(feature = "sys")]
-impl From<Capability_> for sys::Capability_ {
-    fn from(x: Capability_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// cbindgen:no-export
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub struct PauseToken_ {
     _unused: [u8; 0],
 }
@@ -87,13 +88,27 @@ impl From<CapabilityPublic_> for sys::CapabilityPublic_ {
 pub(crate) type CapabilityPublic = CapabilityPublic_;
 
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
 pub(crate) enum RtsOptsEnabledEnum {
     RtsOptsNone = 0,
     RtsOptsIgnore = 1,
     RtsOptsIgnoreAll = 2,
     RtsOptsSafeOnly = 3,
     RtsOptsAll = 4,
+}
+
+#[cfg(test)]
+impl Arbitrary for RtsOptsEnabledEnum {
+    fn arbitrary(g: &mut Gen) -> Self {
+        use RtsOptsEnabledEnum::*;
+        match usize::arbitrary(g) % 5 {
+            0 => RtsOptsNone,
+            1 => RtsOptsIgnore,
+            2 => RtsOptsIgnoreAll,
+            3 => RtsOptsSafeOnly,
+            4.. => RtsOptsAll,
+        }
+    }
 }
 
 /// - GHC_PLACES: {driver, testsuite, utils}
@@ -129,7 +144,7 @@ impl From<RtsConfig> for sys::RtsConfig {
 
 /// cbindgen:no-export
 #[repr(C)]
-#[derive(Clone)]
+#[cfg_attr(test, derive(Clone))]
 pub struct GCDetails_ {
     gen_: u32,
     threads: u32,
@@ -191,7 +206,7 @@ pub type GCDetails = GCDetails_;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[derive(Clone)]
+#[cfg_attr(test, derive(Clone))]
 pub struct _RTSStats {
     gcs: u32,
     major_gcs: u32,

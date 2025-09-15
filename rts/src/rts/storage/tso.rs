@@ -18,7 +18,7 @@ pub(crate) const STACK_SANE: u32 = 64;
 
 /// - GHC_PLACES: {libraries}
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub struct StgTSOProfInfo {
     pub cccs: *mut CostCentreStack,
 }
@@ -110,7 +110,8 @@ pub type StgStack = StgStack_;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 pub struct InCall_ {
     _address: u8,
 }

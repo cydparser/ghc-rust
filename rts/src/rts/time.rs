@@ -5,10 +5,12 @@ mod tests;
 
 pub(crate) const TIME_RESOLUTION: u32 = 1000000000;
 
-pub const TIME_MAX: u64 = 9223372036854775807;
+pub(crate) const TIME_MAX: u64 = 9223372036854775807;
 
+/// - GHC_PLACES: {libraries}
 pub type Time = i64;
 
+/// - GHC_PLACES: {libraries}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_getProcessElapsedTime"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]

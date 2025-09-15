@@ -79,22 +79,6 @@ pub(crate) const DEFAULT_LINKER_ALWAYS_PIC: u32 = 1;
 
 pub(crate) const STATS_FILENAME_MAXLEN: u32 = 128;
 
-pub(crate) const GR_FILENAME_FMT: &[u8; 11] = b"%0.124s.gr\0";
-
-pub(crate) const HP_FILENAME_FMT: &[u8; 11] = b"%0.124s.hp\0";
-
-pub(crate) const LIFE_FILENAME_FMT: &[u8; 13] = b"%0.122s.life\0";
-
-pub(crate) const PROF_FILENAME_FMT: &[u8; 13] = b"%0.122s.prof\0";
-
-pub(crate) const QP_FILENAME_FMT: &[u8; 11] = b"%0.124s.qp\0";
-
-pub(crate) const STAT_FILENAME_FMT: &[u8; 13] = b"%0.122s.stat\0";
-
-pub(crate) const TICKY_FILENAME_FMT: &[u8; 14] = b"%0.121s.ticky\0";
-
-pub(crate) const TIME_FILENAME_FMT: &[u8; 13] = b"%0.122s.time\0";
-
 /// cbindgen:no-export
 #[repr(C)]
 pub struct _GC_FLAGS {
@@ -146,7 +130,8 @@ pub type GC_FLAGS = _GC_FLAGS;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[derive(Debug, Copy, Clone, Clone)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 pub struct _DEBUG_FLAGS {
     scheduler: bool,
     interpreter: bool,
@@ -214,7 +199,7 @@ pub type DEBUG_FLAGS = _DEBUG_FLAGS;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub struct _COST_CENTRE_FLAGS {
     doCostCentres: u32,
     profilerTicks: c_int,
@@ -294,7 +279,7 @@ pub type TRACE_FLAGS = _TRACE_FLAGS;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[derive(Clone)]
+#[cfg_attr(test, derive(Clone))]
 pub struct _CONCURRENT_FLAGS {
     ctxtSwitchTime: Time,
     ctxtSwitchTicks: c_int,
@@ -321,7 +306,7 @@ impl Arbitrary for _CONCURRENT_FLAGS {
 pub type CONCURRENT_FLAGS = _CONCURRENT_FLAGS;
 
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
 pub(crate) enum _IO_MANAGER_FLAG {
     IO_MNGR_FLAG_AUTO = 0,
     IO_MNGR_FLAG_SELECT = 1,
@@ -348,6 +333,7 @@ pub use self::_IO_MANAGER_FLAG as IO_MANAGER_FLAG;
 
 /// cbindgen:no-export
 #[repr(C)]
+#[cfg_attr(test, derive(Clone))]
 pub struct _MISC_FLAGS {
     tickInterval: Time,
     install_signal_handlers: bool,
@@ -371,12 +357,34 @@ impl From<_MISC_FLAGS> for sys::_MISC_FLAGS {
     }
 }
 
+#[cfg(test)]
+impl Arbitrary for _MISC_FLAGS {
+    fn arbitrary(g: &mut Gen) -> Self {
+        _MISC_FLAGS {
+            tickInterval: Arbitrary::arbitrary(g),
+            install_signal_handlers: Arbitrary::arbitrary(g),
+            install_seh_handlers: Arbitrary::arbitrary(g),
+            generate_dump_file: Arbitrary::arbitrary(g),
+            generate_stack_trace: Arbitrary::arbitrary(g),
+            machineReadable: Arbitrary::arbitrary(g),
+            disableDelayedOsMemoryReturn: Arbitrary::arbitrary(g),
+            internalCounters: Arbitrary::arbitrary(g),
+            linkerAlwaysPic: Arbitrary::arbitrary(g),
+            linkerOptimistic: Arbitrary::arbitrary(g),
+            linkerMemBase: Arbitrary::arbitrary(g),
+            ioManager: Arbitrary::arbitrary(g),
+            numIoWorkerThreads: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
 /// - GHC_PLACES: {libraries}
 pub type MISC_FLAGS = _MISC_FLAGS;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[derive(Debug, Copy, Clone, Clone)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 pub struct _PAR_FLAGS {
     nCapabilities: u32,
     migrate: bool,
@@ -419,7 +427,7 @@ impl Arbitrary for _PAR_FLAGS {
 pub type PAR_FLAGS = _PAR_FLAGS;
 
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
 pub(crate) enum _HPC_READ_FILE {
     HPC_NO_EXPLICIT = 0,
     HPC_YES_IMPLICIT = 1,
@@ -442,7 +450,8 @@ pub use self::_HPC_READ_FILE as HPC_READ_FILE;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 pub struct _HPC_FLAGS {
     writeTixFile: bool,
     readTixFile: HPC_READ_FILE,
@@ -465,11 +474,12 @@ impl Arbitrary for _HPC_FLAGS {
     }
 }
 
-pub type TICKY_FLAGS = _TICKY_FLAGS;
+/// - GHC_PLACES: {libraries}
+pub type HPC_FLAGS = _HPC_FLAGS;
 
+/// cbindgen:no-export
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-///cbindgen:no-export
+#[derive(Debug)]
 pub struct _TICKY_FLAGS {
     showTickyStats: bool,
     tickyFile: *mut FILE,
@@ -482,10 +492,11 @@ impl From<_TICKY_FLAGS> for sys::_TICKY_FLAGS {
     }
 }
 
-pub type RTS_FLAGS = _RTS_FLAGS;
+/// - GHC_PLACES: {libraries}
+pub type TICKY_FLAGS = _TICKY_FLAGS;
 
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
 pub struct _RTS_FLAGS {
     GcFlags: GC_FLAGS,
     ConcFlags: CONCURRENT_FLAGS,
@@ -506,11 +517,11 @@ impl From<_RTS_FLAGS> for sys::_RTS_FLAGS {
     }
 }
 
+/// - GHC_PLACES: {libraries}
+pub type RTS_FLAGS = _RTS_FLAGS;
+
 // TODO: See [RtsFlags is a pointer in STG code]
+// /// - GHC_PLACES: {compiler, libraries}
 // #[cfg_attr(feature = "sys", unsafe(export_name = "rust_RtsFlags"))]
 // #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 // pub static mut RtsFlags: RTS_FLAGS = todo!();
-
-static mut rts_argc: c_int = 0;
-
-static mut rts_argv: *mut *mut c_char = null_mut();
