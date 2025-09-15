@@ -1838,7 +1838,7 @@ pub(crate) static POINTER_TYPES: [&str; 27] = [
     "__darwin_pthread_t",
 ];
 
-pub(crate) static PRIMITIVE_TYPES: [&str; 60] = [
+pub(crate) static PRIMITIVE_TYPES: [&str; 57] = [
     "C_",
     "HsBool",
     "HsChar",
@@ -1892,12 +1892,9 @@ pub(crate) static PRIMITIVE_TYPES: [&str; 60] = [
     "__tsan_atomic32",
     "__tsan_atomic64",
     "__tsan_atomic8",
-    "bdescr",
     "fpos_t",
-    "generation",
     "memcount",
     "nat",
-    "nursery",
     "pathchar",
 ];
 
@@ -1944,7 +1941,19 @@ pub(crate) static SIMPLE_TYPES: [&str; 40] = [
     "mblock_address_range",
 ];
 
-pub(crate) static STD_TYPES: [&str; 80] = [
+pub(crate) static NON_SIMPLE_TYPES: [&str; 9] = [
+    "bdescr",
+    "bdescr_",
+    "c_void",
+    "generation",
+    "generation_",
+    "nursery",
+    "nursery_",
+    "snEntry",
+    "spEntry",
+];
+
+pub(crate) static STD_TYPES: [&str; 76] = [
     "AdjustorExecutable",
     "AdjustorWritable",
     "C_",
@@ -1968,7 +1977,6 @@ pub(crate) static STD_TYPES: [&str; 80] = [
     "HsWord8",
     "I_",
     "KernelThreadId",
-    "ListBlocksCb",
     "Mutex",
     "OSThreadId",
     "OSThreadProc",
@@ -2018,11 +2026,8 @@ pub(crate) static STD_TYPES: [&str; 80] = [
     "__tsan_atomic32",
     "__tsan_atomic64",
     "__tsan_atomic8",
-    "bdescr",
     "fpos_t",
-    "generation",
     "memcount",
     "nat",
-    "nursery",
     "pathchar",
 ];
