@@ -16,6 +16,7 @@ pub struct Symbols {
     symbols: HashMap<Ident, Places>,
     primitive_types: HashSet<Ident>,
     simple_types: HashSet<Ident>,
+    non_simple_types: HashSet<Ident>,
     pointer_types: HashSet<Ident>,
     std_types: HashSet<Ident>,
 }
@@ -50,6 +51,13 @@ impl Symbols {
             simple_types: {
                 let mut hs = HashSet::new();
                 for s in symbols::SIMPLE_TYPES {
+                    hs.insert(Ident::new(s, Span::call_site()));
+                }
+                hs
+            },
+            non_simple_types: {
+                let mut hs = HashSet::new();
+                for s in symbols::NON_SIMPLE_TYPES {
                     hs.insert(Ident::new(s, Span::call_site()));
                 }
                 hs
@@ -96,16 +104,16 @@ impl Symbols {
     }
 
     pub fn is_primitive(&self, ident: &Ident) -> bool {
-        self.primitive_types.contains(ident) || Self::looks_primitive(ident)
+        self.primitive_types.contains(ident) || self.looks_primitive(ident)
     }
 
-    fn looks_primitive(ident: &Ident) -> bool {
+    fn looks_primitive(&self, ident: &Ident) -> bool {
         ident
             .to_string()
             .chars()
             .next()
             .is_some_and(char::is_lowercase)
-            && ident != "c_void"
+            && !self.non_simple_types.contains(ident)
     }
 
     /// True for primitives and structs/enums/arrays/slices/tuples containing only "simple" types.
