@@ -78,6 +78,13 @@ pub fn main() {
         visitor.simple_types.len(),
         visitor.simple_types.iter().map(Ident::to_string),
     );
+    println!();
+    print_static_array(
+        "STD_TYPES",
+        "&str",
+        visitor.std_types.len(),
+        visitor.std_types.iter().map(Ident::to_string),
+    );
 }
 
 #[derive(Debug, Default)]
@@ -86,6 +93,7 @@ struct SymbolVisitor {
     pointer_types: BTreeSet<Ident>,
     primitive_types: BTreeSet<Ident>,
     simple_types: BTreeSet<Ident>,
+    std_types: BTreeSet<Ident>,
 }
 
 impl SymbolVisitor {
@@ -95,7 +103,7 @@ impl SymbolVisitor {
         }
     }
 
-    pub fn is_primitive_type(&self, ident: &Ident) -> bool {
+    pub fn is_primitive(&self, ident: &Ident) -> bool {
         self.primitive_types.contains(ident) || Self::looks_primitive(ident)
     }
 
@@ -113,16 +121,14 @@ impl SymbolVisitor {
         match ty {
             Type::Array(type_array) => self.is_simple_type(type_array.elem.as_ref()),
             Type::Path(type_path) => match type_path.path.get_ident() {
-                Some(ident)
-                    if self.simple_types.contains(ident) || self.is_primitive_type(ident) =>
-                {
+                Some(ident) if self.simple_types.contains(ident) || self.is_primitive(ident) => {
                     true
                 }
                 _ => {
                     if let Some(ps) = type_path.path.segments.last() {
                         match &ps.arguments {
                             // Bindgen paths only contain one segment, so we only check for primitives here.
-                            syn::PathArguments::None => self.is_primitive_type(&ps.ident),
+                            syn::PathArguments::None => self.is_primitive(&ps.ident),
                             syn::PathArguments::AngleBracketed(angle_args) => {
                                 ps.ident == "Option"
                                     && matches!(angle_args.args.first(), Some(syn::GenericArgument::Type(param_ty)) if self.is_simple_type(param_ty))
@@ -154,6 +160,48 @@ impl SymbolVisitor {
                 .all(|f| self.is_simple_type(&f.ty)),
             syn::Fields::Unit => true,
         }
+    }
+
+    fn is_std_type(&self, ty: &Type) -> bool {
+        match ty {
+            Type::Array(type_array) => self.is_std_type(type_array.elem.as_ref()),
+            Type::BareFn(type_bare_fn) => {
+                type_bare_fn
+                    .inputs
+                    .iter()
+                    .all(|arg| self.is_std_type(&arg.ty))
+                    && match &type_bare_fn.output {
+                        syn::ReturnType::Default => true,
+                        syn::ReturnType::Type(_, rty) => self.is_std_type(rty.as_ref()),
+                    }
+            }
+            Type::Never(_) => true,
+            Type::Path(type_path) => self.is_std_type_path(type_path),
+            Type::Ptr(type_ptr) => self.is_std_type(type_ptr.elem.as_ref()),
+            Type::Reference(type_ref) => self.is_std_type(type_ref.elem.as_ref()),
+            ty => panic!("Unexpected type: {ty:?}"),
+        }
+    }
+
+    fn is_std_type_path(&self, type_path: &syn::TypePath) -> bool {
+        match type_path.path.segments.last() {
+            None => unreachable!(),
+            Some(ps) => {
+                let ident = &ps.ident;
+
+                match &ps.arguments {
+                    syn::PathArguments::AngleBracketed(angle_args) => {
+                        ident == "Option"
+                            && matches!(angle_args.args.first(), Some(syn::GenericArgument::Type(param_ty)) if self.is_std_type(param_ty))
+                    }
+                    _ => self.is_std(ident),
+                }
+            }
+        }
+    }
+
+    fn is_std(&self, ident: &Ident) -> bool {
+        self.std_types.contains(ident) || self.is_primitive(ident) || ident == "c_void"
     }
 }
 
@@ -268,6 +316,12 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
 
     fn visit_item_type(&mut self, i: &'ast syn::ItemType) {
         fn visit_type(visitor: &mut SymbolVisitor, ident: &Ident, ty: &Type) {
+            if visitor.is_std_type(ty) {
+                visitor.std_types.insert(ident.clone());
+            } else if ident == "StgPtr" {
+                eprintln!("XXX {ident:?} {ty:?}");
+            }
+
             match ty {
                 syn::Type::BareFn(_) => _ = visitor.pointer_types.insert(ident.clone()),
                 syn::Type::Path(ty_path) => {
@@ -279,7 +333,7 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
                             {
                                 visit_type(visitor, ident, param_ty);
                             }
-                        } else if visitor.is_primitive_type(&ps.ident) {
+                        } else if visitor.is_primitive(&ps.ident) {
                             visitor.primitive_types.insert(ident.clone());
                         } else if visitor.pointer_types.contains(&ps.ident) {
                             visitor.pointer_types.insert(ident.clone());
@@ -312,12 +366,16 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
         let ident = &i.ident;
         let rename = &i.rename;
 
-        if self.is_primitive_type(ident) {
+        if self.is_primitive(ident) {
             self.primitive_types.insert(rename.clone());
         } else if self.pointer_types.contains(ident) {
             self.pointer_types.insert(rename.clone());
         } else if self.simple_types.contains(ident) {
             self.simple_types.insert(rename.clone());
+        }
+
+        if self.is_std(ident) {
+            self.std_types.insert(rename.clone());
         }
     }
 }
