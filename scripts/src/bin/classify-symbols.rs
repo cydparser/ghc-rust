@@ -18,6 +18,7 @@ pub fn main() {
 
     let visitor = {
         let mut visitor = SymbolVisitor::default();
+        visitor.non_simple_types.insert(syn::parse_quote!(c_void));
 
         let code = std::str::from_utf8(&buf).unwrap();
 
@@ -80,6 +81,13 @@ pub fn main() {
     );
     println!();
     print_static_array(
+        "NON_SIMPLE_TYPES",
+        "&str",
+        visitor.non_simple_types.len(),
+        visitor.non_simple_types.iter().map(Ident::to_string),
+    );
+    println!();
+    print_static_array(
         "STD_TYPES",
         "&str",
         visitor.std_types.len(),
@@ -93,6 +101,7 @@ struct SymbolVisitor {
     pointer_types: BTreeSet<Ident>,
     primitive_types: BTreeSet<Ident>,
     simple_types: BTreeSet<Ident>,
+    non_simple_types: BTreeSet<Ident>,
     std_types: BTreeSet<Ident>,
 }
 
@@ -104,16 +113,16 @@ impl SymbolVisitor {
     }
 
     pub fn is_primitive(&self, ident: &Ident) -> bool {
-        self.primitive_types.contains(ident) || Self::looks_primitive(ident)
+        self.primitive_types.contains(ident) || self.looks_primitive(ident)
     }
 
-    fn looks_primitive(ident: &Ident) -> bool {
-        ident
-            .to_string()
-            .chars()
-            .next()
-            .is_some_and(char::is_lowercase)
+    fn looks_primitive(&self, ident: &Ident) -> bool {
+        let s = ident.to_string();
+
+        s.chars().next().is_some_and(char::is_lowercase)
             && ident != "c_void"
+            && !is_bindgen(&s)
+            && !self.non_simple_types.contains(ident)
     }
 
     /// True for paths/arrays/tuples containing only "simple" types.
@@ -121,9 +130,7 @@ impl SymbolVisitor {
         match ty {
             Type::Array(type_array) => self.is_simple_type(type_array.elem.as_ref()),
             Type::Path(type_path) => match type_path.path.get_ident() {
-                Some(ident) if self.simple_types.contains(ident) || self.is_primitive(ident) => {
-                    true
-                }
+                Some(ident) if self.is_simple(ident) => true,
                 _ => {
                     if let Some(ps) = type_path.path.segments.last() {
                         match &ps.arguments {
@@ -148,6 +155,10 @@ impl SymbolVisitor {
         }
     }
 
+    fn is_simple(&self, ident: &Ident) -> bool {
+        self.simple_types.contains(ident) || self.is_primitive(ident)
+    }
+
     fn all_fields_simple_types(&self, fields: &syn::Fields) -> bool {
         match fields {
             syn::Fields::Named(fields_named) => fields_named
@@ -159,6 +170,17 @@ impl SymbolVisitor {
                 .iter()
                 .all(|f| self.is_simple_type(&f.ty)),
             syn::Fields::Unit => true,
+        }
+    }
+
+    fn maybe_insert_non_simple(&mut self, ident: &Ident) {
+        if ident
+            .to_string()
+            .chars()
+            .next()
+            .is_some_and(char::is_lowercase)
+        {
+            self.non_simple_types.insert(ident.clone());
         }
     }
 
@@ -288,6 +310,8 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
                 .all(|v| self.all_fields_simple_types(&v.fields))
         {
             self.simple_types.insert(i.ident.clone());
+        } else {
+            self.maybe_insert_non_simple(&i.ident);
         }
     }
 
@@ -307,9 +331,14 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
                         if fs.named.len() == 1
                             && fs.named.first().is_some_and(|f| {
                                 f.ident.as_ref().is_some_and(|i| i == "_unused")
-                            }) => {}
+                            }) =>
+                    {
+                        self.maybe_insert_non_simple(&i.ident)
+                    }
                     _ => _ = self.simple_types.insert(i.ident.clone()),
                 }
+            } else {
+                self.maybe_insert_non_simple(&i.ident);
             }
         }
     }
@@ -339,6 +368,8 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
                             visitor.pointer_types.insert(ident.clone());
                         } else if visitor.is_simple_type(ty) {
                             visitor.simple_types.insert(ident.clone());
+                        } else if visitor.non_simple_types.contains(&ps.ident) {
+                            visitor.maybe_insert_non_simple(ident);
                         }
                     }
                 }
@@ -370,8 +401,10 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
             self.primitive_types.insert(rename.clone());
         } else if self.pointer_types.contains(ident) {
             self.pointer_types.insert(rename.clone());
-        } else if self.simple_types.contains(ident) {
+        } else if self.is_simple(ident) {
             self.simple_types.insert(rename.clone());
+        } else if self.non_simple_types.contains(ident) {
+            self.maybe_insert_non_simple(ident);
         }
 
         if self.is_std(ident) {
