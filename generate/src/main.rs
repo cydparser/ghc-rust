@@ -225,6 +225,15 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                                     Some(_) => parse_quote! { null_mut() },
                                     None => parse_quote! { null() },
                                 },
+                                Type::Path(type_path) => {
+                                    if let Some(ps) = type_path.path.segments.last()
+                                        && ps.ident == "bool"
+                                    {
+                                        parse_quote! { false }
+                                    } else {
+                                        parse_quote! { 0 }
+                                    }
+                                }
                                 _ => parse_quote! { 0 },
                             };
 
