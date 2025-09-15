@@ -358,15 +358,18 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 
                     let (ty_owned, arg_from_sys, arg_into, arg_from_owned) = match pat_ty {
                         ty @ Type::Path(type_path) => {
-                            let is_primitive = same_as_sys_type_path(symbols, type_path);
+                            let is_std = symbols.is_std_type_path(type_path);
                             (
                                 ty.clone(),
-                                if is_primitive {
+                                if is_std {
                                     parse_quote! { #param_ident }
+                                } else if symbols.is_pointer_type(ty) {
+                                    let sys_pat_ty = prefix_with_sys(ty);
+                                    parse_quote! { #param_ident as #sys_pat_ty }
                                 } else {
                                     parse_quote! { transmute(#param_ident) }
                                 },
-                                if is_primitive {
+                                if is_std {
                                     parse_quote! { #param_ident }
                                 } else {
                                     expr_into(&param_ident)
@@ -377,8 +380,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                         Type::Ptr(type_ptr) => {
                             let (ty, expr, pat) =
                                 ptr_to_ty_expr_pat(symbols, &param_ident, type_ptr);
-                            let arg_from_sys = if same_as_sys_type(symbols, type_ptr.elem.as_ref())
-                            {
+                            let arg_from_sys = if symbols.is_std_type(type_ptr.elem.as_ref()) {
                                 parse_quote! { #param_ident }
                             } else {
                                 let sys_pat_ty = prefix_with_sys(pat_ty);
@@ -434,8 +436,8 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
     let attrs = export_attrs(&ident, places);
 
     let (call, expected_call): (syn::Expr, syn::Expr) = match &output {
-        syn::ReturnType::Type(_, ret_ty) if !same_as_sys_type(symbols, ret_ty.as_ref()) => {
-            if matches!(ret_ty.as_ref(), Type::Ptr(_)) {
+        syn::ReturnType::Type(_, ret_ty) if !symbols.is_std_type(ret_ty.as_ref()) => {
+            if matches!(ret_ty.as_ref(), Type::Ptr(_)) || symbols.is_pointer_type(ret_ty.as_ref()) {
                 (
                     parse_quote! { sys::#ident(#(#args_from_sys),*) as #ret_ty },
                     parse_quote! { sys::#ident(#(#args_into),*) as #ret_ty },
@@ -518,32 +520,6 @@ fn export_attrs(ident: &Ident, places: Places) -> Vec<syn::Attribute> {
     ]);
 
     attrs
-}
-
-fn same_as_sys_type<T: Borrow<Type>>(symbols: &Symbols, ty: T) -> bool {
-    match ty.borrow() {
-        Type::Array(type_array) => same_as_sys_type(symbols, type_array.elem.borrow()),
-        Type::BareFn(type_bare_fn) => {
-            type_bare_fn
-                .inputs
-                .iter()
-                .all(|arg| same_as_sys_type(symbols, &arg.ty))
-                && match &type_bare_fn.output {
-                    syn::ReturnType::Default => true,
-                    syn::ReturnType::Type(_, rty) => same_as_sys_type(symbols, rty.as_ref()),
-                }
-        }
-        Type::Never(_) => true,
-        Type::Path(type_path) => same_as_sys_type_path(symbols, type_path),
-        Type::Ptr(type_ptr) => same_as_sys_type(symbols, type_ptr.elem.as_ref()),
-        Type::Reference(type_ref) => same_as_sys_type(symbols, type_ref.elem.as_ref()),
-        ty => panic!("Unexpected type: {ty:?}"),
-    }
-}
-
-fn same_as_sys_type_path(symbols: &Symbols, type_path: &syn::TypePath) -> bool {
-    symbols.is_primitive_type_path(type_path)
-        || matches!(type_path.path.segments.last(), Some(ps) if ps.ident == "c_void")
 }
 
 fn expr_into(ident: &Ident) -> syn::Expr {

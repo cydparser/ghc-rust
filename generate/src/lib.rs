@@ -17,6 +17,7 @@ pub struct Symbols {
     primitive_types: HashSet<Ident>,
     simple_types: HashSet<Ident>,
     pointer_types: HashSet<Ident>,
+    std_types: HashSet<Ident>,
 }
 
 impl Symbols {
@@ -56,6 +57,13 @@ impl Symbols {
             pointer_types: {
                 let mut hs = HashSet::new();
                 for s in symbols::POINTER_TYPES {
+                    hs.insert(Ident::new(s, Span::call_site()));
+                }
+                hs
+            },
+            std_types: {
+                let mut hs = HashSet::new();
+                for s in symbols::STD_TYPES {
                     hs.insert(Ident::new(s, Span::call_site()));
                 }
                 hs
@@ -154,5 +162,47 @@ impl Symbols {
 
     pub fn is_pointer(&self, ident: &Ident) -> bool {
         self.pointer_types.contains(ident)
+    }
+
+    pub fn is_std_type(&self, ty: &Type) -> bool {
+        match ty {
+            Type::Array(type_array) => self.is_std_type(type_array.elem.as_ref()),
+            Type::BareFn(type_bare_fn) => {
+                type_bare_fn
+                    .inputs
+                    .iter()
+                    .all(|arg| self.is_std_type(&arg.ty))
+                    && match &type_bare_fn.output {
+                        syn::ReturnType::Default => true,
+                        syn::ReturnType::Type(_, rty) => self.is_std_type(rty.as_ref()),
+                    }
+            }
+            Type::Never(_) => true,
+            Type::Path(type_path) => self.is_std_type_path(type_path),
+            Type::Ptr(type_ptr) => self.is_std_type(type_ptr.elem.as_ref()),
+            Type::Reference(type_ref) => self.is_std_type(type_ref.elem.as_ref()),
+            ty => panic!("Unexpected type: {ty:?}"),
+        }
+    }
+
+    pub fn is_std_type_path(&self, type_path: &syn::TypePath) -> bool {
+        match type_path.path.segments.last() {
+            None => unreachable!(),
+            Some(ps) => {
+                let ident = &ps.ident;
+
+                match &ps.arguments {
+                    syn::PathArguments::AngleBracketed(angle_args) => {
+                        ident == "Option"
+                            && matches!(angle_args.args.first(), Some(syn::GenericArgument::Type(param_ty)) if self.is_std_type(param_ty))
+                    }
+                    _ => self.is_std(ident),
+                }
+            }
+        }
+    }
+
+    pub fn is_std(&self, ident: &Ident) -> bool {
+        self.std_types.contains(ident) || self.is_primitive(ident) || ident == "c_void"
     }
 }
