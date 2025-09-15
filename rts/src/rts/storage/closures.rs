@@ -88,6 +88,9 @@ impl From<StgThunkHeader> for sys::StgThunkHeader {
     }
 }
 
+/// - GHC_PLACES: {driver, libraries, testsuite, utils}
+pub type StgClosure = StgClosure_;
+
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]

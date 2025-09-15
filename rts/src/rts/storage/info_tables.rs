@@ -97,6 +97,9 @@ impl From<StgClosureInfo__bindgen_ty_1> for sys::StgClosureInfo__bindgen_ty_1 {
 
 pub(crate) type StgSRTField = StgHalfInt;
 
+/// - GHC_PLACES: {libraries, testsuite}
+pub type StgInfoTable = StgInfoTable_;
+
 /// cbindgen:no-export
 #[repr(C)]
 pub struct StgInfoTable_ {
@@ -133,8 +136,8 @@ impl From<StgFunInfoExtraRev_> for sys::StgFunInfoExtraRev_ {
 
 #[repr(C)]
 pub(crate) union StgFunInfoExtraRev___bindgen_ty_1 {
-    bitmap: StgWord,
-    bitmap_offset: StgInt,
+    pub(crate) bitmap: StgWord,
+    pub(crate) bitmap_offset: StgInt,
 }
 
 #[cfg(feature = "sys")]

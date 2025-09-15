@@ -1,10 +1,9 @@
+use crate::capability::Capability;
 use crate::prelude::*;
-use crate::rts::capability::Capability;
 use crate::rts::storage::block::bdescr;
-use crate::rts::storage::closures::{StgClosure, StgInd, StgIndStatic, StgMutVar, StgWeak};
+use crate::rts::storage::closures::StgWeak;
 use crate::rts::storage::tso::StgTSO;
 use crate::stg::W_;
-use crate::stg::regs::StgRegTable;
 use crate::stg::types::{StgPtr, StgWord};
 
 #[cfg(test)]
@@ -14,7 +13,6 @@ pub(crate) type memcount = StgWord;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[cfg_attr(test, derive(Clone))]
 pub struct nursery_ {
     blocks: *mut bdescr,
     n_blocks: memcount,
@@ -27,21 +25,10 @@ impl From<nursery_> for sys::nursery_ {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for nursery_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        nursery_ {
-            blocks: Arbitrary::arbitrary(g),
-            n_blocks: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 pub(crate) type nursery = nursery_;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[cfg_attr(test, derive(Clone))]
 pub struct generation_ {
     no: u32,
     blocks: *mut bdescr,
@@ -80,45 +67,6 @@ pub struct generation_ {
 impl From<generation_> for sys::generation_ {
     fn from(x: generation_) -> Self {
         unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for generation_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        generation_ {
-            no: Arbitrary::arbitrary(g),
-            blocks: Arbitrary::arbitrary(g),
-            n_blocks: Arbitrary::arbitrary(g),
-            n_words: Arbitrary::arbitrary(g),
-            large_objects: Arbitrary::arbitrary(g),
-            n_large_blocks: Arbitrary::arbitrary(g),
-            n_large_words: Arbitrary::arbitrary(g),
-            n_new_large_words: Arbitrary::arbitrary(g),
-            compact_objects: Arbitrary::arbitrary(g),
-            n_compact_blocks: Arbitrary::arbitrary(g),
-            compact_blocks_in_import: Arbitrary::arbitrary(g),
-            n_compact_blocks_in_import: Arbitrary::arbitrary(g),
-            max_blocks: Arbitrary::arbitrary(g),
-            threads: Arbitrary::arbitrary(g),
-            weak_ptr_list: Arbitrary::arbitrary(g),
-            to: Arbitrary::arbitrary(g),
-            collections: Arbitrary::arbitrary(g),
-            par_collections: Arbitrary::arbitrary(g),
-            failed_promotions: Arbitrary::arbitrary(g),
-            mark: Arbitrary::arbitrary(g),
-            compact: Arbitrary::arbitrary(g),
-            old_blocks: Arbitrary::arbitrary(g),
-            n_old_blocks: Arbitrary::arbitrary(g),
-            live_estimate: Arbitrary::arbitrary(g),
-            scavenged_large_objects: Arbitrary::arbitrary(g),
-            n_scavenged_large_blocks: Arbitrary::arbitrary(g),
-            live_compact_objects: Arbitrary::arbitrary(g),
-            n_live_compact_blocks: Arbitrary::arbitrary(g),
-            bitmap: Arbitrary::arbitrary(g),
-            old_threads: Arbitrary::arbitrary(g),
-            old_weak_ptr_list: Arbitrary::arbitrary(g),
-        }
     }
 }
 

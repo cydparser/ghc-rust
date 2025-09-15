@@ -1,8 +1,7 @@
 use crate::prelude::*;
-use crate::rts::storage::closures::{StgClosure, StgClosure_, StgHeader, StgIntCharlikeClosure};
 use crate::rts::storage::info_tables::{
-    StgClosureInfo, StgFunInfoExtraRev_, StgFunInfoExtraRev__anon_union_1, StgFunInfoTable,
-    StgInfoTable, StgInfoTable_, StgThunkInfoTable, StgThunkInfoTable_,
+    StgClosureInfo, StgFunInfoExtraRev_, StgFunInfoExtraRev___bindgen_ty_1, StgFunInfoTable,
+    StgInfoTable, StgInfoTable_,
 };
 use crate::stg::types::StgFunPtr;
 
@@ -58,7 +57,7 @@ pub static stg_stack_underflow_frame_d_info: StgInfoTable = TODO_StgInfoTable;
 const TODO_StgFunInfoTable: StgFunInfoTable = StgFunInfoTable {
     f: StgFunInfoExtraRev_ {
         slow_apply_offset: 0,
-        b: StgFunInfoExtraRev__anon_union_1 { bitmap: 0 },
+        b: StgFunInfoExtraRev___bindgen_ty_1 { bitmap: 0 },
         fun_type: 0,
         arity: 0,
     },
@@ -101,8 +100,7 @@ pub static stg_ret_n_info: StgInfoTable = TODO_StgInfoTable;
 /// - GHC_PLACES: {libraries}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_stop_thread_info"))]
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
-pub static stg_SRT_1_info: StgInfoTable = TODO_StgInfoTable;
-pub static stg_stop_thread_info: StgInfoTable = 0;
+pub static stg_stop_thread_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
 #[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_paniczh"))]

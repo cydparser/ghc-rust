@@ -1,22 +1,23 @@
 use crate::prelude::*;
+use crate::rts::storage::info_tables::StgInfoTable;
 use crate::stg::types::{StgInt, StgWord};
 
 #[cfg(test)]
 mod tests;
 
+/// cbindgen:no-export
 #[repr(C)]
-///cbindgen:no-export
-pub(crate) struct _StgEntCounter {
-    pub registeredp: StgWord,
-    pub arity: StgInt,
-    pub allocd: StgInt,
-    pub str_: *mut c_char,
-    pub arg_kinds: *mut c_char,
-    pub ticky_json: *mut c_char,
-    pub info: *mut StgInfoTable,
-    pub entry_count: StgInt,
-    pub allocs: StgInt,
-    pub link: *mut _StgEntCounter,
+pub struct _StgEntCounter {
+    registeredp: StgWord,
+    arity: StgInt,
+    allocd: StgInt,
+    str_: *mut c_char,
+    arg_kinds: *mut c_char,
+    ticky_json: *mut c_char,
+    info: *mut StgInfoTable,
+    entry_count: StgInt,
+    allocs: StgInt,
+    link: *mut _StgEntCounter,
 }
 
 #[cfg(feature = "sys")]
@@ -26,79 +27,15 @@ impl From<_StgEntCounter> for sys::_StgEntCounter {
     }
 }
 
-#[cfg(test)]
-#[derive(Clone)]
-struct _StgEntCounterOwned {
-    pub registeredp: StgWord,
-    pub arity: StgInt,
-    pub allocd: StgInt,
-    pub entry_count: StgInt,
-    pub allocs: StgInt,
-}
+pub(crate) type StgEntCounter = _StgEntCounter;
 
-#[cfg(test)]
-impl Arbitrary for _StgEntCounterOwned {
-    fn arbitrary(g: &mut Gen) -> Self {
-        _StgEntCounterOwned {
-            registeredp: Arbitrary::arbitrary(g),
-            arity: Arbitrary::arbitrary(g),
-            allocd: Arbitrary::arbitrary(g),
-            entry_count: Arbitrary::arbitrary(g),
-            allocs: Arbitrary::arbitrary(g),
-        }
-    }
+/// - GHC_PLACES: {libraries}
+#[cfg_attr(
+    feature = "sys",
+    unsafe(export_name = "rust_requestTickyCounterSamples")
+)]
+#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[instrument]
+pub unsafe extern "C" fn requestTickyCounterSamples() {
+    unsafe { sys::requestTickyCounterSamples() }
 }
-
-#[cfg(test)]
-#[derive(Clone)]
-struct _StgEntCounterPointees {
-    pub str_: c_char,
-    pub arg_kinds: c_char,
-    pub ticky_json: c_char,
-    pub info: StgInfoTable,
-    pub link: _StgEntCounter,
-}
-
-#[cfg(test)]
-impl Arbitrary for _StgEntCounterPointees {
-    fn arbitrary(g: &mut Gen) -> Self {
-        _StgEntCounterPointees {
-            str_: Arbitrary::arbitrary(g),
-            arg_kinds: Arbitrary::arbitrary(g),
-            ticky_json: Arbitrary::arbitrary(g),
-            info: Arbitrary::arbitrary(g),
-            link: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
-#[cfg(test)]
-impl HasReferences for _StgEntCounter {
-    type Owned = _StgEntCounterOwned;
-    type Pointees = _StgEntCounterPointees;
-    fn from_parts(owned: Self::Owned, pointees: *mut Self::Pointees) -> Self {
-        Self {
-            registeredp: owned.registeredp,
-            arity: owned.arity,
-            allocd: owned.allocd,
-            entry_count: owned.entry_count,
-            allocs: owned.allocs,
-            str_: unsafe { &raw mut (*pointees).str_ },
-            arg_kinds: unsafe { &raw mut (*pointees).arg_kinds },
-            ticky_json: unsafe { &raw mut (*pointees).ticky_json },
-            info: unsafe { &raw mut (*pointees).info },
-            link: unsafe { &raw mut (*pointees).link },
-        }
-    }
-    fn owned(&self) -> Self::Owned {
-        Self::Owned {
-            registeredp: self.registeredp,
-            arity: self.arity,
-            allocd: self.allocd,
-            entry_count: self.entry_count,
-            allocs: self.allocs,
-        }
-    }
-}
-
-pub type StgEntCounter = _StgEntCounter;

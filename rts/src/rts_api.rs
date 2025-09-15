@@ -3,7 +3,6 @@ use crate::hs_ffi::{
     HsStablePtr, HsWord, HsWord8, HsWord16, HsWord32, HsWord64,
 };
 use crate::prelude::*;
-use crate::rts::capability::Capability;
 use crate::rts::event_log_writer::EventLogWriter;
 use crate::rts::storage::closures::{StgClosure, StgClosure_};
 use crate::rts::storage::tso::StgTSO;
@@ -11,12 +10,14 @@ use crate::rts::time::Time;
 use crate::stg::W_;
 use crate::stg::regs::{StgFunTable, StgRegTable};
 
+pub use crate::capability::Capability;
+
 #[cfg(test)]
 mod tests;
 
 #[repr(u32)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
-pub(crate) enum SchedulerStatus {
+pub enum SchedulerStatus {
     NoStatus = 0,
     Success = 1,
     Killed = 2,
@@ -42,9 +43,6 @@ impl Arbitrary for SchedulerStatus {
 
 /// - GHC_PLACES: {libraries, testsuite}
 pub type HaskellObj = *mut StgClosure_;
-
-/// - GHC_PLACES: {libraries, testsuite}
-pub type Capability = Capability_;
 
 /// cbindgen:no-export
 #[repr(C)]
@@ -89,7 +87,7 @@ pub(crate) type CapabilityPublic = CapabilityPublic_;
 
 #[repr(u32)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
-pub(crate) enum RtsOptsEnabledEnum {
+pub enum RtsOptsEnabledEnum {
     RtsOptsNone = 0,
     RtsOptsIgnore = 1,
     RtsOptsIgnoreAll = 2,
@@ -510,7 +508,7 @@ pub unsafe extern "C" fn rts_mkWord64(arg1: *mut Capability, w: HsWord64) -> Has
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_mkPtr(arg1: *mut Capability, a: HsPtr) -> HaskellObj {
-    unsafe { transmute(sys::rts_mkPtr(arg1 as *mut sys::Capability, transmute(a))) }
+    unsafe { transmute(sys::rts_mkPtr(arg1 as *mut sys::Capability, a)) }
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -518,12 +516,7 @@ pub unsafe extern "C" fn rts_mkPtr(arg1: *mut Capability, a: HsPtr) -> HaskellOb
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_mkFunPtr(arg1: *mut Capability, a: HsFunPtr) -> HaskellObj {
-    unsafe {
-        transmute(sys::rts_mkFunPtr(
-            arg1 as *mut sys::Capability,
-            transmute(a),
-        ))
-    }
+    unsafe { transmute(sys::rts_mkFunPtr(arg1 as *mut sys::Capability, a)) }
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -547,12 +540,7 @@ pub unsafe extern "C" fn rts_mkDouble(arg1: *mut Capability, f: HsDouble) -> Has
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_mkStablePtr(arg1: *mut Capability, s: HsStablePtr) -> HaskellObj {
-    unsafe {
-        transmute(sys::rts_mkStablePtr(
-            arg1 as *mut sys::Capability,
-            transmute(s),
-        ))
-    }
+    unsafe { transmute(sys::rts_mkStablePtr(arg1 as *mut sys::Capability, s)) }
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -682,7 +670,7 @@ pub unsafe extern "C" fn rts_getWord64(arg1: HaskellObj) -> HsWord64 {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_getPtr(arg1: HaskellObj) -> HsPtr {
-    unsafe { transmute(sys::rts_getPtr(transmute(arg1))) }
+    unsafe { sys::rts_getPtr(arg1 as sys::HaskellObj) }
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -690,7 +678,7 @@ pub unsafe extern "C" fn rts_getPtr(arg1: HaskellObj) -> HsPtr {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_getFunPtr(arg1: HaskellObj) -> HsFunPtr {
-    unsafe { transmute(sys::rts_getFunPtr(transmute(arg1))) }
+    unsafe { sys::rts_getFunPtr(arg1 as sys::HaskellObj) }
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -714,7 +702,7 @@ pub unsafe extern "C" fn rts_getDouble(arg1: HaskellObj) -> HsDouble {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_getStablePtr(arg1: HaskellObj) -> HsStablePtr {
-    unsafe { transmute(sys::rts_getStablePtr(transmute(arg1))) }
+    unsafe { sys::rts_getStablePtr(arg1 as sys::HaskellObj) }
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -789,7 +777,7 @@ pub unsafe extern "C" fn rts_evalStableIOMain(
     unsafe {
         sys::rts_evalStableIOMain(
             arg1 as *mut *mut sys::Capability,
-            transmute(s),
+            s,
             ret as *mut sys::HsStablePtr,
         )
     }
@@ -807,7 +795,7 @@ pub unsafe extern "C" fn rts_evalStableIO(
     unsafe {
         sys::rts_evalStableIO(
             arg1 as *mut *mut sys::Capability,
-            transmute(s),
+            s,
             ret as *mut sys::HsStablePtr,
         )
     }

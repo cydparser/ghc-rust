@@ -52,7 +52,7 @@ pub(crate) const BF_FLAG_MAX: u32 = 32768;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[cfg_attr(test, derive(Clone))]
+#[derive(Clone, Copy)]
 pub struct NonmovingSegmentInfo {
     allocator_idx: StgWord16,
     next_free_snap: StgWord16,
@@ -77,7 +77,6 @@ impl Arbitrary for NonmovingSegmentInfo {
 
 /// cbindgen:no-export
 #[repr(C)]
-#[cfg_attr(test, derive(Clone))]
 pub struct bdescr_ {
     start: StgPtr,
     __bindgen_anon_1: bdescr___bindgen_ty_1,
@@ -99,29 +98,10 @@ impl From<bdescr_> for sys::bdescr_ {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for bdescr_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        bdescr_ {
-            start: Arbitrary::arbitrary(g),
-            __bindgen_anon_1: Arbitrary::arbitrary(g),
-            link: Arbitrary::arbitrary(g),
-            u: Arbitrary::arbitrary(g),
-            gen_: Arbitrary::arbitrary(g),
-            gen_no: Arbitrary::arbitrary(g),
-            dest_no: Arbitrary::arbitrary(g),
-            node: Arbitrary::arbitrary(g),
-            flags: Arbitrary::arbitrary(g),
-            blocks: Arbitrary::arbitrary(g),
-            _padding: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 #[repr(C)]
 pub(crate) union bdescr___bindgen_ty_1 {
     free: StgPtr,
-    nonmoving_segment: ManuallyDrop<NonmovingSegmentInfo>,
+    nonmoving_segment: NonmovingSegmentInfo,
 }
 
 #[cfg(feature = "sys")]
@@ -153,7 +133,7 @@ pub type bdescr = bdescr_;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn allocAlignedGroupOnNode(node: u32, n: W_) -> *mut bdescr {
-    unsafe { sys::allocAlignedGroupOnNode(node, n) }
+    unsafe { sys::allocAlignedGroupOnNode(node, n) as *mut bdescr }
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -161,7 +141,7 @@ pub unsafe extern "C" fn allocAlignedGroupOnNode(node: u32, n: W_) -> *mut bdesc
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn allocGroup_lock(n: W_) -> *mut bdescr {
-    unsafe { sys::allocGroup_lock(n) }
+    unsafe { sys::allocGroup_lock(n) as *mut bdescr }
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -169,29 +149,5 @@ pub unsafe extern "C" fn allocGroup_lock(n: W_) -> *mut bdescr {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn freeGroup_lock(p: *mut bdescr) {
-    unsafe { sys::freeGroup_lock(p) }
-}
-
-/// cbindgen:no-export
-#[repr(C)]
-#[derive(Debug)]
-#[cfg_attr(test, derive(Clone))]
-pub struct generation_ {
-    _address: u8,
-}
-
-#[cfg(feature = "sys")]
-impl From<generation_> for sys::generation_ {
-    fn from(x: generation_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-#[cfg(test)]
-impl Arbitrary for generation_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        generation_ {
-            _address: Arbitrary::arbitrary(g),
-        }
-    }
+    unsafe { sys::freeGroup_lock(p as *mut sys::bdescr) }
 }

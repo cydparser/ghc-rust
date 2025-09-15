@@ -1,5 +1,5 @@
+use crate::capability::Capability;
 use crate::prelude::*;
-use crate::rts::capability::Capability;
 use crate::rts::storage::closures::{StgClosure, StgMutArrPtrs};
 use crate::stg::types::StgWord;
 

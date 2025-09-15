@@ -1,10 +1,10 @@
+use crate::capability::Capability_;
 use crate::prelude::*;
 use crate::rts::prof::ccs::CostCentreStack;
 use crate::rts::storage::closures::{
     MessageBlackHole_, MessageThrowTo_, MessageWakeup_, StgArrBytes, StgBlockingQueue_, StgClosure,
     StgHeader, StgTRecHeader_,
 };
-use crate::rts_api::Capability_;
 use crate::stg::types::{
     StgInt, StgInt64, StgPtr, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
 };
@@ -52,6 +52,7 @@ impl From<StgTSOBlockInfo> for sys::StgTSOBlockInfo {
     }
 }
 
+/// - GHC_PLACES: {libraries, testsuite}
 pub type StgTSO = StgTSO_;
 
 /// cbindgen:no-export

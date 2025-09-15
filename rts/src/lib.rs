@@ -9,8 +9,11 @@
 mod prelude;
 mod utils;
 
+// C-API
 pub mod hs_ffi;
 pub mod mach_deps;
 pub mod rts;
 pub mod rts_api;
 pub mod stg;
+
+mod capability;

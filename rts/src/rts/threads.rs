@@ -1,8 +1,8 @@
+use crate::capability::Capability;
 use crate::hs_ffi::{HsBool, HsStablePtr};
 use crate::prelude::*;
 use crate::rts::storage::closures::StgClosure;
 use crate::rts::storage::tso::{StgTSO, StgThreadID};
-use crate::rts_api::Capability;
 use crate::stg::W_;
 use crate::stg::regs::StgRegTable;
 use crate::stg::types::StgPtr;

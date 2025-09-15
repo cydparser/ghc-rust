@@ -329,7 +329,7 @@ impl Arbitrary for _IO_MANAGER_FLAG {
     }
 }
 
-pub use self::_IO_MANAGER_FLAG as IO_MANAGER_FLAG;
+pub(crate) type IO_MANAGER_FLAG = _IO_MANAGER_FLAG;
 
 /// cbindgen:no-export
 #[repr(C)]
@@ -446,7 +446,7 @@ impl Arbitrary for _HPC_READ_FILE {
     }
 }
 
-pub use self::_HPC_READ_FILE as HPC_READ_FILE;
+pub(crate) type HPC_READ_FILE = _HPC_READ_FILE;
 
 /// cbindgen:no-export
 #[repr(C)]
