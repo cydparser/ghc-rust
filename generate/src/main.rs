@@ -350,16 +350,17 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         return;
     }
 
-    #[expect(clippy::type_complexity)]
-    let (inputs_owned, args_from_sys, args_into, args_from_owned, bindings): (
-        Punctuated<_, token::Comma>,
-        Vec<syn::Expr>,
-        Vec<syn::Expr>,
-        Vec<syn::Pat>,
-        Vec<TokenStream>,
-    ) = inputs
-        .iter()
-        .map(|arg| match arg {
+    let mut inputs_owned: Punctuated<syn::FnArg, token::Comma> = Punctuated::new();
+    let mut args_from_sys: Vec<syn::Expr> = vec![];
+    let mut args_into: Vec<syn::Expr> = vec![];
+    let mut args_from_owned: Vec<syn::Pat> = vec![];
+    let mut bindings: Vec<TokenStream> = vec![];
+
+    for arg in inputs.iter() {
+        match arg {
+            syn::FnArg::Receiver(_) => {
+                panic!("Unexpected FnArg::Recever: {arg:#?}")
+            }
             syn::FnArg::Typed(pat_type) => {
                 if let syn::Pat::Ident(pat_ident @ syn::PatIdent { .. }) = pat_type.pat.as_ref() {
                     let param_ident = pat_ident.ident.clone();
@@ -420,27 +421,22 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                         parse_token_stream(format!("let {} = {};", &param_ident, binding_rhs))
                     };
 
-                    (
-                        syn::FnArg::Typed(syn::PatType {
-                            attrs: pat_type.attrs.clone(),
-                            pat: pat_type.pat.clone(),
-                            colon_token: pat_type.colon_token,
-                            ty: Box::new(ty_owned),
-                        }),
-                        arg_from_sys,
-                        arg_into,
-                        arg_from_owned,
-                        binding,
-                    )
+                    inputs_owned.push(syn::FnArg::Typed(syn::PatType {
+                        attrs: pat_type.attrs.clone(),
+                        pat: pat_type.pat.clone(),
+                        colon_token: pat_type.colon_token,
+                        ty: Box::new(ty_owned),
+                    }));
+                    args_from_sys.push(arg_from_sys);
+                    args_into.push(arg_into);
+                    args_from_owned.push(arg_from_owned);
+                    bindings.push(binding);
                 } else {
                     panic!("Expected only syn::Pat::Ident: {arg:#?}");
                 }
             }
-            syn::FnArg::Receiver(_) => {
-                panic!("Unexpected FnArg::Recever: {arg:#?}")
-            }
-        })
-        .collect();
+        }
+    }
 
     let attrs = export_attrs(&ident, places);
 
