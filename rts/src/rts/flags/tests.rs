@@ -376,7 +376,7 @@ fn sys_size__MISC_FLAGS() {
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of _MISC_FLAGS"][size_of::<_MISC_FLAGS>() - 32usize];
+    ["Size of _MISC_FLAGS"][size_of::<_MISC_FLAGS>() - 40usize];
     ["Alignment of _MISC_FLAGS"][align_of::<_MISC_FLAGS>() - 8usize];
     ["Offset of field: _MISC_FLAGS::tickInterval"][offset_of!(_MISC_FLAGS, tickInterval) - 0usize];
     ["Offset of field: _MISC_FLAGS::install_signal_handlers"]
@@ -395,11 +395,13 @@ const _: () = {
         [offset_of!(_MISC_FLAGS, internalCounters) - 14usize];
     ["Offset of field: _MISC_FLAGS::linkerAlwaysPic"]
         [offset_of!(_MISC_FLAGS, linkerAlwaysPic) - 15usize];
+    ["Offset of field: _MISC_FLAGS::linkerOptimistic"]
+        [offset_of!(_MISC_FLAGS, linkerOptimistic) - 16usize];
     ["Offset of field: _MISC_FLAGS::linkerMemBase"]
-        [offset_of!(_MISC_FLAGS, linkerMemBase) - 16usize];
-    ["Offset of field: _MISC_FLAGS::ioManager"][offset_of!(_MISC_FLAGS, ioManager) - 24usize];
+        [offset_of!(_MISC_FLAGS, linkerMemBase) - 24usize];
+    ["Offset of field: _MISC_FLAGS::ioManager"][offset_of!(_MISC_FLAGS, ioManager) - 32usize];
     ["Offset of field: _MISC_FLAGS::numIoWorkerThreads"]
-        [offset_of!(_MISC_FLAGS, numIoWorkerThreads) - 28usize];
+        [offset_of!(_MISC_FLAGS, numIoWorkerThreads) - 36usize];
 };
 
 #[cfg(feature = "sys")]
@@ -465,16 +467,16 @@ fn sys_size__RTS_FLAGS() {
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of _RTS_FLAGS"][size_of::<_RTS_FLAGS>() - 496usize];
+    ["Size of _RTS_FLAGS"][size_of::<_RTS_FLAGS>() - 504usize];
     ["Alignment of _RTS_FLAGS"][align_of::<_RTS_FLAGS>() - 8usize];
     ["Offset of field: _RTS_FLAGS::GcFlags"][offset_of!(_RTS_FLAGS, GcFlags) - 0usize];
     ["Offset of field: _RTS_FLAGS::ConcFlags"][offset_of!(_RTS_FLAGS, ConcFlags) - 192usize];
     ["Offset of field: _RTS_FLAGS::MiscFlags"][offset_of!(_RTS_FLAGS, MiscFlags) - 208usize];
-    ["Offset of field: _RTS_FLAGS::DebugFlags"][offset_of!(_RTS_FLAGS, DebugFlags) - 240usize];
-    ["Offset of field: _RTS_FLAGS::CcFlags"][offset_of!(_RTS_FLAGS, CcFlags) - 264usize];
-    ["Offset of field: _RTS_FLAGS::ProfFlags"][offset_of!(_RTS_FLAGS, ProfFlags) - 288usize];
-    ["Offset of field: _RTS_FLAGS::TraceFlags"][offset_of!(_RTS_FLAGS, TraceFlags) - 384usize];
-    ["Offset of field: _RTS_FLAGS::TickyFlags"][offset_of!(_RTS_FLAGS, TickyFlags) - 432usize];
-    ["Offset of field: _RTS_FLAGS::ParFlags"][offset_of!(_RTS_FLAGS, ParFlags) - 448usize];
-    ["Offset of field: _RTS_FLAGS::HpcFlags"][offset_of!(_RTS_FLAGS, HpcFlags) - 488usize];
+    ["Offset of field: _RTS_FLAGS::DebugFlags"][offset_of!(_RTS_FLAGS, DebugFlags) - 248usize];
+    ["Offset of field: _RTS_FLAGS::CcFlags"][offset_of!(_RTS_FLAGS, CcFlags) - 272usize];
+    ["Offset of field: _RTS_FLAGS::ProfFlags"][offset_of!(_RTS_FLAGS, ProfFlags) - 296usize];
+    ["Offset of field: _RTS_FLAGS::TraceFlags"][offset_of!(_RTS_FLAGS, TraceFlags) - 392usize];
+    ["Offset of field: _RTS_FLAGS::TickyFlags"][offset_of!(_RTS_FLAGS, TickyFlags) - 440usize];
+    ["Offset of field: _RTS_FLAGS::ParFlags"][offset_of!(_RTS_FLAGS, ParFlags) - 456usize];
+    ["Offset of field: _RTS_FLAGS::HpcFlags"][offset_of!(_RTS_FLAGS, HpcFlags) - 496usize];
 };

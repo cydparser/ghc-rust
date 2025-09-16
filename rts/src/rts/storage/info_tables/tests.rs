@@ -1,8 +1,4 @@
-use crate::prelude::*;
-
 use super::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
 
 #[cfg(feature = "sys")]
 #[test]
@@ -67,15 +63,11 @@ fn sys_size_StgProfInfo() {
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of StgProfInfo"][size_of::<StgProfInfo>() - 16usize];
-    ["Alignment of StgProfInfo"][align_of::<StgProfInfo>() - 4usize];
+    ["Alignment of StgProfInfo"][align_of::<StgProfInfo>() - 8usize];
     ["Offset of field: StgProfInfo::closure_type_off"]
         [offset_of!(StgProfInfo, closure_type_off) - 0usize];
-    ["Offset of field: StgProfInfo::__pad_closure_type_off"]
-        [offset_of!(StgProfInfo, __pad_closure_type_off) - 4usize];
     ["Offset of field: StgProfInfo::closure_desc_off"]
         [offset_of!(StgProfInfo, closure_desc_off) - 8usize];
-    ["Offset of field: StgProfInfo::__pad_closure_desc_off"]
-        [offset_of!(StgProfInfo, __pad_closure_desc_off) - 12usize];
 };
 
 #[cfg(feature = "sys")]
@@ -109,19 +101,19 @@ fn sys_size_StgClosureInfo() {
 fn sys_size_StgClosureInfo__bindgen_ty_1() {
     assert_eq!(
         size_of::<sys::StgClosureInfo__bindgen_ty_1>(),
-        size_of::<StgClosureInfo_anon_union_1>()
+        size_of::<StgClosureInfo__bindgen_ty_1>()
     )
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of StgClosureInfo_anon_union_1"][size_of::<StgClosureInfo_anon_union_1>() - 8usize];
-    ["Alignment of StgClosureInfo_anon_union_1"]
-        [align_of::<StgClosureInfo_anon_union_1>() - 4usize];
-    ["Offset of field: StgClosureInfo_anon_union_1::ptrs"]
-        [offset_of!(StgClosureInfo_anon_union_1, ptrs) - 0usize];
-    ["Offset of field: StgClosureInfo_anon_union_1::nptrs"]
-        [offset_of!(StgClosureInfo_anon_union_1, nptrs) - 4usize];
+    ["Size of StgClosureInfo__bindgen_ty_1"][size_of::<StgClosureInfo__bindgen_ty_1>() - 8usize];
+    ["Alignment of StgClosureInfo__bindgen_ty_1"]
+        [align_of::<StgClosureInfo__bindgen_ty_1>() - 4usize];
+    ["Offset of field: StgClosureInfo__bindgen_ty_1::ptrs"]
+        [offset_of!(StgClosureInfo__bindgen_ty_1, ptrs) - 0usize];
+    ["Offset of field: StgClosureInfo__bindgen_ty_1::nptrs"]
+        [offset_of!(StgClosureInfo__bindgen_ty_1, nptrs) - 4usize];
 };
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -132,8 +124,6 @@ const _: () = {
     ["Offset of field: StgClosureInfo::bitmap"][offset_of!(StgClosureInfo, bitmap) - 0usize];
     ["Offset of field: StgClosureInfo::large_bitmap_offset"]
         [offset_of!(StgClosureInfo, large_bitmap_offset) - 0usize];
-    ["Offset of field: StgClosureInfo::__pad_large_bitmap_offset"]
-        [offset_of!(StgClosureInfo, __pad_large_bitmap_offset) - 0usize];
     ["Offset of field: StgClosureInfo::selector_offset"]
         [offset_of!(StgClosureInfo, selector_offset) - 0usize];
 };
@@ -168,22 +158,20 @@ fn sys_size_StgFunInfoExtraRev_() {
 fn sys_size_StgFunInfoExtraRev___bindgen_ty_1() {
     assert_eq!(
         size_of::<sys::StgFunInfoExtraRev___bindgen_ty_1>(),
-        size_of::<StgFunInfoExtraRev__anon_union_1>()
+        size_of::<StgFunInfoExtraRev___bindgen_ty_1>()
     )
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of StgFunInfoExtraRev__anon_union_1"]
-        [size_of::<StgFunInfoExtraRev__anon_union_1>() - 8usize];
-    ["Alignment of StgFunInfoExtraRev__anon_union_1"]
-        [align_of::<StgFunInfoExtraRev__anon_union_1>() - 8usize];
-    ["Offset of field: StgFunInfoExtraRev__anon_union_1::bitmap"]
-        [offset_of!(StgFunInfoExtraRev__anon_union_1, bitmap) - 0usize];
-    ["Offset of field: StgFunInfoExtraRev__anon_union_1::bitmap_offset"]
-        [offset_of!(StgFunInfoExtraRev__anon_union_1, bitmap_offset) - 0usize];
-    ["Offset of field: StgFunInfoExtraRev__anon_union_1::__pad_bitmap_offset"]
-        [offset_of!(StgFunInfoExtraRev__anon_union_1, __pad_bitmap_offset) - 0usize];
+    ["Size of StgFunInfoExtraRev___bindgen_ty_1"]
+        [size_of::<StgFunInfoExtraRev___bindgen_ty_1>() - 8usize];
+    ["Alignment of StgFunInfoExtraRev___bindgen_ty_1"]
+        [align_of::<StgFunInfoExtraRev___bindgen_ty_1>() - 8usize];
+    ["Offset of field: StgFunInfoExtraRev___bindgen_ty_1::bitmap"]
+        [offset_of!(StgFunInfoExtraRev___bindgen_ty_1, bitmap) - 0usize];
+    ["Offset of field: StgFunInfoExtraRev___bindgen_ty_1::bitmap_offset"]
+        [offset_of!(StgFunInfoExtraRev___bindgen_ty_1, bitmap_offset) - 0usize];
 };
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -192,8 +180,6 @@ const _: () = {
     ["Alignment of StgFunInfoExtraRev_"][align_of::<StgFunInfoExtraRev_>() - 8usize];
     ["Offset of field: StgFunInfoExtraRev_::slow_apply_offset"]
         [offset_of!(StgFunInfoExtraRev_, slow_apply_offset) - 0usize];
-    ["Offset of field: StgFunInfoExtraRev_::__pad_slow_apply_offset"]
-        [offset_of!(StgFunInfoExtraRev_, __pad_slow_apply_offset) - 4usize];
     ["Offset of field: StgFunInfoExtraRev_::b"][offset_of!(StgFunInfoExtraRev_, b) - 8usize];
     ["Offset of field: StgFunInfoExtraRev_::fun_type"]
         [offset_of!(StgFunInfoExtraRev_, fun_type) - 16usize];
@@ -215,18 +201,18 @@ fn sys_size_StgFunInfoExtraFwd_() {
 fn sys_size_StgFunInfoExtraFwd___bindgen_ty_1() {
     assert_eq!(
         size_of::<sys::StgFunInfoExtraFwd___bindgen_ty_1>(),
-        size_of::<StgFunInfoExtraFwd__anon_union_1>()
+        size_of::<StgFunInfoExtraFwd___bindgen_ty_1>()
     )
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of StgFunInfoExtraFwd__anon_union_1"]
-        [size_of::<StgFunInfoExtraFwd__anon_union_1>() - 8usize];
-    ["Alignment of StgFunInfoExtraFwd__anon_union_1"]
-        [align_of::<StgFunInfoExtraFwd__anon_union_1>() - 8usize];
-    ["Offset of field: StgFunInfoExtraFwd__anon_union_1::bitmap"]
-        [offset_of!(StgFunInfoExtraFwd__anon_union_1, bitmap) - 0usize];
+    ["Size of StgFunInfoExtraFwd___bindgen_ty_1"]
+        [size_of::<StgFunInfoExtraFwd___bindgen_ty_1>() - 8usize];
+    ["Alignment of StgFunInfoExtraFwd___bindgen_ty_1"]
+        [align_of::<StgFunInfoExtraFwd___bindgen_ty_1>() - 8usize];
+    ["Offset of field: StgFunInfoExtraFwd___bindgen_ty_1::bitmap"]
+        [offset_of!(StgFunInfoExtraFwd___bindgen_ty_1, bitmap) - 0usize];
 };
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -307,7 +293,5 @@ const _: () = {
     ["Alignment of StgConInfoTable_"][align_of::<StgConInfoTable_>() - 8usize];
     ["Offset of field: StgConInfoTable_::con_desc"]
         [offset_of!(StgConInfoTable_, con_desc) - 0usize];
-    ["Offset of field: StgConInfoTable_::__pad_con_desc"]
-        [offset_of!(StgConInfoTable_, __pad_con_desc) - 4usize];
     ["Offset of field: StgConInfoTable_::i"][offset_of!(StgConInfoTable_, i) - 8usize];
 };

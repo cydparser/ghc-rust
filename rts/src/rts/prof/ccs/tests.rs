@@ -55,11 +55,25 @@ const _: () = {
         [offset_of!(CostCentreStack_, inherited_ticks) - 88usize];
 };
 
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_stopProfTimer() {
+    todo!()
+}
+
 #[test]
 #[ignore]
 fn test_stopProfTimer() {
     unsafe { stopProfTimer() };
     todo!("assert")
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_startProfTimer() {
+    todo!()
 }
 
 #[test]

@@ -147,21 +147,21 @@ fn sys_size_bdescr_() {
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size_bdescr__anon_union_ty_1() {
+fn sys_size_bdescr___bindgen_ty_1() {
     assert_eq!(
         size_of::<sys::bdescr___bindgen_ty_1>(),
-        size_of::<bdescr__anon_union_1>()
+        size_of::<bdescr___bindgen_ty_1>()
     )
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of bdescr__anon_union_1"][size_of::<bdescr__anon_union_1>() - 8usize];
-    ["Alignment of bdescr__anon_union_1"][align_of::<bdescr__anon_union_1>() - 8usize];
-    ["Offset of field: bdescr__anon_union_1::free"]
-        [offset_of!(bdescr__anon_union_1, free) - 0usize];
-    ["Offset of field: bdescr__anon_union_1::nonmoving_segment"]
-        [offset_of!(bdescr__anon_union_1, nonmoving_segment) - 0usize];
+    ["Size of bdescr___bindgen_ty_1"][size_of::<bdescr___bindgen_ty_1>() - 8usize];
+    ["Alignment of bdescr___bindgen_ty_1"][align_of::<bdescr___bindgen_ty_1>() - 8usize];
+    ["Offset of field: bdescr___bindgen_ty_1::free"]
+        [offset_of!(bdescr___bindgen_ty_1, free) - 0usize];
+    ["Offset of field: bdescr___bindgen_ty_1::nonmoving_segment"]
+        [offset_of!(bdescr___bindgen_ty_1, nonmoving_segment) - 0usize];
 };
 
 #[cfg(feature = "sys")]
@@ -169,20 +169,20 @@ const _: () = {
 fn sys_size_bdescr___bindgen_ty_2() {
     assert_eq!(
         size_of::<sys::bdescr___bindgen_ty_2>(),
-        size_of::<bdescr__anon_union_2>()
+        size_of::<bdescr___bindgen_ty_2>()
     )
 }
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of bdescr___bindgen_ty_2"][size_of::<bdescr__anon_union_2>() - 8usize];
-    ["Alignment of bdescr__anon_union_2"][align_of::<bdescr__anon_union_2>() - 8usize];
-    ["Offset of field: bdescr__anon_union_2::back"]
-        [offset_of!(bdescr__anon_union_2, back) - 0usize];
-    ["Offset of field: bdescr__anon_union_2::bitmap"]
-        [offset_of!(bdescr__anon_union_2, bitmap) - 0usize];
-    ["Offset of field: bdescr__anon_union_2::scan"]
-        [offset_of!(bdescr__anon_union_2, scan) - 0usize];
+    ["Size of bdescr___bindgen_ty_2"][size_of::<bdescr___bindgen_ty_2>() - 8usize];
+    ["Alignment of bdescr___bindgen_ty_2"][align_of::<bdescr___bindgen_ty_2>() - 8usize];
+    ["Offset of field: bdescr___bindgen_ty_2::back"]
+        [offset_of!(bdescr___bindgen_ty_2, back) - 0usize];
+    ["Offset of field: bdescr___bindgen_ty_2::bitmap"]
+        [offset_of!(bdescr___bindgen_ty_2, bitmap) - 0usize];
+    ["Offset of field: bdescr___bindgen_ty_2::scan"]
+        [offset_of!(bdescr___bindgen_ty_2, scan) - 0usize];
 };
 
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -201,164 +201,44 @@ const _: () = {
     ["Offset of field: bdescr_::_padding"][offset_of!(bdescr_, _padding) - 52usize];
 };
 
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
-fn test_initBlockAllocator() {
-    unsafe { initBlockAllocator() };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_allocGroup(n: W_) -> bool {
-    let expected = unsafe { transmute(sys::allocGroup(n)) };
-    let actual = unsafe { allocGroup(n) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_allocGroup() {
-    let n = Default::default();
-    unsafe { allocGroup(n) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_allocGroupOnNode(node: u32, n: W_) -> bool {
-    let expected = unsafe { transmute(sys::allocGroupOnNode(node, n)) };
-    let actual = unsafe { allocGroupOnNode(node, n) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_allocGroupOnNode() {
-    let node = Default::default();
-    let n = Default::default();
-    unsafe { allocGroupOnNode(node, n) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_allocAlignedGroupOnNode(node: u32, n: W_) -> bool {
-    let expected = unsafe { transmute(sys::allocAlignedGroupOnNode(node, n)) };
-    let actual = unsafe { allocAlignedGroupOnNode(node, n) };
-    actual == expected
+fn equivalent_allocAlignedGroupOnNode() {
+    todo!()
 }
 
 #[test]
 #[ignore]
 fn test_allocAlignedGroupOnNode() {
-    let node = Default::default();
-    let n = Default::default();
+    let mut g = Gen::new(100);
+    let node = Arbitrary::arbitrary(&mut g);
+    let n = Arbitrary::arbitrary(&mut g);
     unsafe { allocAlignedGroupOnNode(node, n) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_allocMBlockAlignedGroupOnNode(node: u32, n: W_) -> bool {
-    let expected = unsafe { transmute(sys::allocMBlockAlignedGroupOnNode(node, n)) };
-    let actual = unsafe { allocMBlockAlignedGroupOnNode(node, n) };
-    actual == expected
-}
-
 #[test]
 #[ignore]
-fn test_allocMBlockAlignedGroupOnNode() {
-    let node = Default::default();
-    let n = Default::default();
-    unsafe { allocMBlockAlignedGroupOnNode(node, n) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_allocGroup_lock(n: W_) -> bool {
-    let expected = unsafe { transmute(sys::allocGroup_lock(n)) };
-    let actual = unsafe { allocGroup_lock(n) };
-    actual == expected
+fn equivalent_allocGroup_lock() {
+    todo!()
 }
 
 #[test]
 #[ignore]
 fn test_allocGroup_lock() {
-    let n = Default::default();
+    let mut g = Gen::new(100);
+    let n = Arbitrary::arbitrary(&mut g);
     unsafe { allocGroup_lock(n) };
     todo!("assert")
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_allocBlock_lock() -> bool {
-    let expected = unsafe { transmute(sys::allocBlock_lock()) };
-    let actual = unsafe { allocBlock_lock() };
-    actual == expected
-}
-
 #[test]
 #[ignore]
-fn test_allocBlock_lock() {
-    unsafe { allocBlock_lock() };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_allocGroupOnNode_lock(node: u32, n: W_) -> bool {
-    let expected = unsafe { transmute(sys::allocGroupOnNode_lock(node, n)) };
-    let actual = unsafe { allocGroupOnNode_lock(node, n) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_allocGroupOnNode_lock() {
-    let node = Default::default();
-    let n = Default::default();
-    unsafe { allocGroupOnNode_lock(node, n) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_allocBlockOnNode_lock(node: u32) -> bool {
-    let expected = unsafe { transmute(sys::allocBlockOnNode_lock(node)) };
-    let actual = unsafe { allocBlockOnNode_lock(node) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_allocBlockOnNode_lock() {
-    let node = Default::default();
-    unsafe { allocBlockOnNode_lock(node) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_freeGroup() {
-    let p = null_mut();
-    unsafe { freeGroup(p) };
-}
-
-#[test]
-#[ignore]
-fn test_freeChain() {
-    let p = null_mut();
-    unsafe { freeChain(p) };
+fn equivalent_freeGroup_lock() {
+    todo!()
 }
 
 #[test]
@@ -366,11 +246,11 @@ fn test_freeChain() {
 fn test_freeGroup_lock() {
     let p = null_mut();
     unsafe { freeGroup_lock(p) };
+    todo!("assert")
 }
 
+#[cfg(feature = "sys")]
 #[test]
-#[ignore]
-fn test_freeChain_lock() {
-    let p = null_mut();
-    unsafe { freeChain_lock(p) };
+fn sys_size_generation_() {
+    assert_eq!(size_of::<sys::generation_>(), size_of::<generation_>())
 }

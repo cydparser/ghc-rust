@@ -29,3 +29,17 @@ const _: () = {
     ["Offset of field: _StgEntCounter::allocs"][offset_of!(_StgEntCounter, allocs) - 64usize];
     ["Offset of field: _StgEntCounter::link"][offset_of!(_StgEntCounter, link) - 72usize];
 };
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_requestTickyCounterSamples() {
+    todo!()
+}
+
+#[test]
+#[ignore]
+fn test_requestTickyCounterSamples() {
+    unsafe { requestTickyCounterSamples() };
+    todo!("assert")
+}

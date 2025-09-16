@@ -23,38 +23,19 @@ const _: () = {
         [offset_of!(EventLogWriter, stopEventLogWriter) - 24usize];
 };
 
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_eventLogStatus() -> bool {
-    let expected = unsafe { transmute(sys::eventLogStatus()) };
-    let actual = unsafe { eventLogStatus() };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_eventLogStatus() {
-    unsafe { eventLogStatus() };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_startEventLogging(_TODO: ()) -> bool {
-    let writer = null_mut();
-    let expected = unsafe { transmute(sys::startEventLogging(writer as *mut sys::EventLogWriter)) };
-    let actual = unsafe { startEventLogging(writer) };
-    actual == expected
-}
-
 #[test]
 #[ignore]
 fn test_startEventLogging() {
     let writer = null();
     unsafe { startEventLogging(writer) };
     todo!("assert")
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_endEventLogging() {
+    todo!()
 }
 
 #[test]
@@ -64,10 +45,17 @@ fn test_endEventLogging() {
     todo!("assert")
 }
 
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_flushEventLog() {
+    todo!()
+}
+
 #[test]
 #[ignore]
 fn test_flushEventLog() {
-    let mut cap = null_mut();
-    unsafe { flushEventLog(&mut cap) };
+    let cap = null_mut();
+    unsafe { flushEventLog(cap) };
     todo!("assert")
 }

@@ -390,6 +390,18 @@ fn sys_eq_TSO_ALLOC_LIMIT() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_eq_TSO_STOP_NEXT_BREAKPOINT() {
+    assert_eq!(sys::TSO_STOP_NEXT_BREAKPOINT, TSO_STOP_NEXT_BREAKPOINT);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_eq_TSO_STOP_AFTER_RETURN() {
+    assert_eq!(sys::TSO_STOP_AFTER_RETURN, TSO_STOP_AFTER_RETURN);
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_eq_SPIN_COUNT() {
     assert_eq!(sys::SPIN_COUNT, SPIN_COUNT);
 }

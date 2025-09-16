@@ -1,11 +1,25 @@
 use super::*;
 use crate::stg::types::StgWord;
 
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_requestHeapCensus() {
+    todo!()
+}
+
 #[test]
 #[ignore]
 fn test_requestHeapCensus() {
     unsafe { requestHeapCensus() };
     todo!("assert")
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_startHeapProfTimer() {
+    todo!()
 }
 
 #[test]
@@ -15,6 +29,13 @@ fn test_startHeapProfTimer() {
     todo!("assert")
 }
 
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_stopHeapProfTimer() {
+    todo!()
+}
+
 #[test]
 #[ignore]
 fn test_stopHeapProfTimer() {
@@ -22,10 +43,18 @@ fn test_stopHeapProfTimer() {
     todo!("assert")
 }
 
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_setUserEra() {
+    todo!()
+}
+
 #[test]
 #[ignore]
 fn test_setUserEra() {
-    let w = Default::default();
+    let mut g = Gen::new(100);
+    let w = Arbitrary::arbitrary(&mut g);
     unsafe { setUserEra(w) };
     todo!("assert")
 }
@@ -58,7 +87,8 @@ fn equivalent_incrementUserEra(w: StgWord) -> bool {
 #[test]
 #[ignore]
 fn test_incrementUserEra() {
-    let w = Default::default();
+    let mut g = Gen::new(100);
+    let w = Arbitrary::arbitrary(&mut g);
     unsafe { incrementUserEra(w) };
     todo!("assert")
 }

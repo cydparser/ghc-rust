@@ -100,44 +100,6 @@ const _: () = {
     ["Offset of field: StgStack_::stack"][offset_of!(StgStack_, stack) - 24usize];
 };
 
-#[test]
-#[ignore]
-fn test_dirty_TSO() {
-    let cap = null_mut();
-    let tso = null_mut();
-    unsafe { dirty_TSO(cap, tso) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_setTSOLink() {
-    let cap = null_mut();
-    let tso = null_mut();
-    let target = null_mut();
-    unsafe { setTSOLink(cap, tso, target) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_setTSOPrev() {
-    let cap = null_mut();
-    let tso = null_mut();
-    let target = null_mut();
-    unsafe { setTSOPrev(cap, tso, target) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_dirty_STACK() {
-    let cap = null_mut();
-    let stack = null_mut();
-    unsafe { dirty_STACK(cap, stack) };
-    todo!("assert")
-}
-
 #[cfg(feature = "sys")]
 #[test]
 fn sys_size_InCall_() {
