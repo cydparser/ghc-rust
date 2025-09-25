@@ -318,22 +318,18 @@ fn transform_const(
 }
 
 fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
-    let syn::ForeignItemFn {
-        sig:
-            syn::Signature {
-                ident,
-                generics,
-                inputs,
-                variadic,
-                output,
-                ..
-            },
+    let sig @ syn::Signature {
+        ident,
+        generics,
+        inputs,
+        variadic,
+        output,
         ..
-    } = ffn;
+    } = &ffn.sig;
 
     assert!(generics.gt_token.is_none() && generics.where_clause.is_none());
 
-    let places = symbols.places(&ident);
+    let places = symbols.places(ident);
 
     if places.is_empty() {
         return;
@@ -438,26 +434,17 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         }
     }
 
-    let attrs = export_attrs(&ident, places);
+    let attrs = export_attrs(ident, places);
 
-    let (call, expected_call): (syn::Expr, syn::Expr) = match &output {
+    let call: syn::Expr = match &output {
         syn::ReturnType::Type(_, ret_ty) if !symbols.is_std_type(ret_ty.as_ref()) => {
             if matches!(ret_ty.as_ref(), Type::Ptr(_)) || symbols.is_pointer_type(ret_ty.as_ref()) {
-                (
-                    parse_quote! { sys::#ident(#(#args_from_sys),*) as #ret_ty },
-                    parse_quote! { sys::#ident(#(#args_into),*) as #ret_ty },
-                )
+                parse_quote! { sys::#ident(#(#args_from_sys),*) as #ret_ty }
             } else {
-                (
-                    parse_quote! { transmute(sys::#ident(#(#args_from_sys),*)) },
-                    parse_quote! { transmute(sys::#ident(#(#args_into),*)) },
-                )
+                parse_quote! { transmute(sys::#ident(#(#args_from_sys),*)) }
             }
         }
-        _ => (
-            parse_quote! { sys::#ident(#(#args_from_sys),*) },
-            parse_quote! { sys::#ident(#(#args_into),*) },
-        ),
+        _ => parse_quote! { sys::#ident(#(#args_from_sys),*) },
     };
 
     // Mark all functions as unsafe until the code can be audited.
@@ -469,45 +456,11 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         }
     }));
 
-    let fn_ident = format_ident!("equivalent_{}", ident);
-
-    if let syn::ReturnType::Type(_, ty) = output
-        && !symbols.is_pointer_type(&ty)
-        && !inputs
-            .iter()
-            .any(|arg| matches!(arg, syn::FnArg::Typed(syn::PatType { ty, .. }) if symbols.is_pointer_type(ty)))
-    {
-        tests_file.items.push(Item::Fn(parse_quote! {
-            #[cfg(feature = "sys")]
-            #[quickcheck]
-            #[ignore]
-            fn #fn_ident(#inputs_owned) -> bool {
-                let expected = unsafe { #expected_call };
-                let actual = unsafe { #ident(#(#args_from_owned),*) };
-                actual == expected
-            }
-        }));
-    } else {
-        tests_file.items.push(Item::Fn(parse_quote! {
-            #[cfg(feature = "sys")]
-            #[test]
-            #[ignore]
-            fn #fn_ident() {
-                todo!()
-            }
-        }));
-    }
-    let fn_ident = format_ident!("test_{}", ident);
-
-    tests_file.items.push(Item::Fn(parse_quote! {
-        #[test]
-        #[ignore]
-        fn #fn_ident() {
-            #(#bindings)*
-            unsafe { #ident(#(#args_from_owned),*) };
-            todo!("assert")
+    if let Some(tests) = generate::generate_tests(symbols, sig) {
+        for test in tests {
+            tests_file.items.push(syn::Item::Fn(test));
         }
-    }));
+    }
 }
 
 fn export_attrs(ident: &Ident, places: Places) -> Vec<syn::Attribute> {

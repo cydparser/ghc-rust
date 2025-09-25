@@ -6,9 +6,11 @@ use syn::{Ident, Type, TypePath};
 
 mod place;
 mod symbols;
+mod tests;
 
 pub use crate::place::PlacesIter;
 pub use crate::symbols::{Place, Places};
+pub use crate::tests::generate_tests;
 
 pub struct Symbols {
     internal_module: bool,
