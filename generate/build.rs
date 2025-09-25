@@ -38,14 +38,12 @@ fn main() {
                 "LibdwPool",
                 "Linker",
                 "Main",
-                "Messages",
                 "NonMoving",
                 "OSThreads",
                 "Parallel",
                 "PrimFloat",
                 "Profiling",
                 "Signals",
-                "SpinLock",
                 "StableName",
                 "StablePtr",
                 "StaticPtrTable",
@@ -58,7 +56,7 @@ fn main() {
                 "Utils",
             ],
         ),
-        (Some("rts/prof"), vec!["CCS", "Heap", "LDV"]),
+        (Some("rts/prof"), vec!["CCS", "Heap"]),
         (
             Some("rts/storage"),
             vec![
