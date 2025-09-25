@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
 use std::rc::Rc;
 use std::{env, fs};
 
@@ -89,24 +88,6 @@ fn main() {
     .collect();
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-
-    // HACK: Avoid rebuilding if GHC hasn't changed.
-    let commit = Command::new("git")
-        .current_dir(&ghc.root_dir)
-        .arg("rev-parse")
-        .arg("HEAD")
-        .output()
-        .unwrap()
-        .stdout;
-
-    let marker = out_dir.join(".ghc-commit");
-
-    if marker.exists() {
-        let last_commit = fs::read(&marker).unwrap();
-        if last_commit == commit {
-            return;
-        }
-    }
 
     let wrapper = out_dir.join("wrapper.h");
     let wrapper_str = wrapper.to_str().unwrap();
@@ -211,8 +192,6 @@ fn main() {
     }
 
     callbacks_state.borrow().print_reruns();
-
-    fs::write(&marker, commit).unwrap();
 }
 
 #[derive(Debug)]
