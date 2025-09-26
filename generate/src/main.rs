@@ -79,8 +79,13 @@ fn main() {
 
 fn add_blank_lines(src: String) -> String {
     let mut padded = String::with_capacity((src.len() as f64 * 1.1) as usize);
+    let mut imports = true;
 
     for line in src.lines() {
+        if imports && !line.starts_with("use") {
+            imports = false;
+            padded.push('\n')
+        }
         padded.push_str(line);
         padded.push('\n');
 
