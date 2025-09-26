@@ -1,6 +1,4 @@
 use super::*;
-use crate::prelude::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
 
 #[cfg(feature = "sys")]
 #[test]
@@ -33,13 +31,27 @@ const _: () = {
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_requestTickyCounterSamples() {
-    todo!()
+    let expected = {
+        unsafe { sys::requestTickyCounterSamples() };
+        todo!()
+    };
+    let actual = {
+        unsafe { requestTickyCounterSamples() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_requestTickyCounterSamples() {
-    unsafe { requestTickyCounterSamples() };
-    todo!("assert")
+    let actual = {
+        unsafe { requestTickyCounterSamples() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }

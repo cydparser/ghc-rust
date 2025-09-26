@@ -58,29 +58,57 @@ const _: () = {
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_stopProfTimer() {
-    todo!()
+    let expected = {
+        unsafe { sys::stopProfTimer() };
+        todo!()
+    };
+    let actual = {
+        unsafe { stopProfTimer() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_stopProfTimer() {
-    unsafe { stopProfTimer() };
-    todo!("assert")
+    let actual = {
+        unsafe { stopProfTimer() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_startProfTimer() {
-    todo!()
+    let expected = {
+        unsafe { sys::startProfTimer() };
+        todo!()
+    };
+    let actual = {
+        unsafe { startProfTimer() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_startProfTimer() {
-    unsafe { startProfTimer() };
-    todo!("assert")
+    let actual = {
+        unsafe { startProfTimer() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]

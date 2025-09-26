@@ -13,17 +13,19 @@ fn sys_eq_TIME_MAX() {
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
+#[test]
 #[ignore]
-fn equivalent_getProcessElapsedTime() -> bool {
-    let expected = unsafe { sys::getProcessElapsedTime() };
-    let actual = unsafe { getProcessElapsedTime() };
-    actual == expected
+fn equivalent_getProcessElapsedTime() {
+    let expected: Time = { unsafe { sys::getProcessElapsedTime() } };
+    let actual: Time = { unsafe { getProcessElapsedTime() } };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getProcessElapsedTime() {
-    unsafe { getProcessElapsedTime() };
-    todo!("assert")
+    let actual: Time = { unsafe { getProcessElapsedTime() } };
+    let expected: Time = todo!();
+    assert_eq!(expected, actual);
 }

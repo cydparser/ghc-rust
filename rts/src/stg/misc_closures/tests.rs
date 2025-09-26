@@ -3,55 +3,111 @@ use super::*;
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_stg_paniczh() {
-    todo!()
+    let expected = {
+        let result: StgFunPtr = unsafe { sys::stg_paniczh() };
+        todo!()
+    };
+    let actual = {
+        let result: StgFunPtr = unsafe { stg_paniczh() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_stg_paniczh() {
-    unsafe { stg_paniczh() };
-    todo!("assert")
+    let actual = {
+        let result: StgFunPtr = unsafe { stg_paniczh() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_stg_absentErrorzh() {
-    todo!()
+    let expected = {
+        let result: StgFunPtr = unsafe { sys::stg_absentErrorzh() };
+        todo!()
+    };
+    let actual = {
+        let result: StgFunPtr = unsafe { stg_absentErrorzh() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_stg_absentErrorzh() {
-    unsafe { stg_absentErrorzh() };
-    todo!("assert")
+    let actual = {
+        let result: StgFunPtr = unsafe { stg_absentErrorzh() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_stg_getThreadAllocationCounterzh() {
-    todo!()
+    let expected = {
+        let result: StgFunPtr = unsafe { sys::stg_getThreadAllocationCounterzh() };
+        todo!()
+    };
+    let actual = {
+        let result: StgFunPtr = unsafe { stg_getThreadAllocationCounterzh() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_stg_getThreadAllocationCounterzh() {
-    unsafe { stg_getThreadAllocationCounterzh() };
-    todo!("assert")
+    let actual = {
+        let result: StgFunPtr = unsafe { stg_getThreadAllocationCounterzh() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_stg_getOtherThreadAllocationCounterzh() {
-    todo!()
+    let expected = {
+        let result: StgFunPtr = unsafe { sys::stg_getOtherThreadAllocationCounterzh() };
+        todo!()
+    };
+    let actual = {
+        let result: StgFunPtr = unsafe { stg_getOtherThreadAllocationCounterzh() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_stg_getOtherThreadAllocationCounterzh() {
-    unsafe { stg_getOtherThreadAllocationCounterzh() };
-    todo!("assert")
+    let actual = {
+        let result: StgFunPtr = unsafe { stg_getOtherThreadAllocationCounterzh() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }

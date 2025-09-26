@@ -75,209 +75,240 @@ const _: () = {
         [offset_of!(generation_, old_weak_ptr_list) - 224usize];
 };
 
-#[test]
-#[ignore]
-fn test_listAllBlocks() {
-    let cb = None;
-    let user = null_mut();
-    unsafe { listAllBlocks(cb, user) };
-    todo!("assert")
-}
-
 #[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_allocate(n: W_) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { sys::allocate(cap as *mut sys::Capability, n) };
-    let actual = unsafe { allocate(cap, n) };
-    actual == expected
+    let expected = {
+        let mut cap: sys::Capability = todo!();
+        let n = n.clone();
+        let result: StgPtr = unsafe { sys::allocate(&raw mut cap, n) };
+        todo!()
+    };
+    let actual = {
+        let mut cap: Capability = todo!();
+        let n = n.clone();
+        let result: StgPtr = unsafe { allocate(&raw mut cap, n) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_allocate() {
-    let cap = null_mut();
-    let n = Default::default();
-    unsafe { allocate(cap, n) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let cap: Capability = todo!();
+        let n: W_ = Arbitrary::arbitrary(g);
+        let result: StgPtr = unsafe { allocate(&raw mut cap, n) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
-fn equivalent_allocateMightFail(n: W_) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { sys::allocateMightFail(cap as *mut sys::Capability, n) };
-    let actual = unsafe { allocateMightFail(cap, n) };
-    actual == expected
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_setAllocLimitKill(arg1: bool, arg2: bool) -> bool {
+    let expected = {
+        let arg1 = arg1.clone();
+        let arg2 = arg2.clone();
+        unsafe { sys::setAllocLimitKill(arg1, arg2) };
+        todo!()
+    };
+    let actual = {
+        let arg1 = arg1.clone();
+        let arg2 = arg2.clone();
+        unsafe { setAllocLimitKill(arg1, arg2) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
-fn test_allocateMightFail() {
-    let cap = null_mut();
-    let n = Default::default();
-    unsafe { allocateMightFail(cap, n) };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn test_setAllocLimitKill() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: bool = Arbitrary::arbitrary(g);
+        let arg2: bool = Arbitrary::arbitrary(g);
+        unsafe { setAllocLimitKill(arg1, arg2) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
+#[test]
 #[ignore]
-fn equivalent_allocatePinned(n: W_, alignment: W_, align_off: W_) -> bool {
-    let cap = null_mut();
-    let expected =
-        unsafe { sys::allocatePinned(cap as *mut sys::Capability, n, alignment, align_off) };
-    let actual = unsafe { allocatePinned(cap, n, alignment, align_off) };
-    actual == expected
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_performGC() {
+    let expected = {
+        unsafe { sys::performGC() };
+        todo!()
+    };
+    let actual = {
+        unsafe { performGC() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
-fn test_allocatePinned() {
-    let cap = null_mut();
-    let n = Default::default();
-    let alignment = Default::default();
-    let align_off = Default::default();
-    unsafe { allocatePinned(cap, n, alignment, align_off) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_flushExec() {
-    let len = Default::default();
-    let exec_addr = Default::default();
-    unsafe { flushExec(len, exec_addr) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_performGC() {
-    unsafe { performGC() };
-    todo!("assert")
+    let actual = {
+        unsafe { performGC() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_performMajorGC() {
+    let expected = {
+        unsafe { sys::performMajorGC() };
+        todo!()
+    };
+    let actual = {
+        unsafe { performMajorGC() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_performMajorGC() {
-    unsafe { performMajorGC() };
-    todo!("assert")
+    let actual = {
+        unsafe { performMajorGC() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_performBlockingMajorGC() {
+    let expected = {
+        unsafe { sys::performBlockingMajorGC() };
+        todo!()
+    };
+    let actual = {
+        unsafe { performBlockingMajorGC() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_performBlockingMajorGC() {
-    unsafe { performBlockingMajorGC() };
-    todo!("assert")
+    let actual = {
+        unsafe { performBlockingMajorGC() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
+#[test]
 #[ignore]
-fn equivalent_newCAF(_TODO: bool) -> bool {
-    let reg = null_mut();
-    let caf = null_mut();
-    let expected = unsafe {
-        transmute(sys::newCAF(
-            reg as *mut sys::StgRegTable,
-            caf as *mut sys::StgIndStatic,
-        ))
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_revertCAFs() {
+    let expected = {
+        unsafe { sys::revertCAFs() };
+        todo!()
     };
-    let actual = unsafe { newCAF(reg, caf) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_newCAF() {
-    let reg = null_mut();
-    let caf = null_mut();
-    unsafe { newCAF(reg, caf) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_newRetainedCAF(_TODO: bool) -> bool {
-    let reg = null_mut();
-    let caf = null_mut();
-
-    let expected = unsafe {
-        transmute(sys::newRetainedCAF(
-            reg as *mut sys::StgRegTable,
-            caf as *mut sys::StgIndStatic,
-        ))
+    let actual = {
+        unsafe { revertCAFs() };
+        todo!()
     };
-    let actual = unsafe { newRetainedCAF(reg, caf) };
-    actual == expected
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
-fn test_newRetainedCAF() {
-    let reg = null_mut();
-    let caf = null_mut();
-    unsafe { newRetainedCAF(reg, caf) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_newGCdCAF(_TODO: bool) -> bool {
-    let reg = null_mut();
-    let caf = null_mut();
-
-    let expected = unsafe {
-        transmute(sys::newGCdCAF(
-            reg as *mut sys::StgRegTable,
-            caf as *mut sys::StgIndStatic,
-        ))
-    };
-    let actual = unsafe { newGCdCAF(reg, caf) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_newGCdCAF() {
-    let reg = null_mut();
-    let caf = null_mut();
-    unsafe { newGCdCAF(reg, caf) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_revertCAFs() {
-    unsafe { revertCAFs() };
-    todo!("assert")
+    let actual = {
+        unsafe { revertCAFs() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_setKeepCAFs() {
+    let expected = {
+        unsafe { sys::setKeepCAFs() };
+        todo!()
+    };
+    let actual = {
+        unsafe { setKeepCAFs() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_setKeepCAFs() {
-    unsafe { setKeepCAFs() };
-    todo!("assert")
+    let actual = {
+        unsafe { setKeepCAFs() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_setHighMemDynamic() {
+    let expected = {
+        unsafe { sys::setHighMemDynamic() };
+        todo!()
+    };
+    let actual = {
+        unsafe { setHighMemDynamic() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_setHighMemDynamic() {
-    unsafe { setHighMemDynamic() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_dirty_MUT_VAR() {
-    let reg = null_mut();
-    let mv = null_mut();
-    let old = null_mut();
-    unsafe { dirty_MUT_VAR(reg, mv, old) };
-    todo!("assert")
+    let actual = {
+        unsafe { setHighMemDynamic() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }

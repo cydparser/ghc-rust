@@ -1,94 +1,163 @@
 use super::*;
-use crate::stg::types::StgWord;
 
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_requestHeapCensus() {
-    todo!()
+    let expected = {
+        unsafe { sys::requestHeapCensus() };
+        todo!()
+    };
+    let actual = {
+        unsafe { requestHeapCensus() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_requestHeapCensus() {
-    unsafe { requestHeapCensus() };
-    todo!("assert")
+    let actual = {
+        unsafe { requestHeapCensus() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_startHeapProfTimer() {
-    todo!()
+    let expected = {
+        unsafe { sys::startHeapProfTimer() };
+        todo!()
+    };
+    let actual = {
+        unsafe { startHeapProfTimer() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_startHeapProfTimer() {
-    unsafe { startHeapProfTimer() };
-    todo!("assert")
+    let actual = {
+        unsafe { startHeapProfTimer() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_stopHeapProfTimer() {
-    todo!()
+    let expected = {
+        unsafe { sys::stopHeapProfTimer() };
+        todo!()
+    };
+    let actual = {
+        unsafe { stopHeapProfTimer() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_stopHeapProfTimer() {
-    unsafe { stopHeapProfTimer() };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_setUserEra() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_setUserEra() {
-    let mut g = Gen::new(100);
-    let w = Arbitrary::arbitrary(&mut g);
-    unsafe { setUserEra(w) };
-    todo!("assert")
+    let actual = {
+        unsafe { stopHeapProfTimer() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
-fn equivalent_getUserEra() -> bool {
-    let expected = unsafe { sys::getUserEra() };
-    let actual = unsafe { getUserEra() };
-    actual == expected
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_setUserEra(w: StgWord) -> bool {
+    let expected = {
+        let w = w.clone();
+        unsafe { sys::setUserEra(w) };
+        todo!()
+    };
+    let actual = {
+        let w = w.clone();
+        unsafe { setUserEra(w) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_setUserEra() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let w: StgWord = Arbitrary::arbitrary(g);
+        unsafe { setUserEra(w) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_getUserEra() {
+    let expected: StgWord = { unsafe { sys::getUserEra() } };
+    let actual: StgWord = { unsafe { getUserEra() } };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getUserEra() {
-    unsafe { getUserEra() };
-    todo!("assert")
+    let actual: StgWord = { unsafe { getUserEra() } };
+    let expected: StgWord = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 fn equivalent_incrementUserEra(w: StgWord) -> bool {
-    let expected = unsafe { sys::incrementUserEra(w) };
-    let actual = unsafe { incrementUserEra(w) };
-    actual == expected
+    let expected: StgWord = {
+        let w = w.clone();
+        unsafe { sys::incrementUserEra(w) }
+    };
+    let actual: StgWord = {
+        let w = w.clone();
+        unsafe { incrementUserEra(w) }
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_incrementUserEra() {
-    let mut g = Gen::new(100);
-    let w = Arbitrary::arbitrary(&mut g);
-    unsafe { incrementUserEra(w) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: StgWord = {
+        let w: StgWord = Arbitrary::arbitrary(g);
+        unsafe { incrementUserEra(w) }
+    };
+    let expected: StgWord = todo!();
+    assert_eq!(expected, actual);
 }

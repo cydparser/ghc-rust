@@ -142,6 +142,7 @@ impl From<RtsConfig> for sys::RtsConfig {
 
 /// cbindgen:no-export
 #[repr(C)]
+#[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
 pub struct GCDetails_ {
     gen_: u32,
@@ -204,6 +205,7 @@ pub type GCDetails = GCDetails_;
 
 /// cbindgen:no-export
 #[repr(C)]
+#[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
 pub struct _RTSStats {
     gcs: u32,

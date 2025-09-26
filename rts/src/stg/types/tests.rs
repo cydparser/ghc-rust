@@ -69,7 +69,7 @@ fn sys_eq_STG_INT64_MAX() {
 #[cfg(feature = "sys")]
 #[test]
 fn sys_eq_STG_WORD64_MAX() {
-    assert_eq!(sys::STG_WORD64_MAX, STG_WORD64_MAX);
+    assert_eq!(sys::STG_WORD64_MAX as StgWord64, STG_WORD64_MAX);
 }
 
 #[cfg(feature = "sys")]

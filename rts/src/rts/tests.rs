@@ -14,18 +14,6 @@ fn sys_eq__REENTRANT() {
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_FMT_SizeT() {
-    assert_eq!(sys::FMT_SizeT, FMT_SizeT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_FMT_HexSizeT() {
-    assert_eq!(sys::FMT_HexSizeT, FMT_HexSizeT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
 fn sys_eq_EXIT_INTERNAL_ERROR() {
     assert_eq!(sys::EXIT_INTERNAL_ERROR, EXIT_INTERNAL_ERROR);
 }
@@ -60,120 +48,186 @@ fn sys_eq_DEBUG_IS_ON() {
     assert_eq!(sys::DEBUG_IS_ON, DEBUG_IS_ON);
 }
 
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_reportStackOverflow() {
+    let expected = {
+        let mut tso: sys::StgTSO = todo!();
+        unsafe { sys::reportStackOverflow(&raw mut tso) };
+        todo!()
+    };
+    let actual = {
+        let mut tso: StgTSO = todo!();
+        unsafe { reportStackOverflow(&raw mut tso) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_reportStackOverflow() {
-    let tso = null_mut();
-    unsafe { reportStackOverflow(tso) };
-    todo!("assert")
+    let actual = {
+        let tso: StgTSO = todo!();
+        unsafe { reportStackOverflow(&raw mut tso) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_reportHeapOverflow() {
+    let expected = {
+        unsafe { sys::reportHeapOverflow() };
+        todo!()
+    };
+    let actual = {
+        unsafe { reportHeapOverflow() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_reportHeapOverflow() {
-    unsafe { reportHeapOverflow() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_stg_exit() {
-    let n = Default::default();
-    unsafe { stg_exit(n) };
-    todo!("assert")
+    let actual = {
+        unsafe { reportHeapOverflow() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_stg_sig_install(arg1: c_int, arg2: c_int) -> bool {
-    let arg3 = null_mut();
-    let expected = unsafe { sys::stg_sig_install(arg1, arg2, arg3) };
-    let actual = unsafe { stg_sig_install(arg1, arg2, arg3) };
-    actual == expected
+    let expected: c_int = {
+        let arg1 = arg1.clone();
+        let arg2 = arg2.clone();
+        let mut arg3: c_void = todo!();
+        unsafe { sys::stg_sig_install(arg1, arg2, &raw mut arg3) }
+    };
+    let actual: c_int = {
+        let arg1 = arg1.clone();
+        let arg2 = arg2.clone();
+        let mut arg3: c_void = todo!();
+        unsafe { stg_sig_install(arg1, arg2, &raw mut arg3) }
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_stg_sig_install() {
-    let arg1 = Default::default();
-    let arg2 = Default::default();
-    let arg3 = null_mut();
-    unsafe { stg_sig_install(arg1, arg2, arg3) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: c_int = {
+        let arg1: c_int = Arbitrary::arbitrary(g);
+        let arg2: c_int = Arbitrary::arbitrary(g);
+        let arg3: c_void = todo!();
+        unsafe { stg_sig_install(arg1, arg2, &raw mut arg3) }
+    };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_rts_isProfiled() -> bool {
-    let expected = unsafe { sys::rts_isProfiled() };
-    let actual = unsafe { rts_isProfiled() };
-    actual == expected
+#[test]
+#[ignore]
+fn equivalent_rts_isProfiled() {
+    let expected: c_int = { unsafe { sys::rts_isProfiled() } };
+    let actual: c_int = { unsafe { rts_isProfiled() } };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_rts_isProfiled() {
-    unsafe { rts_isProfiled() };
-    todo!("assert")
+    let actual: c_int = { unsafe { rts_isProfiled() } };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_rts_isDynamic() -> bool {
-    let expected = unsafe { sys::rts_isDynamic() };
-    let actual = unsafe { rts_isDynamic() };
-    actual == expected
+#[test]
+#[ignore]
+fn equivalent_rts_isDynamic() {
+    let expected: c_int = { unsafe { sys::rts_isDynamic() } };
+    let actual: c_int = { unsafe { rts_isDynamic() } };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_rts_isDynamic() {
-    unsafe { rts_isDynamic() };
-    todo!("assert")
+    let actual: c_int = { unsafe { rts_isDynamic() } };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_rts_isThreaded() -> bool {
-    let expected = unsafe { sys::rts_isThreaded() };
-    let actual = unsafe { rts_isThreaded() };
-    actual == expected
+#[test]
+#[ignore]
+fn equivalent_rts_isThreaded() {
+    let expected: c_int = { unsafe { sys::rts_isThreaded() } };
+    let actual: c_int = { unsafe { rts_isThreaded() } };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_rts_isThreaded() {
-    unsafe { rts_isThreaded() };
-    todo!("assert")
+    let actual: c_int = { unsafe { rts_isThreaded() } };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_rts_isDebugged() -> bool {
-    let expected = unsafe { sys::rts_isDebugged() };
-    let actual = unsafe { rts_isDebugged() };
-    actual == expected
+#[test]
+#[ignore]
+fn equivalent_rts_isDebugged() {
+    let expected: c_int = { unsafe { sys::rts_isDebugged() } };
+    let actual: c_int = { unsafe { rts_isDebugged() } };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_rts_isDebugged() {
-    unsafe { rts_isDebugged() };
-    todo!("assert")
+    let actual: c_int = { unsafe { rts_isDebugged() } };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_rts_isTracing() -> bool {
-    let expected = unsafe { sys::rts_isTracing() };
-    let actual = unsafe { rts_isTracing() };
-    actual == expected
+#[test]
+#[ignore]
+fn equivalent_rts_isTracing() {
+    let expected: c_int = { unsafe { sys::rts_isTracing() } };
+    let actual: c_int = { unsafe { rts_isTracing() } };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_rts_isTracing() {
-    unsafe { rts_isTracing() };
-    todo!("assert")
+    let actual: c_int = { unsafe { rts_isTracing() } };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }

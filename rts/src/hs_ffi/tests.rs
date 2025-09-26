@@ -15,13 +15,13 @@ fn sys_eq_HS_CHAR_MAX() {
 #[cfg(feature = "sys")]
 #[test]
 fn sys_eq_HS_BOOL_FALSE() {
-    assert_eq!(sys::HS_BOOL_FALSE as i64, HS_BOOL_FALSE);
+    assert_eq!(sys::HS_BOOL_FALSE, HS_BOOL_FALSE);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_eq_HS_BOOL_TRUE() {
-    assert_eq!(sys::HS_BOOL_TRUE as i64, HS_BOOL_TRUE);
+    assert_eq!(sys::HS_BOOL_TRUE, HS_BOOL_TRUE);
 }
 
 #[cfg(feature = "sys")]
@@ -126,170 +126,275 @@ fn sys_eq_HS_WORD64_MAX() {
     assert_eq!(sys::HS_WORD64_MAX, HS_WORD64_MAX);
 }
 
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_init(argc: c_int, argv: c_char) -> bool {
+    let expected = {
+        let mut argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { sys::hs_init(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    let actual = {
+        let mut argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { hs_init(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    expected == actual
+}
+
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_hs_init() {
-    let argc = null_mut();
-    let mut argv = null_mut();
-    unsafe { hs_init(argc, &mut argv) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut argc: c_int = Arbitrary::arbitrary(g);
+        let mut argv: c_char = Arbitrary::arbitrary(g);
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { hs_init(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_exit() {
+    let expected = {
+        unsafe { sys::hs_exit() };
+        todo!()
+    };
+    let actual = {
+        unsafe { hs_exit() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_hs_exit() {
-    unsafe { hs_exit() };
-    todo!("assert")
+    let actual = {
+        unsafe { hs_exit() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_thread_done() {
+    let expected = {
+        unsafe { sys::hs_thread_done() };
+        todo!()
+    };
+    let actual = {
+        unsafe { hs_thread_done() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
-fn test_hs_exit_nowait() {
-    unsafe { hs_exit_nowait() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_hs_set_argv() {
-    let argc = Default::default();
-    let mut argv = null_mut();
-    unsafe { hs_set_argv(argc, &mut argv) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_hs_thread_done() {
-    unsafe { hs_thread_done() };
-    todo!("assert")
+    let actual = {
+        unsafe { hs_thread_done() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
-#[cfg(all(windows, target_env = "gnu"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
-fn test_hs_restoreConsoleCP() {
-    unsafe { hs_restoreConsoleCP() };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_perform_gc() {
+    let expected = {
+        unsafe { sys::hs_perform_gc() };
+        todo!()
+    };
+    let actual = {
+        unsafe { hs_perform_gc() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_hs_perform_gc() {
-    unsafe { hs_perform_gc() };
-    todo!("assert")
+    let actual = {
+        unsafe { hs_perform_gc() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_free_stable_ptr() {
+    let expected = {
+        let sp: HsStablePtr = todo!();
+        unsafe { sys::hs_free_stable_ptr(sp) };
+        todo!()
+    };
+    let actual = {
+        let sp: HsStablePtr = todo!();
+        unsafe { hs_free_stable_ptr(sp) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
-fn test_hs_lock_stable_ptr_table() {
-    unsafe { hs_lock_stable_ptr_table() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_hs_lock_stable_tables() {
-    unsafe { hs_lock_stable_tables() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_hs_unlock_stable_ptr_table() {
-    unsafe { hs_unlock_stable_ptr_table() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_hs_unlock_stable_tables() {
-    unsafe { hs_unlock_stable_tables() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_hs_free_stable_ptr_unsafe() {
-    let sp = Default::default();
-    unsafe { hs_free_stable_ptr_unsafe(sp) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_hs_free_stable_ptr() {
-    let sp = Default::default();
-    unsafe { hs_free_stable_ptr(sp) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_hs_free_fun_ptr() {
-    let fp = Default::default();
-    unsafe { hs_free_fun_ptr(fp) };
-    todo!("assert")
+    let actual = {
+        let sp: HsStablePtr = todo!();
+        unsafe { hs_free_stable_ptr(sp) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_hs_spt_lookup(key: StgWord64) -> bool {
-    let mut k = key;
-    let expected = unsafe { sys::hs_spt_lookup(&raw mut k) };
-    let mut k = key;
-    let actual = unsafe { hs_spt_lookup(&raw mut k) };
-    actual == expected
+    let expected = {
+        let mut key = key.clone();
+        let result: StgPtr = unsafe { sys::hs_spt_lookup(&raw mut key) };
+        todo!()
+    };
+    let actual = {
+        let mut key = key.clone();
+        let result: StgPtr = unsafe { hs_spt_lookup(&raw mut key) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_hs_spt_lookup() {
-    let key = null_mut();
-    unsafe { hs_spt_lookup(key) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut key: StgWord64 = Arbitrary::arbitrary(g);
+        let result: StgPtr = unsafe { hs_spt_lookup(&raw mut key) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_hs_spt_keys(szKeys: c_int) -> bool {
-    let mut keys = null_mut();
-    let expected = unsafe { sys::hs_spt_keys(&raw mut keys, szKeys) };
-    let actual = unsafe { hs_spt_keys(&raw mut keys, szKeys) };
-    actual == expected
+    let expected: c_int = {
+        let mut keys: StgPtr = todo!();
+        let szKeys = szKeys.clone();
+        unsafe { sys::hs_spt_keys(&raw mut keys, szKeys) }
+    };
+    let actual: c_int = {
+        let mut keys: StgPtr = todo!();
+        let szKeys = szKeys.clone();
+        unsafe { hs_spt_keys(&raw mut keys, szKeys) }
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_hs_spt_keys() {
-    let mut keys = null_mut();
-    let szKeys = Default::default();
-    unsafe { hs_spt_keys(&mut keys, szKeys) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: c_int = {
+        let keys: StgPtr = todo!();
+        let szKeys: c_int = Arbitrary::arbitrary(g);
+        unsafe { hs_spt_keys(&raw mut keys, szKeys) }
+    };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_hs_spt_key_count() {
+    let expected: c_int = { unsafe { sys::hs_spt_key_count() } };
+    let actual: c_int = { unsafe { hs_spt_key_count() } };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_spt_key_count() {
+    let actual: c_int = { unsafe { hs_spt_key_count() } };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_hs_spt_key_count() -> bool {
-    let expected = unsafe { sys::hs_spt_key_count() };
-    let actual = unsafe { hs_spt_key_count() };
-    actual == expected
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_try_putmvar(capability: c_int) -> bool {
+    let expected = {
+        let capability = capability.clone();
+        let sp: HsStablePtr = todo!();
+        unsafe { sys::hs_try_putmvar(capability, sp) };
+        todo!()
+    };
+    let actual = {
+        let capability = capability.clone();
+        let sp: HsStablePtr = todo!();
+        unsafe { hs_try_putmvar(capability, sp) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
-fn test_hs_spt_key_count() {
-    unsafe { hs_spt_key_count() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_hs_try_putmvar() {
-    let capability = Default::default();
-    let sp = Default::default();
-    unsafe { hs_try_putmvar(capability, sp) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let capability: c_int = Arbitrary::arbitrary(g);
+        let sp: HsStablePtr = todo!();
+        unsafe { hs_try_putmvar(capability, sp) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }

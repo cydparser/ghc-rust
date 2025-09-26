@@ -202,51 +202,101 @@ const _: () = {
 };
 
 #[cfg(feature = "sys")]
-#[test]
+#[quickcheck]
 #[ignore]
-fn equivalent_allocAlignedGroupOnNode() {
-    todo!()
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_allocAlignedGroupOnNode(node: u32, n: W_) -> bool {
+    let expected = {
+        let node = node.clone();
+        let n = n.clone();
+        let result: &bdescr = unsafe { transmute(&*sys::allocAlignedGroupOnNode(node, n)) };
+        todo!()
+    };
+    let actual = {
+        let node = node.clone();
+        let n = n.clone();
+        let result: &bdescr = unsafe { &*allocAlignedGroupOnNode(node, n) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_allocAlignedGroupOnNode() {
-    let mut g = Gen::new(100);
-    let node = Arbitrary::arbitrary(&mut g);
-    let n = Arbitrary::arbitrary(&mut g);
-    unsafe { allocAlignedGroupOnNode(node, n) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let node: u32 = Arbitrary::arbitrary(g);
+        let n: W_ = Arbitrary::arbitrary(g);
+        let result: &bdescr = unsafe { &*allocAlignedGroupOnNode(node, n) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[test]
+#[quickcheck]
 #[ignore]
-fn equivalent_allocGroup_lock() {
-    todo!()
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_allocGroup_lock(n: W_) -> bool {
+    let expected = {
+        let n = n.clone();
+        let result: &bdescr = unsafe { transmute(&*sys::allocGroup_lock(n)) };
+        todo!()
+    };
+    let actual = {
+        let n = n.clone();
+        let result: &bdescr = unsafe { &*allocGroup_lock(n) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_allocGroup_lock() {
-    let mut g = Gen::new(100);
-    let n = Arbitrary::arbitrary(&mut g);
-    unsafe { allocGroup_lock(n) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let n: W_ = Arbitrary::arbitrary(g);
+        let result: &bdescr = unsafe { &*allocGroup_lock(n) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_freeGroup_lock() {
-    todo!()
+    let expected = {
+        let mut p: sys::bdescr = todo!();
+        unsafe { sys::freeGroup_lock(&raw mut p) };
+        todo!()
+    };
+    let actual = {
+        let mut p: bdescr = todo!();
+        unsafe { freeGroup_lock(&raw mut p) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_freeGroup_lock() {
-    let p = null_mut();
-    unsafe { freeGroup_lock(p) };
-    todo!("assert")
+    let actual = {
+        let p: bdescr = todo!();
+        unsafe { freeGroup_lock(&raw mut p) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]

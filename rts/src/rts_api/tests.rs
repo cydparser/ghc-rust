@@ -9,16 +9,33 @@ fn sys_size_PauseToken_() {
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_pauseTokenCapability() {
-    todo!()
+    let expected = {
+        let mut pauseToken: sys::PauseToken = todo!();
+        let result: &Capability =
+            unsafe { transmute(&*sys::pauseTokenCapability(&raw mut pauseToken)) };
+        todo!()
+    };
+    let actual = {
+        let mut pauseToken: PauseToken = todo!();
+        let result: &Capability = unsafe { &*pauseTokenCapability(&raw mut pauseToken) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_pauseTokenCapability() {
-    let pauseToken = null_mut();
-    unsafe { pauseTokenCapability(pauseToken) };
-    todo!("assert")
+    let actual = {
+        let pauseToken: PauseToken = todo!();
+        let result: &Capability = unsafe { &*pauseTokenCapability(&raw mut pauseToken) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
@@ -172,978 +189,2067 @@ const _: () = {
         [offset_of!(_RTSStats, nonmoving_gc_max_elapsed_ns) - 368usize];
 };
 
-#[test]
-#[ignore]
-fn test_getRTSStats() {
-    let s = null_mut();
-    unsafe { getRTSStats(s) };
-    todo!("assert")
-}
-
 #[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
-fn equivalent_getRTSStatsEnabled() -> bool {
-    let expected = unsafe { sys::getRTSStatsEnabled() };
-    let actual = unsafe { getRTSStatsEnabled() };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_getRTSStatsEnabled() {
-    unsafe { getRTSStatsEnabled() };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_getAllocations() -> bool {
-    let expected = unsafe { sys::getAllocations() };
-    let actual = unsafe { getAllocations() };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_getAllocations() {
-    unsafe { getAllocations() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_startupHaskell() {
-    let argc = Default::default();
-    let argv = null_mut();
-    let init_root = Default::default();
-    unsafe { startupHaskell(argc, argv, init_root) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_shutdownHaskell() {
-    unsafe { shutdownHaskell() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_hs_init_with_rtsopts() {
-    let argc = null_mut();
-    let argv = null_mut();
-    unsafe { hs_init_with_rtsopts(argc, argv) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_hs_init_ghc() {
-    let argc = null_mut();
-    let argv = null_mut();
-    let rts_config = defaultRtsConfig.clone();
-    unsafe { hs_init_ghc(argc, argv, rts_config) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_getProgArgv() {
-    let argc = null_mut();
-    let mut argv = null_mut();
-    unsafe { getProgArgv(argc, &raw mut argv) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_setProgArgv() {
-    let argc = Default::default();
-    let mut argv = null_mut();
-    unsafe { setProgArgv(argc, &raw mut argv) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_getFullProgArgv() {
-    let argc = null_mut();
-    let mut argv = null_mut();
-    unsafe { getFullProgArgv(argc, &raw mut argv) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_setFullProgArgv() {
-    let argc = Default::default();
-    let mut argv = null_mut();
-    unsafe { setFullProgArgv(argc, &raw mut argv) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_freeFullProgArgv() {
-    unsafe { freeFullProgArgv() };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_lock() -> bool {
-    let expected = unsafe { transmute(sys::rts_lock()) };
-    let actual = unsafe { rts_lock() };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_lock() {
-    unsafe { rts_lock() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_unlock() {
-    let token = null_mut();
-    unsafe { rts_unlock(token) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_unsafeGetMyCapability() -> bool {
-    let expected = unsafe { transmute(sys::rts_unsafeGetMyCapability()) };
-    let actual = unsafe { rts_unsafeGetMyCapability() };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_unsafeGetMyCapability() {
-    unsafe { rts_unsafeGetMyCapability() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_setInCallCapability() {
-    let preferred_capability = Default::default();
-    let affinity = Default::default();
-    unsafe { rts_setInCallCapability(preferred_capability, affinity) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_pinThreadToNumaNode() {
-    let node = Default::default();
-    unsafe { rts_pinThreadToNumaNode(node) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkChar(c: HsChar) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkChar(cap, c)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkChar(cap, c) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkChar() {
-    let cap = null_mut();
-    let c = Default::default();
-    unsafe { rts_mkChar(cap, c) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkInt(i: HsInt) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkInt(cap, i)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkInt(cap, i) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkInt() {
-    let cap = null_mut();
-    let i = Default::default();
-    unsafe { rts_mkInt(cap, i) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkInt8(i: HsInt8) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkInt8(cap, i)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkInt8(cap, i) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkInt8() {
-    let cap = null_mut();
-    let i = Default::default();
-    unsafe { rts_mkInt8(cap, i) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkInt16(i: HsInt16) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkInt16(cap, i)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkInt16(cap, i) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkInt16() {
-    let cap = null_mut();
-    let i = Default::default();
-    unsafe { rts_mkInt16(cap, i) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkInt32(i: HsInt32) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkInt32(cap, i)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkInt32(cap, i) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkInt32() {
-    let cap = null_mut();
-    let i = Default::default();
-    unsafe { rts_mkInt32(cap, i) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkInt64(i: HsInt64) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkInt64(cap, i)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkInt64(cap, i) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkInt64() {
-    let cap = null_mut();
-    let i = Default::default();
-    unsafe { rts_mkInt64(cap, i) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkWord(w: HsWord) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkWord(cap, w)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkWord(cap, w) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkWord() {
-    let cap = null_mut();
-    let w = Default::default();
-    unsafe { rts_mkWord(cap, w) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkWord8(w: HsWord8) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkWord8(cap, w)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkWord8(cap, w) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkWord8() {
-    let cap = null_mut();
-    let w = Default::default();
-    unsafe { rts_mkWord8(cap, w) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkWord16(w: HsWord16) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkWord16(cap, w)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkWord16(cap, w) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkWord16() {
-    let cap = null_mut();
-    let w = Default::default();
-    unsafe { rts_mkWord16(cap, w) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkWord32(w: HsWord32) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkWord32(cap, w)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkWord32(cap, w) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkWord32() {
-    let cap = null_mut();
-    let w = Default::default();
-    unsafe { rts_mkWord32(cap, w) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkWord64(w: HsWord64) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkWord64(cap, w)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkWord64(cap, w) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkWord64() {
-    let cap = null_mut();
-    let w = Default::default();
-    unsafe { rts_mkWord64(cap, w) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_mkPtr() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkPtr() {
-    let cap = null_mut();
-    let a = Default::default();
-    unsafe { rts_mkPtr(cap, a) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_mkFunPtr() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkFunPtr() {
-    let cap = null_mut();
-    let a = Default::default();
-    unsafe { rts_mkFunPtr(cap, a) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkFloat(f: HsFloat) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkFloat(cap, f)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkFloat(cap, f) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkFloat() {
-    let cap = null_mut();
-    let f = Default::default();
-    unsafe { rts_mkFloat(cap, f) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkDouble(f: HsDouble) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkDouble(cap, f)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkDouble(cap, f) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkDouble() {
-    let cap = null_mut();
-    let f = Default::default();
-    unsafe { rts_mkDouble(cap, f) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_mkStablePtr() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkStablePtr() {
-    let cap = null_mut();
-    let s = Default::default();
-    unsafe { rts_mkStablePtr(cap, s) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkBool(b: HsBool) -> bool {
-    let cap = null_mut();
-    let expected = unsafe { transmute(sys::rts_mkBool(cap, b)) };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkBool(cap, b) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_rts_mkBool() {
-    let cap = null_mut();
-    let b = Default::default();
-    unsafe { rts_mkBool(cap, b) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_rts_mkString(s: CString) -> bool {
-    let cap = null_mut();
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getRTSStats(s: RTSStats) -> bool {
     let expected = {
-        let s = s.clone();
-        unsafe { transmute(sys::rts_mkString(cap, s.as_ptr() as *mut c_char)) }
+        let mut s = s.clone().into();
+        unsafe { sys::getRTSStats(&raw mut s) };
+        todo!()
     };
-    let cap = null_mut();
-    let actual = unsafe { rts_mkString(cap, s.as_ptr()) };
-    actual == expected
+    let actual = {
+        let mut s = s.clone();
+        unsafe { getRTSStats(&raw mut s) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
-fn test_rts_mkString() {
-    let cap = null_mut();
-    let s = CString::new("test_rts_mkString").unwrap();
-    unsafe { rts_mkString(cap, s.as_ptr()) };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn test_getRTSStats() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut s: RTSStats = Arbitrary::arbitrary(g);
+        unsafe { getRTSStats(&raw mut s) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
-fn equivalent_rts_apply() {
-    todo!()
+fn equivalent_getRTSStatsEnabled() {
+    let expected: c_int = { unsafe { sys::getRTSStatsEnabled() } };
+    let actual: c_int = { unsafe { getRTSStatsEnabled() } };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
-fn test_rts_apply() {
-    let cap = null_mut();
-    let arg2 = null_mut();
-    let arg3 = null_mut();
-    unsafe { rts_apply(cap, arg2, arg3) };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn test_getRTSStatsEnabled() {
+    let actual: c_int = { unsafe { getRTSStatsEnabled() } };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[test]
 #[ignore]
-fn equivalent_rts_getChar() {
-    todo!()
+fn equivalent_getAllocations() {
+    let expected: u64 = { unsafe { sys::getAllocations() } };
+    let actual: u64 = { unsafe { getAllocations() } };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
-fn test_rts_getChar() {
-    let obj = null_mut();
-    unsafe { rts_getChar(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getInt() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getInt() {
-    let obj = null_mut();
-    unsafe { rts_getInt(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getInt8() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getInt8() {
-    let obj = null_mut();
-    unsafe { rts_getInt8(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getInt16() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getInt16() {
-    let obj = null_mut();
-    unsafe { rts_getInt16(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getInt32() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getInt32() {
-    let obj = null_mut();
-    unsafe { rts_getInt32(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getInt64() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getInt64() {
-    let obj = null_mut();
-    unsafe { rts_getInt64(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getWord() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getWord() {
-    let obj = null_mut();
-    unsafe { rts_getWord(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getWord8() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getWord8() {
-    let obj = null_mut();
-    unsafe { rts_getWord8(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getWord16() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getWord16() {
-    let obj = null_mut();
-    unsafe { rts_getWord16(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getWord32() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getWord32() {
-    let obj = null_mut();
-    unsafe { rts_getWord32(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getWord64() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getWord64() {
-    let obj = null_mut();
-    unsafe { rts_getWord64(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getPtr() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getPtr() {
-    let obj = null_mut();
-    unsafe { rts_getPtr(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getFunPtr() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getFunPtr() {
-    let obj = null_mut();
-    unsafe { rts_getFunPtr(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getFloat() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getFloat() {
-    let obj = null_mut();
-    unsafe { rts_getFloat(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getDouble() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getDouble() {
-    let obj = null_mut();
-    unsafe { rts_getDouble(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getStablePtr() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getStablePtr() {
-    let obj = null_mut();
-    unsafe { rts_getStablePtr(obj) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getBool() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getBool() {
-    let obj = null_mut();
-    unsafe { rts_getBool(obj) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_eval() {
-    let cap = null_mut();
-    let p = null_mut();
-    let mut ret = null_mut();
-    unsafe { rts_eval(cap, p, &raw mut ret) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_eval_() {
-    let cap = null_mut();
-    let p = null_mut();
-    let stack_size = Default::default();
-    let ret = null_mut();
-    unsafe { rts_eval_(cap, p, stack_size, ret) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_evalIO() {
-    let cap = null_mut();
-    let p = null_mut();
-    let ret = null_mut();
-    unsafe { rts_evalIO(cap, p, ret) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_evalStableIOMain() {
-    let mut cap = null_mut();
-    let s = Default::default();
-    let ret = null_mut();
-    unsafe { rts_evalStableIOMain(&raw mut cap, s, ret) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_evalStableIO() {
-    let cap = null_mut();
-    let s = Default::default();
-    let ret = null_mut();
-    unsafe { rts_evalStableIO(cap, s, ret) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_evalLazyIO() {
-    let cap = null_mut();
-    let p = null_mut();
-    let ret = null_mut();
-    unsafe { rts_evalLazyIO(cap, p, ret) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_evalLazyIO_() {
-    let cap = null_mut();
-    let p = null_mut();
-    let stack_size = Default::default();
-    let ret = null_mut();
-    unsafe { rts_evalLazyIO_(cap, p, stack_size, ret) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_inCall() {
-    let cap = null_mut();
-    let p = null_mut();
-    let ret = null_mut();
-    unsafe { rts_inCall(cap, p, ret) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_checkSchedStatus() {
-    let site = null_mut();
-    let cap = null_mut();
-    unsafe { rts_checkSchedStatus(site, cap) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn equivalent_rts_getSchedStatus() {
-    todo!()
-}
-
-#[test]
-#[ignore]
-fn test_rts_getSchedStatus() {
-    let cap = null_mut();
-    unsafe { rts_getSchedStatus(cap) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[ignore]
-fn equivalent_rts_pause() {
-    let expected = unsafe { transmute(sys::rts_pause()) };
-    let actual = unsafe { rts_pause() };
-    assert_eq!(actual, expected)
-}
-
-#[test]
-#[ignore]
-fn test_rts_pause() {
-    unsafe { rts_pause() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_rts_resume() {
-    let pauseToken = null_mut();
-    unsafe { rts_resume(pauseToken) };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn test_getAllocations() {
+    let actual: u64 = { unsafe { getAllocations() } };
+    let expected: u64 = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
-fn equivalent_rts_isPaused() -> bool {
-    let expected = unsafe { sys::rts_isPaused() };
-    let actual = unsafe { rts_isPaused() };
-    actual == expected
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_init_with_rtsopts(argc: c_int, argv: c_char) -> bool {
+    let expected = {
+        let mut argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { sys::hs_init_with_rtsopts(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    let actual = {
+        let mut argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { hs_init_with_rtsopts(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_init_with_rtsopts() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut argc: c_int = Arbitrary::arbitrary(g);
+        let mut argv: c_char = Arbitrary::arbitrary(g);
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { hs_init_with_rtsopts(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_init_ghc(argc: c_int, argv: c_char) -> bool {
+    let expected = {
+        let argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        let argv = &raw mut argv;
+        let rts_config: sys::RtsConfig = todo!();
+        unsafe { sys::hs_init_ghc(&raw mut argc, &raw mut argv, rts_config) };
+        todo!()
+    };
+    let actual = {
+        let mut argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        let rts_config: RtsConfig = todo!();
+        unsafe { hs_init_ghc(&raw mut argc, &raw mut argv, rts_config) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_init_ghc() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let argc: c_int = Arbitrary::arbitrary(g);
+        let mut argv: c_char = Arbitrary::arbitrary(g);
+        let mut argv = &raw mut argv;
+        let argv = &raw mut argv;
+        let rts_config: RtsConfig = todo!();
+        unsafe { hs_init_ghc(&raw mut argc, &raw mut argv, rts_config) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getProgArgv(argc: c_int, argv: c_char) -> bool {
+    let expected = {
+        let mut argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { sys::getProgArgv(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    let actual = {
+        let mut argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { getProgArgv(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_getProgArgv() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut argc: c_int = Arbitrary::arbitrary(g);
+        let mut argv: c_char = Arbitrary::arbitrary(g);
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { getProgArgv(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_setProgArgv(argc: c_int, argv: c_char) -> bool {
+    let expected = {
+        let argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        unsafe { sys::setProgArgv(argc, &raw mut argv) };
+        todo!()
+    };
+    let actual = {
+        let argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        unsafe { setProgArgv(argc, &raw mut argv) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_setProgArgv() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let argc: c_int = Arbitrary::arbitrary(g);
+        let mut argv: c_char = Arbitrary::arbitrary(g);
+        let mut argv = &raw mut argv;
+        unsafe { setProgArgv(argc, &raw mut argv) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getFullProgArgv(argc: c_int, argv: c_char) -> bool {
+    let expected = {
+        let mut argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { sys::getFullProgArgv(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    let actual = {
+        let mut argc = argc.clone();
+        let mut argv = argv.clone();
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { getFullProgArgv(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_getFullProgArgv() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut argc: c_int = Arbitrary::arbitrary(g);
+        let mut argv: c_char = Arbitrary::arbitrary(g);
+        let mut argv = &raw mut argv;
+        let mut argv = &raw mut argv;
+        unsafe { getFullProgArgv(&raw mut argc, &raw mut argv) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_lock() {
+    let expected = {
+        let result: &Capability = unsafe { transmute(&*sys::rts_lock()) };
+        todo!()
+    };
+    let actual = {
+        let result: &Capability = unsafe { &*rts_lock() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_lock() {
+    let actual = {
+        let result: &Capability = unsafe { &*rts_lock() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_unlock() {
+    let expected = {
+        let mut token: sys::Capability = todo!();
+        unsafe { sys::rts_unlock(&raw mut token) };
+        todo!()
+    };
+    let actual = {
+        let mut token: Capability = todo!();
+        unsafe { rts_unlock(&raw mut token) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_unlock() {
+    let actual = {
+        let token: Capability = todo!();
+        unsafe { rts_unlock(&raw mut token) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_unsafeGetMyCapability() {
+    let expected = {
+        let result: &Capability = unsafe { transmute(&*sys::rts_unsafeGetMyCapability()) };
+        todo!()
+    };
+    let actual = {
+        let result: &Capability = unsafe { &*rts_unsafeGetMyCapability() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_unsafeGetMyCapability() {
+    let actual = {
+        let result: &Capability = unsafe { &*rts_unsafeGetMyCapability() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_setInCallCapability(preferred_capability: c_int, affinity: c_int) -> bool {
+    let expected = {
+        let preferred_capability = preferred_capability.clone();
+        let affinity = affinity.clone();
+        unsafe { sys::rts_setInCallCapability(preferred_capability, affinity) };
+        todo!()
+    };
+    let actual = {
+        let preferred_capability = preferred_capability.clone();
+        let affinity = affinity.clone();
+        unsafe { rts_setInCallCapability(preferred_capability, affinity) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_setInCallCapability() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let preferred_capability: c_int = Arbitrary::arbitrary(g);
+        let affinity: c_int = Arbitrary::arbitrary(g);
+        unsafe { rts_setInCallCapability(preferred_capability, affinity) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_pinThreadToNumaNode(node: c_int) -> bool {
+    let expected = {
+        let node = node.clone();
+        unsafe { sys::rts_pinThreadToNumaNode(node) };
+        todo!()
+    };
+    let actual = {
+        let node = node.clone();
+        unsafe { rts_pinThreadToNumaNode(node) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_pinThreadToNumaNode() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let node: c_int = Arbitrary::arbitrary(g);
+        unsafe { rts_pinThreadToNumaNode(node) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkChar(c: HsChar) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let c = c.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkChar(&raw mut arg1, c)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let c = c.clone();
+        let result: HaskellObj = unsafe { rts_mkChar(&raw mut arg1, c) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkChar() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let c: HsChar = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkChar(&raw mut arg1, c) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkInt(i: HsInt) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let i = i.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkInt(&raw mut arg1, i)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let i = i.clone();
+        let result: HaskellObj = unsafe { rts_mkInt(&raw mut arg1, i) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkInt() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let i: HsInt = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkInt(&raw mut arg1, i) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkInt8(i: HsInt8) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let i = i.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkInt8(&raw mut arg1, i)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let i = i.clone();
+        let result: HaskellObj = unsafe { rts_mkInt8(&raw mut arg1, i) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkInt8() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let i: HsInt8 = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkInt8(&raw mut arg1, i) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkInt16(i: HsInt16) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let i = i.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkInt16(&raw mut arg1, i)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let i = i.clone();
+        let result: HaskellObj = unsafe { rts_mkInt16(&raw mut arg1, i) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkInt16() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let i: HsInt16 = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkInt16(&raw mut arg1, i) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkInt32(i: HsInt32) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let i = i.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkInt32(&raw mut arg1, i)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let i = i.clone();
+        let result: HaskellObj = unsafe { rts_mkInt32(&raw mut arg1, i) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkInt32() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let i: HsInt32 = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkInt32(&raw mut arg1, i) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkInt64(i: HsInt64) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let i = i.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkInt64(&raw mut arg1, i)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let i = i.clone();
+        let result: HaskellObj = unsafe { rts_mkInt64(&raw mut arg1, i) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkInt64() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let i: HsInt64 = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkInt64(&raw mut arg1, i) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkWord(w: HsWord) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let w = w.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkWord(&raw mut arg1, w)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let w = w.clone();
+        let result: HaskellObj = unsafe { rts_mkWord(&raw mut arg1, w) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkWord() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let w: HsWord = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkWord(&raw mut arg1, w) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkWord8(w: HsWord8) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let w = w.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkWord8(&raw mut arg1, w)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let w = w.clone();
+        let result: HaskellObj = unsafe { rts_mkWord8(&raw mut arg1, w) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkWord8() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let w: HsWord8 = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkWord8(&raw mut arg1, w) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkWord16(w: HsWord16) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let w = w.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkWord16(&raw mut arg1, w)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let w = w.clone();
+        let result: HaskellObj = unsafe { rts_mkWord16(&raw mut arg1, w) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkWord16() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let w: HsWord16 = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkWord16(&raw mut arg1, w) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkWord32(w: HsWord32) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let w = w.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkWord32(&raw mut arg1, w)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let w = w.clone();
+        let result: HaskellObj = unsafe { rts_mkWord32(&raw mut arg1, w) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkWord32() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let w: HsWord32 = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkWord32(&raw mut arg1, w) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkWord64(w: HsWord64) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let w = w.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkWord64(&raw mut arg1, w)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let w = w.clone();
+        let result: HaskellObj = unsafe { rts_mkWord64(&raw mut arg1, w) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkWord64() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let w: HsWord64 = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkWord64(&raw mut arg1, w) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkPtr() {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let a: HsPtr = todo!();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkPtr(&raw mut arg1, a)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let a: HsPtr = todo!();
+        let result: HaskellObj = unsafe { rts_mkPtr(&raw mut arg1, a) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkPtr() {
+    let actual = {
+        let arg1: Capability = todo!();
+        let a: HsPtr = todo!();
+        let result: HaskellObj = unsafe { rts_mkPtr(&raw mut arg1, a) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkFunPtr() {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let a: HsFunPtr = todo!();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkFunPtr(&raw mut arg1, a)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let a: HsFunPtr = todo!();
+        let result: HaskellObj = unsafe { rts_mkFunPtr(&raw mut arg1, a) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkFunPtr() {
+    let actual = {
+        let arg1: Capability = todo!();
+        let a: HsFunPtr = todo!();
+        let result: HaskellObj = unsafe { rts_mkFunPtr(&raw mut arg1, a) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkFloat(f: HsFloat) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let f = f.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkFloat(&raw mut arg1, f)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let f = f.clone();
+        let result: HaskellObj = unsafe { rts_mkFloat(&raw mut arg1, f) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkFloat() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let f: HsFloat = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkFloat(&raw mut arg1, f) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkDouble(f: HsDouble) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let f = f.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkDouble(&raw mut arg1, f)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let f = f.clone();
+        let result: HaskellObj = unsafe { rts_mkDouble(&raw mut arg1, f) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkDouble() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let f: HsDouble = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkDouble(&raw mut arg1, f) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkStablePtr() {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let s: HsStablePtr = todo!();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkStablePtr(&raw mut arg1, s)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let s: HsStablePtr = todo!();
+        let result: HaskellObj = unsafe { rts_mkStablePtr(&raw mut arg1, s) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkStablePtr() {
+    let actual = {
+        let arg1: Capability = todo!();
+        let s: HsStablePtr = todo!();
+        let result: HaskellObj = unsafe { rts_mkStablePtr(&raw mut arg1, s) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkBool(b: HsBool) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let b = b.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkBool(&raw mut arg1, b)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let b = b.clone();
+        let result: HaskellObj = unsafe { rts_mkBool(&raw mut arg1, b) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkBool() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let b: HsBool = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkBool(&raw mut arg1, b) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_mkString(s: c_char) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let mut s = s.clone();
+        let result: HaskellObj = unsafe { transmute(sys::rts_mkString(&raw mut arg1, &raw mut s)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut s = s.clone();
+        let result: HaskellObj = unsafe { rts_mkString(&raw mut arg1, &raw mut s) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_mkString() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let arg1: Capability = todo!();
+        let mut s: c_char = Arbitrary::arbitrary(g);
+        let result: HaskellObj = unsafe { rts_mkString(&raw mut arg1, &raw mut s) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_apply() {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let arg2: sys::HaskellObj = todo!();
+        let arg3: sys::HaskellObj = todo!();
+        let result: HaskellObj = unsafe { transmute(sys::rts_apply(&raw mut arg1, arg2, arg3)) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let arg2: HaskellObj = todo!();
+        let arg3: HaskellObj = todo!();
+        let result: HaskellObj = unsafe { rts_apply(&raw mut arg1, arg2, arg3) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_apply() {
+    let actual = {
+        let arg1: Capability = todo!();
+        let arg2: HaskellObj = todo!();
+        let arg3: HaskellObj = todo!();
+        let result: HaskellObj = unsafe { rts_apply(&raw mut arg1, arg2, arg3) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getChar() {
+    let expected: HsChar = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getChar(arg1) }
+    };
+    let actual: HsChar = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getChar(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getChar() {
+    let actual: HsChar = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getChar(arg1) }
+    };
+    let expected: HsChar = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getInt() {
+    let expected: HsInt = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getInt(arg1) }
+    };
+    let actual: HsInt = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getInt(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getInt() {
+    let actual: HsInt = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getInt(arg1) }
+    };
+    let expected: HsInt = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getInt8() {
+    let expected: HsInt8 = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getInt8(arg1) }
+    };
+    let actual: HsInt8 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getInt8(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getInt8() {
+    let actual: HsInt8 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getInt8(arg1) }
+    };
+    let expected: HsInt8 = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getInt16() {
+    let expected: HsInt16 = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getInt16(arg1) }
+    };
+    let actual: HsInt16 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getInt16(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getInt16() {
+    let actual: HsInt16 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getInt16(arg1) }
+    };
+    let expected: HsInt16 = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getInt32() {
+    let expected: HsInt32 = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getInt32(arg1) }
+    };
+    let actual: HsInt32 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getInt32(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getInt32() {
+    let actual: HsInt32 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getInt32(arg1) }
+    };
+    let expected: HsInt32 = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getInt64() {
+    let expected: HsInt64 = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getInt64(arg1) }
+    };
+    let actual: HsInt64 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getInt64(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getInt64() {
+    let actual: HsInt64 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getInt64(arg1) }
+    };
+    let expected: HsInt64 = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getWord() {
+    let expected: HsWord = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getWord(arg1) }
+    };
+    let actual: HsWord = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getWord(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getWord() {
+    let actual: HsWord = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getWord(arg1) }
+    };
+    let expected: HsWord = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getWord8() {
+    let expected: HsWord8 = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getWord8(arg1) }
+    };
+    let actual: HsWord8 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getWord8(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getWord8() {
+    let actual: HsWord8 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getWord8(arg1) }
+    };
+    let expected: HsWord8 = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getWord16() {
+    let expected: HsWord16 = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getWord16(arg1) }
+    };
+    let actual: HsWord16 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getWord16(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getWord16() {
+    let actual: HsWord16 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getWord16(arg1) }
+    };
+    let expected: HsWord16 = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getWord32() {
+    let expected: HsWord32 = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getWord32(arg1) }
+    };
+    let actual: HsWord32 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getWord32(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getWord32() {
+    let actual: HsWord32 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getWord32(arg1) }
+    };
+    let expected: HsWord32 = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getWord64() {
+    let expected: HsWord64 = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getWord64(arg1) }
+    };
+    let actual: HsWord64 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getWord64(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getWord64() {
+    let actual: HsWord64 = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getWord64(arg1) }
+    };
+    let expected: HsWord64 = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getPtr() {
+    let expected = {
+        let arg1: sys::HaskellObj = todo!();
+        let result: HsPtr = unsafe { sys::rts_getPtr(arg1) };
+        todo!()
+    };
+    let actual = {
+        let arg1: HaskellObj = todo!();
+        let result: HsPtr = unsafe { rts_getPtr(arg1) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getPtr() {
+    let actual = {
+        let arg1: HaskellObj = todo!();
+        let result: HsPtr = unsafe { rts_getPtr(arg1) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getFunPtr() {
+    let expected = {
+        let arg1: sys::HaskellObj = todo!();
+        let result: HsFunPtr = unsafe { sys::rts_getFunPtr(arg1) };
+        todo!()
+    };
+    let actual = {
+        let arg1: HaskellObj = todo!();
+        let result: HsFunPtr = unsafe { rts_getFunPtr(arg1) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getFunPtr() {
+    let actual = {
+        let arg1: HaskellObj = todo!();
+        let result: HsFunPtr = unsafe { rts_getFunPtr(arg1) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getFloat() {
+    let expected: HsFloat = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getFloat(arg1) }
+    };
+    let actual: HsFloat = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getFloat(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getFloat() {
+    let actual: HsFloat = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getFloat(arg1) }
+    };
+    let expected: HsFloat = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getDouble() {
+    let expected: HsDouble = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getDouble(arg1) }
+    };
+    let actual: HsDouble = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getDouble(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getDouble() {
+    let actual: HsDouble = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getDouble(arg1) }
+    };
+    let expected: HsDouble = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getStablePtr() {
+    let expected = {
+        let arg1: sys::HaskellObj = todo!();
+        let result: HsStablePtr = unsafe { sys::rts_getStablePtr(arg1) };
+        todo!()
+    };
+    let actual = {
+        let arg1: HaskellObj = todo!();
+        let result: HsStablePtr = unsafe { rts_getStablePtr(arg1) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getStablePtr() {
+    let actual = {
+        let arg1: HaskellObj = todo!();
+        let result: HsStablePtr = unsafe { rts_getStablePtr(arg1) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getBool() {
+    let expected: HsBool = {
+        let arg1: sys::HaskellObj = todo!();
+        unsafe { sys::rts_getBool(arg1) }
+    };
+    let actual: HsBool = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getBool(arg1) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getBool() {
+    let actual: HsBool = {
+        let arg1: HaskellObj = todo!();
+        unsafe { rts_getBool(arg1) }
+    };
+    let expected: HsBool = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_eval() {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: sys::HaskellObj = todo!();
+        let mut ret: sys::HaskellObj = todo!();
+        unsafe { sys::rts_eval(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let mut ret: HaskellObj = todo!();
+        unsafe { rts_eval(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_eval() {
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let ret: HaskellObj = todo!();
+        unsafe { rts_eval(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_eval_(stack_size: c_uint) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: sys::HaskellObj = todo!();
+        let stack_size = stack_size.clone();
+        let mut ret: sys::HaskellObj = todo!();
+        unsafe { sys::rts_eval_(&raw mut arg1, p, stack_size, &raw mut ret) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let stack_size = stack_size.clone();
+        let mut ret: HaskellObj = todo!();
+        unsafe { rts_eval_(&raw mut arg1, p, stack_size, &raw mut ret) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_eval_() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let stack_size: c_uint = Arbitrary::arbitrary(g);
+        let ret: HaskellObj = todo!();
+        unsafe { rts_eval_(&raw mut arg1, p, stack_size, &raw mut ret) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_evalIO() {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: sys::HaskellObj = todo!();
+        let mut ret: sys::HaskellObj = todo!();
+        unsafe { sys::rts_evalIO(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let mut ret: HaskellObj = todo!();
+        unsafe { rts_evalIO(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_evalIO() {
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let ret: HaskellObj = todo!();
+        unsafe { rts_evalIO(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_evalStableIOMain() {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let s: HsStablePtr = todo!();
+        let mut ret: HsStablePtr = todo!();
+        unsafe { sys::rts_evalStableIOMain(&raw mut arg1, s, &raw mut ret) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let s: HsStablePtr = todo!();
+        let mut ret: HsStablePtr = todo!();
+        unsafe { rts_evalStableIOMain(&raw mut arg1, s, &raw mut ret) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_evalStableIOMain() {
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let s: HsStablePtr = todo!();
+        let ret: HsStablePtr = todo!();
+        unsafe { rts_evalStableIOMain(&raw mut arg1, s, &raw mut ret) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_evalStableIO() {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let s: HsStablePtr = todo!();
+        let mut ret: HsStablePtr = todo!();
+        unsafe { sys::rts_evalStableIO(&raw mut arg1, s, &raw mut ret) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let s: HsStablePtr = todo!();
+        let mut ret: HsStablePtr = todo!();
+        unsafe { rts_evalStableIO(&raw mut arg1, s, &raw mut ret) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_evalStableIO() {
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let s: HsStablePtr = todo!();
+        let ret: HsStablePtr = todo!();
+        unsafe { rts_evalStableIO(&raw mut arg1, s, &raw mut ret) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_evalLazyIO() {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: sys::HaskellObj = todo!();
+        let mut ret: sys::HaskellObj = todo!();
+        unsafe { sys::rts_evalLazyIO(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let mut ret: HaskellObj = todo!();
+        unsafe { rts_evalLazyIO(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_evalLazyIO() {
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let ret: HaskellObj = todo!();
+        unsafe { rts_evalLazyIO(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_evalLazyIO_(stack_size: c_uint) -> bool {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: sys::HaskellObj = todo!();
+        let stack_size = stack_size.clone();
+        let mut ret: sys::HaskellObj = todo!();
+        unsafe { sys::rts_evalLazyIO_(&raw mut arg1, p, stack_size, &raw mut ret) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let stack_size = stack_size.clone();
+        let mut ret: HaskellObj = todo!();
+        unsafe { rts_evalLazyIO_(&raw mut arg1, p, stack_size, &raw mut ret) };
+        todo!()
+    };
+    expected == actual
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_evalLazyIO_() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let stack_size: c_uint = Arbitrary::arbitrary(g);
+        let ret: HaskellObj = todo!();
+        unsafe { rts_evalLazyIO_(&raw mut arg1, p, stack_size, &raw mut ret) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_getSchedStatus() {
+    let expected: SchedulerStatus = {
+        let mut cap: sys::Capability = todo!();
+        unsafe { transmute(sys::rts_getSchedStatus(&raw mut cap)) }
+    };
+    let actual: SchedulerStatus = {
+        let mut cap: Capability = todo!();
+        unsafe { rts_getSchedStatus(&raw mut cap) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_getSchedStatus() {
+    let actual: SchedulerStatus = {
+        let cap: Capability = todo!();
+        unsafe { rts_getSchedStatus(&raw mut cap) }
+    };
+    let expected: SchedulerStatus = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_pause() {
+    let expected = {
+        let result: &PauseToken = unsafe { transmute(&*sys::rts_pause()) };
+        todo!()
+    };
+    let actual = {
+        let result: &PauseToken = unsafe { &*rts_pause() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_pause() {
+    let actual = {
+        let result: &PauseToken = unsafe { &*rts_pause() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_resume() {
+    let expected = {
+        let mut pauseToken: sys::PauseToken = todo!();
+        unsafe { sys::rts_resume(&raw mut pauseToken) };
+        todo!()
+    };
+    let actual = {
+        let mut pauseToken: PauseToken = todo!();
+        unsafe { rts_resume(&raw mut pauseToken) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_resume() {
+    let actual = {
+        let pauseToken: PauseToken = todo!();
+        unsafe { rts_resume(&raw mut pauseToken) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+fn equivalent_rts_isPaused() {
+    let expected: bool = { unsafe { sys::rts_isPaused() } };
+    let actual: bool = { unsafe { rts_isPaused() } };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_rts_isPaused() {
-    unsafe { rts_isPaused() };
-    todo!("assert")
+    let actual: bool = { unsafe { rts_isPaused() } };
+    let expected: bool = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_listThreads() {
+    let expected = {
+        let cb: sys::ListThreadsCb = todo!();
+        let mut user: c_void = todo!();
+        unsafe { sys::rts_listThreads(cb, &raw mut user) };
+        todo!()
+    };
+    let actual = {
+        let cb: ListThreadsCb = todo!();
+        let mut user: c_void = todo!();
+        unsafe { rts_listThreads(cb, &raw mut user) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_rts_listThreads() {
-    let cb = None;
-    let user = null_mut();
-    unsafe { rts_listThreads(cb, user) };
-    todo!("assert")
+    let actual = {
+        let cb: ListThreadsCb = todo!();
+        let user: c_void = todo!();
+        unsafe { rts_listThreads(cb, &raw mut user) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_listMiscRoots() {
+    let expected = {
+        let cb: sys::ListRootsCb = todo!();
+        let mut user: c_void = todo!();
+        unsafe { sys::rts_listMiscRoots(cb, &raw mut user) };
+        todo!()
+    };
+    let actual = {
+        let cb: ListRootsCb = todo!();
+        let mut user: c_void = todo!();
+        unsafe { rts_listMiscRoots(cb, &raw mut user) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_rts_listMiscRoots() {
-    let cb = None;
-    let user = null_mut();
-    unsafe { rts_listMiscRoots(cb, user) };
-    todo!("assert")
+    let actual = {
+        let cb: ListRootsCb = todo!();
+        let user: c_void = todo!();
+        unsafe { rts_listMiscRoots(cb, &raw mut user) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_clearMemory() {
+    let expected = {
+        unsafe { sys::rts_clearMemory() };
+        todo!()
+    };
+    let actual = {
+        unsafe { rts_clearMemory() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
-fn test_rts_done() {
-    unsafe { rts_done() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_rts_clearMemory() {
-    unsafe { rts_clearMemory() };
-    todo!("assert")
+    let actual = {
+        unsafe { rts_clearMemory() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
