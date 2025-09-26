@@ -152,12 +152,12 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
         use_stg_types.clone(),
     ]);
 
-    transformed.tests_file.items.extend([
-        Item::Use(parse_quote! {
+    transformed
+        .tests_file
+        .items
+        .extend([Item::Use(parse_quote! {
             use super::*;
-        }),
-        use_stg_types,
-    ]);
+        })]);
 
     // Add original imports and exports.
     while let Some(item) = items.peek() {
