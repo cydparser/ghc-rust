@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use proc_macro2::Span;
-use syn::{Ident, Type, TypePath};
+use syn::{Ident, Type, TypePath, parse_quote};
 
 mod place;
 mod symbols;
@@ -214,5 +214,27 @@ impl Symbols {
 
     pub fn is_std(&self, ident: &Ident) -> bool {
         self.std_types.contains(ident) || self.is_primitive(ident) || ident == "c_void"
+    }
+}
+
+pub fn prefix_with_sys(ty: &Type) -> Type {
+    match ty {
+        Type::Array(type_array) => {
+            let mut array = type_array.clone();
+            array.elem = Box::new(prefix_with_sys(type_array.elem.as_ref()));
+            Type::Array(array)
+        }
+        Type::Path(type_path) => parse_quote! { sys::#type_path },
+        Type::Ptr(type_ptr) => {
+            let mut ptr = type_ptr.clone();
+            ptr.elem = Box::new(prefix_with_sys(type_ptr.elem.as_ref()));
+            Type::Ptr(ptr)
+        }
+        Type::Reference(type_reference) => {
+            let mut ty_ref = type_reference.clone();
+            ty_ref.elem = Box::new(prefix_with_sys(type_reference.elem.as_ref()));
+            Type::Reference(ty_ref)
+        }
+        ty => panic!("Unexpected type: {ty:?}"),
     }
 }

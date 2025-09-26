@@ -1,5 +1,4 @@
 use std::{
-    borrow::Borrow,
     fs,
     path::{Path, PathBuf},
     process::Command,
@@ -10,7 +9,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::format_ident;
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
-use generate::{Place, Places, Symbols};
+use generate::{Place, Places, Symbols, prefix_with_sys};
 
 fn main() {
     let src_dir = PathBuf::from(String::from(env!("OUT_DIR")));
@@ -754,23 +753,6 @@ fn fn_test_size_of(ident: &Ident) -> syn::ItemFn {
         fn #test_size_of() {
             assert_eq!(size_of::<sys::#ident>(), size_of::<#ident>())
         }
-    }
-}
-
-fn prefix_with_sys<T: Borrow<Type>>(ty: T) -> Type {
-    match ty.borrow() {
-        Type::Array(type_array) => {
-            let mut array = type_array.clone();
-            array.elem = Box::new(prefix_with_sys(type_array.elem.as_ref()));
-            Type::Array(array)
-        }
-        Type::Path(type_path) => parse_quote! { sys::#type_path },
-        Type::Ptr(type_ptr) => {
-            let mut ptr = type_ptr.clone();
-            ptr.elem = Box::new(prefix_with_sys(type_ptr.elem.as_ref()));
-            Type::Ptr(ptr)
-        }
-        ty => panic!("Unexpected type: {ty:?}"),
     }
 }
 
