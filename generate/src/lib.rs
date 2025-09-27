@@ -17,6 +17,7 @@ pub struct Symbols {
     internal_modules: HashSet<PathBuf>,
     symbols: HashMap<Ident, Places>,
     primitive_types: HashSet<Ident>,
+    copy_types: HashSet<Ident>,
     simple_types: HashSet<Ident>,
     non_simple_types: HashSet<Ident>,
     pointer_types: HashSet<Ident>,
@@ -46,6 +47,13 @@ impl Symbols {
             primitive_types: {
                 let mut hs = HashSet::new();
                 for s in symbols::PRIMITIVE_TYPES {
+                    hs.insert(Ident::new(s, Span::call_site()));
+                }
+                hs
+            },
+            copy_types: {
+                let mut hs = HashSet::new();
+                for s in symbols::COPY_TYPES {
                     hs.insert(Ident::new(s, Span::call_site()));
                 }
                 hs
@@ -116,6 +124,22 @@ impl Symbols {
             .next()
             .is_some_and(char::is_lowercase)
             && !self.non_simple_types.contains(ident)
+    }
+
+    pub fn is_copy_type(&self, ty: &Type) -> bool {
+        match ty {
+            Type::BareFn(_) => true,
+            Type::Path(type_path) => type_path
+                .path
+                .segments
+                .last()
+                .is_some_and(|p| self.copy_types.contains(&p.ident)),
+            ty => panic!("unexpected type: {ty:?}"),
+        }
+    }
+
+    pub fn is_copy(&self, ident: &Ident) -> bool {
+        self.copy_types.contains(ident)
     }
 
     /// True for primitives and structs/enums/arrays/slices/tuples containing only "simple" types.

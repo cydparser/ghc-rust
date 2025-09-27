@@ -1,4 +1,5 @@
 use build_utils as utils;
+use proc_macro2::Span;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::process::Command;
@@ -18,6 +19,43 @@ pub fn main() {
 
     let visitor = {
         let mut visitor = SymbolVisitor::default();
+        visitor.copy_types.extend(
+            [
+                "bool",
+                "c_char",
+                "c_double",
+                "c_float",
+                "c_int",
+                "c_long",
+                "c_longlong",
+                "c_schar",
+                "c_short",
+                "c_uchar",
+                "c_uint",
+                "c_ulong",
+                "c_ulonglong",
+                "c_ushort",
+                "char",
+                "f128",
+                "f16",
+                "f32",
+                "f64",
+                "i128",
+                "i16",
+                "i32",
+                "i64",
+                "i8",
+                "isize",
+                "u128",
+                "u16",
+                "u32",
+                "u64",
+                "u8",
+                "usize",
+            ]
+            .into_iter()
+            .map(|s| Ident::new(s, Span::call_site())),
+        );
         visitor.non_simple_types.insert(syn::parse_quote!(c_void));
 
         let code = std::str::from_utf8(&buf).unwrap();
@@ -74,6 +112,13 @@ pub fn main() {
     );
     println!();
     print_static_array(
+        "COPY_TYPES",
+        "&str",
+        visitor.copy_types.len(),
+        visitor.copy_types.iter().map(Ident::to_string),
+    );
+    println!();
+    print_static_array(
         "SIMPLE_TYPES",
         "&str",
         visitor.simple_types.len(),
@@ -100,6 +145,7 @@ struct SymbolVisitor {
     symbols: Vec<String>,
     pointer_types: BTreeSet<Ident>,
     primitive_types: BTreeSet<Ident>,
+    copy_types: BTreeSet<Ident>,
     simple_types: BTreeSet<Ident>,
     non_simple_types: BTreeSet<Ident>,
     std_types: BTreeSet<Ident>,
@@ -303,6 +349,7 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
 
     fn visit_item_enum(&mut self, i: &'ast syn::ItemEnum) {
         self.add_symbol(i.ident.to_string());
+        self.copy_types.insert(i.ident.clone());
 
         if i.generics.params.is_empty()
             && i.variants
@@ -364,6 +411,10 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
                             }
                         } else if visitor.is_primitive(&ps.ident) {
                             visitor.primitive_types.insert(ident.clone());
+
+                            if visitor.copy_types.contains(&ps.ident) {
+                                visitor.copy_types.insert(ident.clone());
+                            }
                         } else if visitor.pointer_types.contains(&ps.ident) {
                             visitor.pointer_types.insert(ident.clone());
                         } else if visitor.is_simple_type(ty) {
@@ -399,6 +450,10 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
 
         if self.is_primitive(ident) {
             self.primitive_types.insert(rename.clone());
+
+            if self.copy_types.contains(ident) {
+                self.copy_types.insert(rename.clone());
+            }
         } else if self.pointer_types.contains(ident) {
             self.pointer_types.insert(rename.clone());
         } else if self.is_simple(ident) {

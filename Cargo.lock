@@ -439,6 +439,7 @@ version = "0.0.0"
 dependencies = [
  "bindgen",
  "build-utils",
+ "proc-macro2",
  "syn",
 ]
 
