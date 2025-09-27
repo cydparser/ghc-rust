@@ -40,14 +40,23 @@ pub fn generate_tests(
         if is_simple {
             equiv_params.push(parse_quote! { #ident: #ty });
 
-            let into = if is_std {
-                None
+            if symbols.is_copy_type(ty) {
+                if indirection_levels > 0 {
+                    let let_ident = quote! { let #equiv_mut #ident = #ident };
+                    equiv_expect_lets.push(let_ident.clone());
+                    equiv_actual_lets.push(let_ident);
+                }
             } else {
-                Some(quote! { .into() })
-            };
+                let into = if is_std {
+                    None
+                } else {
+                    Some(quote! { .into() })
+                };
 
-            equiv_expect_lets.push(quote! { let #equiv_mut #ident = #ident.clone()#into });
-            equiv_actual_lets.push(quote! { let #equiv_mut #ident = #ident.clone() });
+                equiv_expect_lets.push(quote! { let #equiv_mut #ident = #ident.clone()#into });
+                equiv_actual_lets.push(quote! { let #equiv_mut #ident = #ident.clone() });
+            }
+
             unit_lets.push(quote! { let #equiv_mut #ident: #ty = Arbitrary::arbitrary(g) });
         } else {
             let sys_ty = if is_std {
