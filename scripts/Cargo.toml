@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 bindgen.workspace = true
 build-utils.workspace = true
+proc-macro2.workspace = true
 syn.workspace = true
 
 [[bin]]
