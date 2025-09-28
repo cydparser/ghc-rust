@@ -138,7 +138,7 @@ impl From<RtsConfig> for sys::RtsConfig {
 // /// - GHC_PLACES: {testsuite, utils}
 // #[cfg_attr(feature = "sys", unsafe(export_name = "rust_defaultRtsConfig"))]
 // #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
-// TODO: pub static defaultRtsConfig: RtsConfig;
+// TODO(rust): pub static defaultRtsConfig: RtsConfig;
 
 /// cbindgen:no-export
 #[repr(C)]

@@ -1,12 +1,5 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
+
 #[cfg(feature = "sys")]
 #[test]
 fn sys_eq_BACKTRACE_CHUNK_SZ() {
@@ -68,54 +61,98 @@ fn sys_size_LibdwSession_() {
     assert_eq!(size_of::<sys::LibdwSession_>(), size_of::<LibdwSession_>())
 }
 
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_backtraceFree() {
+    let expected = {
+        let mut bt: sys::Backtrace = todo!();
+        unsafe { sys::backtraceFree(&raw mut bt) };
+        todo!()
+    };
+    let actual = {
+        let mut bt: Backtrace = todo!();
+        unsafe { backtraceFree(&raw mut bt) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_backtraceFree() {
-    let mut bt = null_mut();
-    unsafe { backtraceFree(&mut bt) };
-    todo!("assert")
+    let actual = {
+        let bt: Backtrace = todo!();
+        unsafe { backtraceFree(&raw mut bt) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_libdwGetBacktrace(session: LibdwSession) -> bool {
-    let expected = unsafe { transmute(sys::libdwGetBacktrace(&mut session.into())) };
-    let actual = unsafe { libdwGetBacktrace(&mut session) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_libdwGetBacktrace() {
+    let expected = {
+        let mut session: sys::LibdwSession = todo!();
+        let result: &Backtrace = unsafe { transmute(&*sys::libdwGetBacktrace(&raw mut session)) };
+        todo!()
+    };
+    let actual = {
+        let mut session: LibdwSession = todo!();
+        let result: &Backtrace = unsafe { &*libdwGetBacktrace(&raw mut session) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_libdwGetBacktrace() {
-    let mut session = null_mut();
-    unsafe { libdwGetBacktrace(&mut session) };
-    todo!("assert")
+    let actual = {
+        let session: LibdwSession = todo!();
+        let result: &Backtrace = unsafe { &*libdwGetBacktrace(&raw mut session) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_libdwLookupLocation(session: LibdwSession, loc: Location, pc: StgPtr) -> bool {
-    let expected = unsafe { sys::libdwLookupLocation(&mut session.into(), &mut loc.into(), pc) };
-    let actual = unsafe { libdwLookupLocation(&mut session, &mut loc, pc) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_libdwLookupLocation() {
+    let expected: c_int = {
+        let mut session: sys::LibdwSession = todo!();
+        let mut loc: sys::Location = todo!();
+        let pc: StgPtr = todo!();
+        unsafe { sys::libdwLookupLocation(&raw mut session, &raw mut loc, pc) }
+    };
+    let actual: c_int = {
+        let mut session: LibdwSession = todo!();
+        let mut loc: Location = todo!();
+        let pc: StgPtr = todo!();
+        unsafe { libdwLookupLocation(&raw mut session, &raw mut loc, pc) }
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_libdwLookupLocation() {
-    let mut session = null_mut();
-    let mut loc = null_mut();
-    let pc = Default::default();
-    unsafe { libdwLookupLocation(&mut session, &mut loc, pc) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_libdwPrintBacktrace() {
-    let mut session = null_mut();
-    let mut file = null_mut();
-    let mut bt = null_mut();
-    unsafe { libdwPrintBacktrace(&mut session, &mut file, &mut bt) };
-    todo!("assert")
+    let actual: c_int = {
+        let session: LibdwSession = todo!();
+        let loc: Location = todo!();
+        let pc: StgPtr = todo!();
+        unsafe { libdwLookupLocation(&raw mut session, &raw mut loc, pc) }
+    };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }

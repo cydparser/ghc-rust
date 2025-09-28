@@ -8,8 +8,6 @@ _files=(
   # rts/src/hs_ffi/tests.rs
   # rts/src/mach_deps.rs
   # rts/src/mach_deps/tests.rs
-  # rts/event_log_writer.rs
-  # rts/event_log_writer/tests.rs
   # rts/src/rts/prof/ccs.rs
   # rts/src/rts/prof/ccs/tests.rs
   # rts/src/rts/storage/block.rs
@@ -28,92 +26,92 @@ _files=(
   # rts/src/stg/regs/tests.rs
   # rts/src/rts/adjustor/tests.rs
   # rts/src/rts/adjustor.rs
-  rts/src/rts/block_signals/tests.rs
-  rts/src/rts/block_signals.rs
+  # rts/src/rts/block_signals/tests.rs
+  # rts/src/rts/block_signals.rs
   # rts/src/rts/config/tests.rs
   # rts/src/rts/config.rs
   # rts/src/rts/constants/tests.rs
   # rts/src/rts/constants.rs
-  rts/src/rts/event_log_writer/tests.rs
-  rts/src/rts/event_log_writer.rs
-  rts/src/rts/exec_page/tests.rs
-  rts/src/rts/exec_page.rs
-  rts/src/rts/file_lock/tests.rs
-  rts/src/rts/file_lock.rs
+  # rts/src/rts/event_log_writer/tests.rs
+  # rts/src/rts/event_log_writer.rs
+  # rts/src/rts/exec_page/tests.rs
+  # rts/src/rts/exec_page.rs
+  # rts/src/rts/file_lock/tests.rs
+  # rts/src/rts/file_lock.rs
   # rts/src/rts/flags/tests.rs
   # rts/src/rts/flags.rs
-  rts/src/rts/foreign_exports/tests.rs
-  rts/src/rts/foreign_exports.rs
-  rts/src/rts/get_time/tests.rs
-  rts/src/rts/get_time.rs
-  rts/src/rts/globals/tests.rs
-  rts/src/rts/globals.rs
-  rts/src/rts/hpc/tests.rs
-  rts/src/rts/hpc.rs
-  rts/src/rts/io_interface/tests.rs
-  rts/src/rts/io_interface.rs
-  rts/src/rts/ipe/tests.rs
-  rts/src/rts/ipe.rs
-  rts/src/rts/libdw/tests.rs
-  rts/src/rts/libdw.rs
-  rts/src/rts/libdw_pool/tests.rs
-  rts/src/rts/libdw_pool.rs
-  rts/src/rts/linker/tests.rs
-  rts/src/rts/linker.rs
-  rts/src/rts/main/tests.rs
-  rts/src/rts/main.rs
+  # rts/src/rts/foreign_exports/tests.rs
+  # rts/src/rts/foreign_exports.rs
+  # rts/src/rts/get_time/tests.rs
+  # rts/src/rts/get_time.rs
+  # rts/src/rts/globals/tests.rs
+  # rts/src/rts/globals.rs
+  # rts/src/rts/hpc/tests.rs
+  # rts/src/rts/hpc.rs
+  # rts/src/rts/io_interface/tests.rs
+  # rts/src/rts/io_interface.rs
+  # rts/src/rts/ipe/tests.rs
+  # rts/src/rts/ipe.rs
+  # rts/src/rts/libdw/tests.rs
+  # rts/src/rts/libdw.rs
+  # rts/src/rts/libdw_pool/tests.rs
+  # rts/src/rts/libdw_pool.rs
+  # rts/src/rts/linker/tests.rs
+  # rts/src/rts/linker.rs
+  # rts/src/rts/main/tests.rs
+  # rts/src/rts/main.rs
   # rts/src/rts/messages/tests.rs
   # rts/src/rts/messages.rs
-  rts/src/rts/non_moving/tests.rs
-  rts/src/rts/non_moving.rs
-  rts/src/rts/os_threads/tests.rs
-  rts/src/rts/os_threads.rs
-  rts/src/rts/parallel/tests.rs
-  rts/src/rts/parallel.rs
-  rts/src/rts/prim_float/tests.rs
-  rts/src/rts/prim_float.rs
+  # rts/src/rts/non_moving/tests.rs
+  # rts/src/rts/non_moving.rs
+  # rts/src/rts/os_threads/tests.rs
+  # rts/src/rts/os_threads.rs
+  # rts/src/rts/parallel/tests.rs
+  # rts/src/rts/parallel.rs
+  # rts/src/rts/prim_float/tests.rs
+  # rts/src/rts/prim_float.rs
   # rts/src/rts/prof/heap/tests.rs
   # rts/src/rts/prof/heap.rs
   # rts/src/rts/prof/ldv/tests.rs
   # rts/src/rts/prof/ldv.rs
-  rts/src/rts/profiling/tests.rs
-  rts/src/rts/profiling.rs
-  rts/src/rts/signals/tests.rs
-  rts/src/rts/signals.rs
-  rts/src/rts/spin_lock/tests.rs
-  rts/src/rts/spin_lock.rs
-  rts/src/rts/stable_name/tests.rs
-  rts/src/rts/stable_name.rs
-  rts/src/rts/stable_ptr/tests.rs
-  rts/src/rts/stable_ptr.rs
-  rts/src/rts/static_ptr_table/tests.rs
-  rts/src/rts/static_ptr_table.rs
-  rts/src/rts/storage/closure_macros/tests.rs
-  rts/src/rts/storage/closure_macros.rs
+  # rts/src/rts/profiling/tests.rs
+  # rts/src/rts/profiling.rs
+  # rts/src/rts/signals/tests.rs
+  # rts/src/rts/signals.rs
+  # rts/src/rts/spin_lock/tests.rs
+  # rts/src/rts/spin_lock.rs
+  # rts/src/rts/stable_name/tests.rs
+  # rts/src/rts/stable_name.rs
+  # rts/src/rts/stable_ptr/tests.rs
+  # rts/src/rts/stable_ptr.rs
+  # rts/src/rts/static_ptr_table/tests.rs
+  # rts/src/rts/static_ptr_table.rs
+  # rts/src/rts/storage/closure_macros/tests.rs
+  # rts/src/rts/storage/closure_macros.rs
   # rts/src/rts/storage/closure_types/tests.rs
   # rts/src/rts/storage/closure_types.rs
   # rts/src/rts/storage/closures/tests.rs
   # rts/src/rts/storage/closures.rs
   # rts/src/rts/storage/fun_types/tests.rs
   # rts/src/rts/storage/fun_types.rs
-  rts/src/rts/storage/heap/tests.rs
-  rts/src/rts/storage/heap.rs
-  rts/src/rts/storage/m_block/tests.rs
-  rts/src/rts/storage/m_block.rs
+  # rts/src/rts/storage/heap/tests.rs
+  # rts/src/rts/storage/heap.rs
+  # rts/src/rts/storage/m_block/tests.rs
+  # rts/src/rts/storage/m_block.rs
   # rts/src/rts/threads/tests.rs
   # rts/src/rts/threads.rs
   # rts/src/rts/ticky/tests.rs
   # rts/src/rts/ticky.rs
   # rts/src/rts/time/tests.rs
   # rts/src/rts/time.rs
-  rts/src/rts/timer/tests.rs
-  rts/src/rts/timer.rs
-  rts/src/rts/tsan_utils/tests.rs
-  rts/src/rts/tsan_utils.rs
-  rts/src/rts/tty/tests.rs
-  rts/src/rts/tty.rs
-  rts/src/rts/utils/tests.rs
-  rts/src/rts/utils.rs
+  # rts/src/rts/timer/tests.rs
+  # rts/src/rts/timer.rs
+  # rts/src/rts/tsan_utils/tests.rs
+  # rts/src/rts/tsan_utils.rs
+  # rts/src/rts/tty/tests.rs
+  # rts/src/rts/tty.rs
+  # rts/src/rts/utils/tests.rs
+  # rts/src/rts/utils.rs
   # rts/src/rts_api/tests.rs
   # rts/src/rts_api.rs
   # rts/src/stg.rs
@@ -122,12 +120,12 @@ _files=(
   # rts/src/stg/mach_regs_for_host/tests.rs
   # rts/src/stg/misc_closures/tests.rs
   # rts/src/stg/misc_closures.rs
-  rts/src/stg/prim/tests.rs
-  rts/src/stg/prim.rs
-  rts/src/stg/smp/tests.rs
-  rts/src/stg/smp.rs
-  rts/src/stg/ticky/tests.rs
-  rts/src/stg/ticky.rs
+  # rts/src/stg/prim/tests.rs
+  # rts/src/stg/prim.rs
+  # rts/src/stg/smp/tests.rs
+  # rts/src/stg/smp.rs
+  # rts/src/stg/ticky/tests.rs
+  # rts/src/stg/ticky.rs
   # rts/src/stg/types.rs
   # rts/src/stg/types/tests.rs
 )

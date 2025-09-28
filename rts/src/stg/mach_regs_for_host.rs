@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod tests;
 
-// TODO: Set to 1 when defined(UnregisterisedCompiler) || defined(javascript_HOST_ARCH)
+// TODO(rust): Set to 1 when defined(UnregisterisedCompiler) || defined(javascript_HOST_ARCH)
 /// - GHC_PLACES: {compiler}
 pub const MACHREGS_NO_REGS: u32 = 0;
 
@@ -16,7 +16,7 @@ pub const MACHREGS_aarch64: u32 = 1;
 #[cfg(target_arch = "arm")]
 pub const MACHREGS_arm: u32 = 1;
 
-// TODO: There is not a target_arch for i386
+// TODO(rust): There is not a target_arch for i386
 // #[cfg(target_arch = "i386")]
 // pub const MACHREGS_i386: u32 = 1;
 

@@ -1,12 +1,5 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
+
 #[cfg(feature = "sys")]
 #[test]
 fn sys_size__ObjectCode() {
@@ -35,11 +28,3 @@ const _: () = {
     ["Offset of field: ForeignExportsList::exports"]
         [offset_of!(ForeignExportsList, exports) - 32usize];
 };
-
-#[test]
-#[ignore]
-fn test_registerForeignExports() {
-    let mut exports = null_mut();
-    unsafe { registerForeignExports(&mut exports) };
-    todo!("assert")
-}

@@ -1,200 +1,282 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
+
 #[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetGHCConcSignalSignalHandlerStore(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetGHCConcSignalSignalHandlerStore(ptr) };
-    let actual = unsafe { getOrSetGHCConcSignalSignalHandlerStore(ptr) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetGHCConcSignalSignalHandlerStore() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { sys::getOrSetGHCConcSignalSignalHandlerStore(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetGHCConcSignalSignalHandlerStore(ptr) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getOrSetGHCConcSignalSignalHandlerStore() {
-    let ptr = Default::default();
-    unsafe { getOrSetGHCConcSignalSignalHandlerStore(ptr) };
-    todo!("assert")
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetGHCConcSignalSignalHandlerStore(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetGHCConcWindowsPendingDelaysStore(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetGHCConcWindowsPendingDelaysStore(ptr) };
-    let actual = unsafe { getOrSetGHCConcWindowsPendingDelaysStore(ptr) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetGHCConcWindowsPendingDelaysStore() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { sys::getOrSetGHCConcWindowsPendingDelaysStore(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsPendingDelaysStore(ptr) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getOrSetGHCConcWindowsPendingDelaysStore() {
-    let ptr = Default::default();
-    unsafe { getOrSetGHCConcWindowsPendingDelaysStore(ptr) };
-    todo!("assert")
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsPendingDelaysStore(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetGHCConcWindowsIOManagerThreadStore(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetGHCConcWindowsIOManagerThreadStore(ptr) };
-    let actual = unsafe { getOrSetGHCConcWindowsIOManagerThreadStore(ptr) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetGHCConcWindowsIOManagerThreadStore() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { sys::getOrSetGHCConcWindowsIOManagerThreadStore(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsIOManagerThreadStore(ptr) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getOrSetGHCConcWindowsIOManagerThreadStore() {
-    let ptr = Default::default();
-    unsafe { getOrSetGHCConcWindowsIOManagerThreadStore(ptr) };
-    todo!("assert")
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsIOManagerThreadStore(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetGHCConcWindowsProddingStore(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetGHCConcWindowsProddingStore(ptr) };
-    let actual = unsafe { getOrSetGHCConcWindowsProddingStore(ptr) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetGHCConcWindowsProddingStore() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { sys::getOrSetGHCConcWindowsProddingStore(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsProddingStore(ptr) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getOrSetGHCConcWindowsProddingStore() {
-    let ptr = Default::default();
-    unsafe { getOrSetGHCConcWindowsProddingStore(ptr) };
-    todo!("assert")
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsProddingStore(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetSystemEventThreadEventManagerStore(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetSystemEventThreadEventManagerStore(ptr) };
-    let actual = unsafe { getOrSetSystemEventThreadEventManagerStore(ptr) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetSystemEventThreadEventManagerStore() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { sys::getOrSetSystemEventThreadEventManagerStore(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetSystemEventThreadEventManagerStore(ptr) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getOrSetSystemEventThreadEventManagerStore() {
-    let ptr = Default::default();
-    unsafe { getOrSetSystemEventThreadEventManagerStore(ptr) };
-    todo!("assert")
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetSystemEventThreadEventManagerStore(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetSystemEventThreadIOManagerThreadStore(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetSystemEventThreadIOManagerThreadStore(ptr) };
-    let actual = unsafe { getOrSetSystemEventThreadIOManagerThreadStore(ptr) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetSystemEventThreadIOManagerThreadStore() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr =
+            unsafe { sys::getOrSetSystemEventThreadIOManagerThreadStore(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetSystemEventThreadIOManagerThreadStore(ptr) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getOrSetSystemEventThreadIOManagerThreadStore() {
-    let ptr = Default::default();
-    unsafe { getOrSetSystemEventThreadIOManagerThreadStore(ptr) };
-    todo!("assert")
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetSystemEventThreadIOManagerThreadStore(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetSystemTimerThreadEventManagerStore(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetSystemTimerThreadEventManagerStore(ptr) };
-    let actual = unsafe { getOrSetSystemTimerThreadEventManagerStore(ptr) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetSystemTimerThreadEventManagerStore() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { sys::getOrSetSystemTimerThreadEventManagerStore(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetSystemTimerThreadEventManagerStore(ptr) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getOrSetSystemTimerThreadEventManagerStore() {
-    let ptr = Default::default();
-    unsafe { getOrSetSystemTimerThreadEventManagerStore(ptr) };
-    todo!("assert")
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetSystemTimerThreadEventManagerStore(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetSystemTimerThreadIOManagerThreadStore(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetSystemTimerThreadIOManagerThreadStore(ptr) };
-    let actual = unsafe { getOrSetSystemTimerThreadIOManagerThreadStore(ptr) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetSystemTimerThreadIOManagerThreadStore() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr =
+            unsafe { sys::getOrSetSystemTimerThreadIOManagerThreadStore(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetSystemTimerThreadIOManagerThreadStore(ptr) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getOrSetSystemTimerThreadIOManagerThreadStore() {
-    let ptr = Default::default();
-    unsafe { getOrSetSystemTimerThreadIOManagerThreadStore(ptr) };
-    todo!("assert")
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetSystemTimerThreadIOManagerThreadStore(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetLibHSghcFastStringTable(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetLibHSghcFastStringTable(ptr) };
-    let actual = unsafe { getOrSetLibHSghcFastStringTable(ptr) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetLibHSghcFastStringTable() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { sys::getOrSetLibHSghcFastStringTable(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetLibHSghcFastStringTable(ptr) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getOrSetLibHSghcFastStringTable() {
-    let ptr = Default::default();
-    unsafe { getOrSetLibHSghcFastStringTable(ptr) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetLibHSghcGlobalHasPprDebug(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetLibHSghcGlobalHasPprDebug(ptr) };
-    let actual = unsafe { getOrSetLibHSghcGlobalHasPprDebug(ptr) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_getOrSetLibHSghcGlobalHasPprDebug() {
-    let ptr = Default::default();
-    unsafe { getOrSetLibHSghcGlobalHasPprDebug(ptr) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetLibHSghcGlobalHasNoDebugOutput(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetLibHSghcGlobalHasNoDebugOutput(ptr) };
-    let actual = unsafe { getOrSetLibHSghcGlobalHasNoDebugOutput(ptr) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_getOrSetLibHSghcGlobalHasNoDebugOutput() {
-    let ptr = Default::default();
-    unsafe { getOrSetLibHSghcGlobalHasNoDebugOutput(ptr) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_getOrSetLibHSghcGlobalHasNoStateHack(ptr: StgStablePtr) -> bool {
-    let expected = unsafe { sys::getOrSetLibHSghcGlobalHasNoStateHack(ptr) };
-    let actual = unsafe { getOrSetLibHSghcGlobalHasNoStateHack(ptr) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_getOrSetLibHSghcGlobalHasNoStateHack() {
-    let ptr = Default::default();
-    unsafe { getOrSetLibHSghcGlobalHasNoStateHack(ptr) };
-    todo!("assert")
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetLibHSghcFastStringTable(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }

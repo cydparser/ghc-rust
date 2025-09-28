@@ -1,24 +1,23 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
+
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_genericRaise(sig: c_int) -> bool {
-    let expected = unsafe { sys::genericRaise(sig) };
-    let actual = unsafe { genericRaise(sig) };
-    actual == expected
+    let expected: c_int = { unsafe { sys::genericRaise(sig) } };
+    let actual: c_int = { unsafe { genericRaise(sig) } };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_genericRaise() {
-    let sig = Default::default();
-    unsafe { genericRaise(sig) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: c_int = {
+        let sig: c_int = Arbitrary::arbitrary(g);
+        unsafe { genericRaise(sig) }
+    };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }

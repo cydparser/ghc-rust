@@ -7,13 +7,11 @@ use super::*;
 fn equivalent_createThread(stack_size: W_) -> bool {
     let expected = {
         let mut cap: sys::Capability = todo!();
-        let stack_size = stack_size.clone();
         let result: &StgTSO = unsafe { transmute(&*sys::createThread(&raw mut cap, stack_size)) };
         todo!()
     };
     let actual = {
         let mut cap: Capability = todo!();
-        let stack_size = stack_size.clone();
         let result: &StgTSO = unsafe { &*createThread(&raw mut cap, stack_size) };
         todo!()
     };
@@ -42,7 +40,6 @@ fn test_createThread() {
 fn equivalent_createGenThread(stack_size: W_) -> bool {
     let expected = {
         let mut cap: sys::Capability = todo!();
-        let stack_size = stack_size.clone();
         let mut closure: sys::StgClosure = todo!();
         let result: &StgTSO = unsafe {
             transmute(&*sys::createGenThread(
@@ -55,7 +52,6 @@ fn equivalent_createGenThread(stack_size: W_) -> bool {
     };
     let actual = {
         let mut cap: Capability = todo!();
-        let stack_size = stack_size.clone();
         let mut closure: StgClosure = todo!();
         let result: &StgTSO =
             unsafe { &*createGenThread(&raw mut cap, stack_size, &raw mut closure) };
@@ -88,13 +84,11 @@ fn test_createGenThread() {
 fn equivalent_suspendThread(interruptible: bool) -> bool {
     let expected = {
         let mut arg1: sys::StgRegTable = todo!();
-        let interruptible = interruptible.clone();
         let result: &c_void = unsafe { &*sys::suspendThread(&raw mut arg1, interruptible) };
         todo!()
     };
     let actual = {
         let mut arg1: StgRegTable = todo!();
-        let interruptible = interruptible.clone();
         let result: &c_void = unsafe { &*suspendThread(&raw mut arg1, interruptible) };
         todo!()
     };
@@ -351,12 +345,10 @@ fn test_rtsSupportsBoundThreads() {
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_setNumCapabilities(new_: u32) -> bool {
     let expected = {
-        let new_ = new_.clone();
         unsafe { sys::setNumCapabilities(new_) };
         todo!()
     };
     let actual = {
-        let new_ = new_.clone();
         unsafe { setNumCapabilities(new_) };
         todo!()
     };

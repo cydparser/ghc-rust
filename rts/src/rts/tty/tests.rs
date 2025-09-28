@@ -1,33 +1,64 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
+
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent___hscore_get_saved_termios(fd: c_int) -> bool {
-    let expected = unsafe { sys::__hscore_get_saved_termios(fd) };
-    let actual = unsafe { __hscore_get_saved_termios(fd) };
-    actual == expected
+    let expected = {
+        let result: &c_void = unsafe { &*sys::__hscore_get_saved_termios(fd) };
+        todo!()
+    };
+    let actual = {
+        let result: &c_void = unsafe { &*__hscore_get_saved_termios(fd) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test___hscore_get_saved_termios() {
-    let fd = Default::default();
-    unsafe { __hscore_get_saved_termios(fd) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let fd: c_int = Arbitrary::arbitrary(g);
+        let result: &c_void = unsafe { &*__hscore_get_saved_termios(fd) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent___hscore_set_saved_termios(fd: c_int) -> bool {
+    let expected = {
+        let mut ts: c_void = todo!();
+        unsafe { sys::__hscore_set_saved_termios(fd, &raw mut ts) };
+        todo!()
+    };
+    let actual = {
+        let mut ts: c_void = todo!();
+        unsafe { __hscore_set_saved_termios(fd, &raw mut ts) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test___hscore_set_saved_termios() {
-    let fd = Default::default();
-    let mut ts = null_mut();
-    unsafe { __hscore_set_saved_termios(fd, &mut ts) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let fd: c_int = Arbitrary::arbitrary(g);
+        let ts: c_void = todo!();
+        unsafe { __hscore_set_saved_termios(fd, &raw mut ts) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }

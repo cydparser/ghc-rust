@@ -1,12 +1,5 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
+
 #[cfg(feature = "sys")]
 #[test]
 fn sys_size_ExecPage() {
@@ -21,32 +14,83 @@ const _: () = {
 };
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_allocateExecPage() -> bool {
-    let expected = unsafe { transmute(sys::allocateExecPage()) };
-    let actual = unsafe { allocateExecPage() };
-    actual == expected
+#[test]
+#[ignore]
+fn equivalent_allocateExecPage() {
+    let expected: &ExecPage = { unsafe { transmute(&*sys::allocateExecPage()) } };
+    let actual: &ExecPage = { unsafe { &*allocateExecPage() } };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_allocateExecPage() {
-    unsafe { allocateExecPage() };
-    todo!("assert")
+    let actual: &ExecPage = { unsafe { &*allocateExecPage() } };
+    let expected: &ExecPage = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_freezeExecPage(page: ExecPage) -> bool {
+    let expected = {
+        let mut page = page.clone().into();
+        unsafe { sys::freezeExecPage(&raw mut page) };
+        todo!()
+    };
+    let actual = {
+        let mut page = page.clone();
+        unsafe { freezeExecPage(&raw mut page) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_freezeExecPage() {
-    let mut page = null_mut();
-    unsafe { freezeExecPage(&mut page) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut page: ExecPage = Arbitrary::arbitrary(g);
+        unsafe { freezeExecPage(&raw mut page) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_freeExecPage(page: ExecPage) -> bool {
+    let expected = {
+        let mut page = page.clone().into();
+        unsafe { sys::freeExecPage(&raw mut page) };
+        todo!()
+    };
+    let actual = {
+        let mut page = page.clone();
+        unsafe { freeExecPage(&raw mut page) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_freeExecPage() {
-    let mut page = null_mut();
-    unsafe { freeExecPage(&mut page) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut page: ExecPage = Arbitrary::arbitrary(g);
+        unsafe { freeExecPage(&raw mut page) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }

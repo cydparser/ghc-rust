@@ -1,12 +1,5 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
+
 #[cfg(feature = "sys")]
 #[test]
 fn sys_size_InfoProv_() {
@@ -97,36 +90,99 @@ const _: () = {
         [offset_of!(IpeBufferListNode_, module_name) - 68usize];
 };
 
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
-fn test_registerInfoProvList() {
-    let mut node = null_mut();
-    unsafe { registerInfoProvList(&mut node) };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_registerInfoProvList() {
+    let expected = {
+        let mut node: sys::IpeBufferListNode = todo!();
+        unsafe { sys::registerInfoProvList(&raw mut node) };
+        todo!()
+    };
+    let actual = {
+        let mut node: IpeBufferListNode = todo!();
+        unsafe { registerInfoProvList(&raw mut node) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
-fn test_formatClosureDescIpe() {
-    let ipe_buf = null();
-    let mut str_buf = null_mut();
-    unsafe { formatClosureDescIpe(&ipe_buf, &mut str_buf) };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn test_registerInfoProvList() {
+    let actual = {
+        let node: IpeBufferListNode = todo!();
+        unsafe { registerInfoProvList(&raw mut node) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_lookupIPE(info: StgInfoTable, out: InfoProvEnt) -> bool {
-    let expected = unsafe { transmute(sys::lookupIPE(&info.into(), &mut out.into())) };
-    let actual = unsafe { lookupIPE(&info, &mut out) };
-    actual == expected
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_formatClosureDescIpe(str_buf: c_char) -> bool {
+    let expected = {
+        let mut ipe_buf: sys::InfoProvEnt = todo!();
+        let mut str_buf = str_buf;
+        unsafe { sys::formatClosureDescIpe(&raw mut ipe_buf, &raw mut str_buf) };
+        todo!()
+    };
+    let actual = {
+        let mut ipe_buf: InfoProvEnt = todo!();
+        let mut str_buf = str_buf;
+        unsafe { formatClosureDescIpe(&raw mut ipe_buf, &raw mut str_buf) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_formatClosureDescIpe() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let ipe_buf: InfoProvEnt = todo!();
+        let mut str_buf: c_char = Arbitrary::arbitrary(g);
+        unsafe { formatClosureDescIpe(&raw mut ipe_buf, &raw mut str_buf) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_lookupIPE() {
+    let expected: bool = {
+        let mut info: sys::StgInfoTable = todo!();
+        let mut out: sys::InfoProvEnt = todo!();
+        unsafe { sys::lookupIPE(&raw mut info, &raw mut out) }
+    };
+    let actual: bool = {
+        let mut info: StgInfoTable = todo!();
+        let mut out: InfoProvEnt = todo!();
+        unsafe { lookupIPE(&raw mut info, &raw mut out) }
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_lookupIPE() {
-    let info = null();
-    let mut out = null_mut();
-    unsafe { lookupIPE(&info, &mut out) };
-    todo!("assert")
+    let actual: bool = {
+        let info: StgInfoTable = todo!();
+        let out: InfoProvEnt = todo!();
+        unsafe { lookupIPE(&raw mut info, &raw mut out) }
+    };
+    let expected: bool = todo!();
+    assert_eq!(expected, actual);
 }

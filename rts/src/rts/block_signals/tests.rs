@@ -1,22 +1,57 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
+
 #[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
 #[test]
 #[ignore]
-fn test_blockUserSignals() {
-    unsafe { blockUserSignals() };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_blockUserSignals() {
+    let expected = {
+        unsafe { sys::blockUserSignals() };
+        todo!()
+    };
+    let actual = {
+        unsafe { blockUserSignals() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_blockUserSignals() {
+    let actual = {
+        unsafe { blockUserSignals() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_unblockUserSignals() {
+    let expected = {
+        unsafe { sys::unblockUserSignals() };
+        todo!()
+    };
+    let actual = {
+        unsafe { unblockUserSignals() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_unblockUserSignals() {
-    unsafe { unblockUserSignals() };
-    todo!("assert")
+    let actual = {
+        unsafe { unblockUserSignals() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }

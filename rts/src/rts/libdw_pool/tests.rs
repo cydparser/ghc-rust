@@ -1,38 +1,88 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
+
 #[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_libdwPoolTake() -> bool {
-    let expected = unsafe { transmute(sys::libdwPoolTake()) };
-    let actual = unsafe { libdwPoolTake() };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_libdwPoolTake() {
+    let expected = {
+        let result: &LibdwSession = unsafe { transmute(&*sys::libdwPoolTake()) };
+        todo!()
+    };
+    let actual = {
+        let result: &LibdwSession = unsafe { &*libdwPoolTake() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_libdwPoolTake() {
-    unsafe { libdwPoolTake() };
-    todo!("assert")
+    let actual = {
+        let result: &LibdwSession = unsafe { &*libdwPoolTake() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_libdwPoolRelease() {
+    let expected = {
+        let mut sess: sys::LibdwSession = todo!();
+        unsafe { sys::libdwPoolRelease(&raw mut sess) };
+        todo!()
+    };
+    let actual = {
+        let mut sess: LibdwSession = todo!();
+        unsafe { libdwPoolRelease(&raw mut sess) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_libdwPoolRelease() {
-    let mut sess = null_mut();
-    unsafe { libdwPoolRelease(&mut sess) };
-    todo!("assert")
+    let actual = {
+        let sess: LibdwSession = todo!();
+        unsafe { libdwPoolRelease(&raw mut sess) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_libdwPoolClear() {
+    let expected = {
+        unsafe { sys::libdwPoolClear() };
+        todo!()
+    };
+    let actual = {
+        unsafe { libdwPoolClear() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_libdwPoolClear() {
-    unsafe { libdwPoolClear() };
-    todo!("assert")
+    let actual = {
+        unsafe { libdwPoolClear() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }

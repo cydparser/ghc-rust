@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests;
 
-// TODO: Set constants same way as ghcautoconf.h
+// TODO(rust): Set constants same way as ghcautoconf.h
 
 /// - GHC_PLACES: {libraries}
 pub const SIZEOF_HSINT: u32 = 8;

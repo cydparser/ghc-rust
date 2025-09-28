@@ -520,7 +520,7 @@ impl From<_RTS_FLAGS> for sys::_RTS_FLAGS {
 /// - GHC_PLACES: {libraries}
 pub type RTS_FLAGS = _RTS_FLAGS;
 
-// TODO: See [RtsFlags is a pointer in STG code]
+// TODO(rust): See [RtsFlags is a pointer in STG code]
 // /// - GHC_PLACES: {compiler, libraries}
 // #[cfg_attr(feature = "sys", unsafe(export_name = "rust_RtsFlags"))]
 // #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]

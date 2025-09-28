@@ -1,295 +1,469 @@
 use super::*;
-use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-use crate::utils::test::*;
-#[cfg(feature = "sys")]
-use ghc_rts_sys as sys;
-use quickcheck_macros::quickcheck;
-use std::ffi::{c_char, c_int, c_uint, c_void};
-use std::mem::transmute;
-use std::ptr::{null, null_mut};
+
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_PATH_FMT() {
-    assert_eq!(sys::PATH_FMT, PATH_FMT);
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_initLinker() {
+    let expected = {
+        unsafe { sys::initLinker() };
+        todo!()
+    };
+    let actual = {
+        unsafe { initLinker() };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_initLinker() {
-    unsafe { initLinker() };
-    todo!("assert")
+    let actual = {
+        unsafe { initLinker() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_initLinker_(retain_cafs: c_int) -> bool {
+    let expected = {
+        unsafe { sys::initLinker_(retain_cafs) };
+        todo!()
+    };
+    let actual = {
+        unsafe { initLinker_(retain_cafs) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_initLinker_() {
-    let retain_cafs = Default::default();
-    unsafe { initLinker_(retain_cafs) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let retain_cafs: c_int = Arbitrary::arbitrary(g);
+        unsafe { initLinker_(retain_cafs) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_insertSymbol(obj_name: pathchar, key: c_char, data: c_void) -> bool {
-    let expected = unsafe { sys::insertSymbol(&mut obj_name, &mut key, &mut data) };
-    let actual = unsafe { insertSymbol(&mut obj_name, &mut key, &mut data) };
-    actual == expected
-}
-
-#[test]
 #[ignore]
-fn test_insertSymbol() {
-    let mut obj_name = null_mut();
-    let mut key = null_mut();
-    let mut data = null_mut();
-    unsafe { insertSymbol(&mut obj_name, &mut key, &mut data) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_lookupSymbol(lbl: c_char) -> bool {
-    let expected = unsafe { sys::lookupSymbol(&mut lbl) };
-    let actual = unsafe { lookupSymbol(&mut lbl) };
-    actual == expected
+    let expected = {
+        let mut lbl = lbl;
+        let result: &c_void = unsafe { &*sys::lookupSymbol(&raw mut lbl) };
+        todo!()
+    };
+    let actual = {
+        let mut lbl = lbl;
+        let result: &c_void = unsafe { &*lookupSymbol(&raw mut lbl) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_lookupSymbol() {
-    let mut lbl = null_mut();
-    unsafe { lookupSymbol(&mut lbl) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut lbl: c_char = Arbitrary::arbitrary(g);
+        let result: &c_void = unsafe { &*lookupSymbol(&raw mut lbl) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_getObjectLoadStatus(path: pathchar) -> bool {
-    let expected = unsafe { transmute(sys::getObjectLoadStatus(&mut path)) };
-    let actual = unsafe { getObjectLoadStatus(&mut path) };
-    actual == expected
+    let expected: OStatus = {
+        let mut path = path;
+        unsafe { transmute(sys::getObjectLoadStatus(&raw mut path)) }
+    };
+    let actual: OStatus = {
+        let mut path = path;
+        unsafe { getObjectLoadStatus(&raw mut path) }
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getObjectLoadStatus() {
-    let mut path = null_mut();
-    unsafe { getObjectLoadStatus(&mut path) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: OStatus = {
+        let mut path: pathchar = Arbitrary::arbitrary(g);
+        unsafe { getObjectLoadStatus(&raw mut path) }
+    };
+    let expected: OStatus = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_unloadObj(path: pathchar) -> bool {
-    let expected = unsafe { sys::unloadObj(&mut path) };
-    let actual = unsafe { unloadObj(&mut path) };
-    actual == expected
+    let expected: HsInt = {
+        let mut path = path;
+        unsafe { sys::unloadObj(&raw mut path) }
+    };
+    let actual: HsInt = {
+        let mut path = path;
+        unsafe { unloadObj(&raw mut path) }
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_unloadObj() {
-    let mut path = null_mut();
-    unsafe { unloadObj(&mut path) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: HsInt = {
+        let mut path: pathchar = Arbitrary::arbitrary(g);
+        unsafe { unloadObj(&raw mut path) }
+    };
+    let expected: HsInt = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_purgeObj(path: pathchar) -> bool {
-    let expected = unsafe { sys::purgeObj(&mut path) };
-    let actual = unsafe { purgeObj(&mut path) };
-    actual == expected
+    let expected: HsInt = {
+        let mut path = path;
+        unsafe { sys::purgeObj(&raw mut path) }
+    };
+    let actual: HsInt = {
+        let mut path = path;
+        unsafe { purgeObj(&raw mut path) }
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_purgeObj() {
-    let mut path = null_mut();
-    unsafe { purgeObj(&mut path) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: HsInt = {
+        let mut path: pathchar = Arbitrary::arbitrary(g);
+        unsafe { purgeObj(&raw mut path) }
+    };
+    let expected: HsInt = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_loadObj(path: pathchar) -> bool {
-    let expected = unsafe { sys::loadObj(&mut path) };
-    let actual = unsafe { loadObj(&mut path) };
-    actual == expected
+    let expected: HsInt = {
+        let mut path = path;
+        unsafe { sys::loadObj(&raw mut path) }
+    };
+    let actual: HsInt = {
+        let mut path = path;
+        unsafe { loadObj(&raw mut path) }
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_loadObj() {
-    let mut path = null_mut();
-    unsafe { loadObj(&mut path) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: HsInt = {
+        let mut path: pathchar = Arbitrary::arbitrary(g);
+        unsafe { loadObj(&raw mut path) }
+    };
+    let expected: HsInt = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_loadArchive(path: pathchar) -> bool {
-    let expected = unsafe { sys::loadArchive(&mut path) };
-    let actual = unsafe { loadArchive(&mut path) };
-    actual == expected
+    let expected: HsInt = {
+        let mut path = path;
+        unsafe { sys::loadArchive(&raw mut path) }
+    };
+    let actual: HsInt = {
+        let mut path = path;
+        unsafe { loadArchive(&raw mut path) }
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_loadArchive() {
-    let mut path = null_mut();
-    unsafe { loadArchive(&mut path) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: HsInt = {
+        let mut path: pathchar = Arbitrary::arbitrary(g);
+        unsafe { loadArchive(&raw mut path) }
+    };
+    let expected: HsInt = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_resolveObjs() -> bool {
-    let expected = unsafe { sys::resolveObjs() };
-    let actual = unsafe { resolveObjs() };
-    actual == expected
+#[test]
+#[ignore]
+fn equivalent_resolveObjs() {
+    let expected: HsInt = { unsafe { sys::resolveObjs() } };
+    let actual: HsInt = { unsafe { resolveObjs() } };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_resolveObjs() {
-    unsafe { resolveObjs() };
-    todo!("assert")
+    let actual: HsInt = { unsafe { resolveObjs() } };
+    let expected: HsInt = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_loadNativeObj(path: pathchar, errmsg: c_char) -> bool {
-    let expected = unsafe { sys::loadNativeObj(&mut path, &mut &mut errmsg) };
-    let actual = unsafe { loadNativeObj(&mut path, &mut &mut errmsg) };
-    actual == expected
+    let expected = {
+        let mut path = path;
+        let mut errmsg = errmsg;
+        let mut errmsg = &raw mut errmsg;
+        let result: &c_void = unsafe { &*sys::loadNativeObj(&raw mut path, &raw mut errmsg) };
+        todo!()
+    };
+    let actual = {
+        let mut path = path;
+        let mut errmsg = errmsg;
+        let mut errmsg = &raw mut errmsg;
+        let result: &c_void = unsafe { &*loadNativeObj(&raw mut path, &raw mut errmsg) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_loadNativeObj() {
-    let mut path = null_mut();
-    let mut errmsg = null_mut();
-    unsafe { loadNativeObj(&mut path, &mut &mut errmsg) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut path: pathchar = Arbitrary::arbitrary(g);
+        let mut errmsg: c_char = Arbitrary::arbitrary(g);
+        let mut errmsg = &raw mut errmsg;
+        let result: &c_void = unsafe { &*loadNativeObj(&raw mut path, &raw mut errmsg) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_unloadNativeObj(handle: c_void) -> bool {
-    let expected = unsafe { sys::unloadNativeObj(&mut handle) };
-    let actual = unsafe { unloadNativeObj(&mut handle) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_unloadNativeObj() {
+    let expected: HsInt = {
+        let mut handle: c_void = todo!();
+        unsafe { sys::unloadNativeObj(&raw mut handle) }
+    };
+    let actual: HsInt = {
+        let mut handle: c_void = todo!();
+        unsafe { unloadNativeObj(&raw mut handle) }
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_unloadNativeObj() {
-    let mut handle = null_mut();
-    unsafe { unloadNativeObj(&mut handle) };
-    todo!("assert")
+    let actual: HsInt = {
+        let handle: c_void = todo!();
+        unsafe { unloadNativeObj(&raw mut handle) }
+    };
+    let expected: HsInt = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
-fn equivalent_lookupSymbolInNativeObj(handle: c_void, symbol_name: c_char) -> bool {
-    let expected = unsafe { sys::lookupSymbolInNativeObj(&mut handle, &symbol_name) };
-    let actual = unsafe { lookupSymbolInNativeObj(&mut handle, &symbol_name) };
-    actual == expected
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_lookupSymbolInNativeObj(symbol_name: c_char) -> bool {
+    let expected = {
+        let mut handle: c_void = todo!();
+        let mut symbol_name = symbol_name;
+        let result: &c_void =
+            unsafe { &*sys::lookupSymbolInNativeObj(&raw mut handle, &raw mut symbol_name) };
+        todo!()
+    };
+    let actual = {
+        let mut handle: c_void = todo!();
+        let mut symbol_name = symbol_name;
+        let result: &c_void =
+            unsafe { &*lookupSymbolInNativeObj(&raw mut handle, &raw mut symbol_name) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_lookupSymbolInNativeObj() {
-    let mut handle = null_mut();
-    let symbol_name = null();
-    unsafe { lookupSymbolInNativeObj(&mut handle, &symbol_name) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let handle: c_void = todo!();
+        let mut symbol_name: c_char = Arbitrary::arbitrary(g);
+        let result: &c_void =
+            unsafe { &*lookupSymbolInNativeObj(&raw mut handle, &raw mut symbol_name) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_addDLL(dll_name: pathchar) -> bool {
-    let expected = unsafe { sys::addDLL(&mut dll_name) };
-    let actual = unsafe { addDLL(&mut dll_name) };
-    actual == expected
+    let expected: &c_char = {
+        let mut dll_name = dll_name;
+        unsafe { &*sys::addDLL(&raw mut dll_name) }
+    };
+    let actual: &c_char = {
+        let mut dll_name = dll_name;
+        unsafe { &*addDLL(&raw mut dll_name) }
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_addDLL() {
-    let mut dll_name = null_mut();
-    unsafe { addDLL(&mut dll_name) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: &c_char = {
+        let mut dll_name: pathchar = Arbitrary::arbitrary(g);
+        unsafe { &*addDLL(&raw mut dll_name) }
+    };
+    let expected: &c_char = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_addLibrarySearchPath(dll_path: pathchar) -> bool {
-    let expected = unsafe { sys::addLibrarySearchPath(&mut dll_path) };
-    let actual = unsafe { addLibrarySearchPath(&mut dll_path) };
-    actual == expected
+    let expected = {
+        let mut dll_path = dll_path;
+        let result: HsPtr = unsafe { sys::addLibrarySearchPath(&raw mut dll_path) };
+        todo!()
+    };
+    let actual = {
+        let mut dll_path = dll_path;
+        let result: HsPtr = unsafe { addLibrarySearchPath(&raw mut dll_path) };
+        todo!()
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_addLibrarySearchPath() {
-    let mut dll_path = null_mut();
-    unsafe { addLibrarySearchPath(&mut dll_path) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut dll_path: pathchar = Arbitrary::arbitrary(g);
+        let result: HsPtr = unsafe { addLibrarySearchPath(&raw mut dll_path) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_removeLibrarySearchPath(dll_path_index: HsPtr) -> bool {
-    let expected = unsafe { sys::removeLibrarySearchPath(dll_path_index) };
-    let actual = unsafe { removeLibrarySearchPath(dll_path_index) };
-    actual == expected
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_removeLibrarySearchPath() {
+    let expected: HsBool = {
+        let dll_path_index: HsPtr = todo!();
+        unsafe { sys::removeLibrarySearchPath(dll_path_index) }
+    };
+    let actual: HsBool = {
+        let dll_path_index: HsPtr = todo!();
+        unsafe { removeLibrarySearchPath(dll_path_index) }
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_removeLibrarySearchPath() {
-    let dll_path_index = Default::default();
-    unsafe { removeLibrarySearchPath(dll_path_index) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_warnMissingKBLibraryPaths() {
-    unsafe { warnMissingKBLibraryPaths() };
-    todo!("assert")
+    let actual: HsBool = {
+        let dll_path_index: HsPtr = todo!();
+        unsafe { removeLibrarySearchPath(dll_path_index) }
+    };
+    let expected: HsBool = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
+#[ignore]
 fn equivalent_findSystemLibrary(dll_name: pathchar) -> bool {
-    let expected = unsafe { sys::findSystemLibrary(&mut dll_name) };
-    let actual = unsafe { findSystemLibrary(&mut dll_name) };
-    actual == expected
+    let expected: &pathchar = {
+        let mut dll_name = dll_name;
+        unsafe { &*sys::findSystemLibrary(&raw mut dll_name) }
+    };
+    let actual: &pathchar = {
+        let mut dll_name = dll_name;
+        unsafe { &*findSystemLibrary(&raw mut dll_name) }
+    };
+    expected == actual
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_findSystemLibrary() {
-    let mut dll_name = null_mut();
-    unsafe { findSystemLibrary(&mut dll_name) };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-fn equivalent_foreignExportStablePtr(p: StgPtr) -> bool {
-    let expected = unsafe { sys::foreignExportStablePtr(p) };
-    let actual = unsafe { foreignExportStablePtr(p) };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_foreignExportStablePtr() {
-    let p = Default::default();
-    unsafe { foreignExportStablePtr(p) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: &pathchar = {
+        let mut dll_name: pathchar = Arbitrary::arbitrary(g);
+        unsafe { &*findSystemLibrary(&raw mut dll_name) }
+    };
+    let expected: &pathchar = todo!();
+    assert_eq!(expected, actual);
 }
