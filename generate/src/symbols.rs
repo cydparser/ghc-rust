@@ -1838,7 +1838,7 @@ pub(crate) static POINTER_TYPES: [&str; 27] = [
     "__darwin_pthread_t",
 ];
 
-pub(crate) static PRIMITIVE_TYPES: [&str; 57] = [
+pub(crate) static PRIMITIVE_TYPES: [&str; 55] = [
     "C_",
     "HsBool",
     "HsChar",
@@ -1856,8 +1856,6 @@ pub(crate) static PRIMITIVE_TYPES: [&str; 57] = [
     "HsWord8",
     "I_",
     "KernelThreadId",
-    "Mutex",
-    "OSThreadId",
     "StgBool",
     "StgChar",
     "StgCode",
@@ -1993,9 +1991,8 @@ pub(crate) static COPY_TYPES: [&str; 92] = [
     "usize",
 ];
 
-pub(crate) static SIMPLE_TYPES: [&str; 40] = [
+pub(crate) static SIMPLE_TYPES: [&str; 39] = [
     "CONCURRENT_FLAGS",
-    "Condition",
     "DEBUG_FLAGS",
     "EventLogStatus",
     "ExecPage",
@@ -2036,7 +2033,7 @@ pub(crate) static SIMPLE_TYPES: [&str; 40] = [
     "mblock_address_range",
 ];
 
-pub(crate) static NON_SIMPLE_TYPES: [&str; 9] = [
+pub(crate) static NON_SIMPLE_TYPES: [&str; 12] = [
     "bdescr",
     "bdescr_",
     "c_void",
@@ -2044,11 +2041,14 @@ pub(crate) static NON_SIMPLE_TYPES: [&str; 9] = [
     "generation_",
     "nursery",
     "nursery_",
+    "pthread_cond_t",
+    "pthread_mutex_t",
+    "pthread_t",
     "snEntry",
     "spEntry",
 ];
 
-pub(crate) static STD_TYPES: [&str; 76] = [
+pub(crate) static STD_TYPES: [&str; 74] = [
     "AdjustorExecutable",
     "AdjustorWritable",
     "C_",
@@ -2072,8 +2072,6 @@ pub(crate) static STD_TYPES: [&str; 76] = [
     "HsWord8",
     "I_",
     "KernelThreadId",
-    "Mutex",
-    "OSThreadId",
     "OSThreadProc",
     "P_",
     "RtsMsgFunction",

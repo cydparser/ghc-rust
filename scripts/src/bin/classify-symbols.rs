@@ -56,7 +56,11 @@ pub fn main() {
             .into_iter()
             .map(|s| Ident::new(s, Span::call_site())),
         );
-        visitor.non_simple_types.insert(syn::parse_quote!(c_void));
+        visitor.non_simple_types.extend(
+            ["c_void", "pthread_cond_t", "pthread_mutex_t", "pthread_t"]
+                .into_iter()
+                .map(|s| Ident::new(s, Span::call_site())),
+        );
 
         let code = std::str::from_utf8(&buf).unwrap();
 
