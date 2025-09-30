@@ -451,12 +451,17 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         _ => parse_quote! { sys::#ident(#(#args_from_sys),*) },
     };
 
+    let fn_name = ident.to_string();
+
     // Mark all functions as unsafe until the code can be audited.
     main_file.items.push(Item::Fn(parse_quote! {
         #(#attrs)*
         #[instrument]
         pub unsafe extern "C" fn #ident(#inputs) #output {
+            #[cfg(feature = "sys")]
             unsafe { #call }
+            #[cfg(not(feature = "sys"))]
+            unimplemented!(#fn_name)
         }
     }));
 
