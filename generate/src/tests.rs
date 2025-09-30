@@ -1,4 +1,4 @@
-use crate::Symbols;
+use crate::{Place, Places, Symbols};
 use proc_macro2::{Punct, Spacing, TokenStream, TokenTree};
 use quote::{format_ident, quote};
 use std::iter;
@@ -8,6 +8,7 @@ use syn::{Ident, Type, parse_quote, punctuated::Punctuated, token};
 pub fn generate_tests(
     symbols: &Symbols,
     sig: &syn::Signature,
+    places: Places,
 ) -> Option<impl IntoIterator<Item = syn::ItemFn>> {
     let (mut has_arbitrary, mut has_todo) = (false, false);
 
@@ -143,6 +144,7 @@ pub fn generate_tests(
     Some(vec![
         generate_equivalent_test(
             ident,
+            places,
             equiv_params,
             (&cmp_ty, return_is_simple),
             (equiv_expect_lets, equiv_actual_lets),
@@ -152,6 +154,7 @@ pub fn generate_tests(
         ),
         generate_unit_test(
             ident,
+            places,
             (&cmp_ty, return_is_simple),
             unit_lets,
             has_arbitrary,
@@ -237,8 +240,10 @@ fn as_type_details<'a>(symbols: &Symbols, ty: &'a syn::Type) -> Option<TypeDetai
     }
 }
 
+#[expect(clippy::too_many_arguments)]
 fn generate_equivalent_test(
     ident: &Ident,
+    places: Places,
     params: Punctuated<syn::FnArg, token::Comma>,
     (cmp_ty, return_is_simple): (&Option<Type>, bool),
     (expect_lets, actual_lets): (Vec<TokenStream>, Vec<TokenStream>),
@@ -246,6 +251,12 @@ fn generate_equivalent_test(
     call_sys: &TokenStream,
     call: &TokenStream,
 ) -> syn::ItemFn {
+    let cfg_feature = if places == Place::Testsuite {
+        quote! { #[cfg(all(feature = "ghc_testsuite", feature = "sys"))] }
+    } else {
+        quote! { #[cfg(feature = "sys")] }
+    };
+
     let (test, ret) = if !params.is_empty() {
         (quote! { #[quickcheck] }, Some(quote! { -> bool }))
     } else {
@@ -286,7 +297,7 @@ fn generate_equivalent_test(
     };
 
     parse_quote! {
-        #[cfg(feature = "sys")]
+        #cfg_feature
         #test
         #[ignore]
         #attrs
@@ -300,11 +311,18 @@ fn generate_equivalent_test(
 
 fn generate_unit_test(
     ident: &Ident,
+    places: Places,
     (cmp_ty, return_is_simple): (&Option<Type>, bool),
     lets: Vec<TokenStream>,
     has_arbitrary: bool,
     call: &TokenStream,
 ) -> syn::ItemFn {
+    let cfg_feature = if places == Place::Testsuite {
+        Some(quote! { #[cfg(feature = "ghc_testsuite")] })
+    } else {
+        None
+    };
+
     let unit_fn = format_ident!("test_{}", ident);
 
     let let_g = if has_arbitrary {
@@ -335,6 +353,7 @@ fn generate_unit_test(
     };
 
     parse_quote! {
+        #cfg_feature
         #[test]
         #[ignore]
         #[expect(unreachable_code, unused_variables)]
