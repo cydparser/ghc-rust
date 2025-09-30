@@ -44,7 +44,7 @@ pub fn generate_tests(
             if symbols.is_copy_type(ty) {
                 if indirection_levels > 0 {
                     let let_ident = quote! { let mut #ident = #ident };
-                    equiv_expect_lets.push(quote! { #[expect(unused_mut)] #let_ident });
+                    equiv_expect_lets.push(quote! { #let_ident });
                     equiv_actual_lets.push(let_ident);
                 }
             } else {
