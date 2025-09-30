@@ -82,13 +82,11 @@ const _: () = {
 fn equivalent_allocate(n: W_) -> bool {
     let expected = {
         let mut cap: sys::Capability = todo!();
-        let n = n.clone();
         let result: StgPtr = unsafe { sys::allocate(&raw mut cap, n) };
         todo!()
     };
     let actual = {
         let mut cap: Capability = todo!();
-        let n = n.clone();
         let result: StgPtr = unsafe { allocate(&raw mut cap, n) };
         todo!()
     };
@@ -116,14 +114,10 @@ fn test_allocate() {
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_setAllocLimitKill(arg1: bool, arg2: bool) -> bool {
     let expected = {
-        let arg1 = arg1.clone();
-        let arg2 = arg2.clone();
         unsafe { sys::setAllocLimitKill(arg1, arg2) };
         todo!()
     };
     let actual = {
-        let arg1 = arg1.clone();
-        let arg2 = arg2.clone();
         unsafe { setAllocLimitKill(arg1, arg2) };
         todo!()
     };
@@ -285,7 +279,7 @@ fn test_setKeepCAFs() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -301,6 +295,7 @@ fn equivalent_setHighMemDynamic() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

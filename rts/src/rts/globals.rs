@@ -15,7 +15,12 @@ mod tests;
 pub unsafe extern "C" fn getOrSetGHCConcSignalSignalHandlerStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { sys::getOrSetGHCConcSignalSignalHandlerStore(ptr) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getOrSetGHCConcSignalSignalHandlerStore(ptr)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getOrSetGHCConcSignalSignalHandlerStore")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -28,7 +33,12 @@ pub unsafe extern "C" fn getOrSetGHCConcSignalSignalHandlerStore(
 pub unsafe extern "C" fn getOrSetGHCConcWindowsPendingDelaysStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { sys::getOrSetGHCConcWindowsPendingDelaysStore(ptr) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getOrSetGHCConcWindowsPendingDelaysStore(ptr)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getOrSetGHCConcWindowsPendingDelaysStore")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -41,7 +51,12 @@ pub unsafe extern "C" fn getOrSetGHCConcWindowsPendingDelaysStore(
 pub unsafe extern "C" fn getOrSetGHCConcWindowsIOManagerThreadStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { sys::getOrSetGHCConcWindowsIOManagerThreadStore(ptr) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getOrSetGHCConcWindowsIOManagerThreadStore(ptr)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getOrSetGHCConcWindowsIOManagerThreadStore")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -52,7 +67,12 @@ pub unsafe extern "C" fn getOrSetGHCConcWindowsIOManagerThreadStore(
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn getOrSetGHCConcWindowsProddingStore(ptr: StgStablePtr) -> StgStablePtr {
-    unsafe { sys::getOrSetGHCConcWindowsProddingStore(ptr) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getOrSetGHCConcWindowsProddingStore(ptr)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getOrSetGHCConcWindowsProddingStore")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -65,7 +85,12 @@ pub unsafe extern "C" fn getOrSetGHCConcWindowsProddingStore(ptr: StgStablePtr) 
 pub unsafe extern "C" fn getOrSetSystemEventThreadEventManagerStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { sys::getOrSetSystemEventThreadEventManagerStore(ptr) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getOrSetSystemEventThreadEventManagerStore(ptr)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getOrSetSystemEventThreadEventManagerStore")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -78,7 +103,12 @@ pub unsafe extern "C" fn getOrSetSystemEventThreadEventManagerStore(
 pub unsafe extern "C" fn getOrSetSystemEventThreadIOManagerThreadStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { sys::getOrSetSystemEventThreadIOManagerThreadStore(ptr) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getOrSetSystemEventThreadIOManagerThreadStore(ptr)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getOrSetSystemEventThreadIOManagerThreadStore")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -91,7 +121,12 @@ pub unsafe extern "C" fn getOrSetSystemEventThreadIOManagerThreadStore(
 pub unsafe extern "C" fn getOrSetSystemTimerThreadEventManagerStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { sys::getOrSetSystemTimerThreadEventManagerStore(ptr) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getOrSetSystemTimerThreadEventManagerStore(ptr)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getOrSetSystemTimerThreadEventManagerStore")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -104,7 +139,12 @@ pub unsafe extern "C" fn getOrSetSystemTimerThreadEventManagerStore(
 pub unsafe extern "C" fn getOrSetSystemTimerThreadIOManagerThreadStore(
     ptr: StgStablePtr,
 ) -> StgStablePtr {
-    unsafe { sys::getOrSetSystemTimerThreadIOManagerThreadStore(ptr) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getOrSetSystemTimerThreadIOManagerThreadStore(ptr)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getOrSetSystemTimerThreadIOManagerThreadStore")
 }
 
 /// - GHC_PLACES: {compiler}
@@ -115,7 +155,12 @@ pub unsafe extern "C" fn getOrSetSystemTimerThreadIOManagerThreadStore(
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn getOrSetLibHSghcFastStringTable(ptr: StgStablePtr) -> StgStablePtr {
-    unsafe { sys::getOrSetLibHSghcFastStringTable(ptr) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getOrSetLibHSghcFastStringTable(ptr)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getOrSetLibHSghcFastStringTable")
 }
 
 /// - GHC_PLACES: {compiler}

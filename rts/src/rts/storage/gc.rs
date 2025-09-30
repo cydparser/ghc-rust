@@ -90,7 +90,12 @@ pub(crate) type ListBlocksCb = Option<unsafe extern "C" fn(user: *mut c_void, ar
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn allocate(cap: *mut Capability, n: W_) -> StgPtr {
-    unsafe { sys::allocate(cap as *mut sys::Capability, n) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::allocate(cap as *mut sys::Capability, n)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("allocate")
 }
 
 pub(crate) type AdjustorWritable = *mut c_void;
@@ -102,7 +107,12 @@ pub(crate) type AdjustorExecutable = *mut c_void;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn setAllocLimitKill(arg1: bool, arg2: bool) {
-    unsafe { sys::setAllocLimitKill(arg1, arg2) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::setAllocLimitKill(arg1, arg2)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("setAllocLimitKill")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -110,7 +120,12 @@ pub unsafe extern "C" fn setAllocLimitKill(arg1: bool, arg2: bool) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn performGC() {
-    unsafe { sys::performGC() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::performGC()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("performGC")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -118,7 +133,12 @@ pub unsafe extern "C" fn performGC() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn performMajorGC() {
-    unsafe { sys::performMajorGC() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::performMajorGC()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("performMajorGC")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -126,7 +146,12 @@ pub unsafe extern "C" fn performMajorGC() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn performBlockingMajorGC() {
-    unsafe { sys::performBlockingMajorGC() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::performBlockingMajorGC()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("performBlockingMajorGC")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -134,7 +159,12 @@ pub unsafe extern "C" fn performBlockingMajorGC() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn revertCAFs() {
-    unsafe { sys::revertCAFs() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::revertCAFs()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("revertCAFs")
 }
 
 /// - GHC_PLACES: {compiler}
@@ -142,7 +172,12 @@ pub unsafe extern "C" fn revertCAFs() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn setKeepCAFs() {
-    unsafe { sys::setKeepCAFs() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::setKeepCAFs()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("setKeepCAFs")
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -150,7 +185,12 @@ pub unsafe extern "C" fn setKeepCAFs() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn setHighMemDynamic() {
-    unsafe { sys::setHighMemDynamic() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::setHighMemDynamic()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("setHighMemDynamic")
 }
 
 /// - GHC_PLACES: {compiler}

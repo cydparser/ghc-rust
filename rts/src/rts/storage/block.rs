@@ -1,9 +1,9 @@
+#[allow(unused_imports)]
 use crate::prelude::*;
-use crate::{
-    rts::storage::gc::generation_,
-    stg::W_,
-    stg::types::{StgPtr, StgWord, StgWord16, StgWord32},
-};
+use crate::rts::storage::gc::generation_;
+#[cfg(feature = "sys")]
+use crate::stg::W_;
+use crate::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 
 #[cfg(test)]
 mod tests;
@@ -52,7 +52,7 @@ pub(crate) const BF_FLAG_MAX: u32 = 32768;
 
 /// cbindgen:no-export
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Copy, Clone, Debug)]
 pub struct NonmovingSegmentInfo {
     allocator_idx: StgWord16,
     next_free_snap: StgWord16,
@@ -133,7 +133,12 @@ pub type bdescr = bdescr_;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn allocAlignedGroupOnNode(node: u32, n: W_) -> *mut bdescr {
-    unsafe { sys::allocAlignedGroupOnNode(node, n) as *mut bdescr }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::allocAlignedGroupOnNode(node, n) as *mut bdescr
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("allocAlignedGroupOnNode")
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -141,7 +146,12 @@ pub unsafe extern "C" fn allocAlignedGroupOnNode(node: u32, n: W_) -> *mut bdesc
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn allocGroup_lock(n: W_) -> *mut bdescr {
-    unsafe { sys::allocGroup_lock(n) as *mut bdescr }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::allocGroup_lock(n) as *mut bdescr
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("allocGroup_lock")
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -149,5 +159,10 @@ pub unsafe extern "C" fn allocGroup_lock(n: W_) -> *mut bdescr {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn freeGroup_lock(p: *mut bdescr) {
-    unsafe { sys::freeGroup_lock(p as *mut sys::bdescr) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::freeGroup_lock(p as *mut sys::bdescr)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("freeGroup_lock")
 }

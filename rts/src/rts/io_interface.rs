@@ -8,7 +8,12 @@ mod tests;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn setIOManagerControlFd(cap_no: u32, fd: c_int) {
-    unsafe { sys::setIOManagerControlFd(cap_no, fd) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::setIOManagerControlFd(cap_no, fd)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("setIOManagerControlFd")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -16,7 +21,12 @@ pub unsafe extern "C" fn setIOManagerControlFd(cap_no: u32, fd: c_int) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn setTimerManagerControlFd(fd: c_int) {
-    unsafe { sys::setTimerManagerControlFd(fd) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::setTimerManagerControlFd(fd)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("setTimerManagerControlFd")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -24,5 +34,10 @@ pub unsafe extern "C" fn setTimerManagerControlFd(fd: c_int) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn setIOManagerWakeupFd(fd: c_int) {
-    unsafe { sys::setIOManagerWakeupFd(fd) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::setIOManagerWakeupFd(fd)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("setIOManagerWakeupFd")
 }

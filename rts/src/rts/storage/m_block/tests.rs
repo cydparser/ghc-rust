@@ -1,6 +1,8 @@
+#![allow(unused_imports)]
 use super::*;
+use crate::prelude::*;
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -16,6 +18,7 @@ fn equivalent_getMBlocks(n: u32) -> bool {
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -30,7 +33,7 @@ fn test_getMBlocks() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -48,6 +51,7 @@ fn equivalent_freeMBlocks(n: u32) -> bool {
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -63,7 +67,7 @@ fn test_freeMBlocks() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -79,6 +83,7 @@ fn equivalent_releaseFreeMemory() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

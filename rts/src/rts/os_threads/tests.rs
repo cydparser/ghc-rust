@@ -13,242 +13,218 @@ const _: () = {
     ["Offset of field: Condition::cond"][offset_of!(Condition, cond) - 0usize];
 };
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
-fn equivalent_osThreadId() -> bool {
-    let expected = unsafe { sys::osThreadId() };
-    let actual = unsafe { osThreadId() };
-    actual == expected
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_createOSThread(name: c_char) -> bool {
+    let expected: c_int = {
+        let mut tid: sys::OSThreadId = todo!();
+        let mut name = name;
+        let startProc: OSThreadProc = todo!();
+        let mut param: c_void = todo!();
+        unsafe { sys::createOSThread(&raw mut tid, &raw mut name, startProc, &raw mut param) }
+    };
+    let actual: c_int = {
+        let mut tid: OSThreadId = todo!();
+        let mut name = name;
+        let startProc: OSThreadProc = todo!();
+        let mut param: c_void = todo!();
+        unsafe { createOSThread(&raw mut tid, &raw mut name, startProc, &raw mut param) }
+    };
+    expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
-fn test_osThreadId() {
-    unsafe { osThreadId() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_yieldThread() {
-    unsafe { yieldThread() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_createOSThread() {
-    let tid = null_mut();
-    let name = null();
-    let startProc = Default::default();
-    let param = null_mut();
-    unsafe { createOSThread(tid, name, startProc, param) };
-    todo!("assert")
+    let g = &mut Gen::new(100);
+    let actual: c_int = {
+        let tid: OSThreadId = todo!();
+        let mut name: c_char = Arbitrary::arbitrary(g);
+        let startProc: OSThreadProc = todo!();
+        let param: c_void = todo!();
+        unsafe { createOSThread(&raw mut tid, &raw mut name, startProc, &raw mut param) }
+    };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }
 
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
-fn test_createAttachedOSThread() {
-    let tid = null_mut();
-    let name = null();
-    let startProc = Default::default();
-    let param = null_mut();
-    unsafe { createAttachedOSThread(tid, name, startProc, param) };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_initCondition() {
+    let expected = {
+        let mut pCond: sys::Condition = todo!();
+        unsafe { sys::initCondition(&raw mut pCond) };
+        todo!()
+    };
+    let actual = {
+        let mut pCond: Condition = todo!();
+        unsafe { initCondition(&raw mut pCond) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
-fn test_osThreadIsAlive() {
-    let id = Default::default();
-    unsafe { osThreadIsAlive(id) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_interruptOSThread() {
-    let id = Default::default();
-    unsafe { interruptOSThread(id) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_joinOSThread() {
-    let id = Default::default();
-    unsafe { joinOSThread(id) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_initCondition() {
-    let pCond = null_mut();
-    unsafe { initCondition(pCond) };
-    todo!("assert")
+    let actual = {
+        let pCond: Condition = todo!();
+        unsafe { initCondition(&raw mut pCond) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
-fn test_closeCondition() {
-    let pCond = null_mut();
-    unsafe { closeCondition(pCond) };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_broadcastCondition() {
+    let expected = {
+        let mut pCond: sys::Condition = todo!();
+        unsafe { sys::broadcastCondition(&raw mut pCond) };
+        todo!()
+    };
+    let actual = {
+        let mut pCond: Condition = todo!();
+        unsafe { broadcastCondition(&raw mut pCond) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_broadcastCondition() {
-    let pCond = null_mut();
-    unsafe { broadcastCondition(pCond) };
-    todo!("assert")
+    let actual = {
+        let pCond: Condition = todo!();
+        unsafe { broadcastCondition(&raw mut pCond) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
-fn test_signalCondition() {
-    let pCond = null_mut();
-    unsafe { signalCondition(pCond) };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_waitCondition() {
+    let expected = {
+        let mut pCond: sys::Condition = todo!();
+        let mut pMut: sys::Mutex = todo!();
+        unsafe { sys::waitCondition(&raw mut pCond, &raw mut pMut) };
+        todo!()
+    };
+    let actual = {
+        let mut pCond: Condition = todo!();
+        let mut pMut: Mutex = todo!();
+        unsafe { waitCondition(&raw mut pCond, &raw mut pMut) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_waitCondition() {
-    let pCond = null_mut();
-    let pMut = null_mut();
-    unsafe { waitCondition(pCond, pMut) };
-    todo!("assert")
+    let actual = {
+        let pCond: Condition = todo!();
+        let pMut: Mutex = todo!();
+        unsafe { waitCondition(&raw mut pCond, &raw mut pMut) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
 }
 
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
-fn test_timedWaitCondition() {
-    let pCond = null_mut();
-    let pMut = null_mut();
-    let timeout = Default::default();
-    unsafe { timedWaitCondition(pCond, pMut, timeout) };
-    todo!("assert")
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_initMutex() {
+    let expected = {
+        let mut pMut: sys::Mutex = todo!();
+        unsafe { sys::initMutex(&raw mut pMut) };
+        todo!()
+    };
+    let actual = {
+        let mut pMut: Mutex = todo!();
+        unsafe { initMutex(&raw mut pMut) };
+        todo!()
+    };
+    assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_initMutex() {
-    let pMut = null_mut();
-    unsafe { initMutex(pMut) };
-    todo!("assert")
+    let actual = {
+        let pMut: Mutex = todo!();
+        unsafe { initMutex(&raw mut pMut) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_forkOS_createThread() {
+    let expected: c_int = {
+        let entry: HsStablePtr = todo!();
+        unsafe { sys::forkOS_createThread(entry) }
+    };
+    let actual: c_int = {
+        let entry: HsStablePtr = todo!();
+        unsafe { forkOS_createThread(entry) }
+    };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
-fn test_closeMutex() {
-    let pMut = null_mut();
-    unsafe { closeMutex(pMut) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_newThreadLocalKey() {
-    let key = null_mut();
-    unsafe { newThreadLocalKey(key) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_getThreadLocalVar() {
-    let key = null_mut();
-    unsafe { getThreadLocalVar(key) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_setThreadLocalVar() {
-    let key = null_mut();
-    let value = null_mut();
-    unsafe { setThreadLocalVar(key, value) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_freeThreadLocalKey() {
-    let key = null_mut();
-    unsafe { freeThreadLocalKey(key) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_setThreadAffinity() {
-    let n = Default::default();
-    let m = Default::default();
-    unsafe { setThreadAffinity(n, m) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_setThreadNode() {
-    let node = Default::default();
-    unsafe { setThreadNode(node) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_releaseThreadNode() {
-    unsafe { releaseThreadNode() };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_forkOS_createThread() {
-    let entry = Default::default();
-    unsafe { forkOS_createThread(entry) };
-    todo!("assert")
-}
-
-#[test]
-#[ignore]
-fn test_freeThreadingResources() {
-    unsafe { freeThreadingResources() };
-    todo!("assert")
+    let actual: c_int = {
+        let entry: HsStablePtr = todo!();
+        unsafe { forkOS_createThread(entry) }
+    };
+    let expected: c_int = todo!();
+    assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
-#[quickcheck]
+#[test]
 #[ignore]
-fn equivalent_getNumberOfProcessors() -> bool {
-    let expected = unsafe { sys::getNumberOfProcessors() };
-    let actual = unsafe { getNumberOfProcessors() };
-    actual == expected
+fn equivalent_getNumberOfProcessors() {
+    let expected: u32 = { unsafe { sys::getNumberOfProcessors() } };
+    let actual: u32 = { unsafe { getNumberOfProcessors() } };
+    assert_eq!(expected, actual);
 }
 
 #[test]
 #[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn test_getNumberOfProcessors() {
-    unsafe { getNumberOfProcessors() };
-    todo!("assert")
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-fn equivalent_kernelThreadId() -> bool {
-    let expected = unsafe { sys::kernelThreadId() };
-    let actual = unsafe { kernelThreadId() };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-fn test_kernelThreadId() {
-    unsafe { kernelThreadId() };
-    todo!("assert")
+    let actual: u32 = { unsafe { getNumberOfProcessors() } };
+    let expected: u32 = todo!();
+    assert_eq!(expected, actual);
 }

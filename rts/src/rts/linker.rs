@@ -12,7 +12,12 @@ pub type pathchar = c_char;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn initLinker() {
-    unsafe { sys::initLinker() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::initLinker()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("initLinker")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -20,7 +25,12 @@ pub unsafe extern "C" fn initLinker() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn initLinker_(retain_cafs: c_int) {
-    unsafe { sys::initLinker_(retain_cafs) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::initLinker_(retain_cafs)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("initLinker_")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -28,7 +38,12 @@ pub unsafe extern "C" fn initLinker_(retain_cafs: c_int) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn lookupSymbol(lbl: *mut c_char) -> *mut c_void {
-    unsafe { sys::lookupSymbol(lbl) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::lookupSymbol(lbl)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("lookupSymbol")
 }
 
 /// - GHC_PLACES: {testsuite}
@@ -65,7 +80,12 @@ impl Arbitrary for OStatus {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn getObjectLoadStatus(path: *mut pathchar) -> OStatus {
-    unsafe { transmute(sys::getObjectLoadStatus(path)) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        transmute(sys::getObjectLoadStatus(path))
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getObjectLoadStatus")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -73,7 +93,12 @@ pub unsafe extern "C" fn getObjectLoadStatus(path: *mut pathchar) -> OStatus {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn unloadObj(path: *mut pathchar) -> HsInt {
-    unsafe { sys::unloadObj(path) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::unloadObj(path)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("unloadObj")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -81,7 +106,12 @@ pub unsafe extern "C" fn unloadObj(path: *mut pathchar) -> HsInt {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn purgeObj(path: *mut pathchar) -> HsInt {
-    unsafe { sys::purgeObj(path) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::purgeObj(path)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("purgeObj")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -89,7 +119,12 @@ pub unsafe extern "C" fn purgeObj(path: *mut pathchar) -> HsInt {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn loadObj(path: *mut pathchar) -> HsInt {
-    unsafe { sys::loadObj(path) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::loadObj(path)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("loadObj")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -97,7 +132,12 @@ pub unsafe extern "C" fn loadObj(path: *mut pathchar) -> HsInt {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn loadArchive(path: *mut pathchar) -> HsInt {
-    unsafe { sys::loadArchive(path) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::loadArchive(path)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("loadArchive")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -105,7 +145,12 @@ pub unsafe extern "C" fn loadArchive(path: *mut pathchar) -> HsInt {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn resolveObjs() -> HsInt {
-    unsafe { sys::resolveObjs() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::resolveObjs()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("resolveObjs")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -116,7 +161,12 @@ pub unsafe extern "C" fn loadNativeObj(
     path: *mut pathchar,
     errmsg: *mut *mut c_char,
 ) -> *mut c_void {
-    unsafe { sys::loadNativeObj(path, errmsg) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::loadNativeObj(path, errmsg)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("loadNativeObj")
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -124,7 +174,12 @@ pub unsafe extern "C" fn loadNativeObj(
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn unloadNativeObj(handle: *mut c_void) -> HsInt {
-    unsafe { sys::unloadNativeObj(handle) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::unloadNativeObj(handle)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("unloadNativeObj")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -135,7 +190,12 @@ pub unsafe extern "C" fn lookupSymbolInNativeObj(
     handle: *mut c_void,
     symbol_name: *const c_char,
 ) -> *mut c_void {
-    unsafe { sys::lookupSymbolInNativeObj(handle, symbol_name) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::lookupSymbolInNativeObj(handle, symbol_name)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("lookupSymbolInNativeObj")
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -143,7 +203,12 @@ pub unsafe extern "C" fn lookupSymbolInNativeObj(
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn addDLL(dll_name: *mut pathchar) -> *const c_char {
-    unsafe { sys::addDLL(dll_name) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::addDLL(dll_name)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("addDLL")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -151,7 +216,12 @@ pub unsafe extern "C" fn addDLL(dll_name: *mut pathchar) -> *const c_char {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn addLibrarySearchPath(dll_path: *mut pathchar) -> HsPtr {
-    unsafe { sys::addLibrarySearchPath(dll_path) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::addLibrarySearchPath(dll_path)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("addLibrarySearchPath")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -159,7 +229,12 @@ pub unsafe extern "C" fn addLibrarySearchPath(dll_path: *mut pathchar) -> HsPtr 
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn removeLibrarySearchPath(dll_path_index: HsPtr) -> HsBool {
-    unsafe { sys::removeLibrarySearchPath(dll_path_index) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::removeLibrarySearchPath(dll_path_index)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("removeLibrarySearchPath")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -167,5 +242,10 @@ pub unsafe extern "C" fn removeLibrarySearchPath(dll_path_index: HsPtr) -> HsBoo
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn findSystemLibrary(dll_name: *mut pathchar) -> *mut pathchar {
-    unsafe { sys::findSystemLibrary(dll_name) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::findSystemLibrary(dll_name)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("findSystemLibrary")
 }

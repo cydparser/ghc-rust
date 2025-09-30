@@ -113,7 +113,12 @@ pub type IpeBufferListNode = IpeBufferListNode_;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn registerInfoProvList(node: *mut IpeBufferListNode) {
-    unsafe { sys::registerInfoProvList(node as *mut sys::IpeBufferListNode) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::registerInfoProvList(node as *mut sys::IpeBufferListNode)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("registerInfoProvList")
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -121,7 +126,12 @@ pub unsafe extern "C" fn registerInfoProvList(node: *mut IpeBufferListNode) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn formatClosureDescIpe(ipe_buf: *const InfoProvEnt, str_buf: *mut c_char) {
-    unsafe { sys::formatClosureDescIpe(ipe_buf as *const sys::InfoProvEnt, str_buf) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::formatClosureDescIpe(ipe_buf as *const sys::InfoProvEnt, str_buf)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("formatClosureDescIpe")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -129,10 +139,13 @@ pub unsafe extern "C" fn formatClosureDescIpe(ipe_buf: *const InfoProvEnt, str_b
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn lookupIPE(info: *const StgInfoTable, out: *mut InfoProvEnt) -> bool {
+    #[cfg(feature = "sys")]
     unsafe {
         sys::lookupIPE(
             info as *const sys::StgInfoTable,
             out as *mut sys::InfoProvEnt,
         )
     }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("lookupIPE")
 }

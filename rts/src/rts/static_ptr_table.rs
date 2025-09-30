@@ -9,5 +9,10 @@ mod tests;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn hs_spt_insert_stableptr(key: *mut StgWord64, entry: *mut StgStablePtr) {
-    unsafe { sys::hs_spt_insert_stableptr(key, entry) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::hs_spt_insert_stableptr(key, entry)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_spt_insert_stableptr")
 }

@@ -1,4 +1,5 @@
 use super::*;
+use std::mem::offset_of;
 
 #[cfg(feature = "sys")]
 #[test]

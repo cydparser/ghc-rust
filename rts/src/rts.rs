@@ -65,7 +65,12 @@ pub(crate) const DEBUG_IS_ON: u32 = 0;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -> ! {
-    unsafe { sys::_assertFail(filename, linenum) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::_assertFail(filename, linenum)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("_assertFail")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -73,7 +78,12 @@ pub unsafe extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn reportStackOverflow(tso: *mut StgTSO) {
-    unsafe { sys::reportStackOverflow(tso as *mut sys::StgTSO) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::reportStackOverflow(tso as *mut sys::StgTSO)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("reportStackOverflow")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -81,7 +91,12 @@ pub unsafe extern "C" fn reportStackOverflow(tso: *mut StgTSO) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn reportHeapOverflow() {
-    unsafe { sys::reportHeapOverflow() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::reportHeapOverflow()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("reportHeapOverflow")
 }
 
 /// - GHC_PLACES: {libraries, utils}
@@ -89,7 +104,12 @@ pub unsafe extern "C" fn reportHeapOverflow() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn stg_exit(n: c_int) -> ! {
-    unsafe { sys::stg_exit(n) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::stg_exit(n)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("stg_exit")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -97,7 +117,12 @@ pub unsafe extern "C" fn stg_exit(n: c_int) -> ! {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn stg_sig_install(arg1: c_int, arg2: c_int, arg3: *mut c_void) -> c_int {
-    unsafe { sys::stg_sig_install(arg1, arg2, arg3) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::stg_sig_install(arg1, arg2, arg3)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("stg_sig_install")
 }
 
 /// - GHC_PLACES: {compiler}
@@ -105,7 +130,12 @@ pub unsafe extern "C" fn stg_sig_install(arg1: c_int, arg2: c_int, arg3: *mut c_
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_isProfiled() -> c_int {
-    unsafe { sys::rts_isProfiled() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::rts_isProfiled()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("rts_isProfiled")
 }
 
 /// - GHC_PLACES: {compiler}
@@ -113,7 +143,12 @@ pub unsafe extern "C" fn rts_isProfiled() -> c_int {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_isDynamic() -> c_int {
-    unsafe { sys::rts_isDynamic() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::rts_isDynamic()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("rts_isDynamic")
 }
 
 /// - GHC_PLACES: {compiler, libraries}
@@ -121,7 +156,12 @@ pub unsafe extern "C" fn rts_isDynamic() -> c_int {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_isThreaded() -> c_int {
-    unsafe { sys::rts_isThreaded() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::rts_isThreaded()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("rts_isThreaded")
 }
 
 /// - GHC_PLACES: {compiler}
@@ -129,7 +169,12 @@ pub unsafe extern "C" fn rts_isThreaded() -> c_int {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_isDebugged() -> c_int {
-    unsafe { sys::rts_isDebugged() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::rts_isDebugged()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("rts_isDebugged")
 }
 
 /// - GHC_PLACES: {compiler}
@@ -137,5 +182,10 @@ pub unsafe extern "C" fn rts_isDebugged() -> c_int {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_isTracing() -> c_int {
-    unsafe { sys::rts_isTracing() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::rts_isTracing()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("rts_isTracing")
 }

@@ -14,7 +14,12 @@ pub unsafe extern "C" fn lockFile(
     ino: StgWord64,
     for_writing: c_int,
 ) -> c_int {
-    unsafe { sys::lockFile(id, dev, ino, for_writing) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::lockFile(id, dev, ino, for_writing)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("lockFile")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -22,5 +27,10 @@ pub unsafe extern "C" fn lockFile(
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn unlockFile(id: StgWord64) -> c_int {
-    unsafe { sys::unlockFile(id) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::unlockFile(id)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("unlockFile")
 }

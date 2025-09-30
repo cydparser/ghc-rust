@@ -113,14 +113,10 @@ fn test_reportHeapOverflow() {
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_stg_sig_install(arg1: c_int, arg2: c_int) -> bool {
     let expected: c_int = {
-        let arg1 = arg1.clone();
-        let arg2 = arg2.clone();
         let mut arg3: c_void = todo!();
         unsafe { sys::stg_sig_install(arg1, arg2, &raw mut arg3) }
     };
     let actual: c_int = {
-        let arg1 = arg1.clone();
-        let arg2 = arg2.clone();
         let mut arg3: c_void = todo!();
         unsafe { stg_sig_install(arg1, arg2, &raw mut arg3) }
     };

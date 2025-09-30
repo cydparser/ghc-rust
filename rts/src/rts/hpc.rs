@@ -30,5 +30,10 @@ pub type HpcModuleInfo = _HpcModuleInfo;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn hs_hpc_rootModule() -> *mut HpcModuleInfo {
-    unsafe { sys::hs_hpc_rootModule() as *mut HpcModuleInfo }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::hs_hpc_rootModule() as *mut HpcModuleInfo
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_hpc_rootModule")
 }

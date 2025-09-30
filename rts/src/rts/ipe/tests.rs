@@ -90,7 +90,7 @@ const _: () = {
         [offset_of!(IpeBufferListNode_, module_name) - 68usize];
 };
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -108,6 +108,7 @@ fn equivalent_registerInfoProvList() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -121,7 +122,7 @@ fn test_registerInfoProvList() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -141,6 +142,7 @@ fn equivalent_formatClosureDescIpe(str_buf: c_char) -> bool {
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

@@ -90,12 +90,10 @@ fn test_stopHeapProfTimer() {
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_setUserEra(w: StgWord) -> bool {
     let expected = {
-        let w = w.clone();
         unsafe { sys::setUserEra(w) };
         todo!()
     };
     let actual = {
-        let w = w.clone();
         unsafe { setUserEra(w) };
         todo!()
     };
@@ -138,14 +136,8 @@ fn test_getUserEra() {
 #[quickcheck]
 #[ignore]
 fn equivalent_incrementUserEra(w: StgWord) -> bool {
-    let expected: StgWord = {
-        let w = w.clone();
-        unsafe { sys::incrementUserEra(w) }
-    };
-    let actual: StgWord = {
-        let w = w.clone();
-        unsafe { incrementUserEra(w) }
-    };
+    let expected: StgWord = { unsafe { sys::incrementUserEra(w) } };
+    let actual: StgWord = { unsafe { incrementUserEra(w) } };
     expected == actual
 }
 

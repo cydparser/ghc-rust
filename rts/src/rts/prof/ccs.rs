@@ -59,7 +59,12 @@ pub type CostCentreStack = CostCentreStack_;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn stopProfTimer() {
-    unsafe { sys::stopProfTimer() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::stopProfTimer()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("stopProfTimer")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -67,7 +72,12 @@ pub unsafe extern "C" fn stopProfTimer() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn startProfTimer() {
-    unsafe { sys::startProfTimer() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::startProfTimer()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("startProfTimer")
 }
 
 /// cbindgen:no-export

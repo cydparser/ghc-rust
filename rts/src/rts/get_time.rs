@@ -9,5 +9,10 @@ mod tests;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn getMonotonicNSec() -> StgWord64 {
-    unsafe { sys::getMonotonicNSec() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getMonotonicNSec()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getMonotonicNSec")
 }

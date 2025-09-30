@@ -107,7 +107,12 @@ pub static stg_stop_thread_info: StgInfoTable = TODO_StgInfoTable;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn stg_paniczh() -> StgFunPtr {
-    unsafe { sys::stg_paniczh() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::stg_paniczh()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("stg_paniczh")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -115,7 +120,12 @@ pub unsafe extern "C" fn stg_paniczh() -> StgFunPtr {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn stg_absentErrorzh() -> StgFunPtr {
-    unsafe { sys::stg_absentErrorzh() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::stg_absentErrorzh()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("stg_absentErrorzh")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -126,7 +136,12 @@ pub unsafe extern "C" fn stg_absentErrorzh() -> StgFunPtr {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn stg_getThreadAllocationCounterzh() -> StgFunPtr {
-    unsafe { sys::stg_getThreadAllocationCounterzh() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::stg_getThreadAllocationCounterzh()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("stg_getThreadAllocationCounterzh")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -137,5 +152,10 @@ pub unsafe extern "C" fn stg_getThreadAllocationCounterzh() -> StgFunPtr {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn stg_getOtherThreadAllocationCounterzh() -> StgFunPtr {
-    unsafe { sys::stg_getOtherThreadAllocationCounterzh() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::stg_getOtherThreadAllocationCounterzh()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("stg_getOtherThreadAllocationCounterzh")
 }

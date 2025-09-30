@@ -132,16 +132,16 @@ fn sys_eq_HS_WORD64_MAX() {
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_hs_init(argc: c_int, argv: c_char) -> bool {
     let expected = {
-        let mut argc = argc.clone();
-        let mut argv = argv.clone();
+        let mut argc = argc;
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
         unsafe { sys::hs_init(&raw mut argc, &raw mut argv) };
         todo!()
     };
     let actual = {
-        let mut argc = argc.clone();
-        let mut argv = argv.clone();
+        let mut argc = argc;
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
         unsafe { hs_init(&raw mut argc, &raw mut argv) };
@@ -195,7 +195,7 @@ fn test_hs_exit() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -211,6 +211,7 @@ fn equivalent_hs_thread_done() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -223,7 +224,7 @@ fn test_hs_thread_done() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -239,6 +240,7 @@ fn equivalent_hs_perform_gc() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -288,12 +290,12 @@ fn test_hs_free_stable_ptr() {
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_hs_spt_lookup(key: StgWord64) -> bool {
     let expected = {
-        let mut key = key.clone();
+        let mut key = key;
         let result: StgPtr = unsafe { sys::hs_spt_lookup(&raw mut key) };
         todo!()
     };
     let actual = {
-        let mut key = key.clone();
+        let mut key = key;
         let result: StgPtr = unsafe { hs_spt_lookup(&raw mut key) };
         todo!()
     };
@@ -321,12 +323,10 @@ fn test_hs_spt_lookup() {
 fn equivalent_hs_spt_keys(szKeys: c_int) -> bool {
     let expected: c_int = {
         let mut keys: StgPtr = todo!();
-        let szKeys = szKeys.clone();
         unsafe { sys::hs_spt_keys(&raw mut keys, szKeys) }
     };
     let actual: c_int = {
         let mut keys: StgPtr = todo!();
-        let szKeys = szKeys.clone();
         unsafe { hs_spt_keys(&raw mut keys, szKeys) }
     };
     expected == actual
@@ -364,19 +364,17 @@ fn test_hs_spt_key_count() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_hs_try_putmvar(capability: c_int) -> bool {
     let expected = {
-        let capability = capability.clone();
         let sp: HsStablePtr = todo!();
         unsafe { sys::hs_try_putmvar(capability, sp) };
         todo!()
     };
     let actual = {
-        let capability = capability.clone();
         let sp: HsStablePtr = todo!();
         unsafe { hs_try_putmvar(capability, sp) };
         todo!()
@@ -384,6 +382,7 @@ fn equivalent_hs_try_putmvar(capability: c_int) -> bool {
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

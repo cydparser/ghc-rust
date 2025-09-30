@@ -47,7 +47,12 @@ impl Arbitrary for EventLogStatus {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn startEventLogging(writer: *const EventLogWriter) -> bool {
-    unsafe { sys::startEventLogging(writer as *const sys::EventLogWriter) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::startEventLogging(writer as *const sys::EventLogWriter)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("startEventLogging")
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -55,7 +60,12 @@ pub unsafe extern "C" fn startEventLogging(writer: *const EventLogWriter) -> boo
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn endEventLogging() {
-    unsafe { sys::endEventLogging() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::endEventLogging()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("endEventLogging")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -63,5 +73,10 @@ pub unsafe extern "C" fn endEventLogging() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn flushEventLog(cap: *mut *mut Capability) {
-    unsafe { sys::flushEventLog(cap as *mut *mut sys::Capability) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::flushEventLog(cap as *mut *mut sys::Capability)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("flushEventLog")
 }

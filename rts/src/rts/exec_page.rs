@@ -32,7 +32,12 @@ impl Arbitrary for ExecPage {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn allocateExecPage() -> *mut ExecPage {
-    unsafe { sys::allocateExecPage() as *mut ExecPage }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::allocateExecPage() as *mut ExecPage
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("allocateExecPage")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -40,7 +45,12 @@ pub unsafe extern "C" fn allocateExecPage() -> *mut ExecPage {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn freezeExecPage(page: *mut ExecPage) {
-    unsafe { sys::freezeExecPage(page as *mut sys::ExecPage) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::freezeExecPage(page as *mut sys::ExecPage)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("freezeExecPage")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -48,5 +58,10 @@ pub unsafe extern "C" fn freezeExecPage(page: *mut ExecPage) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn freeExecPage(page: *mut ExecPage) {
-    unsafe { sys::freeExecPage(page as *mut sys::ExecPage) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::freeExecPage(page as *mut sys::ExecPage)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("freeExecPage")
 }

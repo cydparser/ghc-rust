@@ -8,7 +8,12 @@ mod tests;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn startTimer() {
-    unsafe { sys::startTimer() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::startTimer()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("startTimer")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -16,7 +21,12 @@ pub unsafe extern "C" fn startTimer() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn stopTimer() {
-    unsafe { sys::stopTimer() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::stopTimer()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("stopTimer")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -24,5 +34,10 @@ pub unsafe extern "C" fn stopTimer() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rtsTimerSignal() -> c_int {
-    unsafe { sys::rtsTimerSignal() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::rtsTimerSignal()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("rtsTimerSignal")
 }

@@ -37,5 +37,10 @@ pub(crate) type StgEntCounter = _StgEntCounter;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn requestTickyCounterSamples() {
-    unsafe { sys::requestTickyCounterSamples() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::requestTickyCounterSamples()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("requestTickyCounterSamples")
 }

@@ -17,7 +17,12 @@ mod tests;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn createThread(cap: *mut Capability, stack_size: W_) -> *mut StgTSO {
-    unsafe { sys::createThread(cap as *mut sys::Capability, stack_size) as *mut StgTSO }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::createThread(cap as *mut sys::Capability, stack_size) as *mut StgTSO
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("createThread")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -29,6 +34,7 @@ pub unsafe extern "C" fn createGenThread(
     stack_size: W_,
     closure: *mut StgClosure,
 ) -> *mut StgTSO {
+    #[cfg(feature = "sys")]
     unsafe {
         sys::createGenThread(
             cap as *mut sys::Capability,
@@ -36,6 +42,8 @@ pub unsafe extern "C" fn createGenThread(
             closure as *mut sys::StgClosure,
         ) as *mut StgTSO
     }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("createGenThread")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -43,7 +51,12 @@ pub unsafe extern "C" fn createGenThread(
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn suspendThread(arg1: *mut StgRegTable, interruptible: bool) -> *mut c_void {
-    unsafe { sys::suspendThread(arg1 as *mut sys::StgRegTable, interruptible) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::suspendThread(arg1 as *mut sys::StgRegTable, interruptible)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("suspendThread")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -51,7 +64,12 @@ pub unsafe extern "C" fn suspendThread(arg1: *mut StgRegTable, interruptible: bo
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn resumeThread(arg1: *mut c_void) -> *mut StgRegTable {
-    unsafe { sys::resumeThread(arg1) as *mut StgRegTable }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::resumeThread(arg1) as *mut StgRegTable
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("resumeThread")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -59,7 +77,12 @@ pub unsafe extern "C" fn resumeThread(arg1: *mut c_void) -> *mut StgRegTable {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn eq_thread(tso1: StgPtr, tso2: StgPtr) -> bool {
-    unsafe { sys::eq_thread(tso1, tso2) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::eq_thread(tso1, tso2)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("eq_thread")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -67,7 +90,12 @@ pub unsafe extern "C" fn eq_thread(tso1: StgPtr, tso2: StgPtr) -> bool {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn cmp_thread(tso1: StgPtr, tso2: StgPtr) -> c_int {
-    unsafe { sys::cmp_thread(tso1, tso2) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::cmp_thread(tso1, tso2)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("cmp_thread")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -75,7 +103,12 @@ pub unsafe extern "C" fn cmp_thread(tso1: StgPtr, tso2: StgPtr) -> c_int {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_getThreadId(tso: StgPtr) -> StgThreadID {
-    unsafe { sys::rts_getThreadId(tso) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::rts_getThreadId(tso)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("rts_getThreadId")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -86,7 +119,12 @@ pub unsafe extern "C" fn rts_getThreadId(tso: StgPtr) -> StgThreadID {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_enableThreadAllocationLimit(tso: StgPtr) {
-    unsafe { sys::rts_enableThreadAllocationLimit(tso) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::rts_enableThreadAllocationLimit(tso)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("rts_enableThreadAllocationLimit")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -97,7 +135,12 @@ pub unsafe extern "C" fn rts_enableThreadAllocationLimit(tso: StgPtr) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rts_disableThreadAllocationLimit(tso: StgPtr) {
-    unsafe { sys::rts_disableThreadAllocationLimit(tso) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::rts_disableThreadAllocationLimit(tso)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("rts_disableThreadAllocationLimit")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -105,7 +148,12 @@ pub unsafe extern "C" fn rts_disableThreadAllocationLimit(tso: StgPtr) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn forkProcess(entry: *mut HsStablePtr) -> pid_t {
-    unsafe { sys::forkProcess(entry) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::forkProcess(entry)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("forkProcess")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -113,7 +161,12 @@ pub unsafe extern "C" fn forkProcess(entry: *mut HsStablePtr) -> pid_t {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn rtsSupportsBoundThreads() -> HsBool {
-    unsafe { sys::rtsSupportsBoundThreads() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::rtsSupportsBoundThreads()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("rtsSupportsBoundThreads")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -126,5 +179,10 @@ pub static mut enabled_capabilities: u32 = 0;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn setNumCapabilities(new_: u32) {
-    unsafe { sys::setNumCapabilities(new_) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::setNumCapabilities(new_)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("setNumCapabilities")
 }

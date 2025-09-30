@@ -100,7 +100,12 @@ pub type HsStablePtr = *mut c_void;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn hs_init(argc: *mut c_int, argv: *mut *mut *mut c_char) {
-    unsafe { sys::hs_init(argc, argv) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::hs_init(argc, argv)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_init")
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
@@ -108,7 +113,12 @@ pub unsafe extern "C" fn hs_init(argc: *mut c_int, argv: *mut *mut *mut c_char) 
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn hs_exit() {
-    unsafe { sys::hs_exit() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::hs_exit()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_exit")
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -116,7 +126,12 @@ pub unsafe extern "C" fn hs_exit() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn hs_thread_done() {
-    unsafe { sys::hs_thread_done() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::hs_thread_done()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_thread_done")
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -124,7 +139,12 @@ pub unsafe extern "C" fn hs_thread_done() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn hs_perform_gc() {
-    unsafe { sys::hs_perform_gc() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::hs_perform_gc()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_perform_gc")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -132,7 +152,12 @@ pub unsafe extern "C" fn hs_perform_gc() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn hs_free_stable_ptr(sp: HsStablePtr) {
-    unsafe { sys::hs_free_stable_ptr(sp) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::hs_free_stable_ptr(sp)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_free_stable_ptr")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -140,7 +165,12 @@ pub unsafe extern "C" fn hs_free_stable_ptr(sp: HsStablePtr) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn hs_spt_lookup(key: *mut StgWord64) -> StgPtr {
-    unsafe { sys::hs_spt_lookup(key) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::hs_spt_lookup(key)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_spt_lookup")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -148,7 +178,12 @@ pub unsafe extern "C" fn hs_spt_lookup(key: *mut StgWord64) -> StgPtr {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn hs_spt_keys(keys: *mut StgPtr, szKeys: c_int) -> c_int {
-    unsafe { sys::hs_spt_keys(keys, szKeys) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::hs_spt_keys(keys, szKeys)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_spt_keys")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -156,7 +191,12 @@ pub unsafe extern "C" fn hs_spt_keys(keys: *mut StgPtr, szKeys: c_int) -> c_int 
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn hs_spt_key_count() -> c_int {
-    unsafe { sys::hs_spt_key_count() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::hs_spt_key_count()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_spt_key_count")
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -164,5 +204,10 @@ pub unsafe extern "C" fn hs_spt_key_count() -> c_int {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn hs_try_putmvar(capability: c_int, sp: HsStablePtr) {
-    unsafe { sys::hs_try_putmvar(capability, sp) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::hs_try_putmvar(capability, sp)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_try_putmvar")
 }

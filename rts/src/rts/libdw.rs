@@ -83,7 +83,12 @@ pub type LibdwSession = LibdwSession_;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn backtraceFree(bt: *mut Backtrace) {
-    unsafe { sys::backtraceFree(bt as *mut sys::Backtrace) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::backtraceFree(bt as *mut sys::Backtrace)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("backtraceFree")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -91,7 +96,12 @@ pub unsafe extern "C" fn backtraceFree(bt: *mut Backtrace) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn libdwGetBacktrace(session: *mut LibdwSession) -> *mut Backtrace {
-    unsafe { sys::libdwGetBacktrace(session as *mut sys::LibdwSession) as *mut Backtrace }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::libdwGetBacktrace(session as *mut sys::LibdwSession) as *mut Backtrace
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("libdwGetBacktrace")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -103,6 +113,7 @@ pub unsafe extern "C" fn libdwLookupLocation(
     loc: *mut Location,
     pc: StgPtr,
 ) -> c_int {
+    #[cfg(feature = "sys")]
     unsafe {
         sys::libdwLookupLocation(
             session as *mut sys::LibdwSession,
@@ -110,4 +121,6 @@ pub unsafe extern "C" fn libdwLookupLocation(
             pc,
         )
     }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("libdwLookupLocation")
 }

@@ -12,6 +12,7 @@ pub unsafe extern "C" fn hs_main(
     main_closure: *mut StgClosure,
     rts_config: RtsConfig,
 ) -> ! {
+    #[cfg(feature = "sys")]
     unsafe {
         sys::hs_main(
             argc,
@@ -20,4 +21,6 @@ pub unsafe extern "C" fn hs_main(
             transmute(rts_config),
         )
     }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("hs_main")
 }

@@ -9,7 +9,12 @@ mod tests;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn requestHeapCensus() {
-    unsafe { sys::requestHeapCensus() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::requestHeapCensus()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("requestHeapCensus")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -17,7 +22,12 @@ pub unsafe extern "C" fn requestHeapCensus() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn startHeapProfTimer() {
-    unsafe { sys::startHeapProfTimer() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::startHeapProfTimer()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("startHeapProfTimer")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -25,7 +35,12 @@ pub unsafe extern "C" fn startHeapProfTimer() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn stopHeapProfTimer() {
-    unsafe { sys::stopHeapProfTimer() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::stopHeapProfTimer()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("stopHeapProfTimer")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -33,7 +48,12 @@ pub unsafe extern "C" fn stopHeapProfTimer() {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn setUserEra(w: StgWord) {
-    unsafe { sys::setUserEra(w) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::setUserEra(w)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("setUserEra")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -41,7 +61,12 @@ pub unsafe extern "C" fn setUserEra(w: StgWord) {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn getUserEra() -> StgWord {
-    unsafe { sys::getUserEra() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getUserEra()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getUserEra")
 }
 
 /// - GHC_PLACES: {libraries}
@@ -49,5 +74,10 @@ pub unsafe extern "C" fn getUserEra() -> StgWord {
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn incrementUserEra(w: StgWord) -> StgWord {
-    unsafe { sys::incrementUserEra(w) }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::incrementUserEra(w)
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("incrementUserEra")
 }

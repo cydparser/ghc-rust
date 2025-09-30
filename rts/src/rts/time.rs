@@ -15,5 +15,10 @@ pub type Time = i64;
 #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
 #[instrument]
 pub unsafe extern "C" fn getProcessElapsedTime() -> Time {
-    unsafe { sys::getProcessElapsedTime() }
+    #[cfg(feature = "sys")]
+    unsafe {
+        sys::getProcessElapsedTime()
+    }
+    #[cfg(not(feature = "sys"))]
+    unimplemented!("getProcessElapsedTime")
 }

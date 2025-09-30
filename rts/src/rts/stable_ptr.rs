@@ -1,3 +1,4 @@
+#[cfg(feature = "sys")]
 use crate::prelude::*;
 use crate::stg::types::StgPtr;
 

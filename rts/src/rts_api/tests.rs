@@ -1,4 +1,5 @@
 use super::*;
+use crate::hs_ffi::{HsBool, HsWord};
 
 #[cfg(feature = "sys")]
 #[test]
@@ -239,7 +240,7 @@ fn test_getRTSStatsEnabled() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 fn equivalent_getAllocations() {
@@ -248,6 +249,7 @@ fn equivalent_getAllocations() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -257,22 +259,22 @@ fn test_getAllocations() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_hs_init_with_rtsopts(argc: c_int, argv: c_char) -> bool {
     let expected = {
-        let mut argc = argc.clone();
-        let mut argv = argv.clone();
+        let mut argc = argc;
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
         unsafe { sys::hs_init_with_rtsopts(&raw mut argc, &raw mut argv) };
         todo!()
     };
     let actual = {
-        let mut argc = argc.clone();
-        let mut argv = argv.clone();
+        let mut argc = argc;
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
         unsafe { hs_init_with_rtsopts(&raw mut argc, &raw mut argv) };
@@ -281,6 +283,7 @@ fn equivalent_hs_init_with_rtsopts(argc: c_int, argv: c_char) -> bool {
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -298,14 +301,14 @@ fn test_hs_init_with_rtsopts() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_hs_init_ghc(argc: c_int, argv: c_char) -> bool {
     let expected = {
-        let argc = argc.clone();
-        let mut argv = argv.clone();
+        let argc = argc;
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         let argv = &raw mut argv;
         let rts_config: sys::RtsConfig = todo!();
@@ -313,8 +316,8 @@ fn equivalent_hs_init_ghc(argc: c_int, argv: c_char) -> bool {
         todo!()
     };
     let actual = {
-        let mut argc = argc.clone();
-        let mut argv = argv.clone();
+        let mut argc = argc;
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
         let rts_config: RtsConfig = todo!();
@@ -324,6 +327,7 @@ fn equivalent_hs_init_ghc(argc: c_int, argv: c_char) -> bool {
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -348,16 +352,16 @@ fn test_hs_init_ghc() {
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_getProgArgv(argc: c_int, argv: c_char) -> bool {
     let expected = {
-        let mut argc = argc.clone();
-        let mut argv = argv.clone();
+        let mut argc = argc;
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
         unsafe { sys::getProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
     let actual = {
-        let mut argc = argc.clone();
-        let mut argv = argv.clone();
+        let mut argc = argc;
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
         unsafe { getProgArgv(&raw mut argc, &raw mut argv) };
@@ -389,15 +393,13 @@ fn test_getProgArgv() {
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_setProgArgv(argc: c_int, argv: c_char) -> bool {
     let expected = {
-        let argc = argc.clone();
-        let mut argv = argv.clone();
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         unsafe { sys::setProgArgv(argc, &raw mut argv) };
         todo!()
     };
     let actual = {
-        let argc = argc.clone();
-        let mut argv = argv.clone();
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         unsafe { setProgArgv(argc, &raw mut argv) };
         todo!()
@@ -427,16 +429,16 @@ fn test_setProgArgv() {
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_getFullProgArgv(argc: c_int, argv: c_char) -> bool {
     let expected = {
-        let mut argc = argc.clone();
-        let mut argv = argv.clone();
+        let mut argc = argc;
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
         unsafe { sys::getFullProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
     let actual = {
-        let mut argc = argc.clone();
-        let mut argv = argv.clone();
+        let mut argc = argc;
+        let mut argv = argv;
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
         unsafe { getFullProgArgv(&raw mut argc, &raw mut argv) };
@@ -462,7 +464,7 @@ fn test_getFullProgArgv() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -478,6 +480,7 @@ fn equivalent_rts_lock() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -490,7 +493,7 @@ fn test_rts_lock() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -508,6 +511,7 @@ fn equivalent_rts_unlock() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -521,7 +525,7 @@ fn test_rts_unlock() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -537,6 +541,7 @@ fn equivalent_rts_unsafeGetMyCapability() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -549,26 +554,23 @@ fn test_rts_unsafeGetMyCapability() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_setInCallCapability(preferred_capability: c_int, affinity: c_int) -> bool {
     let expected = {
-        let preferred_capability = preferred_capability.clone();
-        let affinity = affinity.clone();
         unsafe { sys::rts_setInCallCapability(preferred_capability, affinity) };
         todo!()
     };
     let actual = {
-        let preferred_capability = preferred_capability.clone();
-        let affinity = affinity.clone();
         unsafe { rts_setInCallCapability(preferred_capability, affinity) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -584,24 +586,23 @@ fn test_rts_setInCallCapability() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_pinThreadToNumaNode(node: c_int) -> bool {
     let expected = {
-        let node = node.clone();
         unsafe { sys::rts_pinThreadToNumaNode(node) };
         todo!()
     };
     let actual = {
-        let node = node.clone();
         unsafe { rts_pinThreadToNumaNode(node) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -616,26 +617,25 @@ fn test_rts_pinThreadToNumaNode() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkChar(c: HsChar) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let c = c.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkChar(&raw mut arg1, c)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let c = c.clone();
         let result: HaskellObj = unsafe { rts_mkChar(&raw mut arg1, c) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -651,26 +651,25 @@ fn test_rts_mkChar() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkInt(i: HsInt) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let i = i.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt(&raw mut arg1, i)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let i = i.clone();
         let result: HaskellObj = unsafe { rts_mkInt(&raw mut arg1, i) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -686,26 +685,25 @@ fn test_rts_mkInt() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkInt8(i: HsInt8) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let i = i.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt8(&raw mut arg1, i)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let i = i.clone();
         let result: HaskellObj = unsafe { rts_mkInt8(&raw mut arg1, i) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -721,26 +719,25 @@ fn test_rts_mkInt8() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkInt16(i: HsInt16) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let i = i.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt16(&raw mut arg1, i)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let i = i.clone();
         let result: HaskellObj = unsafe { rts_mkInt16(&raw mut arg1, i) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -756,26 +753,25 @@ fn test_rts_mkInt16() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkInt32(i: HsInt32) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let i = i.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt32(&raw mut arg1, i)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let i = i.clone();
         let result: HaskellObj = unsafe { rts_mkInt32(&raw mut arg1, i) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -791,26 +787,25 @@ fn test_rts_mkInt32() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkInt64(i: HsInt64) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let i = i.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt64(&raw mut arg1, i)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let i = i.clone();
         let result: HaskellObj = unsafe { rts_mkInt64(&raw mut arg1, i) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -833,13 +828,11 @@ fn test_rts_mkInt64() {
 fn equivalent_rts_mkWord(w: HsWord) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let w = w.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord(&raw mut arg1, w)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let w = w.clone();
         let result: HaskellObj = unsafe { rts_mkWord(&raw mut arg1, w) };
         todo!()
     };
@@ -861,26 +854,25 @@ fn test_rts_mkWord() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkWord8(w: HsWord8) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let w = w.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord8(&raw mut arg1, w)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let w = w.clone();
         let result: HaskellObj = unsafe { rts_mkWord8(&raw mut arg1, w) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -896,26 +888,25 @@ fn test_rts_mkWord8() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkWord16(w: HsWord16) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let w = w.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord16(&raw mut arg1, w)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let w = w.clone();
         let result: HaskellObj = unsafe { rts_mkWord16(&raw mut arg1, w) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -931,26 +922,25 @@ fn test_rts_mkWord16() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkWord32(w: HsWord32) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let w = w.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord32(&raw mut arg1, w)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let w = w.clone();
         let result: HaskellObj = unsafe { rts_mkWord32(&raw mut arg1, w) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -966,26 +956,25 @@ fn test_rts_mkWord32() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkWord64(w: HsWord64) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let w = w.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord64(&raw mut arg1, w)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let w = w.clone();
         let result: HaskellObj = unsafe { rts_mkWord64(&raw mut arg1, w) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1001,7 +990,7 @@ fn test_rts_mkWord64() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1021,6 +1010,7 @@ fn equivalent_rts_mkPtr() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1035,7 +1025,7 @@ fn test_rts_mkPtr() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1055,6 +1045,7 @@ fn equivalent_rts_mkFunPtr() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1069,26 +1060,25 @@ fn test_rts_mkFunPtr() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkFloat(f: HsFloat) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let f = f.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkFloat(&raw mut arg1, f)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let f = f.clone();
         let result: HaskellObj = unsafe { rts_mkFloat(&raw mut arg1, f) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1104,26 +1094,25 @@ fn test_rts_mkFloat() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkDouble(f: HsDouble) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let f = f.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkDouble(&raw mut arg1, f)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let f = f.clone();
         let result: HaskellObj = unsafe { rts_mkDouble(&raw mut arg1, f) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1139,7 +1128,7 @@ fn test_rts_mkDouble() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1159,6 +1148,7 @@ fn equivalent_rts_mkStablePtr() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1180,13 +1170,11 @@ fn test_rts_mkStablePtr() {
 fn equivalent_rts_mkBool(b: HsBool) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let b = b.clone();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkBool(&raw mut arg1, b)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let b = b.clone();
         let result: HaskellObj = unsafe { rts_mkBool(&raw mut arg1, b) };
         todo!()
     };
@@ -1208,26 +1196,27 @@ fn test_rts_mkBool() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_mkString(s: c_char) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
-        let mut s = s.clone();
+        let mut s = s;
         let result: HaskellObj = unsafe { transmute(sys::rts_mkString(&raw mut arg1, &raw mut s)) };
         todo!()
     };
     let actual = {
         let mut arg1: Capability = todo!();
-        let mut s = s.clone();
+        let mut s = s;
         let result: HaskellObj = unsafe { rts_mkString(&raw mut arg1, &raw mut s) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1243,7 +1232,7 @@ fn test_rts_mkString() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1265,6 +1254,7 @@ fn equivalent_rts_apply() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1280,7 +1270,7 @@ fn test_rts_apply() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1296,6 +1286,7 @@ fn equivalent_rts_getChar() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1308,7 +1299,7 @@ fn test_rts_getChar() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1324,6 +1315,7 @@ fn equivalent_rts_getInt() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1336,7 +1328,7 @@ fn test_rts_getInt() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1352,6 +1344,7 @@ fn equivalent_rts_getInt8() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1364,7 +1357,7 @@ fn test_rts_getInt8() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1380,6 +1373,7 @@ fn equivalent_rts_getInt16() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1392,7 +1386,7 @@ fn test_rts_getInt16() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1408,6 +1402,7 @@ fn equivalent_rts_getInt32() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1420,7 +1415,7 @@ fn test_rts_getInt32() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1436,6 +1431,7 @@ fn equivalent_rts_getInt64() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1448,7 +1444,7 @@ fn test_rts_getInt64() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1464,6 +1460,7 @@ fn equivalent_rts_getWord() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1476,7 +1473,7 @@ fn test_rts_getWord() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1492,6 +1489,7 @@ fn equivalent_rts_getWord8() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1504,7 +1502,7 @@ fn test_rts_getWord8() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1520,6 +1518,7 @@ fn equivalent_rts_getWord16() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1532,7 +1531,7 @@ fn test_rts_getWord16() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1548,6 +1547,7 @@ fn equivalent_rts_getWord32() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1560,7 +1560,7 @@ fn test_rts_getWord32() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1576,6 +1576,7 @@ fn equivalent_rts_getWord64() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1588,7 +1589,7 @@ fn test_rts_getWord64() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1606,6 +1607,7 @@ fn equivalent_rts_getPtr() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1619,7 +1621,7 @@ fn test_rts_getPtr() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1637,6 +1639,7 @@ fn equivalent_rts_getFunPtr() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1650,7 +1653,7 @@ fn test_rts_getFunPtr() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1666,6 +1669,7 @@ fn equivalent_rts_getFloat() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1678,7 +1682,7 @@ fn test_rts_getFloat() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1694,6 +1698,7 @@ fn equivalent_rts_getDouble() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1706,7 +1711,7 @@ fn test_rts_getDouble() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1724,6 +1729,7 @@ fn equivalent_rts_getStablePtr() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1737,7 +1743,7 @@ fn test_rts_getStablePtr() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1753,6 +1759,7 @@ fn equivalent_rts_getBool() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1765,7 +1772,7 @@ fn test_rts_getBool() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1789,6 +1796,7 @@ fn equivalent_rts_eval() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1805,7 +1813,7 @@ fn test_rts_eval() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1814,7 +1822,6 @@ fn equivalent_rts_eval_(stack_size: c_uint) -> bool {
         let mut arg1: sys::Capability = todo!();
         let mut arg1 = &raw mut arg1;
         let p: sys::HaskellObj = todo!();
-        let stack_size = stack_size.clone();
         let mut ret: sys::HaskellObj = todo!();
         unsafe { sys::rts_eval_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
@@ -1823,7 +1830,6 @@ fn equivalent_rts_eval_(stack_size: c_uint) -> bool {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
         let p: HaskellObj = todo!();
-        let stack_size = stack_size.clone();
         let mut ret: HaskellObj = todo!();
         unsafe { rts_eval_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
@@ -1831,6 +1837,7 @@ fn equivalent_rts_eval_(stack_size: c_uint) -> bool {
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1849,7 +1856,7 @@ fn test_rts_eval_() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1873,6 +1880,7 @@ fn equivalent_rts_evalIO() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1889,7 +1897,7 @@ fn test_rts_evalIO() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1913,6 +1921,7 @@ fn equivalent_rts_evalStableIOMain() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1929,7 +1938,7 @@ fn test_rts_evalStableIOMain() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1953,6 +1962,7 @@ fn equivalent_rts_evalStableIO() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1969,7 +1979,7 @@ fn test_rts_evalStableIO() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1993,6 +2003,7 @@ fn equivalent_rts_evalLazyIO() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2009,7 +2020,7 @@ fn test_rts_evalLazyIO() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2018,7 +2029,6 @@ fn equivalent_rts_evalLazyIO_(stack_size: c_uint) -> bool {
         let mut arg1: sys::Capability = todo!();
         let mut arg1 = &raw mut arg1;
         let p: sys::HaskellObj = todo!();
-        let stack_size = stack_size.clone();
         let mut ret: sys::HaskellObj = todo!();
         unsafe { sys::rts_evalLazyIO_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
@@ -2027,7 +2037,6 @@ fn equivalent_rts_evalLazyIO_(stack_size: c_uint) -> bool {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
         let p: HaskellObj = todo!();
-        let stack_size = stack_size.clone();
         let mut ret: HaskellObj = todo!();
         unsafe { rts_evalLazyIO_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
@@ -2035,6 +2044,7 @@ fn equivalent_rts_evalLazyIO_(stack_size: c_uint) -> bool {
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2053,7 +2063,7 @@ fn test_rts_evalLazyIO_() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2069,6 +2079,7 @@ fn equivalent_rts_getSchedStatus() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2140,7 +2151,7 @@ fn test_rts_resume() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 fn equivalent_rts_isPaused() {
@@ -2149,6 +2160,7 @@ fn equivalent_rts_isPaused() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2158,7 +2170,7 @@ fn test_rts_isPaused() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2178,6 +2190,7 @@ fn equivalent_rts_listThreads() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2192,7 +2205,7 @@ fn test_rts_listThreads() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2212,6 +2225,7 @@ fn equivalent_rts_listMiscRoots() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2226,7 +2240,7 @@ fn test_rts_listMiscRoots() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2242,6 +2256,7 @@ fn equivalent_rts_clearMemory() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

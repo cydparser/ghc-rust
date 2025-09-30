@@ -1,4 +1,7 @@
+#![allow(unused_imports)]
 use super::*;
+use crate::prelude::*;
+use crate::stg::W_;
 
 #[cfg(feature = "sys")]
 #[test]
@@ -201,26 +204,23 @@ const _: () = {
     ["Offset of field: bdescr_::_padding"][offset_of!(bdescr_, _padding) - 52usize];
 };
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_allocAlignedGroupOnNode(node: u32, n: W_) -> bool {
     let expected = {
-        let node = node.clone();
-        let n = n.clone();
         let result: &bdescr = unsafe { transmute(&*sys::allocAlignedGroupOnNode(node, n)) };
         todo!()
     };
     let actual = {
-        let node = node.clone();
-        let n = n.clone();
         let result: &bdescr = unsafe { &*allocAlignedGroupOnNode(node, n) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -236,24 +236,23 @@ fn test_allocAlignedGroupOnNode() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_allocGroup_lock(n: W_) -> bool {
     let expected = {
-        let n = n.clone();
         let result: &bdescr = unsafe { transmute(&*sys::allocGroup_lock(n)) };
         todo!()
     };
     let actual = {
-        let n = n.clone();
         let result: &bdescr = unsafe { &*allocGroup_lock(n) };
         todo!()
     };
     expected == actual
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -268,7 +267,7 @@ fn test_allocGroup_lock() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(feature = "sys")]
+#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -286,6 +285,7 @@ fn equivalent_freeGroup_lock() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

@@ -1,3 +1,4 @@
+#[cfg(feature = "sys")]
 use crate::prelude::*;
 
 /// - GHC_PLACES: {libraries, testsuite}
