@@ -221,7 +221,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                                 continue;
                             }
 
-                            let attrs = export_attrs(&ident, places);
+                            let attrs = export_attrs(places);
 
                             let rhs: syn::Expr = match ty.as_ref() {
                                 Type::Array(_) => parse_quote! { [] },
@@ -438,7 +438,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         }
     }
 
-    let attrs = export_attrs(ident, places);
+    let attrs = export_attrs(places);
 
     let call: syn::Expr = match &output {
         syn::ReturnType::Type(_, ret_ty) if !symbols.is_std_type(ret_ty.as_ref()) => {
@@ -472,9 +472,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
     }
 }
 
-fn export_attrs(ident: &Ident, places: Places) -> Vec<syn::Attribute> {
-    let export_name = parse_token_stream(format!("\"rust_{ident}\""));
-
+fn export_attrs(places: Places) -> Vec<syn::Attribute> {
     let mut attrs = Vec::with_capacity(3);
 
     if !places.is_empty() {
@@ -482,8 +480,8 @@ fn export_attrs(ident: &Ident, places: Places) -> Vec<syn::Attribute> {
     }
 
     attrs.extend([
-        parse_quote! { #[cfg_attr(feature = "sys", unsafe(export_name = #export_name))] },
-        parse_quote! { #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))] },
+        parse_quote! { #[ffi] },
+        parse_quote! { #[unsafe(no_mangle)] },
     ]);
 
     attrs
