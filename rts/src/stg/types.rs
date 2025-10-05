@@ -21,47 +21,39 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-pub(crate) const STG_INT8_MIN: i32 = -128;
+pub(crate) const STG_INT8_MIN: StgInt8 = i8::MIN;
 
 // First, platform-dependent definitions of size-specific integers.
 
 /// - GHC_PLACES: {testsuite}
-pub const STG_INT8_MAX: u32 = i8::MAX as u32;
+pub const STG_INT8_MAX: StgInt8 = StgInt8::MAX;
 
 /// - GHC_PLACES: {testsuite}
-pub const STG_WORD8_MAX: u32 = u8::MAX as u32;
+pub const STG_WORD8_MAX: StgWord8 = StgWord8::MAX;
 
-pub(crate) const STG_INT16_MIN: i32 = i16::MIN as i32;
-
-/// - GHC_PLACES: {testsuite}
-pub const STG_INT16_MAX: u32 = i16::MAX as u32;
+pub(crate) const STG_INT16_MIN: StgInt16 = StgInt16::MIN;
 
 /// - GHC_PLACES: {testsuite}
-pub const STG_WORD16_MAX: u32 = u16::MAX as u32;
-
-pub(crate) const STG_INT32_MIN: i32 = i32::MIN;
+pub const STG_INT16_MAX: StgInt16 = StgInt16::MAX;
 
 /// - GHC_PLACES: {testsuite}
-pub const STG_INT32_MAX: u32 = i32::MAX as u32;
+pub const STG_WORD16_MAX: StgWord16 = StgWord16::MAX;
+
+pub(crate) const STG_INT32_MIN: StgInt32 = StgInt32::MIN;
 
 /// - GHC_PLACES: {testsuite}
-pub const STG_WORD32_MAX: u32 = u32::MAX;
-
-pub(crate) const STG_INT64_MIN: i64 = i64::MIN;
+pub const STG_INT32_MAX: StgInt32 = StgInt32::MAX;
 
 /// - GHC_PLACES: {testsuite}
-pub const STG_INT64_MAX: u64 = i64::MAX as u64;
+pub const STG_WORD32_MAX: StgWord32 = StgWord32::MAX;
+
+pub(crate) const STG_INT64_MIN: StgInt64 = StgInt64::MIN;
 
 /// - GHC_PLACES: {testsuite}
-pub const STG_WORD64_MAX: u64 = u64::MAX;
-
-pub(crate) const STG_INT_MIN: i64 = -9223372036854775808;
+pub const STG_INT64_MAX: StgInt64 = StgInt64::MAX;
 
 /// - GHC_PLACES: {testsuite}
-pub const STG_INT_MAX: u64 = 9223372036854775807;
-
-/// - GHC_PLACES: {testsuite}
-pub const STG_WORD_MAX: i32 = -1;
+pub const STG_WORD64_MAX: StgWord64 = StgWord64::MAX;
 
 /// - GHC_PLACES: {testsuite}
 pub type StgInt8 = i8;
@@ -197,6 +189,23 @@ pub(crate) type StgHalfInt = i16;
 pub(crate) type StgHalfWord = u32;
 #[cfg(target_pointer_width = "32")]
 pub(crate) type StgHalfWord = u16;
+
+#[cfg(target_pointer_width = "64")]
+pub(crate) const STG_INT_MIN: i64 = i64::MIN;
+#[cfg(target_pointer_width = "32")]
+pub(crate) const STG_INT_MIN: i32 = i32::MIN;
+
+/// - GHC_PLACES: {testsuite}
+#[cfg(target_pointer_width = "64")]
+pub const STG_INT_MAX: i64 = i64::MAX;
+#[cfg(target_pointer_width = "32")]
+pub const STG_INT_MAX: i32 = i32::MAX;
+
+/// - GHC_PLACES: {testsuite}
+#[cfg(target_pointer_width = "64")]
+pub const STG_WORD_MAX: u64 = u64::MAX;
+#[cfg(target_pointer_width = "32")]
+pub const STG_WORD_MAX: u32 = u32::MAX;
 
 // Other commonly-used STG datatypes.
 
