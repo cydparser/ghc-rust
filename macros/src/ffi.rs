@@ -85,6 +85,8 @@ impl syn::parse::Parse for FfiItem {
             return Err(input.error("unable to determine item ident"));
         };
         let span = item_ident.span();
+        let mut export_name = proc2::Literal::string(&format!("rust_{item_ident}"));
+        export_name.set_span(span);
 
         attrs.extend([
             TokenTree::Punct(proc2::Punct::new('#', Spacing::Alone)),
@@ -100,7 +102,7 @@ impl syn::parse::Parse for FfiItem {
                     TokenTree::Group(new_group([
                         TokenTree::Ident(Ident::new("export_name", span)),
                         TokenTree::Punct(proc2::Punct::new('=', Spacing::Alone)),
-                        TokenTree::Literal(proc2::Literal::string(&item_ident.to_string())),
+                        TokenTree::Literal(export_name),
                     ])),
                 ],
             )),
