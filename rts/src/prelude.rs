@@ -3,7 +3,7 @@
 pub use crate::utils::bindgen::__IncompleteArrayField;
 #[cfg(test)]
 pub use crate::utils::test::*;
-pub use ghc_macros::instrument;
+pub use ghc_macros::{ffi, instrument};
 #[cfg(feature = "sys")]
 pub use ghc_rts_sys as sys;
 #[cfg(test)]
