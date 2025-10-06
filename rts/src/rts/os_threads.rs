@@ -1,7 +1,7 @@
 use crate::hs_ffi::HsStablePtr;
 use crate::prelude::*;
 use crate::stg::types::StgWord64;
-use libc::{pthread_cond_t, pthread_key_t, pthread_mutex_t, pthread_t};
+use libc::{pthread_cond_t, pthread_mutex_t, pthread_t};
 
 #[cfg(test)]
 mod tests;
@@ -24,8 +24,6 @@ pub type Mutex = pthread_mutex_t;
 
 /// - GHC_PLACES: {testsuite}
 pub type OSThreadId = pthread_t;
-
-pub(crate) type ThreadLocalKey = pthread_key_t;
 
 /// - GHC_PLACES: {utils}
 #[ffi]
