@@ -6,8 +6,8 @@ use crate::stg::types::StgWord;
 mod tests;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_heap_view_closureSize"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn heap_view_closureSize(closure: *mut StgClosure) -> StgWord {
     #[cfg(feature = "sys")]
@@ -19,8 +19,8 @@ pub unsafe extern "C" fn heap_view_closureSize(closure: *mut StgClosure) -> StgW
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_collect_pointers"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn collect_pointers(
     closure: *mut StgClosure,

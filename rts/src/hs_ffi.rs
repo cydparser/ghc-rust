@@ -96,8 +96,8 @@ pub(crate) type HsFunPtr = Option<unsafe extern "C" fn()>;
 pub type HsStablePtr = *mut c_void;
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_init"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_init(argc: *mut c_int, argv: *mut *mut *mut c_char) {
     #[cfg(feature = "sys")]
@@ -109,8 +109,8 @@ pub unsafe extern "C" fn hs_init(argc: *mut c_int, argv: *mut *mut *mut c_char) 
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_exit"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_exit() {
     #[cfg(feature = "sys")]
@@ -122,8 +122,8 @@ pub unsafe extern "C" fn hs_exit() {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_thread_done"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_thread_done() {
     #[cfg(feature = "sys")]
@@ -135,8 +135,8 @@ pub unsafe extern "C" fn hs_thread_done() {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_perform_gc"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_perform_gc() {
     #[cfg(feature = "sys")]
@@ -148,8 +148,8 @@ pub unsafe extern "C" fn hs_perform_gc() {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_free_stable_ptr"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_free_stable_ptr(sp: HsStablePtr) {
     #[cfg(feature = "sys")]
@@ -161,8 +161,8 @@ pub unsafe extern "C" fn hs_free_stable_ptr(sp: HsStablePtr) {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_spt_lookup"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_spt_lookup(key: *mut StgWord64) -> StgPtr {
     #[cfg(feature = "sys")]
@@ -174,8 +174,8 @@ pub unsafe extern "C" fn hs_spt_lookup(key: *mut StgWord64) -> StgPtr {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_spt_keys"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_spt_keys(keys: *mut StgPtr, szKeys: c_int) -> c_int {
     #[cfg(feature = "sys")]
@@ -187,8 +187,8 @@ pub unsafe extern "C" fn hs_spt_keys(keys: *mut StgPtr, szKeys: c_int) -> c_int 
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_spt_key_count"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_spt_key_count() -> c_int {
     #[cfg(feature = "sys")]
@@ -200,8 +200,8 @@ pub unsafe extern "C" fn hs_spt_key_count() -> c_int {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_try_putmvar"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_try_putmvar(capability: c_int, sp: HsStablePtr) {
     #[cfg(feature = "sys")]

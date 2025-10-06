@@ -65,8 +65,8 @@ impl From<PauseToken_> for sys::PauseToken_ {
 pub type PauseToken = PauseToken_;
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_pauseTokenCapability"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn pauseTokenCapability(pauseToken: *mut PauseToken) -> *mut Capability {
     #[cfg(feature = "sys")]
@@ -144,8 +144,8 @@ impl From<RtsConfig> for sys::RtsConfig {
 }
 
 // /// - GHC_PLACES: {testsuite, utils}
-// #[cfg_attr(feature = "sys", unsafe(export_name = "rust_defaultRtsConfig"))]
-// #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+// #[ffi]
+// #[unsafe(no_mangle)]
 // TODO(rust): pub static defaultRtsConfig: RtsConfig;
 
 /// cbindgen:no-export
@@ -299,8 +299,8 @@ impl Arbitrary for _RTSStats {
 pub type RTSStats = _RTSStats;
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_getRTSStats"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getRTSStats(s: *mut RTSStats) {
     #[cfg(feature = "sys")]
@@ -312,8 +312,8 @@ pub unsafe extern "C" fn getRTSStats(s: *mut RTSStats) {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_getRTSStatsEnabled"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getRTSStatsEnabled() -> c_int {
     #[cfg(feature = "sys")]
@@ -325,8 +325,8 @@ pub unsafe extern "C" fn getRTSStatsEnabled() -> c_int {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_getAllocations"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getAllocations() -> u64 {
     #[cfg(feature = "sys")]
@@ -338,8 +338,8 @@ pub unsafe extern "C" fn getAllocations() -> u64 {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_init_with_rtsopts"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_init_with_rtsopts(argc: *mut c_int, argv: *mut *mut *mut c_char) {
     #[cfg(feature = "sys")]
@@ -351,8 +351,8 @@ pub unsafe extern "C" fn hs_init_with_rtsopts(argc: *mut c_int, argv: *mut *mut 
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_init_ghc"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_init_ghc(
     argc: *mut c_int,
@@ -368,8 +368,8 @@ pub unsafe extern "C" fn hs_init_ghc(
 }
 
 /// - GHC_PLACES: {libraries, utils}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_shutdownHaskellAndExit"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn shutdownHaskellAndExit(exitCode: c_int, fastExit: c_int) -> ! {
     #[cfg(feature = "sys")]
@@ -381,8 +381,8 @@ pub unsafe extern "C" fn shutdownHaskellAndExit(exitCode: c_int, fastExit: c_int
 }
 
 /// - GHC_PLACES: {libraries, utils}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_shutdownHaskellAndSignal"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn shutdownHaskellAndSignal(sig: c_int, fastExit: c_int) -> ! {
     #[cfg(feature = "sys")]
@@ -394,8 +394,8 @@ pub unsafe extern "C" fn shutdownHaskellAndSignal(sig: c_int, fastExit: c_int) -
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_getProgArgv"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getProgArgv(argc: *mut c_int, argv: *mut *mut *mut c_char) {
     #[cfg(feature = "sys")]
@@ -407,8 +407,8 @@ pub unsafe extern "C" fn getProgArgv(argc: *mut c_int, argv: *mut *mut *mut c_ch
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_setProgArgv"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setProgArgv(argc: c_int, argv: *mut *mut c_char) {
     #[cfg(feature = "sys")]
@@ -420,8 +420,8 @@ pub unsafe extern "C" fn setProgArgv(argc: c_int, argv: *mut *mut c_char) {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_getFullProgArgv"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getFullProgArgv(argc: *mut c_int, argv: *mut *mut *mut c_char) {
     #[cfg(feature = "sys")]
@@ -433,8 +433,8 @@ pub unsafe extern "C" fn getFullProgArgv(argc: *mut c_int, argv: *mut *mut *mut 
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_lock"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_lock() -> *mut Capability {
     #[cfg(feature = "sys")]
@@ -446,8 +446,8 @@ pub unsafe extern "C" fn rts_lock() -> *mut Capability {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_unlock"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_unlock(token: *mut Capability) {
     #[cfg(feature = "sys")]
@@ -459,11 +459,8 @@ pub unsafe extern "C" fn rts_unlock(token: *mut Capability) {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_rts_unsafeGetMyCapability")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_unsafeGetMyCapability() -> *mut Capability {
     #[cfg(feature = "sys")]
@@ -475,8 +472,8 @@ pub unsafe extern "C" fn rts_unsafeGetMyCapability() -> *mut Capability {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_setInCallCapability"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_setInCallCapability(preferred_capability: c_int, affinity: c_int) {
     #[cfg(feature = "sys")]
@@ -488,8 +485,8 @@ pub unsafe extern "C" fn rts_setInCallCapability(preferred_capability: c_int, af
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_pinThreadToNumaNode"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_pinThreadToNumaNode(node: c_int) {
     #[cfg(feature = "sys")]
@@ -501,8 +498,8 @@ pub unsafe extern "C" fn rts_pinThreadToNumaNode(node: c_int) {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkChar"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkChar(arg1: *mut Capability, c: HsChar) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -514,8 +511,8 @@ pub unsafe extern "C" fn rts_mkChar(arg1: *mut Capability, c: HsChar) -> Haskell
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkInt"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt(arg1: *mut Capability, i: HsInt) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -527,8 +524,8 @@ pub unsafe extern "C" fn rts_mkInt(arg1: *mut Capability, i: HsInt) -> HaskellOb
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkInt8"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt8(arg1: *mut Capability, i: HsInt8) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -540,8 +537,8 @@ pub unsafe extern "C" fn rts_mkInt8(arg1: *mut Capability, i: HsInt8) -> Haskell
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkInt16"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt16(arg1: *mut Capability, i: HsInt16) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -553,8 +550,8 @@ pub unsafe extern "C" fn rts_mkInt16(arg1: *mut Capability, i: HsInt16) -> Haske
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkInt32"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt32(arg1: *mut Capability, i: HsInt32) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -566,8 +563,8 @@ pub unsafe extern "C" fn rts_mkInt32(arg1: *mut Capability, i: HsInt32) -> Haske
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkInt64"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt64(arg1: *mut Capability, i: HsInt64) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -579,8 +576,8 @@ pub unsafe extern "C" fn rts_mkInt64(arg1: *mut Capability, i: HsInt64) -> Haske
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkWord"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord(arg1: *mut Capability, w: HsWord) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -592,8 +589,8 @@ pub unsafe extern "C" fn rts_mkWord(arg1: *mut Capability, w: HsWord) -> Haskell
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkWord8"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord8(arg1: *mut Capability, w: HsWord8) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -605,8 +602,8 @@ pub unsafe extern "C" fn rts_mkWord8(arg1: *mut Capability, w: HsWord8) -> Haske
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkWord16"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord16(arg1: *mut Capability, w: HsWord16) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -618,8 +615,8 @@ pub unsafe extern "C" fn rts_mkWord16(arg1: *mut Capability, w: HsWord16) -> Has
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkWord32"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord32(arg1: *mut Capability, w: HsWord32) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -631,8 +628,8 @@ pub unsafe extern "C" fn rts_mkWord32(arg1: *mut Capability, w: HsWord32) -> Has
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkWord64"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord64(arg1: *mut Capability, w: HsWord64) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -644,8 +641,8 @@ pub unsafe extern "C" fn rts_mkWord64(arg1: *mut Capability, w: HsWord64) -> Has
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkPtr"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkPtr(arg1: *mut Capability, a: HsPtr) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -657,8 +654,8 @@ pub unsafe extern "C" fn rts_mkPtr(arg1: *mut Capability, a: HsPtr) -> HaskellOb
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkFunPtr"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkFunPtr(arg1: *mut Capability, a: HsFunPtr) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -670,8 +667,8 @@ pub unsafe extern "C" fn rts_mkFunPtr(arg1: *mut Capability, a: HsFunPtr) -> Has
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkFloat"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkFloat(arg1: *mut Capability, f: HsFloat) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -683,8 +680,8 @@ pub unsafe extern "C" fn rts_mkFloat(arg1: *mut Capability, f: HsFloat) -> Haske
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkDouble"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkDouble(arg1: *mut Capability, f: HsDouble) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -696,8 +693,8 @@ pub unsafe extern "C" fn rts_mkDouble(arg1: *mut Capability, f: HsDouble) -> Has
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkStablePtr"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkStablePtr(arg1: *mut Capability, s: HsStablePtr) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -709,8 +706,8 @@ pub unsafe extern "C" fn rts_mkStablePtr(arg1: *mut Capability, s: HsStablePtr) 
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkBool"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkBool(arg1: *mut Capability, b: HsBool) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -722,8 +719,8 @@ pub unsafe extern "C" fn rts_mkBool(arg1: *mut Capability, b: HsBool) -> Haskell
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_mkString"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkString(arg1: *mut Capability, s: *mut c_char) -> HaskellObj {
     #[cfg(feature = "sys")]
@@ -735,8 +732,8 @@ pub unsafe extern "C" fn rts_mkString(arg1: *mut Capability, s: *mut c_char) -> 
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_apply"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_apply(
     arg1: *mut Capability,
@@ -756,8 +753,8 @@ pub unsafe extern "C" fn rts_apply(
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getChar"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getChar(arg1: HaskellObj) -> HsChar {
     #[cfg(feature = "sys")]
@@ -769,8 +766,8 @@ pub unsafe extern "C" fn rts_getChar(arg1: HaskellObj) -> HsChar {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getInt"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getInt(arg1: HaskellObj) -> HsInt {
     #[cfg(feature = "sys")]
@@ -782,8 +779,8 @@ pub unsafe extern "C" fn rts_getInt(arg1: HaskellObj) -> HsInt {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getInt8"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getInt8(arg1: HaskellObj) -> HsInt8 {
     #[cfg(feature = "sys")]
@@ -795,8 +792,8 @@ pub unsafe extern "C" fn rts_getInt8(arg1: HaskellObj) -> HsInt8 {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getInt16"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getInt16(arg1: HaskellObj) -> HsInt16 {
     #[cfg(feature = "sys")]
@@ -808,8 +805,8 @@ pub unsafe extern "C" fn rts_getInt16(arg1: HaskellObj) -> HsInt16 {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getInt32"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getInt32(arg1: HaskellObj) -> HsInt32 {
     #[cfg(feature = "sys")]
@@ -821,8 +818,8 @@ pub unsafe extern "C" fn rts_getInt32(arg1: HaskellObj) -> HsInt32 {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getInt64"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getInt64(arg1: HaskellObj) -> HsInt64 {
     #[cfg(feature = "sys")]
@@ -834,8 +831,8 @@ pub unsafe extern "C" fn rts_getInt64(arg1: HaskellObj) -> HsInt64 {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getWord"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getWord(arg1: HaskellObj) -> HsWord {
     #[cfg(feature = "sys")]
@@ -847,8 +844,8 @@ pub unsafe extern "C" fn rts_getWord(arg1: HaskellObj) -> HsWord {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getWord8"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getWord8(arg1: HaskellObj) -> HsWord8 {
     #[cfg(feature = "sys")]
@@ -860,8 +857,8 @@ pub unsafe extern "C" fn rts_getWord8(arg1: HaskellObj) -> HsWord8 {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getWord16"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getWord16(arg1: HaskellObj) -> HsWord16 {
     #[cfg(feature = "sys")]
@@ -873,8 +870,8 @@ pub unsafe extern "C" fn rts_getWord16(arg1: HaskellObj) -> HsWord16 {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getWord32"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getWord32(arg1: HaskellObj) -> HsWord32 {
     #[cfg(feature = "sys")]
@@ -886,8 +883,8 @@ pub unsafe extern "C" fn rts_getWord32(arg1: HaskellObj) -> HsWord32 {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getWord64"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getWord64(arg1: HaskellObj) -> HsWord64 {
     #[cfg(feature = "sys")]
@@ -899,8 +896,8 @@ pub unsafe extern "C" fn rts_getWord64(arg1: HaskellObj) -> HsWord64 {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getPtr"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getPtr(arg1: HaskellObj) -> HsPtr {
     #[cfg(feature = "sys")]
@@ -912,8 +909,8 @@ pub unsafe extern "C" fn rts_getPtr(arg1: HaskellObj) -> HsPtr {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getFunPtr"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getFunPtr(arg1: HaskellObj) -> HsFunPtr {
     #[cfg(feature = "sys")]
@@ -925,8 +922,8 @@ pub unsafe extern "C" fn rts_getFunPtr(arg1: HaskellObj) -> HsFunPtr {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getFloat"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getFloat(arg1: HaskellObj) -> HsFloat {
     #[cfg(feature = "sys")]
@@ -938,8 +935,8 @@ pub unsafe extern "C" fn rts_getFloat(arg1: HaskellObj) -> HsFloat {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getDouble"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getDouble(arg1: HaskellObj) -> HsDouble {
     #[cfg(feature = "sys")]
@@ -951,8 +948,8 @@ pub unsafe extern "C" fn rts_getDouble(arg1: HaskellObj) -> HsDouble {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getStablePtr"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getStablePtr(arg1: HaskellObj) -> HsStablePtr {
     #[cfg(feature = "sys")]
@@ -964,8 +961,8 @@ pub unsafe extern "C" fn rts_getStablePtr(arg1: HaskellObj) -> HsStablePtr {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getBool"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getBool(arg1: HaskellObj) -> HsBool {
     #[cfg(feature = "sys")]
@@ -977,8 +974,8 @@ pub unsafe extern "C" fn rts_getBool(arg1: HaskellObj) -> HsBool {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_eval"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_eval(arg1: *mut *mut Capability, p: HaskellObj, ret: *mut HaskellObj) {
     #[cfg(feature = "sys")]
@@ -994,8 +991,8 @@ pub unsafe extern "C" fn rts_eval(arg1: *mut *mut Capability, p: HaskellObj, ret
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_eval_"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_eval_(
     arg1: *mut *mut Capability,
@@ -1017,8 +1014,8 @@ pub unsafe extern "C" fn rts_eval_(
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_evalIO"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_evalIO(
     arg1: *mut *mut Capability,
@@ -1038,8 +1035,8 @@ pub unsafe extern "C" fn rts_evalIO(
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_evalStableIOMain"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_evalStableIOMain(
     arg1: *mut *mut Capability,
@@ -1055,8 +1052,8 @@ pub unsafe extern "C" fn rts_evalStableIOMain(
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_evalStableIO"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_evalStableIO(
     arg1: *mut *mut Capability,
@@ -1072,8 +1069,8 @@ pub unsafe extern "C" fn rts_evalStableIO(
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_evalLazyIO"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_evalLazyIO(
     arg1: *mut *mut Capability,
@@ -1093,8 +1090,8 @@ pub unsafe extern "C" fn rts_evalLazyIO(
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_evalLazyIO_"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_evalLazyIO_(
     arg1: *mut *mut Capability,
@@ -1116,8 +1113,8 @@ pub unsafe extern "C" fn rts_evalLazyIO_(
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getSchedStatus"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getSchedStatus(cap: *mut Capability) -> SchedulerStatus {
     #[cfg(feature = "sys")]
@@ -1129,8 +1126,8 @@ pub unsafe extern "C" fn rts_getSchedStatus(cap: *mut Capability) -> SchedulerSt
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_pause"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_pause() -> *mut PauseToken {
     #[cfg(feature = "sys")]
@@ -1142,8 +1139,8 @@ pub unsafe extern "C" fn rts_pause() -> *mut PauseToken {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_resume"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_resume(pauseToken: *mut PauseToken) {
     #[cfg(feature = "sys")]
@@ -1155,8 +1152,8 @@ pub unsafe extern "C" fn rts_resume(pauseToken: *mut PauseToken) {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_isPaused"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isPaused() -> bool {
     #[cfg(feature = "sys")]
@@ -1168,10 +1165,9 @@ pub unsafe extern "C" fn rts_isPaused() -> bool {
 }
 
 pub(crate) type ListThreadsCb = Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut StgTSO)>;
-
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_listThreads"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_listThreads(cb: ListThreadsCb, user: *mut c_void) {
     #[cfg(feature = "sys")]
@@ -1184,10 +1180,9 @@ pub unsafe extern "C" fn rts_listThreads(cb: ListThreadsCb, user: *mut c_void) {
 
 pub(crate) type ListRootsCb =
     Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut StgClosure)>;
-
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_listMiscRoots"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_listMiscRoots(cb: ListRootsCb, user: *mut c_void) {
     #[cfg(feature = "sys")]
@@ -1199,8 +1194,8 @@ pub unsafe extern "C" fn rts_listMiscRoots(cb: ListRootsCb, user: *mut c_void) {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_clearMemory"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_clearMemory() {
     #[cfg(feature = "sys")]

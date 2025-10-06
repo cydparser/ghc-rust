@@ -16,42 +16,33 @@ const TODO_StgInfoTable: StgInfoTable = StgInfoTable_ {
 };
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_upd_frame_info"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_upd_frame_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_catch_frame_info"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_catch_frame_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_stg_catch_retry_frame_info")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_catch_retry_frame_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_stg_atomically_frame_info")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_atomically_frame_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_catch_stm_frame_info"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_catch_stm_frame_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_stg_stack_underflow_frame_d_info")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_stack_underflow_frame_d_info: StgInfoTable = TODO_StgInfoTable;
 
 const TODO_StgFunInfoTable: StgFunInfoTable = StgFunInfoTable {
@@ -65,46 +56,43 @@ const TODO_StgFunInfoTable: StgFunInfoTable = StgFunInfoTable {
 };
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_BCO_info"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_BCO_info: StgFunInfoTable = TODO_StgFunInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_STACK_info"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_STACK_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_ARR_WORDS_info"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_ARR_WORDS_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_stg_MUT_ARR_PTRS_FROZEN_CLEAN_info")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_MUT_ARR_PTRS_FROZEN_CLEAN_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_ret_p_info"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_ret_p_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_ret_n_info"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_ret_n_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_stop_thread_info"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_stop_thread_info: StgInfoTable = TODO_StgInfoTable;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_paniczh"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn stg_paniczh() -> StgFunPtr {
     #[cfg(feature = "sys")]
@@ -116,8 +104,8 @@ pub unsafe extern "C" fn stg_paniczh() -> StgFunPtr {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_absentErrorzh"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn stg_absentErrorzh() -> StgFunPtr {
     #[cfg(feature = "sys")]
@@ -129,11 +117,8 @@ pub unsafe extern "C" fn stg_absentErrorzh() -> StgFunPtr {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_stg_getThreadAllocationCounterzh")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn stg_getThreadAllocationCounterzh() -> StgFunPtr {
     #[cfg(feature = "sys")]
@@ -145,11 +130,8 @@ pub unsafe extern "C" fn stg_getThreadAllocationCounterzh() -> StgFunPtr {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_stg_getOtherThreadAllocationCounterzh")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn stg_getOtherThreadAllocationCounterzh() -> StgFunPtr {
     #[cfg(feature = "sys")]

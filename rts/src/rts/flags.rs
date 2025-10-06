@@ -522,6 +522,6 @@ pub type RTS_FLAGS = _RTS_FLAGS;
 
 // TODO(rust): See [RtsFlags is a pointer in STG code]
 // /// - GHC_PLACES: {compiler, libraries}
-// #[cfg_attr(feature = "sys", unsafe(export_name = "rust_RtsFlags"))]
-// #[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+// #[ffi]
+// #[unsafe(no_mangle)]
 // pub static mut RtsFlags: RTS_FLAGS = todo!();

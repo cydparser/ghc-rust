@@ -25,8 +25,8 @@ pub unsafe extern "C" fn getMBlocks(n: u32) -> *mut c_void {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_freeMBlocks"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn freeMBlocks(addr: *mut c_void, n: u32) {
     #[cfg(feature = "sys")]
@@ -38,8 +38,8 @@ pub unsafe extern "C" fn freeMBlocks(addr: *mut c_void, n: u32) {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_releaseFreeMemory"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn releaseFreeMemory() {
     #[cfg(feature = "sys")]

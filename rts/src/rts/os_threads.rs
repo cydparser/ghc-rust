@@ -28,8 +28,8 @@ pub type OSThreadId = pthread_t;
 pub(crate) type ThreadLocalKey = pthread_key_t;
 
 /// - GHC_PLACES: {utils}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_shutdownThread"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn shutdownThread() -> ! {
     #[cfg(feature = "sys")]
@@ -43,8 +43,8 @@ pub unsafe extern "C" fn shutdownThread() -> ! {
 /// - GHC_PLACES: {testsuite}
 pub type OSThreadProc = Option<unsafe extern "C" fn(arg1: *mut c_void) -> *mut c_void>;
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_createOSThread"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn createOSThread(
     tid: *mut OSThreadId,
@@ -54,15 +54,15 @@ pub unsafe extern "C" fn createOSThread(
 ) -> c_int {
     #[cfg(feature = "sys")]
     unsafe {
-        sys::createOSThread(tid, name, startProc, param)
+        sys::createOSThread(tid as *mut sys::OSThreadId, name, startProc, param)
     }
     #[cfg(not(feature = "sys"))]
     unimplemented!("createOSThread")
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_initCondition"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn initCondition(pCond: *mut Condition) {
     #[cfg(feature = "sys")]
@@ -74,8 +74,8 @@ pub unsafe extern "C" fn initCondition(pCond: *mut Condition) {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_broadcastCondition"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn broadcastCondition(pCond: *mut Condition) {
     #[cfg(feature = "sys")]
@@ -87,34 +87,34 @@ pub unsafe extern "C" fn broadcastCondition(pCond: *mut Condition) {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_waitCondition"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn waitCondition(pCond: *mut Condition, pMut: *mut Mutex) {
     #[cfg(feature = "sys")]
     unsafe {
-        sys::waitCondition(pCond as *mut sys::Condition, pMut)
+        sys::waitCondition(pCond as *mut sys::Condition, pMut as *mut sys::Mutex)
     }
     #[cfg(not(feature = "sys"))]
     unimplemented!("waitCondition")
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_initMutex"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn initMutex(pMut: *mut Mutex) {
     #[cfg(feature = "sys")]
     unsafe {
-        sys::initMutex(pMut)
+        sys::initMutex(pMut as *mut sys::Mutex)
     }
     #[cfg(not(feature = "sys"))]
     unimplemented!("initMutex")
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_forkOS_createThread"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn forkOS_createThread(entry: HsStablePtr) -> c_int {
     #[cfg(feature = "sys")]
@@ -126,8 +126,8 @@ pub unsafe extern "C" fn forkOS_createThread(entry: HsStablePtr) -> c_int {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_getNumberOfProcessors"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getNumberOfProcessors() -> u32 {
     #[cfg(feature = "sys")]

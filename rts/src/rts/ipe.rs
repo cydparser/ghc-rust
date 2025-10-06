@@ -109,8 +109,8 @@ impl From<IpeBufferListNode_> for sys::IpeBufferListNode_ {
 pub type IpeBufferListNode = IpeBufferListNode_;
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_registerInfoProvList"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn registerInfoProvList(node: *mut IpeBufferListNode) {
     #[cfg(feature = "sys")]
@@ -122,8 +122,8 @@ pub unsafe extern "C" fn registerInfoProvList(node: *mut IpeBufferListNode) {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_formatClosureDescIpe"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn formatClosureDescIpe(ipe_buf: *const InfoProvEnt, str_buf: *mut c_char) {
     #[cfg(feature = "sys")]
@@ -135,8 +135,8 @@ pub unsafe extern "C" fn formatClosureDescIpe(ipe_buf: *const InfoProvEnt, str_b
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_lookupIPE"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn lookupIPE(info: *const StgInfoTable, out: *mut InfoProvEnt) -> bool {
     #[cfg(feature = "sys")]

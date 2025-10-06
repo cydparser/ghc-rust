@@ -74,20 +74,19 @@ impl From<generation_> for sys::generation_ {
 pub type generation = generation_;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_generations"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static mut generations: *mut generation = null_mut();
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_g0"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static mut g0: *mut generation = null_mut();
 
 pub(crate) type ListBlocksCb = Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut bdescr)>;
-
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_allocate"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn allocate(cap: *mut Capability, n: W_) -> StgPtr {
     #[cfg(feature = "sys")]
@@ -103,8 +102,8 @@ pub(crate) type AdjustorWritable = *mut c_void;
 pub(crate) type AdjustorExecutable = *mut c_void;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_setAllocLimitKill"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setAllocLimitKill(arg1: bool, arg2: bool) {
     #[cfg(feature = "sys")]
@@ -116,8 +115,8 @@ pub unsafe extern "C" fn setAllocLimitKill(arg1: bool, arg2: bool) {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_performGC"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn performGC() {
     #[cfg(feature = "sys")]
@@ -129,8 +128,8 @@ pub unsafe extern "C" fn performGC() {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_performMajorGC"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn performMajorGC() {
     #[cfg(feature = "sys")]
@@ -142,8 +141,8 @@ pub unsafe extern "C" fn performMajorGC() {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_performBlockingMajorGC"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn performBlockingMajorGC() {
     #[cfg(feature = "sys")]
@@ -155,8 +154,8 @@ pub unsafe extern "C" fn performBlockingMajorGC() {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_revertCAFs"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn revertCAFs() {
     #[cfg(feature = "sys")]
@@ -168,8 +167,8 @@ pub unsafe extern "C" fn revertCAFs() {
 }
 
 /// - GHC_PLACES: {compiler}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_setKeepCAFs"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setKeepCAFs() {
     #[cfg(feature = "sys")]
@@ -181,8 +180,8 @@ pub unsafe extern "C" fn setKeepCAFs() {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_setHighMemDynamic"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setHighMemDynamic() {
     #[cfg(feature = "sys")]
@@ -194,6 +193,6 @@ pub unsafe extern "C" fn setHighMemDynamic() {
 }
 
 /// - GHC_PLACES: {compiler}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_keepCAFs"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static mut keepCAFs: bool = false;

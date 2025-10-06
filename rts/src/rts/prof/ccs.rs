@@ -55,8 +55,8 @@ impl From<CostCentreStack_> for sys::CostCentreStack_ {
 pub type CostCentreStack = CostCentreStack_;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stopProfTimer"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn stopProfTimer() {
     #[cfg(feature = "sys")]
@@ -68,8 +68,8 @@ pub unsafe extern "C" fn stopProfTimer() {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_startProfTimer"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn startProfTimer() {
     #[cfg(feature = "sys")]

@@ -30,11 +30,8 @@ impl From<_StgEntCounter> for sys::_StgEntCounter {
 pub(crate) type StgEntCounter = _StgEntCounter;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_requestTickyCounterSamples")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn requestTickyCounterSamples() {
     #[cfg(feature = "sys")]

@@ -4,8 +4,8 @@ use crate::prelude::*;
 mod tests;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_genericRaise"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn genericRaise(sig: c_int) -> c_int {
     #[cfg(feature = "sys")]

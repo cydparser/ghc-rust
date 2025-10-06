@@ -6,8 +6,8 @@ use crate::stg::{I_, W_};
 mod tests;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust___int_encodeDouble"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn __int_encodeDouble(j: I_, e: I_) -> StgDouble {
     #[cfg(feature = "sys")]
@@ -19,8 +19,8 @@ pub unsafe extern "C" fn __int_encodeDouble(j: I_, e: I_) -> StgDouble {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust___word_encodeDouble"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn __word_encodeDouble(j: W_, e: I_) -> StgDouble {
     #[cfg(feature = "sys")]

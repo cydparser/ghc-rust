@@ -79,8 +79,8 @@ impl From<LibdwSession_> for sys::LibdwSession_ {
 pub type LibdwSession = LibdwSession_;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_backtraceFree"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn backtraceFree(bt: *mut Backtrace) {
     #[cfg(feature = "sys")]
@@ -92,8 +92,8 @@ pub unsafe extern "C" fn backtraceFree(bt: *mut Backtrace) {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_libdwGetBacktrace"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn libdwGetBacktrace(session: *mut LibdwSession) -> *mut Backtrace {
     #[cfg(feature = "sys")]
@@ -105,8 +105,8 @@ pub unsafe extern "C" fn libdwGetBacktrace(session: *mut LibdwSession) -> *mut B
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_libdwLookupLocation"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn libdwLookupLocation(
     session: *mut LibdwSession,

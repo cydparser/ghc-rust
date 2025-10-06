@@ -26,8 +26,8 @@ impl From<_HpcModuleInfo> for sys::_HpcModuleInfo {
 pub type HpcModuleInfo = _HpcModuleInfo;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_hpc_rootModule"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_hpc_rootModule() -> *mut HpcModuleInfo {
     #[cfg(feature = "sys")]

@@ -5,8 +5,8 @@ use crate::stg::types::StgWord;
 mod tests;
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_requestHeapCensus"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn requestHeapCensus() {
     #[cfg(feature = "sys")]
@@ -18,8 +18,8 @@ pub unsafe extern "C" fn requestHeapCensus() {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_startHeapProfTimer"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn startHeapProfTimer() {
     #[cfg(feature = "sys")]
@@ -31,8 +31,8 @@ pub unsafe extern "C" fn startHeapProfTimer() {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stopHeapProfTimer"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn stopHeapProfTimer() {
     #[cfg(feature = "sys")]
@@ -44,8 +44,8 @@ pub unsafe extern "C" fn stopHeapProfTimer() {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_setUserEra"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setUserEra(w: StgWord) {
     #[cfg(feature = "sys")]
@@ -57,8 +57,8 @@ pub unsafe extern "C" fn setUserEra(w: StgWord) {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_getUserEra"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getUserEra() -> StgWord {
     #[cfg(feature = "sys")]
@@ -70,8 +70,8 @@ pub unsafe extern "C" fn getUserEra() -> StgWord {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_incrementUserEra"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn incrementUserEra(w: StgWord) -> StgWord {
     #[cfg(feature = "sys")]

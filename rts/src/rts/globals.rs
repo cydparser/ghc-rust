@@ -6,11 +6,8 @@ use crate::stg::types::StgStablePtr;
 mod tests;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_getOrSetGHCConcSignalSignalHandlerStore")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getOrSetGHCConcSignalSignalHandlerStore(
     ptr: StgStablePtr,
@@ -24,11 +21,8 @@ pub unsafe extern "C" fn getOrSetGHCConcSignalSignalHandlerStore(
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_getOrSetGHCConcWindowsPendingDelaysStore")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getOrSetGHCConcWindowsPendingDelaysStore(
     ptr: StgStablePtr,
@@ -42,11 +36,8 @@ pub unsafe extern "C" fn getOrSetGHCConcWindowsPendingDelaysStore(
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_getOrSetGHCConcWindowsIOManagerThreadStore")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getOrSetGHCConcWindowsIOManagerThreadStore(
     ptr: StgStablePtr,
@@ -60,11 +51,8 @@ pub unsafe extern "C" fn getOrSetGHCConcWindowsIOManagerThreadStore(
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_getOrSetGHCConcWindowsProddingStore")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getOrSetGHCConcWindowsProddingStore(ptr: StgStablePtr) -> StgStablePtr {
     #[cfg(feature = "sys")]
@@ -76,11 +64,8 @@ pub unsafe extern "C" fn getOrSetGHCConcWindowsProddingStore(ptr: StgStablePtr) 
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_getOrSetSystemEventThreadEventManagerStore")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getOrSetSystemEventThreadEventManagerStore(
     ptr: StgStablePtr,
@@ -94,11 +79,8 @@ pub unsafe extern "C" fn getOrSetSystemEventThreadEventManagerStore(
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_getOrSetSystemEventThreadIOManagerThreadStore")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getOrSetSystemEventThreadIOManagerThreadStore(
     ptr: StgStablePtr,
@@ -112,11 +94,8 @@ pub unsafe extern "C" fn getOrSetSystemEventThreadIOManagerThreadStore(
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_getOrSetSystemTimerThreadEventManagerStore")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getOrSetSystemTimerThreadEventManagerStore(
     ptr: StgStablePtr,
@@ -130,11 +109,8 @@ pub unsafe extern "C" fn getOrSetSystemTimerThreadEventManagerStore(
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_getOrSetSystemTimerThreadIOManagerThreadStore")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getOrSetSystemTimerThreadIOManagerThreadStore(
     ptr: StgStablePtr,
@@ -148,11 +124,8 @@ pub unsafe extern "C" fn getOrSetSystemTimerThreadIOManagerThreadStore(
 }
 
 /// - GHC_PLACES: {compiler}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_getOrSetLibHSghcFastStringTable")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getOrSetLibHSghcFastStringTable(ptr: StgStablePtr) -> StgStablePtr {
     #[cfg(feature = "sys")]
@@ -164,11 +137,11 @@ pub unsafe extern "C" fn getOrSetLibHSghcFastStringTable(ptr: StgStablePtr) -> S
 }
 
 /// - GHC_PLACES: {compiler}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_ghc_unique_counter64"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static mut ghc_unique_counter64: HsWord64 = 0;
 
 /// - GHC_PLACES: {compiler}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_ghc_unique_inc"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static mut ghc_unique_inc: HsInt = 0;

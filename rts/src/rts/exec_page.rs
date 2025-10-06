@@ -28,8 +28,8 @@ impl Arbitrary for ExecPage {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_allocateExecPage"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn allocateExecPage() -> *mut ExecPage {
     #[cfg(feature = "sys")]
@@ -41,8 +41,8 @@ pub unsafe extern "C" fn allocateExecPage() -> *mut ExecPage {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_freezeExecPage"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn freezeExecPage(page: *mut ExecPage) {
     #[cfg(feature = "sys")]
@@ -54,8 +54,8 @@ pub unsafe extern "C" fn freezeExecPage(page: *mut ExecPage) {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_freeExecPage"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn freeExecPage(page: *mut ExecPage) {
     #[cfg(feature = "sys")]

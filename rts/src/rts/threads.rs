@@ -13,8 +13,8 @@ use libc::pid_t;
 mod tests;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_createThread"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn createThread(cap: *mut Capability, stack_size: W_) -> *mut StgTSO {
     #[cfg(feature = "sys")]
@@ -26,8 +26,8 @@ pub unsafe extern "C" fn createThread(cap: *mut Capability, stack_size: W_) -> *
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_createGenThread"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn createGenThread(
     cap: *mut Capability,
@@ -47,8 +47,8 @@ pub unsafe extern "C" fn createGenThread(
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_suspendThread"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn suspendThread(arg1: *mut StgRegTable, interruptible: bool) -> *mut c_void {
     #[cfg(feature = "sys")]
@@ -60,8 +60,8 @@ pub unsafe extern "C" fn suspendThread(arg1: *mut StgRegTable, interruptible: bo
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_resumeThread"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn resumeThread(arg1: *mut c_void) -> *mut StgRegTable {
     #[cfg(feature = "sys")]
@@ -73,8 +73,8 @@ pub unsafe extern "C" fn resumeThread(arg1: *mut c_void) -> *mut StgRegTable {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_eq_thread"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn eq_thread(tso1: StgPtr, tso2: StgPtr) -> bool {
     #[cfg(feature = "sys")]
@@ -86,8 +86,8 @@ pub unsafe extern "C" fn eq_thread(tso1: StgPtr, tso2: StgPtr) -> bool {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_cmp_thread"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn cmp_thread(tso1: StgPtr, tso2: StgPtr) -> c_int {
     #[cfg(feature = "sys")]
@@ -99,8 +99,8 @@ pub unsafe extern "C" fn cmp_thread(tso1: StgPtr, tso2: StgPtr) -> c_int {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_getThreadId"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getThreadId(tso: StgPtr) -> StgThreadID {
     #[cfg(feature = "sys")]
@@ -112,11 +112,8 @@ pub unsafe extern "C" fn rts_getThreadId(tso: StgPtr) -> StgThreadID {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_rts_enableThreadAllocationLimit")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_enableThreadAllocationLimit(tso: StgPtr) {
     #[cfg(feature = "sys")]
@@ -128,11 +125,8 @@ pub unsafe extern "C" fn rts_enableThreadAllocationLimit(tso: StgPtr) {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(
-    feature = "sys",
-    unsafe(export_name = "rust_rts_disableThreadAllocationLimit")
-)]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_disableThreadAllocationLimit(tso: StgPtr) {
     #[cfg(feature = "sys")]
@@ -144,8 +138,8 @@ pub unsafe extern "C" fn rts_disableThreadAllocationLimit(tso: StgPtr) {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_forkProcess"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn forkProcess(entry: *mut HsStablePtr) -> pid_t {
     #[cfg(feature = "sys")]
@@ -157,8 +151,8 @@ pub unsafe extern "C" fn forkProcess(entry: *mut HsStablePtr) -> pid_t {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rtsSupportsBoundThreads"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rtsSupportsBoundThreads() -> HsBool {
     #[cfg(feature = "sys")]
@@ -170,13 +164,13 @@ pub unsafe extern "C" fn rtsSupportsBoundThreads() -> HsBool {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_enabled_capabilities"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static mut enabled_capabilities: u32 = 0;
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_setNumCapabilities"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setNumCapabilities(new_: u32) {
     #[cfg(feature = "sys")]

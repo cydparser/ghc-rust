@@ -3,8 +3,8 @@ use crate::rts::storage::closures::StgClosure;
 use crate::rts_api::RtsConfig;
 
 /// - GHC_PLACES: {driver, testsuite, utils}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_hs_main"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_main(
     argc: c_int,

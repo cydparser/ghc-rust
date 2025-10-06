@@ -195,8 +195,8 @@ impl From<StgFunInfoTable> for sys::StgFunInfoTable {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_arg_bitmaps"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 pub static stg_arg_bitmaps: [StgWord; 0usize] = [];
 
 /// - GHC_PLACES: {libraries}

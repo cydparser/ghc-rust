@@ -8,8 +8,8 @@ mod tests;
 pub type pathchar = c_char;
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_initLinker"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn initLinker() {
     #[cfg(feature = "sys")]
@@ -21,8 +21,8 @@ pub unsafe extern "C" fn initLinker() {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_initLinker_"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn initLinker_(retain_cafs: c_int) {
     #[cfg(feature = "sys")]
@@ -34,8 +34,8 @@ pub unsafe extern "C" fn initLinker_(retain_cafs: c_int) {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_lookupSymbol"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn lookupSymbol(lbl: *mut c_char) -> *mut c_void {
     #[cfg(feature = "sys")]
@@ -76,8 +76,8 @@ impl Arbitrary for OStatus {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_getObjectLoadStatus"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getObjectLoadStatus(path: *mut pathchar) -> OStatus {
     #[cfg(feature = "sys")]
@@ -89,8 +89,8 @@ pub unsafe extern "C" fn getObjectLoadStatus(path: *mut pathchar) -> OStatus {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_unloadObj"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn unloadObj(path: *mut pathchar) -> HsInt {
     #[cfg(feature = "sys")]
@@ -102,8 +102,8 @@ pub unsafe extern "C" fn unloadObj(path: *mut pathchar) -> HsInt {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_purgeObj"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn purgeObj(path: *mut pathchar) -> HsInt {
     #[cfg(feature = "sys")]
@@ -115,8 +115,8 @@ pub unsafe extern "C" fn purgeObj(path: *mut pathchar) -> HsInt {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_loadObj"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn loadObj(path: *mut pathchar) -> HsInt {
     #[cfg(feature = "sys")]
@@ -128,8 +128,8 @@ pub unsafe extern "C" fn loadObj(path: *mut pathchar) -> HsInt {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_loadArchive"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn loadArchive(path: *mut pathchar) -> HsInt {
     #[cfg(feature = "sys")]
@@ -141,8 +141,8 @@ pub unsafe extern "C" fn loadArchive(path: *mut pathchar) -> HsInt {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_resolveObjs"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn resolveObjs() -> HsInt {
     #[cfg(feature = "sys")]
@@ -154,8 +154,8 @@ pub unsafe extern "C" fn resolveObjs() -> HsInt {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_loadNativeObj"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn loadNativeObj(
     path: *mut pathchar,
@@ -170,8 +170,8 @@ pub unsafe extern "C" fn loadNativeObj(
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_unloadNativeObj"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn unloadNativeObj(handle: *mut c_void) -> HsInt {
     #[cfg(feature = "sys")]
@@ -183,8 +183,8 @@ pub unsafe extern "C" fn unloadNativeObj(handle: *mut c_void) -> HsInt {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_lookupSymbolInNativeObj"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn lookupSymbolInNativeObj(
     handle: *mut c_void,
@@ -199,8 +199,8 @@ pub unsafe extern "C" fn lookupSymbolInNativeObj(
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_addDLL"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn addDLL(dll_name: *mut pathchar) -> *const c_char {
     #[cfg(feature = "sys")]
@@ -212,8 +212,8 @@ pub unsafe extern "C" fn addDLL(dll_name: *mut pathchar) -> *const c_char {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_addLibrarySearchPath"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn addLibrarySearchPath(dll_path: *mut pathchar) -> HsPtr {
     #[cfg(feature = "sys")]
@@ -225,8 +225,8 @@ pub unsafe extern "C" fn addLibrarySearchPath(dll_path: *mut pathchar) -> HsPtr 
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_removeLibrarySearchPath"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn removeLibrarySearchPath(dll_path_index: HsPtr) -> HsBool {
     #[cfg(feature = "sys")]
@@ -238,8 +238,8 @@ pub unsafe extern "C" fn removeLibrarySearchPath(dll_path_index: HsPtr) -> HsBoo
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_findSystemLibrary"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn findSystemLibrary(dll_name: *mut pathchar) -> *mut pathchar {
     #[cfg(feature = "sys")]

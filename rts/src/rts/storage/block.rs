@@ -129,8 +129,8 @@ impl From<bdescr___bindgen_ty_2> for sys::bdescr___bindgen_ty_2 {
 pub type bdescr = bdescr_;
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_allocAlignedGroupOnNode"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn allocAlignedGroupOnNode(node: u32, n: W_) -> *mut bdescr {
     #[cfg(feature = "sys")]
@@ -142,8 +142,8 @@ pub unsafe extern "C" fn allocAlignedGroupOnNode(node: u32, n: W_) -> *mut bdesc
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_allocGroup_lock"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn allocGroup_lock(n: W_) -> *mut bdescr {
     #[cfg(feature = "sys")]
@@ -155,8 +155,8 @@ pub unsafe extern "C" fn allocGroup_lock(n: W_) -> *mut bdescr {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_freeGroup_lock"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn freeGroup_lock(p: *mut bdescr) {
     #[cfg(feature = "sys")]

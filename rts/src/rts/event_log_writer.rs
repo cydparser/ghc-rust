@@ -43,8 +43,8 @@ impl Arbitrary for EventLogStatus {
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_startEventLogging"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn startEventLogging(writer: *const EventLogWriter) -> bool {
     #[cfg(feature = "sys")]
@@ -56,8 +56,8 @@ pub unsafe extern "C" fn startEventLogging(writer: *const EventLogWriter) -> boo
 }
 
 #[cfg(feature = "ghc_testsuite")]
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_endEventLogging"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn endEventLogging() {
     #[cfg(feature = "sys")]
@@ -69,8 +69,8 @@ pub unsafe extern "C" fn endEventLogging() {
 }
 
 /// - GHC_PLACES: {libraries, testsuite}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_flushEventLog"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn flushEventLog(cap: *mut *mut Capability) {
     #[cfg(feature = "sys")]

@@ -61,8 +61,8 @@ pub(crate) const EXIT_KILLED: u32 = 250;
 pub(crate) const DEBUG_IS_ON: u32 = 0;
 
 /// - GHC_PLACES: {utils}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust__assertFail"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -> ! {
     #[cfg(feature = "sys")]
@@ -74,8 +74,8 @@ pub unsafe extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_reportStackOverflow"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn reportStackOverflow(tso: *mut StgTSO) {
     #[cfg(feature = "sys")]
@@ -87,8 +87,8 @@ pub unsafe extern "C" fn reportStackOverflow(tso: *mut StgTSO) {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_reportHeapOverflow"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn reportHeapOverflow() {
     #[cfg(feature = "sys")]
@@ -100,8 +100,8 @@ pub unsafe extern "C" fn reportHeapOverflow() {
 }
 
 /// - GHC_PLACES: {libraries, utils}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_exit"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn stg_exit(n: c_int) -> ! {
     #[cfg(feature = "sys")]
@@ -113,8 +113,8 @@ pub unsafe extern "C" fn stg_exit(n: c_int) -> ! {
 }
 
 /// - GHC_PLACES: {libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_stg_sig_install"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn stg_sig_install(arg1: c_int, arg2: c_int, arg3: *mut c_void) -> c_int {
     #[cfg(feature = "sys")]
@@ -126,8 +126,8 @@ pub unsafe extern "C" fn stg_sig_install(arg1: c_int, arg2: c_int, arg3: *mut c_
 }
 
 /// - GHC_PLACES: {compiler}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_isProfiled"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isProfiled() -> c_int {
     #[cfg(feature = "sys")]
@@ -139,8 +139,8 @@ pub unsafe extern "C" fn rts_isProfiled() -> c_int {
 }
 
 /// - GHC_PLACES: {compiler}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_isDynamic"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isDynamic() -> c_int {
     #[cfg(feature = "sys")]
@@ -152,8 +152,8 @@ pub unsafe extern "C" fn rts_isDynamic() -> c_int {
 }
 
 /// - GHC_PLACES: {compiler, libraries}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_isThreaded"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isThreaded() -> c_int {
     #[cfg(feature = "sys")]
@@ -165,8 +165,8 @@ pub unsafe extern "C" fn rts_isThreaded() -> c_int {
 }
 
 /// - GHC_PLACES: {compiler}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_isDebugged"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isDebugged() -> c_int {
     #[cfg(feature = "sys")]
@@ -178,8 +178,8 @@ pub unsafe extern "C" fn rts_isDebugged() -> c_int {
 }
 
 /// - GHC_PLACES: {compiler}
-#[cfg_attr(feature = "sys", unsafe(export_name = "rust_rts_isTracing"))]
-#[cfg_attr(not(feature = "sys"), unsafe(no_mangle))]
+#[ffi]
+#[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isTracing() -> c_int {
     #[cfg(feature = "sys")]
