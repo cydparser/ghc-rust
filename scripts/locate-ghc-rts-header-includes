@@ -1,0 +1,50 @@
+#!/usr/bin/env nu
+#
+# Locate where RTS headers are imported in GHC.
+
+use std/log
+
+cd ($env.FILE_PWD | path dirname --num-levels 2)
+
+if not ("hadrian" | path exists) {
+  log error $"Missing ($env.FILE_PWD | path dirname --num-levels 3)/ghc"
+  exit 1
+}
+
+let include_dir = $"(pwd)/rts/include/"
+
+let hs_headers = (
+  glob rts/include/**/*.h
+  | each { |it| $it | str replace $include_dir "" | str replace ".h" "\\.h" }
+  | str join '|'
+)
+
+(
+  ^rg
+    -g '!/.gitlab'
+    -g '!/bindisttest'
+    -g '!/distrib'
+    -g '!/ghc'
+    -g '!/hadrian'
+    -g '!/linters'
+    -g '!/m4'
+    -g '!/mk'
+    -g '!/nofib'
+    -g '!/rts'
+    -g '!/rust'
+    "^#include +\""
+)
+  | lines
+  | parse "{file}:#include \"{header}\""
+  | filter { $in.header =~ $hs_headers }
+  | group-by header --to-table
+  | update cells {
+      if ($in | describe) == string {
+        $in
+      } else {
+        $in | get file | sort
+      }
+  }
+  | sort-by header
+  | transpose --header-row --as-record
+  | to json
