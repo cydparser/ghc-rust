@@ -178,6 +178,7 @@
             [
               llvmPackages.clang
               just
+              nushell
               # Libraries
               gmp.dev
               libffi.dev
