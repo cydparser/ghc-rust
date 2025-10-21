@@ -499,24 +499,22 @@ fn find_places<'a, P: AsRef<Path>>(
                         continue;
                     }
 
-                    let Some(caps) = regex.captures(s) else {
-                        panic!("unable to detect symbol in rg-returned string: {s}");
-                    };
+                    for caps in regex.captures_iter(s) {
+                        let places = sym_places
+                            .entry(String::from(&caps["sym"]))
+                            .or_insert_with(Places::new);
 
-                    let places = sym_places
-                        .entry(String::from(&caps["sym"]))
-                        .or_insert_with(Places::new);
-
-                    if let Some((place, _)) = file.split_once("/") {
-                        match place {
-                            "compiler" => places.insert(Place::Compiler),
-                            "docs" => places.insert(Place::Docs),
-                            "driver" => places.insert(Place::Driver),
-                            "libraries" => places.insert(Place::Libraries),
-                            "testsuite" => places.insert(Place::Testsuite),
-                            "utils" => places.insert(Place::Utils),
-                            place => eprintln!("WARN: unexpected place {place}"),
-                        };
+                        if let Some((place, _)) = file.split_once("/") {
+                            match place {
+                                "compiler" => places.insert(Place::Compiler),
+                                "docs" => places.insert(Place::Docs),
+                                "driver" => places.insert(Place::Driver),
+                                "libraries" => places.insert(Place::Libraries),
+                                "testsuite" => places.insert(Place::Testsuite),
+                                "utils" => places.insert(Place::Utils),
+                                place => eprintln!("WARN: unexpected place {place}"),
+                            };
+                        }
                     }
                 }
             }
