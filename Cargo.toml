@@ -26,5 +26,6 @@ build-utils = { path = "build-utils" }
 libc = "0.2.171"
 proc-macro2 = "1.0.93"
 quote = "1.0.38"
+regex = "1.12.2"
 syn = { version = "2.0.98", features = ["extra-traits", "visit"] }
 tracing = "0.1.41"
