@@ -552,7 +552,7 @@ fn find_places<'a, P: AsRef<Path>>(
     );
 
     let foreign_pat = format!(
-        r#"^(foreign +import +(ccall|javascript|prim) +(safe|unsafe).*| +data +){}"#,
+        r#"^(foreign +import +(ccall|javascript|prim) +(safe|unsafe)?.*| +data +){}"#,
         &syms_regex
     );
 
