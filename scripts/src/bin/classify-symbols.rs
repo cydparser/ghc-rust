@@ -556,16 +556,25 @@ fn find_places<'a, P: AsRef<Path>>(
         &syms_regex
     );
 
-    let hs_places = search(
+    let hs_places = search(path.as_ref(), &syms_regex, &["-g", "*.hs", &foreign_pat]);
+
+    let fs_lit_places = search(
         path.as_ref(),
         &syms_regex,
-        &["-g", "*.hs", "--debug", &foreign_pat],
+        &[
+            "-g",
+            "*.hs",
+            &format!(r#"\bfsLit +"{}""#, &syms_regex),
+            "compiler",
+        ],
     );
 
     // Merge the HashMaps.
-    for (sym, p) in hs_places {
-        let places = sym_places.entry(sym).or_insert_with(Places::new);
-        places.0.extend(&p.0);
+    for ps in [hs_places, fs_lit_places] {
+        for (sym, p) in ps {
+            let places = sym_places.entry(sym).or_insert_with(Places::new);
+            places.0.extend(&p.0);
+        }
     }
 
     sym_places
