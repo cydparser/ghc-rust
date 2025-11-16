@@ -6,7 +6,7 @@ use std::{
 
 use proc_macro2 as proc2;
 use proc_macro2::{Span, TokenStream};
-use quote::format_ident;
+use quote::{format_ident, quote};
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
 use generate::{Place, Places, Symbols, prefix_with_sys};
@@ -440,28 +440,28 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 
     let attrs = export_attrs(places);
 
-    let call: syn::Expr = match &output {
-        syn::ReturnType::Type(_, ret_ty) if !symbols.is_std_type(ret_ty.as_ref()) => {
-            if matches!(ret_ty.as_ref(), Type::Ptr(_)) || symbols.is_pointer_type(ret_ty.as_ref()) {
-                parse_quote! { sys::#ident(#(#args_from_sys),*) as #ret_ty }
-            } else {
-                parse_quote! { transmute(sys::#ident(#(#args_from_sys),*)) }
+    let call: syn::Expr = {
+        let convert = match &output {
+            syn::ReturnType::Type(_, ret_ty) if !symbols.is_std_type(ret_ty.as_ref()) => {
+                Some(if symbols.is_pointer_type(ret_ty.as_ref()) {
+                    quote! { .cast() }
+                } else {
+                    quote! { .into() }
+                })
             }
+            _ => None,
+        };
+        parse_quote! {
+            sys! { #ident(#(#args_from_sys),*)#convert }
         }
-        _ => parse_quote! { sys::#ident(#(#args_from_sys),*) },
     };
-
-    let fn_name = ident.to_string();
 
     // Mark all functions as unsafe until the code can be audited.
     main_file.items.push(Item::Fn(parse_quote! {
         #(#attrs)*
         #[instrument]
         pub unsafe extern "C" fn #ident(#inputs) #output {
-            #[cfg(feature = "sys")]
-            unsafe { #call }
-            #[cfg(not(feature = "sys"))]
-            unimplemented!(#fn_name)
+            #call
         }
     }));
 

@@ -1,6 +1,7 @@
 #![expect(unused_imports)]
 
 pub use crate::utils::bindgen::__IncompleteArrayField;
+pub(crate) use crate::utils::macros::sys;
 #[cfg(test)]
 pub use crate::utils::test::*;
 pub use ghc_macros::{ffi, instrument};
