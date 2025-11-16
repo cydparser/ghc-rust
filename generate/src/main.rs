@@ -222,7 +222,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                             let attrs = export_attrs(places);
 
                             let rhs: syn::Expr = match ty.as_ref() {
-                                Type::Array(_) => parse_quote! { [] },
+                                Type::Array(_) => parse_quote! { [0; _] },
                                 Type::Ptr(type_ptr) => match type_ptr.mutability {
                                     Some(_) => parse_quote! { null_mut() },
                                     None => parse_quote! { null() },
