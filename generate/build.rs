@@ -42,6 +42,7 @@ fn main() {
                 "Parallel",
                 "PrimFloat",
                 "Profiling",
+                "RtsToHsIface",
                 "Signals",
                 "StableName",
                 "StablePtr",
