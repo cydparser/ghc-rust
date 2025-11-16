@@ -179,6 +179,7 @@
               llvmPackages.clang
               just
               nushell
+              ripgrep
               # Libraries
               gmp.dev
               libffi.dev
