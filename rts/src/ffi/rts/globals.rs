@@ -1,6 +1,6 @@
-use crate::hs_ffi::{HsInt, HsWord64};
+use crate::ffi::hs_ffi::{HsInt, HsWord64};
+use crate::ffi::stg::types::StgStablePtr;
 use crate::prelude::*;
-use crate::stg::types::StgStablePtr;
 
 #[cfg(test)]
 mod tests;

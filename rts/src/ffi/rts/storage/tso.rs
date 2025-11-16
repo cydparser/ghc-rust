@@ -1,13 +1,13 @@
 use crate::capability::Capability_;
-use crate::prelude::*;
-use crate::rts::prof::ccs::CostCentreStack;
-use crate::rts::storage::closures::{
+use crate::ffi::rts::prof::ccs::CostCentreStack;
+use crate::ffi::rts::storage::closures::{
     MessageBlackHole_, MessageThrowTo_, MessageWakeup_, StgArrBytes, StgBlockingQueue_, StgClosure,
     StgHeader, StgTRecHeader_,
 };
-use crate::stg::types::{
+use crate::ffi::stg::types::{
     StgInt, StgInt64, StgPtr, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
 };
+use crate::prelude::*;
 
 #[cfg(test)]
 mod tests;

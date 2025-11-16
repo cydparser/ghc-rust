@@ -1,5 +1,5 @@
 use super::*;
-use crate::hs_ffi::{HsBool, HsWord};
+use crate::ffi::hs_ffi::{HsBool, HsWord};
 
 #[cfg(feature = "sys")]
 #[test]

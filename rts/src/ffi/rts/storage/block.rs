@@ -1,9 +1,9 @@
+use crate::ffi::rts::storage::gc::generation_;
+#[cfg(feature = "sys")]
+use crate::ffi::stg::W_;
+use crate::ffi::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 #[allow(unused_imports)]
 use crate::prelude::*;
-use crate::rts::storage::gc::generation_;
-#[cfg(feature = "sys")]
-use crate::stg::W_;
-use crate::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 
 #[cfg(test)]
 mod tests;

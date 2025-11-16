@@ -1,5 +1,5 @@
+use crate::ffi::stg::types::{StgBool, StgInt, StgWord, StgWord64};
 use crate::prelude::*;
-use crate::stg::types::{StgBool, StgInt, StgWord, StgWord64};
 
 #[cfg(test)]
 mod tests;

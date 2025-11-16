@@ -1,8 +1,8 @@
-use crate::prelude::*;
-use crate::stg::types::{
+use crate::ffi::stg::types::{
     StgChar, StgDouble, StgFloat, StgInt, StgInt8, StgInt16, StgInt32, StgInt64, StgPtr, StgWord,
     StgWord8, StgWord16, StgWord32, StgWord64,
 };
+use crate::prelude::*;
 
 #[cfg(test)]
 mod tests;

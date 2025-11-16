@@ -1,16 +1,16 @@
-use crate::hs_ffi::{HsBool, HsWord};
+use crate::ffi::hs_ffi::{HsBool, HsWord};
 #[cfg(feature = "sys")]
-use crate::hs_ffi::{
+use crate::ffi::hs_ffi::{
     HsChar, HsDouble, HsFloat, HsFunPtr, HsInt, HsInt8, HsInt16, HsInt32, HsInt64, HsPtr,
     HsStablePtr, HsWord8, HsWord16, HsWord32, HsWord64,
 };
+use crate::ffi::rts::event_log_writer::EventLogWriter;
+use crate::ffi::rts::storage::closures::{StgClosure, StgClosure_};
+use crate::ffi::rts::storage::tso::StgTSO;
+use crate::ffi::rts::time::Time;
+use crate::ffi::stg::W_;
+use crate::ffi::stg::regs::{StgFunTable, StgRegTable};
 use crate::prelude::*;
-use crate::rts::event_log_writer::EventLogWriter;
-use crate::rts::storage::closures::{StgClosure, StgClosure_};
-use crate::rts::storage::tso::StgTSO;
-use crate::rts::time::Time;
-use crate::stg::W_;
-use crate::stg::regs::{StgFunTable, StgRegTable};
 
 pub use crate::capability::Capability;
 

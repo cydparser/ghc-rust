@@ -1,5 +1,5 @@
+use crate::ffi::stg::types::{StgPtr, StgStablePtr};
 use crate::prelude::*;
-use crate::stg::types::{StgPtr, StgStablePtr};
 
 #[cfg(test)]
 mod tests;

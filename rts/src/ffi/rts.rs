@@ -1,5 +1,5 @@
+use crate::ffi::rts::storage::tso::StgTSO;
 use crate::prelude::*;
-use crate::rts::storage::tso::StgTSO;
 
 pub mod adjustor;
 pub mod block_signals;

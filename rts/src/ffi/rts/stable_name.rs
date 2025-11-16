@@ -1,7 +1,7 @@
+use crate::ffi::rts::storage::closures::StgClosure;
+use crate::ffi::stg::types::StgPtr;
 #[cfg(feature = "sys")]
 use crate::prelude::*;
-use crate::rts::storage::closures::StgClosure;
-use crate::stg::types::StgPtr;
 
 #[cfg(test)]
 mod tests;

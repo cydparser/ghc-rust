@@ -1,9 +1,9 @@
-use crate::prelude::*;
-use crate::rts::storage::info_tables::{
+use crate::ffi::rts::storage::info_tables::{
     StgClosureInfo, StgFunInfoExtraRev_, StgFunInfoExtraRev___bindgen_ty_1, StgFunInfoTable,
     StgInfoTable, StgInfoTable_,
 };
-use crate::stg::types::StgFunPtr;
+use crate::ffi::stg::types::StgFunPtr;
+use crate::prelude::*;
 
 #[cfg(test)]
 mod tests;

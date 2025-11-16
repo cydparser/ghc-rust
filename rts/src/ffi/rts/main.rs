@@ -1,6 +1,6 @@
+use crate::ffi::rts::storage::closures::StgClosure;
+use crate::ffi::rts_api::RtsConfig;
 use crate::prelude::*;
-use crate::rts::storage::closures::StgClosure;
-use crate::rts_api::RtsConfig;
 
 /// - GHC_PLACES: {driver, testsuite, utils}
 #[ffi]

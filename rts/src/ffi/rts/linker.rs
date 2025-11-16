@@ -1,4 +1,4 @@
-use crate::hs_ffi::{HsBool, HsInt, HsPtr};
+use crate::ffi::hs_ffi::{HsBool, HsInt, HsPtr};
 use crate::prelude::*;
 
 #[cfg(test)]

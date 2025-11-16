@@ -1,10 +1,10 @@
 use crate::capability::Capability;
+use crate::ffi::rts::storage::block::bdescr;
+use crate::ffi::rts::storage::closures::StgWeak;
+use crate::ffi::rts::storage::tso::StgTSO;
+use crate::ffi::stg::W_;
+use crate::ffi::stg::types::{StgPtr, StgWord};
 use crate::prelude::*;
-use crate::rts::storage::block::bdescr;
-use crate::rts::storage::closures::StgWeak;
-use crate::rts::storage::tso::StgTSO;
-use crate::stg::W_;
-use crate::stg::types::{StgPtr, StgWord};
 
 #[cfg(test)]
 mod tests;

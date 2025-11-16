@@ -1,6 +1,6 @@
-use crate::hs_ffi::HsStablePtr;
+use crate::ffi::hs_ffi::HsStablePtr;
+use crate::ffi::stg::types::StgWord64;
 use crate::prelude::*;
-use crate::stg::types::StgWord64;
 use libc::{pthread_cond_t, pthread_mutex_t, pthread_t};
 
 #[cfg(test)]

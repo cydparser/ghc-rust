@@ -1,6 +1,6 @@
+use crate::ffi::stg::types::StgPtr;
 #[cfg(feature = "sys")]
 use crate::prelude::*;
-use crate::stg::types::StgPtr;
 
 #[cfg(test)]
 mod tests;

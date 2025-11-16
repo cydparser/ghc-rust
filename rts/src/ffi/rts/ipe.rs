@@ -1,6 +1,6 @@
+use crate::ffi::rts::storage::info_tables::StgInfoTable;
+use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
-use crate::rts::storage::info_tables::StgInfoTable;
-use crate::stg::types::StgWord;
 
 #[cfg(test)]
 mod tests;

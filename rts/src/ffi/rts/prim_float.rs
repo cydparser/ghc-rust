@@ -1,6 +1,6 @@
+use crate::ffi::stg::types::StgDouble;
+use crate::ffi::stg::{I_, W_};
 use crate::prelude::*;
-use crate::stg::types::StgDouble;
-use crate::stg::{I_, W_};
 
 #[cfg(test)]
 mod tests;

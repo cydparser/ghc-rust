@@ -1,6 +1,6 @@
+use crate::ffi::rts::time::Time;
+use crate::ffi::stg::types::{StgWord, StgWord64};
 use crate::prelude::*;
-use crate::rts::time::Time;
-use crate::stg::types::{StgWord, StgWord64};
 use libc::FILE;
 
 #[cfg(test)]

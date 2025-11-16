@@ -1,13 +1,13 @@
-#[cfg(feature = "sys")]
-use crate::prelude::*;
-use crate::rts::prof::ccs::CostCentreStack_;
-use crate::rts::storage::block::bdescr_;
-use crate::rts::storage::gc::nursery_;
-use crate::rts::storage::tso::StgTSO_;
-use crate::stg::types::{
+use crate::ffi::rts::prof::ccs::CostCentreStack_;
+use crate::ffi::rts::storage::block::bdescr_;
+use crate::ffi::rts::storage::gc::nursery_;
+use crate::ffi::rts::storage::tso::StgTSO_;
+use crate::ffi::stg::types::{
     StgAddr, StgChar, StgDouble, StgFloat, StgFunPtr, StgInt, StgPtr, StgWord, StgWord64,
     StgWord128, StgWord256, StgWord512,
 };
+#[cfg(feature = "sys")]
+use crate::prelude::*;
 
 #[cfg(test)]
 mod tests;

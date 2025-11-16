@@ -1,7 +1,7 @@
+#[cfg(feature = "ghc_testsuite")]
+use crate::ffi::stg::W_;
 #[cfg(feature = "sys")]
 use crate::prelude::*;
-#[cfg(feature = "ghc_testsuite")]
-use crate::stg::W_;
 
 #[cfg(test)]
 mod tests;

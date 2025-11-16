@@ -1,5 +1,5 @@
+use crate::ffi::rts::libdw::LibdwSession;
 use crate::prelude::*;
-use crate::rts::libdw::LibdwSession;
 
 #[cfg(test)]
 mod tests;

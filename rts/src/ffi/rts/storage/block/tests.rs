@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 use super::*;
+use crate::ffi::stg::W_;
 use crate::prelude::*;
-use crate::stg::W_;
 
 #[cfg(feature = "sys")]
 #[test]

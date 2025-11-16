@@ -1,6 +1,6 @@
+use crate::ffi::rts::storage::closures::StgClosure;
+use crate::ffi::stg::types::{StgCode, StgFun, StgHalfInt, StgHalfWord, StgInt, StgWord};
 use crate::prelude::*;
-use crate::rts::storage::closures::StgClosure;
-use crate::stg::types::{StgCode, StgFun, StgHalfInt, StgHalfWord, StgInt, StgWord};
 
 #[cfg(test)]
 mod tests;
