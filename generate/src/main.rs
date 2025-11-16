@@ -372,10 +372,9 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                                 if is_std {
                                     parse_quote! { #param_ident }
                                 } else if symbols.is_pointer_type(ty) {
-                                    let sys_pat_ty = prefix_with_sys(ty);
-                                    parse_quote! { #param_ident as #sys_pat_ty }
+                                    parse_quote! { #param_ident.cast() }
                                 } else {
-                                    parse_quote! { transmute(#param_ident) }
+                                    parse_quote! { #param_ident.into() }
                                 },
                                 if is_std {
                                     parse_quote! { #param_ident }
