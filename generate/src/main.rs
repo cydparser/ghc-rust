@@ -141,16 +141,9 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
     };
     let mut items = syn_file.items.into_iter().peekable();
 
-    let use_stg_types = Item::Use(parse_quote! {
-        use crate::stg::types::{StgInt, StgPtr, StgWord, StgWord64};
-    });
-
-    transformed.main_file.items.extend([
-        Item::Use(parse_quote! {
-            use crate::prelude::*;
-        }),
-        use_stg_types.clone(),
-    ]);
+    transformed.main_file.items.push(Item::Use(parse_quote! {
+        use crate::prelude::*;
+    }));
 
     transformed
         .tests_file
