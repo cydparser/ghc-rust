@@ -195,7 +195,7 @@
             export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
             export TAPLO_CONFIG=" $FLAKE_ROOT/taplo.toml";
 
-            export GHC_LIB_DIR=${lib.optionalString pkgs.stdenv.isDarwin "${ghc}/lib/ghc-${ghc.version}/lib"}
+            export GHC_LIB_DIR=${lib.optionalString false "${ghc}/lib/ghc-${ghc.version}/lib"}
           ''
           + self.checks.${system}.pre-commit.shellHook;
         };
