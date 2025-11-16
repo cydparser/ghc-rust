@@ -170,7 +170,9 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
         match item {
             Item::Const(item_const) => transform_const(symbols, item_const, &mut transformed),
             Item::Enum(mut item_enum) => {
-                let places = symbols.places(&item_enum.ident);
+                let ident = item_enum.ident.clone();
+
+                let places = symbols.places(&ident);
 
                 if places.is_empty() {
                     item_enum.vis = parse_quote! { pub(crate) };
@@ -180,7 +182,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
 
                 item_enum.attrs.push(parse_quote! { #[derive(Copy)] });
 
-                let impl_arb = if symbols.is_simple(&item_enum.ident) {
+                let impl_arb = if symbols.is_simple(&ident) {
                     Some(Item::Impl(impl_arbitrary_enum(
                         &item_enum.ident,
                         &item_enum.variants,
@@ -189,7 +191,10 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                     None
                 };
 
-                transformed.main_file.items.push(Item::Enum(item_enum));
+                transformed
+                    .main_file
+                    .items
+                    .extend([Item::Enum(item_enum), Item::Impl(impl_from(&ident))]);
 
                 if let Some(impl_arb) = impl_arb {
                     transformed.main_file.items.push(impl_arb);
