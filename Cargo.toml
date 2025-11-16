@@ -2,10 +2,10 @@
 members = [
   "build-utils",
   "generate",
-  "ghc-rts-sys",
   "include",
   "macros",
   "rts",
+  "rts-sys",
   "scripts",
 ]
 default-members = ["rts"]

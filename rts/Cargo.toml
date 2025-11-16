@@ -20,7 +20,7 @@ build-utils.workspace = true
 
 [dependencies]
 ghc-macros = { path = "../macros" }
-ghc-rts-sys = { path = "../ghc-rts-sys", optional = true }
+ghc-rts-sys = { path = "../rts-sys", optional = true }
 libc.workspace = true
 quickcheck_macros = "1.0.0"
 tracing = { workspace = true, optional = true }
