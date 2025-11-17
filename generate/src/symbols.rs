@@ -22,7 +22,7 @@ pub(crate) static PLACE_VARIANTS: [Place; 6] = [
 #[derive(Clone, Copy, Default)]
 pub struct Places(pub(crate) u32);
 
-pub(crate) static SYMBOLS: [(&str, Places); 682] = [
+pub(crate) static SYMBOLS: [(&str, Places); 684] = [
     ("ALIGNMENT_WORD16", Places(0b1000)),
     ("ALLOC_CON_ctr", Places(0b1)),
     ("ALLOC_CON_gds", Places(0b1)),
@@ -270,6 +270,7 @@ pub(crate) static SYMBOLS: [(&str, Places); 682] = [
     ("RTS_FLAGS", Places(0b1000)),
     ("RtsConfig", Places(0b110100)),
     ("RtsFlags", Places(0b1001)),
+    ("RtsOptsEnabledEnum", Places(0b110000)),
     ("SIZEOF_HSDOUBLE", Places(0b1000)),
     ("SIZEOF_HSFLOAT", Places(0b1000)),
     ("SIZEOF_HSINT", Places(0b1000)),
@@ -300,6 +301,7 @@ pub(crate) static SYMBOLS: [(&str, Places); 682] = [
     ("STK_CHK_ctr", Places(0b1)),
     ("STOP_FRAME", Places(0b1)),
     ("SUMMARY_GC_STATS", Places(0b1000)),
+    ("SchedulerStatus", Places(0b11000)),
     ("StackOverflow", Places(0b1000)),
     ("StgArrBytes", Places(0b1000)),
     ("StgAtomicallyFrame", Places(0b1000)),
