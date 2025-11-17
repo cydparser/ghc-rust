@@ -469,12 +469,25 @@ fn is_bindgen(s: &str) -> bool {
 }
 
 fn find_places<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<String, Places> {
-    fn search(
-        visitor: &SymbolVisitor,
-        path: &Path,
-        syms_regex: &str,
-        args: &[&str],
-    ) -> BTreeMap<String, Places> {
+    let path = path.as_ref();
+
+    let syms_regex = &{
+        let mut s = String::from(r"\b(");
+        let mut add_sep = false;
+
+        for sym in visitor.symbols.iter().chain(visitor.variant_symbols.keys()) {
+            if add_sep {
+                s.push('|');
+            } else {
+                add_sep = true;
+            }
+            s.push_str(sym);
+        }
+        s.push_str(r")\b");
+        s
+    };
+
+    let search = |args: &[&str]| -> BTreeMap<String, Places> {
         let output = Command::new("rg")
             .current_dir(path)
             .args(["-g", "!/.gitlab"])
@@ -542,59 +555,28 @@ fn find_places<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<Str
         }
 
         sym_places
-    }
-
-    let syms_regex = {
-        let mut s = String::from(r"\b(");
-        let mut add_sep = false;
-
-        for sym in visitor.symbols.iter().chain(visitor.variant_symbols.keys()) {
-            if add_sep {
-                s.push('|');
-            } else {
-                add_sep = true;
-            }
-            s.push_str(sym);
-        }
-        s.push_str(r")\b");
-        s
     };
 
-    let mut sym_places = search(
-        visitor,
-        path.as_ref(),
-        &syms_regex,
-        &[
-            "-g",
-            "*.{c,h,hsc}",
-            "--pcre2",
-            &format!(r"^ *(?<!(//|/[*])).*{}", &syms_regex),
-        ],
-    );
+    let mut sym_places = search(&[
+        "-g",
+        "*.{c,h,hsc}",
+        "--pcre2",
+        &format!(r"^ *(?<!(//|/[*])).*{}", &syms_regex),
+    ]);
 
     let foreign_pat = format!(
         r#"^(foreign +import +(ccall|javascript|prim) +(safe|unsafe)?.*| +data +){}"#,
         &syms_regex
     );
 
-    let hs_places = search(
-        visitor,
-        path.as_ref(),
-        &syms_regex,
-        &["-g", "*.hs", &foreign_pat],
-    );
+    let hs_places = search(&["-g", "*.hs", &foreign_pat]);
 
-    let fs_lit_places = search(
-        visitor,
-        path.as_ref(),
-        &syms_regex,
-        &[
-            "-g",
-            "*.hs",
-            &format!(r#"\bfsLit +"{}""#, &syms_regex),
-            "compiler",
-        ],
-    );
+    let fs_lit_places = search(&[
+        "-g",
+        "*.hs",
+        &format!(r#"\bfsLit +"{}""#, &syms_regex),
+        "compiler",
+    ]);
 
     // Merge the HashMaps.
     for ps in [hs_places, fs_lit_places] {
