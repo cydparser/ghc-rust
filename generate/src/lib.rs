@@ -21,6 +21,7 @@ pub struct Symbols {
     simple_types: HashSet<Ident>,
     non_simple_types: HashSet<Ident>,
     pointer_types: HashSet<Ident>,
+    option_types: HashSet<Ident>,
     std_types: HashSet<Ident>,
 }
 
@@ -75,6 +76,13 @@ impl Symbols {
             pointer_types: {
                 let mut hs = HashSet::new();
                 for s in symbols::POINTER_TYPES {
+                    hs.insert(Ident::new(s, Span::call_site()));
+                }
+                hs
+            },
+            option_types: {
+                let mut hs = HashSet::new();
+                for s in symbols::OPTION_TYPES {
                     hs.insert(Ident::new(s, Span::call_site()));
                 }
                 hs
@@ -196,6 +204,22 @@ impl Symbols {
 
     pub fn is_pointer(&self, ident: &Ident) -> bool {
         self.pointer_types.contains(ident)
+    }
+
+    pub fn is_option_type(&self, ty: &Type) -> bool {
+        match ty {
+            Type::Path(type_path) => {
+                let Some(ident) = type_path.path.get_ident() else {
+                    return false;
+                };
+                self.is_option(ident)
+            }
+            _ => false,
+        }
+    }
+
+    pub fn is_option(&self, ident: &Ident) -> bool {
+        self.option_types.contains(ident)
     }
 
     pub fn is_std_type(&self, ty: &Type) -> bool {

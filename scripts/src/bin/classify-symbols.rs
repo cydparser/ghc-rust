@@ -112,6 +112,13 @@ pub fn main() {
     );
     println!();
     print_static_array(
+        "OPTION_TYPES",
+        "&str",
+        visitor.option_types.len(),
+        visitor.option_types.iter().map(Ident::to_string),
+    );
+    println!();
+    print_static_array(
         "COPY_TYPES",
         "&str",
         visitor.copy_types.len(),
@@ -145,6 +152,7 @@ struct SymbolVisitor {
     symbols: Vec<String>,
     pointer_types: BTreeSet<Ident>,
     primitive_types: BTreeSet<Ident>,
+    option_types: BTreeSet<Ident>,
     copy_types: BTreeSet<Ident>,
     simple_types: BTreeSet<Ident>,
     non_simple_types: BTreeSet<Ident>,
@@ -388,6 +396,7 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
                                 && let Some(syn::GenericArgument::Type(param_ty)) =
                                     angle_args.args.first()
                             {
+                                visitor.option_types.insert(ident.clone());
                                 visit_type(visitor, ident, param_ty);
                             }
                         } else if visitor.is_primitive(&ps.ident) {

@@ -798,6 +798,18 @@ pub(crate) static PRIMITIVE_TYPES: [&str; 52] = [
     "pathchar",
 ];
 
+pub(crate) static OPTION_TYPES: [&str; 9] = [
+    "HsFunPtr",
+    "ListBlocksCb",
+    "ListRootsCb",
+    "ListThreadsCb",
+    "OSThreadProc",
+    "RtsMsgFunction",
+    "RtsMsgFunctionRetLen",
+    "StgFun",
+    "StgFunPtr",
+];
+
 pub(crate) static COPY_TYPES: [&str; 90] = [
     "C_",
     "EventLogStatus",
