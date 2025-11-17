@@ -191,10 +191,11 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                     None
                 };
 
-                transformed
-                    .main_file
-                    .items
-                    .extend([Item::Enum(item_enum), Item::Impl(impl_from(&ident))]);
+                transformed.main_file.items.extend(
+                    [Item::Enum(item_enum)]
+                        .into_iter()
+                        .chain(impl_froms(&ident)),
+                );
 
                 if let Some(impl_arb) = impl_arb {
                     transformed.main_file.items.push(impl_arb);
@@ -587,9 +588,11 @@ fn transform_struct(
         None
     };
 
-    main_file
-        .items
-        .extend([Item::Struct(item_struct), Item::Impl(impl_from(&ident))]);
+    main_file.items.extend(
+        [Item::Struct(item_struct)]
+            .into_iter()
+            .chain(impl_froms(&ident)),
+    );
 
     if let Some(impl_arb) = impl_arb {
         main_file.items.push(impl_arb);
@@ -636,9 +639,11 @@ fn transform_union(
         }
     }
 
-    main_file
-        .items
-        .extend([Item::Union(item_union), Item::Impl(impl_from(&ident))]);
+    main_file.items.extend(
+        [Item::Union(item_union)]
+            .into_iter()
+            .chain(impl_froms(&ident)),
+    );
 
     tests_file.items.push(Item::Fn(fn_test_size_of(&ident)));
 }
@@ -652,15 +657,22 @@ where
         .unwrap_or_else(|e| panic!("Unable to parse TokenStream: {s}: {e}"))
 }
 
-fn impl_from(ident: &Ident) -> syn::ItemImpl {
-    parse_quote! {
-        #[cfg(feature = "sys")]
-        impl From<#ident> for sys::#ident {
-            fn from(x: #ident) -> Self {
-                unsafe { transmute(x) }
+fn impl_froms(ident: &Ident) -> impl Iterator<Item = syn::Item> {
+    fn impl_from(from: &syn::Path, to: &syn::Path) -> syn::Item {
+        Item::Impl(parse_quote! {
+            #[cfg(feature = "sys")]
+            impl From<#from> for #to {
+                fn from(x: #from) -> Self {
+                    unsafe { transmute(x) }
+                }
             }
-        }
+        })
     }
+
+    let rs = &parse_quote! { #ident };
+    let sys = &parse_quote! { sys::#ident };
+
+    [impl_from(rs, sys), impl_from(sys, rs)].into_iter()
 }
 
 fn impl_arbitrary_struct(ident: &Ident, fields: &syn::Fields) -> syn::ItemImpl {
