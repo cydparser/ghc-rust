@@ -285,21 +285,23 @@ impl SymbolVisitor {
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Place {
-    Compiler  = 0b000001,
-    Docs      = 0b000010,
-    Driver    = 0b000100,
-    Libraries = 0b001000,
-    Testsuite = 0b010000,
-    Utils     = 0b100000,
+    Compiler  = 0b0000001,
+    Docs      = 0b0000010,
+    Driver    = 0b0000100,
+    Libraries = 0b0001000,
+    Testsuite = 0b0010000,
+    Utils     = 0b0100000,
+    GhcLib    = 0b1000000,
 }
 
-static PLACE_VARIANTS: [Place; 6] = [
+static PLACE_VARIANTS: [Place; 7] = [
     Place::Compiler,
     Place::Docs,
     Place::Driver,
     Place::Libraries,
     Place::Testsuite,
     Place::Utils,
+    Place::GhcLib,
 ];
 
 struct Places(BTreeSet<Place>);
@@ -537,12 +539,18 @@ fn find_places<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<Str
 
                         let places = sym_places.entry(key).or_insert_with(Places::new);
 
-                        if let Some((place, _)) = file.split_once("/") {
+                        if let Some((place, rest)) = file.split_once("/") {
                             match place {
                                 "compiler" => places.insert(Place::Compiler),
                                 "docs" => places.insert(Place::Docs),
                                 "driver" => places.insert(Place::Driver),
-                                "libraries" => places.insert(Place::Libraries),
+                                "libraries" => {
+                                    if rest.starts_with("ghc-") {
+                                        places.insert(Place::GhcLib)
+                                    } else {
+                                        places.insert(Place::Libraries)
+                                    }
+                                }
                                 "testsuite" => places.insert(Place::Testsuite),
                                 "utils" => places.insert(Place::Utils),
                                 place => eprintln!("WARN: unexpected place {place}"),
@@ -571,15 +579,30 @@ fn find_places<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<Str
 
     let hs_places = search(&["-g", "*.hs", &foreign_pat]);
 
-    let fs_lit_places = search(&[
+    let plain_symbols = syms_regex.to_string();
+
+    let internal_places = search(&[
         "-g",
         "*.hs",
-        &format!(r#"\bfsLit +"{}""#, &syms_regex),
+        &plain_symbols,
         "compiler",
+        "libraries/ghc-bignum",
+        "libraries/ghc-boot",
+        "libraries/ghc-boot-th",
+        "libraries/ghc-boot-th-next",
+        "libraries/ghc-compact",
+        "libraries/ghc-experimental",
+        "libraries/ghc-heap",
+        "libraries/ghc-internal",
+        "libraries/ghc-platform",
+        "libraries/ghc-prim",
+        "utils/ghc-toolchain",
     ]);
 
+    let doc_places = search(&[&plain_symbols, "docs/users_guide/exts/ffi.rst"]);
+
     // Merge the HashMaps.
-    for ps in [hs_places, fs_lit_places] {
+    for ps in [hs_places, internal_places, doc_places] {
         for (sym, p) in ps {
             let places = sym_places.entry(sym).or_insert_with(Places::new);
             places.0.extend(&p.0);
