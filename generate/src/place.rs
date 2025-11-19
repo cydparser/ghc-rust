@@ -10,6 +10,7 @@ impl Place {
             Place::Libraries => "libraries",
             Place::Testsuite => "testsuite",
             Place::Utils => "utils",
+            Place::GhcLib => "ghc-lib",
         }
     }
 }
