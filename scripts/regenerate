@@ -136,7 +136,7 @@ fi
 
 rm -f "${_files[@]}"
 
-cargo run -p generate rts/src/ffi
+cargo run -p generate-ffi rts/src/ffi
 
 sed -i \
   -e 's/::core::option:://g' \

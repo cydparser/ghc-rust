@@ -9,7 +9,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
-use generate::{Place, Places, Symbols, prefix_with_sys};
+use generate_ffi::{Place, Places, Symbols, prefix_with_sys};
 
 fn main() {
     let src_dir = PathBuf::from(String::from(env!("OUT_DIR")));
@@ -468,7 +468,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         }
     }));
 
-    if let Some(tests) = generate::generate_tests(symbols, sig, places) {
+    if let Some(tests) = generate_ffi::generate_tests(symbols, sig, places) {
         for test in tests {
             tests_file.items.push(syn::Item::Fn(test));
         }
@@ -779,7 +779,7 @@ fn fn_test_size_of(ident: &Ident) -> syn::ItemFn {
 }
 
 fn attr_places(places: Places) -> syn::Attribute {
-    if places == generate::Place::Testsuite {
+    if places == generate_ffi::Place::Testsuite {
         parse_quote! { #[cfg(feature = "ghc_testsuite")] }
     } else {
         doc_places(places)
