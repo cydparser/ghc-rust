@@ -128,17 +128,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
 
 [[package]]
+name = "generate-consumers"
+version = "0.0.0"
+
+[[package]]
 name = "generate-ffi"
 version = "0.0.0"
 dependencies = [
  "bindgen",
  "build-utils",
+ "generate-consumers",
+ "generate-symbols",
  "prettyplease",
  "proc-macro2",
  "quote",
  "stringcase",
  "syn",
 ]
+
+[[package]]
+name = "generate-symbol-consumers"
+version = "0.0.0"
+dependencies = [
+ "bindgen",
+ "build-utils",
+ "generate-consumers",
+ "proc-macro2",
+ "regex",
+ "syn",
+]
+
+[[package]]
+name = "generate-symbols"
+version = "0.0.0"
 
 [[package]]
 name = "getrandom"
@@ -433,17 +455,6 @@ name = "ryu"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
-
-[[package]]
-name = "scripts"
-version = "0.0.0"
-dependencies = [
- "bindgen",
- "build-utils",
- "proc-macro2",
- "regex",
- "syn",
-]
 
 [[package]]
 name = "serde"

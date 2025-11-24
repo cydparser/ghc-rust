@@ -13,6 +13,8 @@ build-utils.workspace = true
 stringcase = "0.4.0"
 
 [dependencies]
+generate-consumers.workspace = true
+generate-symbols.workspace = true
 prettyplease = "0.2.29"
 proc-macro2.workspace = true
 quote.workspace = true

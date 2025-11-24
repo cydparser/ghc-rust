@@ -1,21 +1,18 @@
+use generate_consumers::Consumers;
+use generate_symbols as symbols;
+use proc_macro2::Span;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-
-use proc_macro2::Span;
 use syn::{Ident, Type, TypePath, parse_quote};
 
-mod place;
-mod symbols;
 mod tests;
 
-pub use crate::place::PlacesIter;
-pub use crate::symbols::{Place, Places};
 pub use crate::tests::generate_tests;
 
 pub struct Symbols {
     internal_module: bool,
     internal_modules: HashSet<PathBuf>,
-    symbols: HashMap<Ident, Places>,
+    symbols: HashMap<Ident, Consumers>,
     primitive_types: HashSet<Ident>,
     copy_types: HashSet<Ident>,
     simple_types: HashSet<Ident>,
@@ -40,8 +37,11 @@ impl Symbols {
             },
             symbols: {
                 let mut hs = HashMap::new();
-                for (sym, places) in symbols::SYMBOLS {
-                    hs.insert(Ident::new(sym, Span::call_site()), places);
+                for (sym, c) in symbols::SYMBOLS {
+                    hs.insert(
+                        Ident::new(sym, Span::call_site()),
+                        Consumers::try_from(c).unwrap(),
+                    );
                 }
                 hs
             },
@@ -105,7 +105,7 @@ impl Symbols {
         self.internal_module
     }
 
-    pub fn places(&self, ident: &Ident) -> Places {
+    pub fn consumers(&self, ident: &Ident) -> Consumers {
         self.symbols.get(ident).copied().unwrap_or_default()
     }
 

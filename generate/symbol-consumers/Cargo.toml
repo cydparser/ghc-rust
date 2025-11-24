@@ -1,5 +1,5 @@
 [package]
-name = "scripts"
+name = "generate-symbol-consumers"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,9 +8,7 @@ license.workspace = true
 [dependencies]
 bindgen.workspace = true
 build-utils.workspace = true
+generate-consumers.workspace = true
 proc-macro2.workspace = true
 regex.workspace = true
 syn.workspace = true
-
-[[bin]]
-name = "classify-symbols"

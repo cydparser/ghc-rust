@@ -9,7 +9,8 @@ use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
-use generate_ffi::{Place, Places, Symbols, prefix_with_sys};
+use generate_consumers::{Consumer, Consumers};
+use generate_ffi::{Symbols, prefix_with_sys};
 
 fn main() {
     let src_dir = PathBuf::from(String::from(env!("OUT_DIR")));
@@ -172,12 +173,12 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
             Item::Enum(mut item_enum) => {
                 let ident = item_enum.ident.clone();
 
-                let places = symbols.places(&ident);
+                let consumers = symbols.consumers(&ident);
 
-                if places.is_empty() {
+                if consumers.is_empty() {
                     item_enum.vis = parse_quote! { pub(crate) };
                 } else {
-                    item_enum.attrs.insert(0, doc_places(places));
+                    item_enum.attrs.insert(0, doc_consumers(consumers));
                 }
 
                 item_enum.attrs.push(parse_quote! { #[derive(Copy)] });
@@ -214,13 +215,13 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                             ty,
                             ..
                         }) => {
-                            let places = symbols.places(&ident);
+                            let consumers = symbols.consumers(&ident);
 
-                            if places.is_empty() {
+                            if consumers.is_empty() {
                                 continue;
                             }
 
-                            let attrs = export_attrs(places);
+                            let attrs = export_attrs(consumers);
 
                             let rhs: syn::Expr = match ty.as_ref() {
                                 Type::Array(_) => parse_quote! { [0; _] },
@@ -263,12 +264,12 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
             }
             Item::Struct(item_struct) => transform_struct(symbols, item_struct, &mut transformed),
             Item::Type(mut item_type) => {
-                let places = symbols.places(&item_type.ident);
+                let consumers = symbols.consumers(&item_type.ident);
 
-                if places.is_empty() {
+                if consumers.is_empty() {
                     item_type.vis = parse_quote! { pub(crate) };
                 } else {
-                    item_type.attrs.insert(0, doc_places(places));
+                    item_type.attrs.insert(0, doc_consumers(consumers));
                 }
                 transformed.main_file.items.push(Item::Type(item_type));
             }
@@ -300,12 +301,12 @@ fn transform_const(
         }
     }
 
-    let places = symbols.places(&ident);
+    let consumers = symbols.consumers(&ident);
 
-    if places.is_empty() {
+    if consumers.is_empty() {
         item_const.vis = parse_quote! { pub(crate) };
     } else {
-        item_const.attrs.insert(0, doc_places(places));
+        item_const.attrs.insert(0, doc_consumers(consumers));
     };
     transformed.main_file.items.push(Item::Const(item_const));
 
@@ -332,9 +333,9 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 
     assert!(generics.gt_token.is_none() && generics.where_clause.is_none());
 
-    let places = symbols.places(ident);
+    let consumers = symbols.consumers(ident);
 
-    if places.is_empty() {
+    if consumers.is_empty() {
         return;
     }
 
@@ -441,7 +442,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         }
     }
 
-    let attrs = export_attrs(places);
+    let attrs = export_attrs(consumers);
 
     let call: syn::Expr = {
         let convert = match &output {
@@ -468,18 +469,18 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         }
     }));
 
-    if let Some(tests) = generate_ffi::generate_tests(symbols, sig, places) {
+    if let Some(tests) = generate_ffi::generate_tests(symbols, sig, consumers) {
         for test in tests {
             tests_file.items.push(syn::Item::Fn(test));
         }
     }
 }
 
-fn export_attrs(places: Places) -> Vec<syn::Attribute> {
+fn export_attrs(consumers: Consumers) -> Vec<syn::Attribute> {
     let mut attrs = Vec::with_capacity(3);
 
-    if !places.is_empty() {
-        attrs.push(attr_places(places));
+    if !consumers.is_empty() {
+        attrs.push(attr_consumers(consumers));
     }
 
     attrs.extend([
@@ -550,9 +551,9 @@ fn transform_struct(
     }
     let ident = item_struct.ident.clone();
 
-    let places = symbols.places(&ident);
+    let consumers = symbols.consumers(&ident);
 
-    if places.is_empty() || ident.to_string().ends_with("_") {
+    if consumers.is_empty() || ident.to_string().ends_with("_") {
         item_struct
             .attrs
             .insert(0, parse_quote! { #[doc = " cbindgen:no-export"] });
@@ -563,7 +564,7 @@ fn transform_struct(
             }
         }
     } else {
-        item_struct.attrs.insert(0, doc_places(places));
+        item_struct.attrs.insert(0, doc_consumers(consumers));
     }
 
     let impl_arb = if symbols.is_simple(&item_struct.ident) {
@@ -611,15 +612,15 @@ fn transform_union(
 ) {
     let ident = item_union.ident.clone();
 
-    let places = symbols.places(&ident);
+    let consumers = symbols.consumers(&ident);
 
-    if places.is_empty() {
+    if consumers.is_empty() {
         item_union.vis = parse_quote! { pub(crate) };
     } else {
-        item_union.attrs.insert(0, attr_places(places));
+        item_union.attrs.insert(0, attr_consumers(consumers));
     }
 
-    if places.is_empty() || places == Place::Testsuite {
+    if consumers.is_empty() || consumers == Consumer::Testsuite {
         for f in item_union.fields.named.iter_mut() {
             f.vis = Visibility::Inherited;
         }
@@ -778,19 +779,19 @@ fn fn_test_size_of(ident: &Ident) -> syn::ItemFn {
     }
 }
 
-fn attr_places(places: Places) -> syn::Attribute {
-    if places == generate_ffi::Place::Testsuite {
+fn attr_consumers(consumers: Consumers) -> syn::Attribute {
+    if consumers == Consumer::Testsuite {
         parse_quote! { #[cfg(feature = "ghc_testsuite")] }
     } else {
-        doc_places(places)
+        doc_consumers(consumers)
     }
 }
 
-fn doc_places(places: Places) -> syn::Attribute {
-    let mut s = " - GHC_PLACES: {".to_string();
+fn doc_consumers(consumers: Consumers) -> syn::Attribute {
+    let mut s = " - GHC_CONSUMERS: {".to_string();
     let mut is_first = true;
 
-    for p in places {
+    for p in consumers {
         if is_first {
             is_first = false;
         } else {
