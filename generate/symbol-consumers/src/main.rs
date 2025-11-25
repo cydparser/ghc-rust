@@ -508,29 +508,40 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
                     }
 
                     for caps in regex.captures_iter(s) {
-                        let key = {
-                            let key = String::from(&caps["sym"]);
-                            visitor.variant_symbols.get(&key).map_or(key, String::clone)
+                        let (key, variant) = {
+                            let sym = String::from(&caps["sym"]);
+
+                            match visitor.variant_symbols.get(&sym) {
+                                Some(enum_ident) => {
+                                    (enum_ident.clone(), Some(format!("{}::{}", enum_ident, sym)))
+                                }
+                                None => (sym, None),
+                            }
                         };
 
-                        let consumers = sym_consumers.entry(key).or_insert_with(Consumers::new);
-
-                        if let Some((consumer, rest)) = file.split_once("/") {
-                            match consumer {
-                                "compiler" => consumers.insert(Consumer::Compiler),
-                                "docs" => consumers.insert(Consumer::Docs),
-                                "driver" => consumers.insert(Consumer::Driver),
-                                "libraries" => {
-                                    if rest.starts_with("ghc-") {
-                                        consumers.insert(Consumer::GhcLib)
-                                    } else {
-                                        consumers.insert(Consumer::Libraries)
-                                    }
+                        let consumer = file.split_once("/").and_then(|(dir, rest)| match dir {
+                            "compiler" => Some(Consumer::Compiler),
+                            "docs" => Some(Consumer::Docs),
+                            "driver" => Some(Consumer::Driver),
+                            "libraries" => {
+                                if rest.starts_with("ghc-") {
+                                    Some(Consumer::GhcLib)
+                                } else {
+                                    Some(Consumer::Libraries)
                                 }
-                                "testsuite" => consumers.insert(Consumer::Testsuite),
-                                "utils" => consumers.insert(Consumer::Utils),
-                                consumer => eprintln!("WARN: unexpected consumer {consumer}"),
-                            };
+                            }
+                            "testsuite" => Some(Consumer::Testsuite),
+                            "utils" => Some(Consumer::Utils),
+                            _ => None,
+                        });
+
+                        if let Some(consumer) = consumer {
+                            for key in [key].into_iter().chain(variant.into_iter()) {
+                                sym_consumers
+                                    .entry(key)
+                                    .or_insert_with(Consumers::new)
+                                    .insert(consumer);
+                            }
                         }
                     }
                 }
