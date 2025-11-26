@@ -599,7 +599,7 @@ fn transform_struct(
         main_file.items.push(impl_arb);
     }
 
-    tests_file.items.push(Item::Fn(fn_test_size_of(&ident)));
+    tests_file.items.push(Item::Fn(fn_test_layout(&ident)));
 }
 
 fn transform_union(
@@ -646,7 +646,7 @@ fn transform_union(
             .chain(impl_froms(&ident)),
     );
 
-    tests_file.items.push(Item::Fn(fn_test_size_of(&ident)));
+    tests_file.items.push(Item::Fn(fn_test_layout(&ident)));
 }
 
 fn parse_token_stream<S>(s: S) -> TokenStream
@@ -767,16 +767,28 @@ fn arbitrary_data_constructor(ident: &Ident, fields: &syn::Fields) -> syn::Expr 
     }
 }
 
-fn fn_test_size_of(ident: &Ident) -> syn::ItemFn {
-    let test_size_of = format_ident!("sys_size_{}", ident);
+fn fn_test_layout(ident: &Ident) -> syn::ItemFn {
+    let fn_ident = format_ident!("sys_layout_{}", ident);
+    let asserts = assert_layout_of(ident);
 
     parse_quote! {
         #[cfg(feature = "sys")]
         #[test]
-        fn #test_size_of() {
-            assert_eq!(size_of::<sys::#ident>(), size_of::<#ident>())
+        fn #fn_ident() {
+            #(#asserts)*
         }
     }
+}
+
+fn assert_layout_of(ident: &Ident) -> Vec<syn::Stmt> {
+    let block: syn::Block = parse_quote! {
+        {
+            assert_eq!(size_of::<sys::#ident>(), size_of::<#ident>());
+            assert_eq!(align_of::<sys::#ident>(), align_of::<#ident>());
+        }
+    };
+
+    block.stmts
 }
 
 fn attr_consumers(consumers: Consumers) -> syn::Attribute {
