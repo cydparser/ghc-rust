@@ -1,4 +1,5 @@
-use crate::{Place, Places, Symbols};
+use crate::Symbols;
+use generate_consumers::{Consumer, Consumers};
 use proc_macro2::{Punct, Spacing, TokenStream, TokenTree};
 use quote::{format_ident, quote};
 use std::iter;
@@ -8,7 +9,7 @@ use syn::{Ident, Type, parse_quote, punctuated::Punctuated, token};
 pub fn generate_tests(
     symbols: &Symbols,
     sig: &syn::Signature,
-    places: Places,
+    places: Consumers,
 ) -> Option<impl IntoIterator<Item = syn::ItemFn>> {
     let (mut has_arbitrary, mut has_todo) = (false, false);
 
@@ -243,7 +244,7 @@ fn as_type_details<'a>(symbols: &Symbols, ty: &'a syn::Type) -> Option<TypeDetai
 #[expect(clippy::too_many_arguments)]
 fn generate_equivalent_test(
     ident: &Ident,
-    places: Places,
+    places: Consumers,
     params: Punctuated<syn::FnArg, token::Comma>,
     (cmp_ty, return_is_simple): (&Option<Type>, bool),
     (expect_lets, actual_lets): (Vec<TokenStream>, Vec<TokenStream>),
@@ -251,7 +252,7 @@ fn generate_equivalent_test(
     call_sys: &TokenStream,
     call: &TokenStream,
 ) -> syn::ItemFn {
-    let cfg_feature = if places == Place::Testsuite {
+    let cfg_feature = if places == Consumer::Testsuite {
         quote! { #[cfg(all(feature = "ghc_testsuite", feature = "sys"))] }
     } else {
         quote! { #[cfg(feature = "sys")] }
@@ -311,13 +312,13 @@ fn generate_equivalent_test(
 
 fn generate_unit_test(
     ident: &Ident,
-    places: Places,
+    places: Consumers,
     (cmp_ty, return_is_simple): (&Option<Type>, bool),
     lets: Vec<TokenStream>,
     has_arbitrary: bool,
     call: &TokenStream,
 ) -> syn::ItemFn {
-    let cfg_feature = if places == Place::Testsuite {
+    let cfg_feature = if places == Consumer::Testsuite {
         Some(quote! { #[cfg(feature = "ghc_testsuite")] })
     } else {
         None
