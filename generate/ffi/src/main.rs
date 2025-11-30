@@ -292,6 +292,7 @@ fn transform_const(
 
 fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: &mut Transformed) {
     let ident = item_enum.ident.clone();
+    let variants = &item_enum.variants;
 
     let consumers = symbols.consumers(&ident);
 
@@ -303,16 +304,15 @@ fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: 
 
     item_enum.attrs.push(parse_quote! { #[derive(Copy)] });
 
-    let impl_try_from = enums::impl_try_from_u32(&ident, &item_enum.variants);
+    let impl_try_from = enums::impl_try_from_u32(&ident, variants);
 
     let impl_arb = if symbols.is_simple(&ident) {
-        Some(Item::Impl(impl_arbitrary_enum(
-            &item_enum.ident,
-            &item_enum.variants,
-        )))
+        Some(Item::Impl(impl_arbitrary_enum(&ident, variants)))
     } else {
         None
     };
+
+    let test_discriminants = enums::test_discriminants(&ident, variants);
 
     transformed.main_file.items.extend(
         [Item::Enum(item_enum)]
@@ -325,10 +325,10 @@ fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: 
         transformed.main_file.items.push(impl_arb);
     }
 
-    transformed
-        .tests_file
-        .items
-        .push(Item::Fn(fn_test_layout(&ident)));
+    transformed.tests_file.items.extend([
+        Item::Fn(fn_test_layout(&ident)),
+        Item::Fn(test_discriminants),
+    ]);
 }
 
 fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut Transformed) {

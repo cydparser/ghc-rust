@@ -1,3 +1,4 @@
+use quote::format_ident;
 use syn::{Arm, Expr, ExprLit, Ident, Lit, Variant, parse_quote};
 
 /// Produce an `Iterator` over the Variant's integer discriminants.
@@ -49,6 +50,32 @@ where
                     _ => Err(()),
                 }
             }
+        }
+    }
+}
+
+pub fn test_discriminants<'a, I>(ident: &Ident, variants: I) -> syn::ItemFn
+where
+    I: IntoIterator<Item = &'a Variant>,
+{
+    let asserts: Vec<Expr> = variant_discriminants(variants)
+        .map(|(d, v)| {
+            let variant = &v.ident;
+
+            parse_quote! {
+                assert_eq!(#ident::#variant as isize, sys::#ident::#variant as isize)
+                #d => Ok(#variant)
+            }
+        })
+        .collect();
+
+    let fn_ident = format_ident!("sys_discriminants_{}", ident);
+
+    parse_quote! {
+        #[cfg(feature = "sys")]
+        #[test]
+        fn #fn_ident() {
+            #(#asserts);*
         }
     }
 }
