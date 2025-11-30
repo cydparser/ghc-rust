@@ -62,51 +62,81 @@ impl syn::parse::Parse for FfiItem {
             attrs.extend([pound, TokenTree::Group(group)]);
         }
 
+        #[derive(PartialEq)]
+        enum ItemKind {
+            Const,
+            Fn,
+            Static,
+            Struct,
+            Type,
+            Union,
+        }
+
+        let mut kind = None;
+
         let mut item_ident: Option<Ident> = None;
 
         while let Ok(tt) = input.parse::<TokenTree>() {
-            if let TokenTree::Ident(ident) = &tt
-                && !(ident == "pub"
-                    || ident == "unsafe"
-                    || ident == "extern"
-                    || ident == "fn"
-                    || ident == "static"
-                    || ident == "mut")
-            {
-                item_ident = Some(ident.clone());
-                code.extend([tt]);
-                code.extend(input.parse::<TokenStream>()?);
-                break;
+            if let TokenTree::Ident(ident) = &tt {
+                if kind.is_none() {
+                    kind = if ident == "const" {
+                        Some(ItemKind::Const)
+                    } else if ident == "fn" {
+                        Some(ItemKind::Fn)
+                    } else if ident == "static" {
+                        Some(ItemKind::Static)
+                    } else if ident == "struct" {
+                        Some(ItemKind::Struct)
+                    } else if ident == "type" {
+                        Some(ItemKind::Type)
+                    } else if ident == "union" {
+                        Some(ItemKind::Union)
+                    } else {
+                        None
+                    };
+                } else {
+                    item_ident = Some(ident.clone());
+                    code.extend([tt]);
+                    code.extend(input.parse::<TokenStream>()?);
+                    break;
+                }
             }
             code.extend([tt]);
         }
 
+        let Some(kind) = kind else {
+            return Err(input.error("unable to determine item kind"));
+        };
+
         let Some(item_ident) = item_ident else {
             return Err(input.error("unable to determine item ident"));
         };
-        let span = item_ident.span();
-        let mut export_name = proc2::Literal::string(&format!("rust_{item_ident}"));
-        export_name.set_span(span);
 
-        attrs.extend([
-            TokenTree::Punct(proc2::Punct::new('#', Spacing::Alone)),
-            proc_macro2::TokenTree::Group(new_cfg_attr(
-                span,
-                [
-                    TokenTree::Ident(Ident::new("feature", span)),
-                    TokenTree::Punct(proc2::Punct::new('=', Spacing::Alone)),
-                    TokenTree::Literal(proc2::Literal::string("sys")),
-                ],
-                [
-                    TokenTree::Ident(Ident::new("unsafe", span)),
-                    TokenTree::Group(new_group([
-                        TokenTree::Ident(Ident::new("export_name", span)),
+        if kind == ItemKind::Fn || kind == ItemKind::Static {
+            let span = item_ident.span();
+            let mut export_name = proc2::Literal::string(&format!("rust_{item_ident}"));
+            export_name.set_span(span);
+
+            attrs.extend([
+                TokenTree::Punct(proc2::Punct::new('#', Spacing::Alone)),
+                proc_macro2::TokenTree::Group(new_cfg_attr(
+                    span,
+                    [
+                        TokenTree::Ident(Ident::new("feature", span)),
                         TokenTree::Punct(proc2::Punct::new('=', Spacing::Alone)),
-                        TokenTree::Literal(export_name),
-                    ])),
-                ],
-            )),
-        ]);
+                        TokenTree::Literal(proc2::Literal::string("sys")),
+                    ],
+                    [
+                        TokenTree::Ident(Ident::new("unsafe", span)),
+                        TokenTree::Group(new_group([
+                            TokenTree::Ident(Ident::new("export_name", span)),
+                            TokenTree::Punct(proc2::Punct::new('=', Spacing::Alone)),
+                            TokenTree::Literal(export_name),
+                        ])),
+                    ],
+                )),
+            ]);
+        }
 
         Ok(FfiItem { attrs, code })
     }
