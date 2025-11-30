@@ -500,6 +500,11 @@ fn transform_static(
         #(#attrs)*
         #vis static #mutability #ident: #ty = #rhs;
     }));
+
+    transformed
+        .tests_file
+        .items
+        .push(Item::Fn(fn_test_layout_of(&ident)));
 }
 
 fn export_attrs(consumers: Consumers) -> Vec<syn::Attribute> {
@@ -821,6 +826,19 @@ fn assert_layout_of(ident: &Ident) -> Vec<syn::Stmt> {
     };
 
     block.stmts
+}
+
+fn fn_test_layout_of(ident: &Ident) -> syn::ItemFn {
+    let fn_ident = format_ident!("sys_layout_{}", ident);
+    let asserts = assert_layout_of_val(ident);
+
+    parse_quote! {
+        #[cfg(feature = "sys")]
+        #[test]
+        fn #fn_ident() {
+            #(#asserts)*
+        }
+    }
 }
 
 fn assert_layout_of_val(ident: &Ident) -> Vec<syn::Stmt> {
