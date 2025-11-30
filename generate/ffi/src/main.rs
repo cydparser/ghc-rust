@@ -201,6 +201,11 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                 if let Some(impl_arb) = impl_arb {
                     transformed.main_file.items.push(impl_arb);
                 }
+
+                transformed
+                    .tests_file
+                    .items
+                    .push(Item::Fn(fn_test_layout(&ident)));
             }
             Item::ForeignMod(foreign_mod) => {
                 for fitem in foreign_mod.items.into_iter() {
