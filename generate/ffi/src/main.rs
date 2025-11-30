@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    fs, iter,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -183,6 +183,8 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
 
                 item_enum.attrs.push(parse_quote! { #[derive(Copy)] });
 
+                let impl_try_from = enums::impl_try_from_u32(&ident, &item_enum.variants);
+
                 let impl_arb = if symbols.is_simple(&ident) {
                     Some(Item::Impl(impl_arbitrary_enum(
                         &item_enum.ident,
@@ -195,7 +197,8 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                 transformed.main_file.items.extend(
                     [Item::Enum(item_enum)]
                         .into_iter()
-                        .chain(impl_froms(&ident)),
+                        .chain(impl_froms(&ident))
+                        .chain(iter::once(Item::Impl(impl_try_from))),
                 );
 
                 if let Some(impl_arb) = impl_arb {

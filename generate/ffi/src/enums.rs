@@ -1,4 +1,4 @@
-use syn::{Expr, ExprLit, Lit, Variant};
+use syn::{Arm, Expr, ExprLit, Ident, Lit, Variant, parse_quote};
 
 /// Produce an `Iterator` over the Variant's integer discriminants.
 pub fn variant_discriminants<'a, I>(variants: I) -> impl Iterator<Item = (isize, &'a Variant)>
@@ -21,4 +21,34 @@ where
 
         (disc, v)
     })
+}
+
+/// Produce TryFrom<u32> for an enum.
+pub fn impl_try_from_u32<'a, I>(ident: &Ident, variants: I) -> syn::ItemImpl
+where
+    I: IntoIterator<Item = &'a Variant>,
+{
+    let arms: Vec<Arm> = variant_discriminants(variants)
+        .map(|(d, v)| {
+            let variant = &v.ident;
+
+            parse_quote! {
+                #d => Ok(#variant)
+            }
+        })
+        .collect();
+
+    parse_quote! {
+        impl TryFrom<u32> for #ident {
+            type Error = ();
+
+            fn try_from(d: u32) -> Result<#ident, ()> {
+                use #ident::*;
+                match d {
+                    #(#arms),*
+                    _ => Err(()),
+                }
+            }
+        }
+    }
 }
