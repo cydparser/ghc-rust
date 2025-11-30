@@ -170,46 +170,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
     for item in items {
         match item {
             Item::Const(item_const) => transform_const(symbols, item_const, &mut transformed),
-            Item::Enum(mut item_enum) => {
-                let ident = item_enum.ident.clone();
-
-                let consumers = symbols.consumers(&ident);
-
-                if consumers.is_empty() {
-                    item_enum.vis = parse_quote! { pub(crate) };
-                } else {
-                    item_enum.attrs.insert(0, attr_ffi(consumers));
-                }
-
-                item_enum.attrs.push(parse_quote! { #[derive(Copy)] });
-
-                let impl_try_from = enums::impl_try_from_u32(&ident, &item_enum.variants);
-
-                let impl_arb = if symbols.is_simple(&ident) {
-                    Some(Item::Impl(impl_arbitrary_enum(
-                        &item_enum.ident,
-                        &item_enum.variants,
-                    )))
-                } else {
-                    None
-                };
-
-                transformed.main_file.items.extend(
-                    [Item::Enum(item_enum)]
-                        .into_iter()
-                        .chain(impl_froms(&ident))
-                        .chain(iter::once(Item::Impl(impl_try_from))),
-                );
-
-                if let Some(impl_arb) = impl_arb {
-                    transformed.main_file.items.push(impl_arb);
-                }
-
-                transformed
-                    .tests_file
-                    .items
-                    .push(Item::Fn(fn_test_layout(&ident)));
-            }
+            Item::Enum(item_enum) => transform_enum(symbols, item_enum, &mut transformed),
             Item::ForeignMod(foreign_mod) => {
                 for fitem in foreign_mod.items.into_iter() {
                     match fitem {
@@ -327,6 +288,47 @@ fn transform_const(
             assert_eq!(sys::#ident, #ident);
         }
     }));
+}
+
+fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: &mut Transformed) {
+    let ident = item_enum.ident.clone();
+
+    let consumers = symbols.consumers(&ident);
+
+    if consumers.is_empty() {
+        item_enum.vis = parse_quote! { pub(crate) };
+    } else {
+        item_enum.attrs.insert(0, attr_ffi(consumers));
+    }
+
+    item_enum.attrs.push(parse_quote! { #[derive(Copy)] });
+
+    let impl_try_from = enums::impl_try_from_u32(&ident, &item_enum.variants);
+
+    let impl_arb = if symbols.is_simple(&ident) {
+        Some(Item::Impl(impl_arbitrary_enum(
+            &item_enum.ident,
+            &item_enum.variants,
+        )))
+    } else {
+        None
+    };
+
+    transformed.main_file.items.extend(
+        [Item::Enum(item_enum)]
+            .into_iter()
+            .chain(impl_froms(&ident))
+            .chain(iter::once(Item::Impl(impl_try_from))),
+    );
+
+    if let Some(impl_arb) = impl_arb {
+        transformed.main_file.items.push(impl_arb);
+    }
+
+    transformed
+        .tests_file
+        .items
+        .push(Item::Fn(fn_test_layout(&ident)));
 }
 
 fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
