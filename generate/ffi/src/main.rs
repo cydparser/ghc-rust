@@ -178,7 +178,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                 if consumers.is_empty() {
                     item_enum.vis = parse_quote! { pub(crate) };
                 } else {
-                    item_enum.attrs.insert(0, doc_consumers(consumers));
+                    item_enum.attrs.insert(0, attr_ffi(consumers));
                 }
 
                 item_enum.attrs.push(parse_quote! { #[derive(Copy)] });
@@ -269,7 +269,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                 if consumers.is_empty() {
                     item_type.vis = parse_quote! { pub(crate) };
                 } else {
-                    item_type.attrs.insert(0, doc_consumers(consumers));
+                    item_type.attrs.insert(0, attr_ffi(consumers));
                 }
                 transformed.main_file.items.push(Item::Type(item_type));
             }
@@ -306,7 +306,7 @@ fn transform_const(
     if consumers.is_empty() {
         item_const.vis = parse_quote! { pub(crate) };
     } else {
-        item_const.attrs.insert(0, doc_consumers(consumers));
+        item_const.attrs.insert(0, attr_ffi(consumers));
     };
     transformed.main_file.items.push(Item::Const(item_const));
 
@@ -480,13 +480,10 @@ fn export_attrs(consumers: Consumers) -> Vec<syn::Attribute> {
     let mut attrs = Vec::with_capacity(3);
 
     if !consumers.is_empty() {
-        attrs.push(attr_consumers(consumers));
+        attrs.push(attr_ffi(consumers));
     }
 
-    attrs.extend([
-        parse_quote! { #[ffi] },
-        parse_quote! { #[unsafe(no_mangle)] },
-    ]);
+    attrs.extend([parse_quote! { #[unsafe(no_mangle)] }]);
 
     attrs
 }
@@ -564,7 +561,7 @@ fn transform_struct(
             }
         }
     } else {
-        item_struct.attrs.insert(0, doc_consumers(consumers));
+        item_struct.attrs.insert(0, attr_ffi(consumers));
     }
 
     let impl_arb = if symbols.is_simple(&item_struct.ident) {
@@ -617,7 +614,7 @@ fn transform_union(
     if consumers.is_empty() {
         item_union.vis = parse_quote! { pub(crate) };
     } else {
-        item_union.attrs.insert(0, attr_consumers(consumers));
+        item_union.attrs.insert(0, attr_ffi(consumers));
     }
 
     if consumers.is_empty() || consumers == Consumer::Testsuite {
@@ -791,26 +788,18 @@ fn assert_layout_of(ident: &Ident) -> Vec<syn::Stmt> {
     block.stmts
 }
 
-fn attr_consumers(consumers: Consumers) -> syn::Attribute {
-    if consumers == Consumer::Testsuite {
-        parse_quote! { #[cfg(feature = "ghc_testsuite")] }
-    } else {
-        doc_consumers(consumers)
-    }
-}
-
-fn doc_consumers(consumers: Consumers) -> syn::Attribute {
-    let mut s = " - GHC_CONSUMERS: {".to_string();
+fn attr_ffi(consumers: Consumers) -> syn::Attribute {
+    let mut cs = String::with_capacity(100);
     let mut is_first = true;
 
     for p in consumers {
-        if is_first {
-            is_first = false;
+        if !is_first {
+            cs.push_str(", ");
         } else {
-            s.push_str(", ");
+            is_first = false;
         }
-        s.push_str(p.to_str());
+        cs.push_str(p.to_str());
     }
-    s.push('}');
-    parse_quote! { #[doc = #s] }
+
+    parse_quote! { #[ffi(#cs)] }
 }
