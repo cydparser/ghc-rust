@@ -177,43 +177,8 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                         syn::ForeignItem::Fn(ffn) => {
                             transform_ffn(symbols, ffn, &mut transformed);
                         }
-                        syn::ForeignItem::Static(syn::ForeignItemStatic {
-                            vis,
-                            ident,
-                            mutability,
-                            ty,
-                            ..
-                        }) => {
-                            let consumers = symbols.consumers(&ident);
-
-                            if consumers.is_empty() {
-                                continue;
-                            }
-
-                            let attrs = export_attrs(consumers);
-
-                            let rhs: syn::Expr = match ty.as_ref() {
-                                Type::Array(_) => parse_quote! { [0; _] },
-                                Type::Ptr(type_ptr) => match type_ptr.mutability {
-                                    Some(_) => parse_quote! { null_mut() },
-                                    None => parse_quote! { null() },
-                                },
-                                Type::Path(type_path) => {
-                                    if let Some(ps) = type_path.path.segments.last()
-                                        && ps.ident == "bool"
-                                    {
-                                        parse_quote! { false }
-                                    } else {
-                                        parse_quote! { 0 }
-                                    }
-                                }
-                                _ => parse_quote! { 0 },
-                            };
-
-                            transformed.main_file.items.push(Item::Static(parse_quote! {
-                                #(#attrs)*
-                                #vis static #mutability #ident: #ty = #rhs;
-                            }));
+                        syn::ForeignItem::Static(item_static) => {
+                            transform_static(symbols, item_static, &mut transformed)
                         }
                         fitem => panic!("Unexpected Item: {fitem:#?}"),
                     }
@@ -494,6 +459,50 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
             tests_file.items.push(syn::Item::Fn(test));
         }
     }
+}
+
+fn transform_static(
+    symbols: &Symbols,
+    item_static: syn::ForeignItemStatic,
+    transformed: &mut Transformed,
+) {
+    let syn::ForeignItemStatic {
+        vis,
+        ident,
+        mutability,
+        ty,
+        ..
+    } = item_static;
+    let consumers = symbols.consumers(&ident);
+
+    if consumers.is_empty() {
+        return;
+    }
+
+    let attrs = export_attrs(consumers);
+
+    let rhs: syn::Expr = match ty.as_ref() {
+        Type::Array(_) => parse_quote! { [0; _] },
+        Type::Ptr(type_ptr) => match type_ptr.mutability {
+            Some(_) => parse_quote! { null_mut() },
+            None => parse_quote! { null() },
+        },
+        Type::Path(type_path) => {
+            if let Some(ps) = type_path.path.segments.last()
+                && ps.ident == "bool"
+            {
+                parse_quote! { false }
+            } else {
+                parse_quote! { 0 }
+            }
+        }
+        _ => parse_quote! { 0 },
+    };
+
+    transformed.main_file.items.push(Item::Static(parse_quote! {
+        #(#attrs)*
+        #vis static #mutability #ident: #ty = #rhs;
+    }));
 }
 
 fn export_attrs(consumers: Consumers) -> Vec<syn::Attribute> {
