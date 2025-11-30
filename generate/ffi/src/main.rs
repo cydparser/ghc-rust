@@ -465,10 +465,15 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         }
     };
 
+    let instrument = match ret_ty {
+        Some(Type::Never(_)) => None,
+        _ => Some(quote! { #[instrument] }),
+    };
+
     // Mark all functions as unsafe until the code can be audited.
     main_file.items.push(Item::Fn(parse_quote! {
         #(#attrs)*
-        #[instrument]
+        #instrument
         pub unsafe extern "C" fn #ident(#inputs) #output {
             #call
         }
