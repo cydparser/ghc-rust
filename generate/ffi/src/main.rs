@@ -444,10 +444,15 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
 
     let attrs = export_attrs(consumers);
 
+    let ret_ty = match output {
+        syn::ReturnType::Type(_, ret_ty) => Some(ret_ty.as_ref()),
+        _ => None,
+    };
+
     let call: syn::Expr = {
-        let convert = match &output {
-            syn::ReturnType::Type(_, ret_ty) if !symbols.is_std_type(ret_ty.as_ref()) => {
-                Some(if symbols.is_pointer_type(ret_ty.as_ref()) {
+        let convert = match ret_ty {
+            Some(ret_ty) if !symbols.is_std_type(ret_ty) => {
+                Some(if symbols.is_pointer_type(ret_ty) {
                     quote! { .cast() }
                 } else {
                     quote! { .into() }
