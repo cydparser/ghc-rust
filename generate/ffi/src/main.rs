@@ -237,13 +237,19 @@ fn transform_const(
 
     let test_eq = format_ident!("sys_eq_{}", ident);
 
-    transformed.tests_file.items.push(Item::Fn(parse_quote! {
-        #[cfg(feature = "sys")]
-        #[test]
-        fn #test_eq() {
-            assert_eq!(sys::#ident, #ident);
-        }
-    }));
+    let asserts = assert_layout_of_val(&ident);
+
+    transformed.tests_file.items.extend([
+        Item::Fn(parse_quote! {
+            #[cfg(feature = "sys")]
+            #[test]
+            fn #test_eq() {
+                assert_eq!(sys::#ident, #ident);
+                #(#asserts)*
+            }
+        }),
+        Item::Fn(fn_test_layout(&ident)),
+    ]);
 }
 
 fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: &mut Transformed) {
@@ -811,6 +817,17 @@ fn assert_layout_of(ident: &Ident) -> Vec<syn::Stmt> {
         {
             assert_eq!(size_of::<sys::#ident>(), size_of::<#ident>());
             assert_eq!(align_of::<sys::#ident>(), align_of::<#ident>());
+        }
+    };
+
+    block.stmts
+}
+
+fn assert_layout_of_val(ident: &Ident) -> Vec<syn::Stmt> {
+    let block: syn::Block = parse_quote! {
+        {
+            assert_eq!(size_of_val(&sys::#ident), size_of_val(&#ident));
+            assert_eq!(align_of_val(&sys::#ident), align_of_val(&#ident));
         }
     };
 
