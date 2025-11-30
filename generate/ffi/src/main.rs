@@ -197,16 +197,7 @@ fn transform_tree(symbols: &Symbols, syn_file: syn::File) -> Transformed {
                 transformed.main_file.items.push(Item::Impl(item_impl))
             }
             Item::Struct(item_struct) => transform_struct(symbols, item_struct, &mut transformed),
-            Item::Type(mut item_type) => {
-                let consumers = symbols.consumers(&item_type.ident);
-
-                if consumers.is_empty() {
-                    item_type.vis = parse_quote! { pub(crate) };
-                } else {
-                    item_type.attrs.insert(0, attr_ffi(consumers));
-                }
-                transformed.main_file.items.push(Item::Type(item_type));
-            }
+            Item::Type(item_type) => transform_type(symbols, item_type, &mut transformed),
             Item::Union(item_union) => transform_union(symbols, item_union, &mut transformed),
             item @ Item::Use(_) => transformed.main_file.items.push(item),
             item => panic!("Unexpected Item: {item:#?}"),
@@ -626,6 +617,17 @@ fn transform_struct(
     }
 
     tests_file.items.push(Item::Fn(fn_test_layout(&ident)));
+}
+
+fn transform_type(symbols: &Symbols, mut item_type: syn::ItemType, transformed: &mut Transformed) {
+    let consumers = symbols.consumers(&item_type.ident);
+
+    if consumers.is_empty() {
+        item_type.vis = parse_quote! { pub(crate) };
+    } else {
+        item_type.attrs.insert(0, attr_ffi(consumers));
+    }
+    transformed.main_file.items.push(Item::Type(item_type));
 }
 
 fn transform_union(
