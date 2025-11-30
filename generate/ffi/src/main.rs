@@ -10,7 +10,7 @@ use quote::{format_ident, quote};
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
 use generate_consumers::{Consumer, Consumers};
-use generate_ffi::{Symbols, prefix_with_sys};
+use generate_ffi::{Symbols, enums, prefix_with_sys};
 
 fn main() {
     let src_dir = PathBuf::from(String::from(env!("OUT_DIR")));
@@ -705,21 +705,19 @@ fn impl_arbitrary_enum(
     ident: &Ident,
     variants: &Punctuated<syn::Variant, token::Comma>,
 ) -> syn::ItemImpl {
-    let variant_count = variants.len();
+    let variant_count = variants.len() as isize;
 
-    let arbitrary_variants: Vec<syn::Arm> = variants
-        .into_iter()
-        .enumerate()
+    let arbitrary_variants: Vec<syn::Arm> = enums::variant_discriminants(variants)
         .map(|(i, v)| {
             let arbitrary_variant = arbitrary_data_constructor(&v.ident, &v.fields);
 
             let pat = if i < variant_count - 1 {
                 syn::Pat::Lit(syn::ExprLit {
                     attrs: vec![],
-                    lit: syn::Lit::Int(proc2::Literal::usize_unsuffixed(i).into()),
+                    lit: syn::Lit::Int(proc2::Literal::isize_unsuffixed(i).into()),
                 })
             } else {
-                let i = syn::Lit::Int(proc2::Literal::usize_unsuffixed(i).into());
+                let i = syn::Lit::Int(proc2::Literal::isize_unsuffixed(i).into());
                 parse_quote! { #i.. }
             };
 
@@ -729,7 +727,7 @@ fn impl_arbitrary_enum(
         })
         .collect();
 
-    let variant_count = syn::Lit::Int(proc2::Literal::usize_unsuffixed(variant_count).into());
+    let variant_count = syn::Lit::Int(proc2::Literal::isize_unsuffixed(variant_count).into());
 
     parse_quote! {
         #[cfg(test)]

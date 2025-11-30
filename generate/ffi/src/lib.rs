@@ -5,6 +5,8 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use syn::{Ident, Type, TypePath, parse_quote};
 
+pub mod enums;
+
 mod tests;
 
 pub use crate::tests::generate_tests;
