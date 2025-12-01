@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use syn::{Ident, Type, TypePath, parse_quote};
 
 pub mod enums;
+pub mod fields;
 
 mod tests;
 

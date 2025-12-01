@@ -10,7 +10,7 @@ use quote::{format_ident, quote};
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
 use generate_consumers::{Consumer, Consumers};
-use generate_ffi::{Symbols, enums, prefix_with_sys};
+use generate_ffi::{Symbols, enums, fields, prefix_with_sys};
 
 fn main() {
     let src_dir = PathBuf::from(String::from(env!("OUT_DIR")));
@@ -617,6 +617,10 @@ fn transform_struct(
         None
     };
 
+    tests_file
+        .items
+        .push(Item::Fn(fields::test_layout(&ident, &item_struct.fields)));
+
     main_file.items.extend(
         [Item::Struct(item_struct)]
             .into_iter()
@@ -626,8 +630,6 @@ fn transform_struct(
     if let Some(impl_arb) = impl_arb {
         main_file.items.push(impl_arb);
     }
-
-    tests_file.items.push(Item::Fn(fn_test_layout(&ident)));
 }
 
 fn transform_type(symbols: &Symbols, mut item_type: syn::ItemType, transformed: &mut Transformed) {
