@@ -639,6 +639,11 @@ fn transform_type(symbols: &Symbols, mut item_type: syn::ItemType, transformed: 
         item_type.vis = parse_quote! { pub(crate) };
     } else {
         item_type.attrs.insert(0, attr_ffi(consumers));
+
+        transformed
+            .tests_file
+            .items
+            .push(Item::Fn(fn_test_layout(&item_type.ident)));
     }
     transformed.main_file.items.push(Item::Type(item_type));
 }
