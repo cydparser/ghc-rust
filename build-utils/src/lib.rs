@@ -82,12 +82,11 @@ impl GhcDirs {
     }
 }
 
-static LIBC_TYPES: [&str; 6] = [
+static LIBC_TYPES: [&str; 5] = [
     "clockid_t",
     "pid_t",
     "pthread_t",
     "pthread_cond_t",
-    "pthread_key_t",
     "pthread_mutex_t",
 ];
 
