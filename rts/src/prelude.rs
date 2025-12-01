@@ -12,3 +12,8 @@ pub use quickcheck_macros::quickcheck;
 pub use std::ffi::{CStr, CString, c_char, c_int, c_uint, c_void};
 pub use std::mem::{offset_of, transmute};
 pub use std::ptr::{null, null_mut};
+
+pub fn before_exit<T: AsRef<str>>(msg: T) {
+    // TODO(rust) flush any logging
+    eprintln!("Exiting due to {}", msg.as_ref());
+}

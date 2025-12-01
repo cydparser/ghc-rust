@@ -435,9 +435,9 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         }
     };
 
-    let instrument = match ret_ty {
-        Some(Type::Never(_)) => None,
-        _ => Some(quote! { #[instrument] }),
+    let (instrument, before_exit) = match ret_ty {
+        Some(Type::Never(_)) => (None, Some(quote! { before_exit(stringify!(#ident)) })),
+        _ => (Some(quote! { #[instrument] }), None),
     };
 
     // Mark all functions as unsafe until the code can be audited.
@@ -445,6 +445,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         #(#attrs)*
         #instrument
         pub unsafe extern "C" fn #ident(#inputs) #output {
+            #before_exit
             #call
         }
     }));
