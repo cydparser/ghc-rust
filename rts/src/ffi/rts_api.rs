@@ -370,7 +370,6 @@ pub unsafe extern "C" fn hs_init_ghc(
 /// - GHC_PLACES: {libraries, utils}
 #[ffi]
 #[unsafe(no_mangle)]
-#[instrument]
 pub unsafe extern "C" fn shutdownHaskellAndExit(exitCode: c_int, fastExit: c_int) -> ! {
     #[cfg(feature = "sys")]
     unsafe {
@@ -383,7 +382,6 @@ pub unsafe extern "C" fn shutdownHaskellAndExit(exitCode: c_int, fastExit: c_int
 /// - GHC_PLACES: {libraries, utils}
 #[ffi]
 #[unsafe(no_mangle)]
-#[instrument]
 pub unsafe extern "C" fn shutdownHaskellAndSignal(sig: c_int, fastExit: c_int) -> ! {
     #[cfg(feature = "sys")]
     unsafe {

@@ -63,7 +63,6 @@ pub(crate) const DEBUG_IS_ON: u32 = 0;
 /// - GHC_PLACES: {utils}
 #[ffi]
 #[unsafe(no_mangle)]
-#[instrument]
 pub unsafe extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -> ! {
     #[cfg(feature = "sys")]
     unsafe {
@@ -102,7 +101,6 @@ pub unsafe extern "C" fn reportHeapOverflow() {
 /// - GHC_PLACES: {libraries, utils}
 #[ffi]
 #[unsafe(no_mangle)]
-#[instrument]
 pub unsafe extern "C" fn stg_exit(n: c_int) -> ! {
     #[cfg(feature = "sys")]
     unsafe {

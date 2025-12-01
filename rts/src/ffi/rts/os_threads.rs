@@ -28,7 +28,6 @@ pub type OSThreadId = pthread_t;
 /// - GHC_PLACES: {utils}
 #[ffi]
 #[unsafe(no_mangle)]
-#[instrument]
 pub unsafe extern "C" fn shutdownThread() -> ! {
     #[cfg(feature = "sys")]
     unsafe {

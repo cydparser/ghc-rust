@@ -5,7 +5,6 @@ use crate::prelude::*;
 /// - GHC_PLACES: {driver, testsuite, utils}
 #[ffi]
 #[unsafe(no_mangle)]
-#[instrument]
 pub unsafe extern "C" fn hs_main(
     argc: c_int,
     argv: *mut *mut c_char,
