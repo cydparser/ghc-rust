@@ -94,6 +94,8 @@ impl syn::parse::Parse for FfiItem {
                     } else {
                         None
                     };
+                } else if kind == Some(ItemKind::Static) && ident == "mut" {
+                    ()
                 } else {
                     item_ident = Some(ident.clone());
                     code.extend([tt]);
