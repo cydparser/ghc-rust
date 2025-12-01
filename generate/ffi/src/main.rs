@@ -232,24 +232,24 @@ fn transform_const(
         item_const.vis = parse_quote! { pub(crate) };
     } else {
         item_const.attrs.insert(0, attr_ffi(consumers));
+
+        let test_eq = format_ident!("sys_eq_{}", ident);
+
+        let asserts = assert_layout_of_val(&ident);
+
+        transformed.tests_file.items.extend([
+            Item::Fn(parse_quote! {
+                #[cfg(feature = "sys")]
+                #[test]
+                fn #test_eq() {
+                    assert_eq!(sys::#ident, #ident);
+                    #(#asserts)*
+                }
+            }),
+            Item::Fn(fn_test_layout(&ident)),
+        ]);
     };
     transformed.main_file.items.push(Item::Const(item_const));
-
-    let test_eq = format_ident!("sys_eq_{}", ident);
-
-    let asserts = assert_layout_of_val(&ident);
-
-    transformed.tests_file.items.extend([
-        Item::Fn(parse_quote! {
-            #[cfg(feature = "sys")]
-            #[test]
-            fn #test_eq() {
-                assert_eq!(sys::#ident, #ident);
-                #(#asserts)*
-            }
-        }),
-        Item::Fn(fn_test_layout(&ident)),
-    ]);
 }
 
 fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: &mut Transformed) {
@@ -262,6 +262,11 @@ fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: 
         item_enum.vis = parse_quote! { pub(crate) };
     } else {
         item_enum.attrs.insert(0, attr_ffi(consumers));
+
+        transformed.tests_file.items.extend([
+            Item::Fn(fn_test_layout(&ident)),
+            Item::Fn(enums::test_discriminants(&ident, variants)),
+        ]);
     }
 
     item_enum.attrs.push(parse_quote! { #[derive(Copy)] });
@@ -274,8 +279,6 @@ fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: 
         None
     };
 
-    let test_discriminants = enums::test_discriminants(&ident, variants);
-
     transformed.main_file.items.extend(
         [Item::Enum(item_enum)]
             .into_iter()
@@ -286,11 +289,6 @@ fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: 
     if let Some(impl_arb) = impl_arb {
         transformed.main_file.items.push(impl_arb);
     }
-
-    transformed.tests_file.items.extend([
-        Item::Fn(fn_test_layout(&ident)),
-        Item::Fn(test_discriminants),
-    ]);
 }
 
 fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut Transformed) {
@@ -593,6 +591,10 @@ fn transform_struct(
         }
     } else {
         item_struct.attrs.insert(0, attr_ffi(consumers));
+
+        tests_file
+            .items
+            .push(Item::Fn(fields::test_layout(&ident, &item_struct.fields)));
     }
 
     let impl_arb = if symbols.is_simple(&item_struct.ident) {
@@ -616,10 +618,6 @@ fn transform_struct(
     } else {
         None
     };
-
-    tests_file
-        .items
-        .push(Item::Fn(fields::test_layout(&ident, &item_struct.fields)));
 
     main_file.items.extend(
         [Item::Struct(item_struct)]
