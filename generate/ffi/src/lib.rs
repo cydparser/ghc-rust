@@ -271,22 +271,66 @@ impl Symbols {
     }
 }
 
-pub fn prefix_with_sys(ty: &Type) -> Type {
+pub fn prefix_with_sys(symbols: &Symbols, ty: &Type) -> Type {
     match ty {
         Type::Array(type_array) => {
             let mut array = type_array.clone();
-            array.elem = Box::new(prefix_with_sys(type_array.elem.as_ref()));
+            array.elem = Box::new(prefix_with_sys(symbols, type_array.elem.as_ref()));
             Type::Array(array)
         }
-        Type::Path(type_path) => parse_quote! { sys::#type_path },
+        Type::BareFn(type_bare_fn) => {
+            let mut type_bare_fn = type_bare_fn.clone();
+
+            for fn_arg in type_bare_fn.inputs.iter_mut() {
+                fn_arg.ty = prefix_with_sys(symbols, &fn_arg.ty);
+            }
+
+            if let syn::ReturnType::Type(_, rty) = &mut type_bare_fn.output {
+                *rty = Box::new(prefix_with_sys(symbols, rty));
+            }
+
+            Type::BareFn(type_bare_fn)
+        }
+        Type::Path(type_path) => {
+            if let Some(ps) = type_path.path.segments.last()
+                && matches!(&ps.arguments, syn::PathArguments::AngleBracketed(_))
+            {
+                let mut type_path = type_path.clone();
+
+                if let Some(ps) = type_path.path.segments.iter_mut().last() {
+                    match &mut ps.arguments {
+                        syn::PathArguments::AngleBracketed(angle_args) => {
+                            for gen_arg in angle_args.args.iter_mut() {
+                                match gen_arg {
+                                    syn::GenericArgument::Type(ty) => {
+                                        *gen_arg = syn::GenericArgument::Type(prefix_with_sys(
+                                            symbols, ty,
+                                        ));
+                                    }
+                                    _ => unimplemented!(),
+                                }
+                            }
+
+                            return Type::Path(type_path);
+                        }
+                        _ => unreachable!(),
+                    }
+                };
+            };
+            if symbols.is_std_type(ty) {
+                ty.clone()
+            } else {
+                parse_quote! { sys::#type_path }
+            }
+        }
         Type::Ptr(type_ptr) => {
             let mut ptr = type_ptr.clone();
-            ptr.elem = Box::new(prefix_with_sys(type_ptr.elem.as_ref()));
+            ptr.elem = Box::new(prefix_with_sys(symbols, type_ptr.elem.as_ref()));
             Type::Ptr(ptr)
         }
         Type::Reference(type_reference) => {
             let mut ty_ref = type_reference.clone();
-            ty_ref.elem = Box::new(prefix_with_sys(type_reference.elem.as_ref()));
+            ty_ref.elem = Box::new(prefix_with_sys(symbols, type_reference.elem.as_ref()));
             Type::Reference(ty_ref)
         }
         ty => panic!("Unexpected type: {ty:?}"),

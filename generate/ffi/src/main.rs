@@ -345,7 +345,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                                     parse_quote! { #param_ident }
                                 } else if symbols.is_pointer_type(ty) {
                                     if symbols.is_option_type(ty) {
-                                        let sys_pat_ty = prefix_with_sys(pat_ty);
+                                        let sys_pat_ty = prefix_with_sys(symbols, pat_ty);
                                         parse_quote! { transmute::<#pat_ty, #sys_pat_ty>(#param_ident) }
                                     } else {
                                         parse_quote! { #param_ident.cast() }
@@ -367,7 +367,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                             let arg_from_sys = if symbols.is_std_type(type_ptr.elem.as_ref()) {
                                 parse_quote! { #param_ident }
                             } else {
-                                let sys_pat_ty = prefix_with_sys(pat_ty);
+                                let sys_pat_ty = prefix_with_sys(symbols, pat_ty);
                                 parse_quote! { #param_ident as #sys_pat_ty }
                             };
                             (ty, arg_from_sys, expr, pat)
@@ -593,9 +593,11 @@ fn transform_struct(
     } else {
         item_struct.attrs.insert(0, attr_ffi(consumers));
 
-        tests_file
-            .items
-            .push(Item::Fn(fields::test_layout(&ident, &item_struct.fields)));
+        tests_file.items.push(Item::Fn(fields::test_layout(
+            symbols,
+            &ident,
+            &item_struct.fields,
+        )));
     }
 
     let impl_arb = if symbols.is_simple(&item_struct.ident) {

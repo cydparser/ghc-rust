@@ -1,7 +1,8 @@
+use crate::Symbols;
 use quote::format_ident;
 use syn::{Block, Fields, Ident, parse_quote};
 
-pub fn test_layout(ident: &Ident, fields: &Fields) -> syn::ItemFn {
+pub fn test_layout(symbols: &Symbols, ident: &Ident, fields: &Fields) -> syn::ItemFn {
     let fn_ident = format_ident!("sys_layout_{}", ident);
     let mut asserts: Vec<Block> = Vec::with_capacity(fields.len() * 2);
 
@@ -10,7 +11,7 @@ pub fn test_layout(ident: &Ident, fields: &Fields) -> syn::ItemFn {
             for f in &fields_named.named {
                 let field = f.ident.as_ref().unwrap();
                 let ty = &f.ty;
-                let sys_ty = crate::prefix_with_sys(ty);
+                let sys_ty = crate::prefix_with_sys(symbols, ty);
 
                 asserts.push(parse_quote! {
                     {

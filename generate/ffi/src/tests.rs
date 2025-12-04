@@ -64,7 +64,7 @@ pub fn generate_tests(
             let sys_ty = if is_std {
                 ty
             } else {
-                &crate::prefix_with_sys(ty)
+                &crate::prefix_with_sys(symbols, ty)
             };
             equiv_expect_lets.push(quote! { let #equiv_mut #ident: #sys_ty = todo!() });
             equiv_actual_lets.push(quote! { let #equiv_mut #ident: #ty = todo!() });
