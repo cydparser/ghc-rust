@@ -1,3 +1,4 @@
+use proc_macro2 as proc2;
 use quote::format_ident;
 use syn::{Arm, Expr, ExprLit, Ident, Lit, Variant, parse_quote};
 
@@ -31,6 +32,7 @@ where
 {
     let arms: Vec<Arm> = variant_discriminants(variants)
         .map(|(d, v)| {
+            let d = Lit::Int(proc2::Literal::isize_unsuffixed(d).into());
             let variant = &v.ident;
 
             parse_quote! {
@@ -46,7 +48,7 @@ where
             fn try_from(d: u32) -> Result<#ident, ()> {
                 use #ident::*;
                 match d {
-                    #(#arms),*
+                    #(#arms,)*
                     _ => Err(()),
                 }
             }
@@ -58,13 +60,13 @@ pub fn test_discriminants<'a, I>(ident: &Ident, variants: I) -> syn::ItemFn
 where
     I: IntoIterator<Item = &'a Variant>,
 {
-    let asserts: Vec<Expr> = variant_discriminants(variants)
-        .map(|(d, v)| {
+    let asserts: Vec<Expr> = variants
+        .into_iter()
+        .map(|v| {
             let variant = &v.ident;
 
             parse_quote! {
                 assert_eq!(#ident::#variant as isize, sys::#ident::#variant as isize)
-                #d => Ok(#variant)
             }
         })
         .collect();
