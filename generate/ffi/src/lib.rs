@@ -41,6 +41,9 @@ impl Symbols {
             symbols: {
                 let mut hs = HashMap::new();
                 for (sym, c) in symbols::SYMBOLS {
+                    if sym.contains(":") {
+                        continue;
+                    }
                     hs.insert(
                         Ident::new(sym, Span::call_site()),
                         Consumers::try_from(c).unwrap(),
