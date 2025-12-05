@@ -433,7 +433,10 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
     };
 
     let (instrument, before_exit) = match ret_ty {
-        Some(Type::Never(_)) => (None, Some(quote! { before_exit(stringify!(#ident)); })),
+        Some(Type::Never(_)) => {
+            let msg = ident.to_string();
+            (None, Some(quote! { before_exit(#msg); }))
+        }
         _ => (Some(quote! { #[instrument] }), None),
     };
 
