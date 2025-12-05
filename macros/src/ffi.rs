@@ -65,6 +65,7 @@ impl syn::parse::Parse for FfiItem {
         #[derive(PartialEq)]
         enum ItemKind {
             Const,
+            Enum,
             Fn,
             Static,
             Struct,
@@ -81,6 +82,8 @@ impl syn::parse::Parse for FfiItem {
                 if kind.is_none() {
                     kind = if ident == "const" {
                         Some(ItemKind::Const)
+                    } else if ident == "enum" {
+                        Some(ItemKind::Enum)
                     } else if ident == "fn" {
                         Some(ItemKind::Fn)
                     } else if ident == "static" {
@@ -95,7 +98,6 @@ impl syn::parse::Parse for FfiItem {
                         None
                     };
                 } else if kind == Some(ItemKind::Static) && ident == "mut" {
-                    ()
                 } else {
                     item_ident = Some(ident.clone());
                     code.extend([tt]);
