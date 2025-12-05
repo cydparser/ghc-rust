@@ -143,8 +143,7 @@ impl From<RtsConfig> for sys::RtsConfig {
     }
 }
 
-// /// - GHC_PLACES: {testsuite, utils}
-// #[ffi]
+// #[ffi(compiler, testsuite, utils)]
 // #[unsafe(no_mangle)]
 // TODO(rust): pub static defaultRtsConfig: RtsConfig;
 
