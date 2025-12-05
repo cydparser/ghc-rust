@@ -286,9 +286,9 @@ fn generate_equivalent_test(
     };
 
     let check = if params.is_empty() {
-        quote! { assert_eq!(expected, actual); }
+        quote! { assert_eq!(actual, expected); }
     } else {
-        quote! { expected == actual }
+        quote! { actual == expected }
     };
 
     let attrs = if has_todo {

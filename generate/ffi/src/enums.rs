@@ -66,7 +66,7 @@ where
             let variant = &v.ident;
 
             parse_quote! {
-                assert_eq!(sys::#ident::#variant as isize, #ident::#variant as isize)
+                assert_eq!(#ident::#variant as isize, sys::#ident::#variant as isize)
             }
         })
         .collect();

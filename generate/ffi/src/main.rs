@@ -240,7 +240,7 @@ fn transform_const(
                 #[cfg(feature = "sys")]
                 #[test]
                 fn #test_eq() {
-                    assert_eq!(sys::#ident, #ident);
+                    assert_eq!(#ident, sys::#ident);
                 }
             }),
             Item::Fn(fn_test_layout_of_val(&ident, true)),
@@ -853,8 +853,8 @@ fn assert_layout_of(symbols: &Symbols, ty: &Type) -> Vec<syn::Stmt> {
 
     let block: syn::Block = parse_quote! {
         {
-            assert_eq!(size_of::<#sys_ty>(), size_of::<#ty>());
-            assert_eq!(align_of::<#sys_ty>(), align_of::<#ty>());
+            assert_eq!(size_of::<#ty>(), size_of::<#sys_ty>());
+            assert_eq!(align_of::<#ty>(), align_of::<#sys_ty>());
         }
     };
 
@@ -884,8 +884,8 @@ fn assert_layout_of_val(ident: &Ident, safe: bool) -> Vec<syn::Stmt> {
 
     let block: syn::Block = parse_quote! {
         {
-            assert_eq!(size_of_val(#sys_val), size_of_val(#val));
-            assert_eq!(align_of_val(#sys_val), align_of_val(#val));
+            assert_eq!(size_of_val(#val), size_of_val(#sys_val));
+            assert_eq!(align_of_val(#val), align_of_val(#sys_val));
         }
     };
 

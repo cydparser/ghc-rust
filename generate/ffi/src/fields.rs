@@ -18,8 +18,8 @@ pub fn test_layout(symbols: &Symbols, ident: &Ident, fields: &Fields) -> syn::It
                 } else {
                     Some(quote! {
                         assert_eq!(
-                            size_of::<#sys_ty>(),
-                            size_of::<#ty>()
+                            size_of::<#ty>(),
+                            size_of::<#sys_ty>()
                         );
                     })
                 };
@@ -28,8 +28,8 @@ pub fn test_layout(symbols: &Symbols, ident: &Ident, fields: &Fields) -> syn::It
                     {
                         #assert_size
                         assert_eq!(
-                            offset_of!(sys::#ident, #field),
                             offset_of!(#ident, #field),
+                            offset_of!(sys::#ident, #field)
                         );
                     }
                 };
@@ -48,8 +48,8 @@ pub fn test_layout(symbols: &Symbols, ident: &Ident, fields: &Fields) -> syn::It
         #[test]
         fn #fn_ident() {
             #(#asserts)*
-            assert_eq!(size_of::<sys::#ident>(), size_of::<#ident>());
-            assert_eq!(align_of::<sys::#ident>(), align_of::<#ident>());
+            assert_eq!(size_of::<#ident>(), size_of::<sys::#ident>());
+            assert_eq!(align_of::<#ident>(), align_of::<sys::#ident>());
         }
     }
 }
