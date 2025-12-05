@@ -235,18 +235,15 @@ fn transform_const(
 
         let test_eq = format_ident!("sys_eq_{}", ident);
 
-        let asserts = assert_layout_of_val(&ident);
-
         transformed.tests_file.items.extend([
             Item::Fn(parse_quote! {
                 #[cfg(feature = "sys")]
                 #[test]
                 fn #test_eq() {
                     assert_eq!(sys::#ident, #ident);
-                    #(#asserts)*
                 }
             }),
-            Item::Fn(fn_test_layout(&ident)),
+            Item::Fn(fn_test_layout_of_val(&ident, true)),
         ]);
     };
     transformed.main_file.items.push(Item::Const(item_const));
@@ -264,7 +261,7 @@ fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: 
         item_enum.attrs.insert(0, attr_ffi(consumers));
 
         transformed.tests_file.items.extend([
-            Item::Fn(fn_test_layout(&ident)),
+            Item::Fn(fn_test_layout(symbols, &ident)),
             Item::Fn(enums::test_discriminants(&ident, variants)),
         ]);
     }
@@ -503,7 +500,10 @@ fn transform_static(
     transformed
         .tests_file
         .items
-        .push(Item::Fn(fn_test_layout_of(&ident)));
+        .push(Item::Fn(fn_test_layout_of_val(
+            &ident,
+            mutability == syn::StaticMutability::None,
+        )));
 }
 
 fn export_attrs(consumers: Consumers) -> Vec<syn::Attribute> {
@@ -644,7 +644,7 @@ fn transform_type(symbols: &Symbols, mut item_type: syn::ItemType, transformed: 
         transformed
             .tests_file
             .items
-            .push(Item::Fn(fn_test_layout(&item_type.ident)));
+            .push(Item::Fn(fn_test_layout(symbols, &item_type.ident)));
     }
     transformed.main_file.items.push(Item::Type(item_type));
 }
@@ -693,7 +693,9 @@ fn transform_union(
             .chain(impl_froms(&ident)),
     );
 
-    tests_file.items.push(Item::Fn(fn_test_layout(&ident)));
+    tests_file
+        .items
+        .push(Item::Fn(fn_test_layout(symbols, &ident)));
 }
 
 fn parse_token_stream<S>(s: S) -> TokenStream
@@ -812,9 +814,27 @@ fn arbitrary_data_constructor(ident: &Ident, fields: &syn::Fields) -> syn::Expr 
     }
 }
 
-fn fn_test_layout(ident: &Ident) -> syn::ItemFn {
+fn type_path(ident: &Ident) -> Type {
+    Type::Path(syn::TypePath {
+        qself: None,
+        path: syn::Path {
+            leading_colon: None,
+            segments: iter::once(syn::PathSegment {
+                ident: ident.clone(),
+                arguments: syn::PathArguments::default(),
+            })
+            .collect(),
+        },
+    })
+}
+
+fn fn_test_layout(symbols: &Symbols, ident: &Ident) -> syn::ItemFn {
+    fn_test_layout_of(symbols, ident, &type_path(ident))
+}
+
+fn fn_test_layout_of(symbols: &Symbols, ident: &Ident, ty: &Type) -> syn::ItemFn {
     let fn_ident = format_ident!("sys_layout_{}", ident);
-    let asserts = assert_layout_of(ident);
+    let asserts = assert_layout_of(symbols, ty);
 
     parse_quote! {
         #[cfg(feature = "sys")]
@@ -825,20 +845,23 @@ fn fn_test_layout(ident: &Ident) -> syn::ItemFn {
     }
 }
 
-fn assert_layout_of(ident: &Ident) -> Vec<syn::Stmt> {
+fn assert_layout_of(symbols: &Symbols, ty: &Type) -> Vec<syn::Stmt> {
+    let sys_ty = prefix_with_sys(symbols, ty);
+
     let block: syn::Block = parse_quote! {
         {
-            assert_eq!(size_of::<sys::#ident>(), size_of::<#ident>());
-            assert_eq!(align_of::<sys::#ident>(), align_of::<#ident>());
+            assert_eq!(size_of::<#sys_ty>(), size_of::<#ty>());
+            assert_eq!(align_of::<#sys_ty>(), align_of::<#ty>());
         }
     };
 
     block.stmts
 }
 
-fn fn_test_layout_of(ident: &Ident) -> syn::ItemFn {
+fn fn_test_layout_of_val(ident: &Ident, safe: bool) -> syn::ItemFn {
     let fn_ident = format_ident!("sys_layout_{}", ident);
-    let asserts = assert_layout_of_val(ident);
+
+    let asserts = assert_layout_of_val(ident, safe);
 
     parse_quote! {
         #[cfg(feature = "sys")]
@@ -849,11 +872,17 @@ fn fn_test_layout_of(ident: &Ident) -> syn::ItemFn {
     }
 }
 
-fn assert_layout_of_val(ident: &Ident) -> Vec<syn::Stmt> {
+fn assert_layout_of_val(ident: &Ident, safe: bool) -> Vec<syn::Stmt> {
+    let (sys_val, val) = if safe {
+        (quote!(&sys::#ident), quote!(&#ident))
+    } else {
+        (quote!(unsafe { &sys::#ident }), quote!(unsafe { &#ident }))
+    };
+
     let block: syn::Block = parse_quote! {
         {
-            assert_eq!(size_of_val(&sys::#ident), size_of_val(&#ident));
-            assert_eq!(align_of_val(&sys::#ident), align_of_val(&#ident));
+            assert_eq!(size_of_val(#sys_val), size_of_val(#val));
+            assert_eq!(align_of_val(#sys_val), align_of_val(#val));
         }
     };
 
