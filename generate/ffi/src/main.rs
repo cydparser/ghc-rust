@@ -904,6 +904,7 @@ fn attr_ffi(consumers: Consumers) -> syn::Attribute {
         }
         cs.push_str(p.to_str());
     }
+    let cs = parse_token_stream(cs);
 
     parse_quote! { #[ffi(#cs)] }
 }
