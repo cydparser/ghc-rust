@@ -25,7 +25,6 @@ pub mod parallel;
 pub mod prim_float;
 pub mod prof;
 pub mod profiling;
-pub mod rts_to_hs_iface;
 pub mod signals;
 pub mod stable_name;
 pub mod stable_ptr;
