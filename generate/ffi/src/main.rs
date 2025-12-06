@@ -215,7 +215,6 @@ fn transform_const(
     let ident = item_const.ident.clone();
 
     if ident == "_" {
-        transformed.tests_file.items.push(Item::Const(item_const));
         return;
     } else {
         let s = ident.to_string();
