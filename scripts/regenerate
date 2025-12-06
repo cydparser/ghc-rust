@@ -76,6 +76,8 @@ _files=(
   # rts/src/ffi/rts/prof/ldv.rs
   # rts/src/ffi/rts/profiling/tests.rs
   # rts/src/ffi/rts/profiling.rs
+  # rts/src/ffi/rts/rts_to_hs_iface.rs
+  # rts/src/ffi/rts/rts_to_hs_iface/tests.rs
   # rts/src/ffi/rts/signals/tests.rs
   # rts/src/ffi/rts/signals.rs
   # rts/src/ffi/rts/spin_lock/tests.rs
