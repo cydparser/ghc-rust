@@ -109,7 +109,7 @@ where
         })
         .collect();
 
-    let fn_ident = format_ident!("sys_discriminants_{}", ident);
+    let fn_ident = format_ident!("sys_{}_discriminants", ident);
 
     parse_quote! {
         #[cfg(feature = "sys")]

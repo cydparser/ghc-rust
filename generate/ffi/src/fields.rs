@@ -3,7 +3,7 @@ use quote::{format_ident, quote};
 use syn::{Block, Fields, Ident, Stmt, parse_quote};
 
 pub fn test_layout(symbols: &Symbols, ident: &Ident, fields: &Fields) -> syn::ItemFn {
-    let fn_ident = format_ident!("sys_layout_{}", ident);
+    let fn_ident = format_ident!("sys_{}_layout", ident);
     let mut asserts: Vec<Stmt> = Vec::with_capacity(fields.len() * 2);
 
     match fields {

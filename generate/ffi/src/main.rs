@@ -232,7 +232,7 @@ fn transform_const(
     } else {
         item_const.attrs.insert(0, attr_ffi(consumers));
 
-        let test_eq = format_ident!("sys_eq_{}", ident);
+        let test_eq = format_ident!("sys_{}_eq", ident);
 
         transformed.tests_file.items.extend([
             Item::Fn(parse_quote! {
@@ -799,7 +799,7 @@ fn fn_test_layout(symbols: &Symbols, ident: &Ident) -> syn::ItemFn {
 }
 
 fn fn_test_layout_of(symbols: &Symbols, ident: &Ident, ty: &Type) -> syn::ItemFn {
-    let fn_ident = format_ident!("sys_layout_{}", ident);
+    let fn_ident = format_ident!("sys_{}_layout", ident);
     let asserts = assert_layout_of(symbols, ty);
 
     parse_quote! {
@@ -825,7 +825,7 @@ fn assert_layout_of(symbols: &Symbols, ty: &Type) -> Vec<syn::Stmt> {
 }
 
 fn fn_test_layout_of_val(ident: &Ident, safe: bool) -> syn::ItemFn {
-    let fn_ident = format_ident!("sys_layout_{}", ident);
+    let fn_ident = format_ident!("sys_{}_layout", ident);
 
     let asserts = assert_layout_of_val(ident, safe);
 
