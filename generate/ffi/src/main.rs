@@ -268,7 +268,11 @@ fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: 
 
     item_enum.attrs.push(parse_quote! { #[derive(Copy)] });
 
-    let impl_try_from = enums::impl_try_from_u32(&ident, variants);
+    let impl_froms = enums::impl_froms(&ident, variants)
+        .into_iter()
+        .map(Item::Impl);
+
+    let impl_try_from = Item::Impl(enums::impl_try_from_u32(&ident, variants));
 
     let impl_arb = if symbols.is_simple(&ident) {
         Some(Item::Impl(impl_arbitrary_enum(&ident, variants)))
@@ -279,8 +283,8 @@ fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: 
     transformed.main_file.items.extend(
         [Item::Enum(item_enum)]
             .into_iter()
-            .chain(impl_froms(&ident))
-            .chain(iter::once(Item::Impl(impl_try_from))),
+            .chain(impl_froms)
+            .chain(iter::once(impl_try_from)),
     );
 
     if let Some(impl_arb) = impl_arb {
@@ -336,31 +340,27 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
                     let (ty_owned, arg_from_sys, arg_into, arg_from_owned) = match pat_ty {
                         ty @ Type::Path(type_path) => {
                             let is_std = symbols.is_std_type_path(type_path);
+
                             (
                                 ty.clone(),
                                 if is_std {
                                     parse_quote! { #param_ident }
-                                } else if symbols.is_pointer_type(ty) {
-                                    if symbols.is_option_type(ty) {
-                                        let sys_pat_ty = prefix_with_sys(symbols, pat_ty);
-                                        parse_quote! { transmute::<#pat_ty, #sys_pat_ty>(#param_ident) }
-                                    } else {
-                                        parse_quote! { #param_ident.cast() }
-                                    }
+                                } else if symbols.is_pointer_type(ty) && !symbols.is_option_type(ty)
+                                {
+                                    parse_quote! { #param_ident.cast() }
                                 } else {
-                                    parse_quote! { #param_ident.into() }
+                                    parse_quote! { transmute(#param_ident) }
                                 },
                                 if is_std {
                                     parse_quote! { #param_ident }
                                 } else {
-                                    expr_into(&param_ident)
+                                    parse_quote! { transmute(#param_ident) }
                                 },
                                 syn::Pat::Ident(new_pat_ident(&param_ident)),
                             )
                         }
                         Type::Ptr(type_ptr) => {
-                            let (ty, expr, pat) =
-                                ptr_to_ty_expr_pat(symbols, &param_ident, type_ptr);
+                            let (ty, expr, pat) = ptr_to_ty_expr_pat(&param_ident, type_ptr);
                             let arg_from_sys = if symbols.is_std_type(type_ptr.elem.as_ref()) {
                                 parse_quote! { #param_ident }
                             } else {
@@ -417,18 +417,20 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
     };
 
     let call: syn::Expr = {
-        let convert = match ret_ty {
+        let mut call = quote! { #ident(#(#args_from_sys),*) };
+
+        match ret_ty {
             Some(ret_ty) if !symbols.is_std_type(ret_ty) => {
-                Some(if symbols.is_pointer_type(ret_ty) {
-                    quote! { .cast() }
+                if symbols.is_pointer_type(ret_ty) {
+                    call = quote! { #call.cast() };
                 } else {
-                    quote! { .into() }
-                })
+                    call = quote! { transmute(#call) };
+                }
             }
-            _ => None,
+            _ => (),
         };
         parse_quote! {
-            sys! { #ident(#(#args_from_sys),*)#convert }
+            sys! { #call }
         }
     };
 
@@ -521,10 +523,6 @@ fn export_attrs(consumers: Consumers) -> Vec<syn::Attribute> {
     attrs
 }
 
-fn expr_into(ident: &Ident) -> syn::Expr {
-    syn::Expr::MethodCall(parse_quote! { #ident.into() })
-}
-
 fn new_pat_ident(ident: &Ident) -> syn::PatIdent {
     syn::PatIdent {
         attrs: vec![],
@@ -535,22 +533,14 @@ fn new_pat_ident(ident: &Ident) -> syn::PatIdent {
     }
 }
 
-fn ptr_to_ty_expr_pat(
-    symbols: &Symbols,
-    ident: &Ident,
-    type_ptr: &syn::TypePtr,
-) -> (syn::Type, syn::Expr, syn::Pat) {
+fn ptr_to_ty_expr_pat(ident: &Ident, type_ptr: &syn::TypePtr) -> (syn::Type, syn::Expr, syn::Pat) {
     let (ty, expr, pat) = match type_ptr.elem.as_ref() {
-        ty @ Type::Path(type_path) => (
+        ty @ Type::Path(_) => (
             ty.clone(),
-            if symbols.is_primitive_type_path(type_path) {
-                parse_quote! { #ident }
-            } else {
-                expr_into(ident)
-            },
+            parse_quote! { #ident },
             syn::Pat::Ident(new_pat_ident(ident)),
         ),
-        Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(symbols, ident, type_ptr),
+        Type::Ptr(type_ptr) => ptr_to_ty_expr_pat(ident, type_ptr),
         _ => panic!("Unexpected type for {ident}: {type_ptr:?}"),
     };
 
@@ -625,11 +615,7 @@ fn transform_struct(
         None
     };
 
-    main_file.items.extend(
-        [Item::Struct(item_struct)]
-            .into_iter()
-            .chain(impl_froms(&ident)),
-    );
+    main_file.items.push(Item::Struct(item_struct));
 
     if let Some(impl_arb) = impl_arb {
         main_file.items.push(impl_arb);
@@ -690,11 +676,7 @@ fn transform_union(
         }
     }
 
-    main_file.items.extend(
-        [Item::Union(item_union)]
-            .into_iter()
-            .chain(impl_froms(&ident)),
-    );
+    main_file.items.push(Item::Union(item_union));
 
     tests_file
         .items
@@ -708,24 +690,6 @@ where
     s.as_ref()
         .parse::<TokenStream>()
         .unwrap_or_else(|e| panic!("Unable to parse TokenStream: {s}: {e}"))
-}
-
-fn impl_froms(ident: &Ident) -> impl Iterator<Item = syn::Item> {
-    fn impl_from(from: &syn::Path, to: &syn::Path) -> syn::Item {
-        Item::Impl(parse_quote! {
-            #[cfg(feature = "sys")]
-            impl From<#from> for #to {
-                fn from(x: #from) -> Self {
-                    unsafe { transmute(x) }
-                }
-            }
-        })
-    }
-
-    let rs = &parse_quote! { #ident };
-    let sys = &parse_quote! { sys::#ident };
-
-    [impl_from(rs, sys), impl_from(sys, rs)].into_iter()
 }
 
 fn impl_arbitrary_struct(ident: &Ident, fields: &syn::Fields) -> syn::ItemImpl {

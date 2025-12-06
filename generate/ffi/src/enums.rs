@@ -25,6 +25,44 @@ where
     })
 }
 
+pub fn impl_froms<'a, I>(ident: &Ident, variants: I) -> [syn::ItemImpl; 2]
+where
+    I: IntoIterator<Item = &'a Variant>,
+{
+    fn impl_from(ident: &Ident, from: &syn::Path, to: &syn::Path, arms: Vec<Arm>) -> syn::ItemImpl {
+        parse_quote! {
+            #[cfg(feature = "sys")]
+            impl From<#from> for #to {
+                fn from(v: #from) -> Self {
+                    use #ident::*;
+                    match v {
+                        #(#arms,)*
+                    }
+                }
+            }
+        }
+    }
+
+    let rs = &parse_quote! { #ident };
+    let sys = &parse_quote! { sys::#ident };
+
+    let (rs_to_sys, sys_to_rs) = variants
+        .into_iter()
+        .map(|v| {
+            let variant = &v.ident;
+            (
+                parse_quote! { #variant => sys::#ident::#variant },
+                parse_quote! { sys::#ident::#variant => #variant },
+            )
+        })
+        .collect();
+
+    [
+        impl_from(ident, rs, sys, rs_to_sys),
+        impl_from(ident, sys, rs, sys_to_rs),
+    ]
+}
+
 /// Produce TryFrom<u32> for an enum.
 pub fn impl_try_from_u32<'a, I>(ident: &Ident, variants: I) -> syn::ItemImpl
 where
