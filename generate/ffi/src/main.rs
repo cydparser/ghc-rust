@@ -242,7 +242,7 @@ fn transform_const(
                     assert_eq!(#ident, sys::#ident);
                 }
             }),
-            Item::Fn(fn_test_layout_of_val(&ident, true)),
+            Item::Fn(fn_test_layout_of_val(&ident, true, true, None)),
         ]);
     };
     transformed.main_file.items.push(Item::Const(item_const));
@@ -501,12 +501,20 @@ fn transform_static(
         #vis static #mutability #ident: #ty = #rhs;
     }));
 
+    let mutable = mutability != syn::StaticMutability::None;
+
     transformed
         .tests_file
         .items
         .push(Item::Fn(fn_test_layout_of_val(
             &ident,
-            mutability == syn::StaticMutability::None,
+            !mutable,
+            false,
+            if mutable {
+                Some(parse_quote!(#[expect(static_mut_refs)]))
+            } else {
+                None
+            },
         )));
 }
 
@@ -824,25 +832,37 @@ fn assert_layout_of(symbols: &Symbols, ty: &Type) -> Vec<syn::Stmt> {
     block.stmts
 }
 
-fn fn_test_layout_of_val(ident: &Ident, safe: bool) -> syn::ItemFn {
+fn fn_test_layout_of_val(
+    ident: &Ident,
+    safe: bool,
+    sys_safe: bool,
+    attr: Option<syn::Attribute>,
+) -> syn::ItemFn {
     let fn_ident = format_ident!("sys_{}_layout", ident);
 
-    let asserts = assert_layout_of_val(ident, safe);
+    let asserts = assert_layout_of_val(ident, safe, sys_safe);
 
     parse_quote! {
         #[cfg(feature = "sys")]
         #[test]
+        #attr
         fn #fn_ident() {
             #(#asserts)*
         }
     }
 }
 
-fn assert_layout_of_val(ident: &Ident, safe: bool) -> Vec<syn::Stmt> {
-    let (sys_val, val) = if safe {
-        (quote!(&sys::#ident), quote!(&#ident))
+fn assert_layout_of_val(ident: &Ident, safe: bool, sys_safe: bool) -> Vec<syn::Stmt> {
+    let val = if safe {
+        quote!(&#ident)
     } else {
-        (quote!(unsafe { &sys::#ident }), quote!(unsafe { &#ident }))
+        quote!(unsafe { &#ident })
+    };
+
+    let sys_val = if sys_safe {
+        quote!(&sys::#ident)
+    } else {
+        quote!(unsafe { &sys::#ident })
     };
 
     let block: syn::Block = parse_quote! {
