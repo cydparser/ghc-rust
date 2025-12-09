@@ -2,6 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 // TODO(rust): Remove after finishing port.
+#![cfg_attr(not(test), allow(dead_code))]
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::undocumented_unsafe_blocks)]
 #![cfg_attr(not(feature = "sys"), expect(unused_variables))]
