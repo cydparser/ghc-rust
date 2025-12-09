@@ -40,10 +40,10 @@ impl Consumer {
             Consumer::Compiler => "compiler",
             Consumer::Docs => "docs",
             Consumer::Driver => "driver",
+            Consumer::GhcLib => "ghc_lib",
             Consumer::Libraries => "libraries",
             Consumer::Testsuite => "testsuite",
             Consumer::Utils => "utils",
-            Consumer::GhcLib => "ghc-lib",
         }
     }
 }
