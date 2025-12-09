@@ -180,6 +180,7 @@
               just
               nushell
               ripgrep
+              tagref
               # Libraries
               gmp.dev
               libffi.dev
