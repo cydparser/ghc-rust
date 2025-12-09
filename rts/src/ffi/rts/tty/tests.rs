@@ -13,7 +13,7 @@ fn equivalent___hscore_get_saved_termios(fd: c_int) -> bool {
         let result: &c_void = unsafe { &*__hscore_get_saved_termios(fd) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn equivalent___hscore_set_saved_termios(fd: c_int) -> bool {
         unsafe { __hscore_set_saved_termios(fd, &raw mut ts) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]

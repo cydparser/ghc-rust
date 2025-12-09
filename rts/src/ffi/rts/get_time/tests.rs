@@ -6,7 +6,7 @@ use super::*;
 fn equivalent_getMonotonicNSec() {
     let expected: StgWord64 = { unsafe { sys::getMonotonicNSec() } };
     let actual: StgWord64 = { unsafe { getMonotonicNSec() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]

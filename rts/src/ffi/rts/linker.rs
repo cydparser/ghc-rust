@@ -4,49 +4,37 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-/// - GHC_PLACES: {testsuite}
+#[ffi(testsuite)]
 pub type pathchar = c_char;
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn initLinker() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::initLinker()
+    sys! {
+        initLinker()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("initLinker")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn initLinker_(retain_cafs: c_int) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::initLinker_(retain_cafs)
+    sys! {
+        initLinker_(retain_cafs)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("initLinker_")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(compiler, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn lookupSymbol(lbl: *mut c_char) -> *mut c_void {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::lookupSymbol(lbl)
+    sys! {
+        lookupSymbol(lbl)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("lookupSymbol")
 }
 
-/// - GHC_PLACES: {testsuite}
+#[ffi(testsuite)]
 #[repr(u32)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
 pub enum OStatus {
@@ -57,6 +45,55 @@ pub enum OStatus {
     OBJECT_UNLOADED = 4,
     OBJECT_DONT_RESOLVE = 5,
     OBJECT_NOT_LOADED = 6,
+}
+
+#[cfg(feature = "sys")]
+impl From<OStatus> for sys::OStatus {
+    fn from(v: OStatus) -> Self {
+        use OStatus::*;
+        match v {
+            OBJECT_LOADED => sys::OStatus::OBJECT_LOADED,
+            OBJECT_NEEDED => sys::OStatus::OBJECT_NEEDED,
+            OBJECT_RESOLVED => sys::OStatus::OBJECT_RESOLVED,
+            OBJECT_READY => sys::OStatus::OBJECT_READY,
+            OBJECT_UNLOADED => sys::OStatus::OBJECT_UNLOADED,
+            OBJECT_DONT_RESOLVE => sys::OStatus::OBJECT_DONT_RESOLVE,
+            OBJECT_NOT_LOADED => sys::OStatus::OBJECT_NOT_LOADED,
+        }
+    }
+}
+
+#[cfg(feature = "sys")]
+impl From<sys::OStatus> for OStatus {
+    fn from(v: sys::OStatus) -> Self {
+        use OStatus::*;
+        match v {
+            sys::OStatus::OBJECT_LOADED => OBJECT_LOADED,
+            sys::OStatus::OBJECT_NEEDED => OBJECT_NEEDED,
+            sys::OStatus::OBJECT_RESOLVED => OBJECT_RESOLVED,
+            sys::OStatus::OBJECT_READY => OBJECT_READY,
+            sys::OStatus::OBJECT_UNLOADED => OBJECT_UNLOADED,
+            sys::OStatus::OBJECT_DONT_RESOLVE => OBJECT_DONT_RESOLVE,
+            sys::OStatus::OBJECT_NOT_LOADED => OBJECT_NOT_LOADED,
+        }
+    }
+}
+
+impl TryFrom<u32> for OStatus {
+    type Error = ();
+    fn try_from(d: u32) -> Result<OStatus, ()> {
+        use OStatus::*;
+        match d {
+            0 => Ok(OBJECT_LOADED),
+            1 => Ok(OBJECT_NEEDED),
+            2 => Ok(OBJECT_RESOLVED),
+            3 => Ok(OBJECT_READY),
+            4 => Ok(OBJECT_UNLOADED),
+            5 => Ok(OBJECT_DONT_RESOLVE),
+            6 => Ok(OBJECT_NOT_LOADED),
+            _ => Err(()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -75,177 +112,125 @@ impl Arbitrary for OStatus {
     }
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getObjectLoadStatus(path: *mut pathchar) -> OStatus {
-    #[cfg(feature = "sys")]
-    unsafe {
-        transmute(sys::getObjectLoadStatus(path))
+    sys! {
+        transmute(getObjectLoadStatus(path))
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("getObjectLoadStatus")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(compiler, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn unloadObj(path: *mut pathchar) -> HsInt {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::unloadObj(path)
+    sys! {
+        unloadObj(path)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("unloadObj")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn purgeObj(path: *mut pathchar) -> HsInt {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::purgeObj(path)
+    sys! {
+        purgeObj(path)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("purgeObj")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(compiler, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn loadObj(path: *mut pathchar) -> HsInt {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::loadObj(path)
+    sys! {
+        loadObj(path)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("loadObj")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(compiler, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn loadArchive(path: *mut pathchar) -> HsInt {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::loadArchive(path)
+    sys! {
+        loadArchive(path)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("loadArchive")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(compiler, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn resolveObjs() -> HsInt {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::resolveObjs()
+    sys! {
+        resolveObjs()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("resolveObjs")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn loadNativeObj(
     path: *mut pathchar,
     errmsg: *mut *mut c_char,
 ) -> *mut c_void {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::loadNativeObj(path, errmsg)
+    sys! {
+        loadNativeObj(path, errmsg)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("loadNativeObj")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn unloadNativeObj(handle: *mut c_void) -> HsInt {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::unloadNativeObj(handle)
+    sys! {
+        unloadNativeObj(handle)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("unloadNativeObj")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn lookupSymbolInNativeObj(
     handle: *mut c_void,
     symbol_name: *const c_char,
 ) -> *mut c_void {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::lookupSymbolInNativeObj(handle, symbol_name)
+    sys! {
+        lookupSymbolInNativeObj(handle, symbol_name)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("lookupSymbolInNativeObj")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn addDLL(dll_name: *mut pathchar) -> *const c_char {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::addDLL(dll_name)
+    sys! {
+        addDLL(dll_name)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("addDLL")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(compiler, libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn addLibrarySearchPath(dll_path: *mut pathchar) -> HsPtr {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::addLibrarySearchPath(dll_path)
+    sys! {
+        addLibrarySearchPath(dll_path)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("addLibrarySearchPath")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(compiler, libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn removeLibrarySearchPath(dll_path_index: HsPtr) -> HsBool {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::removeLibrarySearchPath(dll_path_index)
+    sys! {
+        removeLibrarySearchPath(dll_path_index)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("removeLibrarySearchPath")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(compiler, libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn findSystemLibrary(dll_name: *mut pathchar) -> *mut pathchar {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::findSystemLibrary(dll_name)
+    sys! {
+        findSystemLibrary(dll_name)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("findSystemLibrary")
 }

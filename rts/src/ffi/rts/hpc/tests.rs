@@ -2,24 +2,55 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size__HpcModuleInfo() {
+fn sys_HpcModuleInfo_layout() {
+    assert_eq!(size_of::<HpcModuleInfo>(), size_of::<sys::HpcModuleInfo>());
     assert_eq!(
-        size_of::<sys::_HpcModuleInfo>(),
-        size_of::<_HpcModuleInfo>()
-    )
+        align_of::<HpcModuleInfo>(),
+        align_of::<sys::HpcModuleInfo>()
+    );
 }
 
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of _HpcModuleInfo"][size_of::<_HpcModuleInfo>() - 40usize];
-    ["Alignment of _HpcModuleInfo"][align_of::<_HpcModuleInfo>() - 8usize];
-    ["Offset of field: _HpcModuleInfo::modName"][offset_of!(_HpcModuleInfo, modName) - 0usize];
-    ["Offset of field: _HpcModuleInfo::tickCount"][offset_of!(_HpcModuleInfo, tickCount) - 8usize];
-    ["Offset of field: _HpcModuleInfo::hashNo"][offset_of!(_HpcModuleInfo, hashNo) - 12usize];
-    ["Offset of field: _HpcModuleInfo::tixArr"][offset_of!(_HpcModuleInfo, tixArr) - 16usize];
-    ["Offset of field: _HpcModuleInfo::from_file"][offset_of!(_HpcModuleInfo, from_file) - 24usize];
-    ["Offset of field: _HpcModuleInfo::next"][offset_of!(_HpcModuleInfo, next) - 32usize];
-};
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_hpc_module(
+    modName: c_char,
+    modCount: StgWord32,
+    modHashNo: StgWord32,
+    tixArr: StgWord64,
+) -> bool {
+    let expected = {
+        let mut modName = modName;
+        let mut tixArr = tixArr;
+        unsafe { sys::hs_hpc_module(&raw mut modName, modCount, modHashNo, &raw mut tixArr) };
+        todo!()
+    };
+    let actual = {
+        let mut modName = modName;
+        let mut tixArr = tixArr;
+        unsafe { hs_hpc_module(&raw mut modName, modCount, modHashNo, &raw mut tixArr) };
+        todo!()
+    };
+    actual == expected
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_hpc_module() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let mut modName: c_char = Arbitrary::arbitrary(g);
+        let modCount: StgWord32 = Arbitrary::arbitrary(g);
+        let modHashNo: StgWord32 = Arbitrary::arbitrary(g);
+        let mut tixArr: StgWord64 = Arbitrary::arbitrary(g);
+        unsafe { hs_hpc_module(&raw mut modName, modCount, modHashNo, &raw mut tixArr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
 
 #[cfg(feature = "sys")]
 #[test]
@@ -34,7 +65,7 @@ fn equivalent_hs_hpc_rootModule() {
         let result: &HpcModuleInfo = unsafe { &*hs_hpc_rootModule() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]

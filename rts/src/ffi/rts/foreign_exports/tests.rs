@@ -2,29 +2,72 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size__ObjectCode() {
-    assert_eq!(size_of::<sys::_ObjectCode>(), size_of::<_ObjectCode>())
+fn sys_ForeignExportsList_layout() {
+    assert_eq!(
+        size_of::<*mut ForeignExportsList>(),
+        size_of::<*mut sys::ForeignExportsList>()
+    );
+    assert_eq!(
+        offset_of!(ForeignExportsList, next),
+        offset_of!(sys::ForeignExportsList, next)
+    );
+    assert_eq!(
+        offset_of!(ForeignExportsList, n_entries),
+        offset_of!(sys::ForeignExportsList, n_entries)
+    );
+    assert_eq!(
+        size_of::<*mut _ObjectCode>(),
+        size_of::<*mut sys::_ObjectCode>()
+    );
+    assert_eq!(
+        offset_of!(ForeignExportsList, oc),
+        offset_of!(sys::ForeignExportsList, oc)
+    );
+    assert_eq!(
+        offset_of!(ForeignExportsList, stable_ptrs),
+        offset_of!(sys::ForeignExportsList, stable_ptrs)
+    );
+    assert_eq!(
+        offset_of!(ForeignExportsList, exports),
+        offset_of!(sys::ForeignExportsList, exports)
+    );
+    assert_eq!(
+        size_of::<ForeignExportsList>(),
+        size_of::<sys::ForeignExportsList>()
+    );
+    assert_eq!(
+        align_of::<ForeignExportsList>(),
+        align_of::<sys::ForeignExportsList>()
+    );
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size_ForeignExportsList() {
-    assert_eq!(
-        size_of::<sys::ForeignExportsList>(),
-        size_of::<ForeignExportsList>()
-    )
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_registerForeignExports() {
+    let expected = {
+        let mut exports: sys::ForeignExportsList = todo!();
+        unsafe { sys::registerForeignExports(&raw mut exports) };
+        todo!()
+    };
+    let actual = {
+        let mut exports: ForeignExportsList = todo!();
+        unsafe { registerForeignExports(&raw mut exports) };
+        todo!()
+    };
+    assert_eq!(actual, expected);
 }
 
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of ForeignExportsList"][size_of::<ForeignExportsList>() - 32usize];
-    ["Alignment of ForeignExportsList"][align_of::<ForeignExportsList>() - 8usize];
-    ["Offset of field: ForeignExportsList::next"][offset_of!(ForeignExportsList, next) - 0usize];
-    ["Offset of field: ForeignExportsList::n_entries"]
-        [offset_of!(ForeignExportsList, n_entries) - 8usize];
-    ["Offset of field: ForeignExportsList::oc"][offset_of!(ForeignExportsList, oc) - 16usize];
-    ["Offset of field: ForeignExportsList::stable_ptrs"]
-        [offset_of!(ForeignExportsList, stable_ptrs) - 24usize];
-    ["Offset of field: ForeignExportsList::exports"]
-        [offset_of!(ForeignExportsList, exports) - 32usize];
-};
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_registerForeignExports() {
+    let actual = {
+        let exports: ForeignExportsList = todo!();
+        unsafe { registerForeignExports(&raw mut exports) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}

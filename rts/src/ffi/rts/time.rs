@@ -7,18 +7,14 @@ pub(crate) const TIME_RESOLUTION: u32 = 1000000000;
 
 pub(crate) const TIME_MAX: u64 = 9223372036854775807;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(compiler, ghc_lib, libraries)]
 pub type Time = i64;
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getProcessElapsedTime() -> Time {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::getProcessElapsedTime()
+    sys! {
+        getProcessElapsedTime()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("getProcessElapsedTime")
 }

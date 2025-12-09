@@ -6,7 +6,7 @@ use super::*;
 fn equivalent_lockFile(id: StgWord64, dev: StgWord64, ino: StgWord64, for_writing: c_int) -> bool {
     let expected: c_int = { unsafe { sys::lockFile(id, dev, ino, for_writing) } };
     let actual: c_int = { unsafe { lockFile(id, dev, ino, for_writing) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -31,7 +31,7 @@ fn test_lockFile() {
 fn equivalent_unlockFile(id: StgWord64) -> bool {
     let expected: c_int = { unsafe { sys::unlockFile(id) } };
     let actual: c_int = { unsafe { unlockFile(id) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]

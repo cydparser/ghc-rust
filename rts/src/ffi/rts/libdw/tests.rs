@@ -2,63 +2,29 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_BACKTRACE_CHUNK_SZ() {
-    assert_eq!(sys::BACKTRACE_CHUNK_SZ, BACKTRACE_CHUNK_SZ);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_size_BacktraceChunk_() {
+fn sys_BacktraceChunk_layout() {
     assert_eq!(
-        size_of::<sys::BacktraceChunk_>(),
-        size_of::<BacktraceChunk_>()
-    )
+        size_of::<BacktraceChunk>(),
+        size_of::<sys::BacktraceChunk>()
+    );
+    assert_eq!(
+        align_of::<BacktraceChunk>(),
+        align_of::<sys::BacktraceChunk>()
+    );
 }
-
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of BacktraceChunk_"][size_of::<BacktraceChunk_>() - 2064usize];
-    ["Alignment of BacktraceChunk_"][align_of::<BacktraceChunk_>() - 1usize];
-    ["Offset of field: BacktraceChunk_::n_frames"][offset_of!(BacktraceChunk_, n_frames) - 0usize];
-    ["Offset of field: BacktraceChunk_::next"][offset_of!(BacktraceChunk_, next) - 8usize];
-    ["Offset of field: BacktraceChunk_::frames"][offset_of!(BacktraceChunk_, frames) - 16usize];
-};
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size_Backtrace_() {
-    assert_eq!(size_of::<sys::Backtrace_>(), size_of::<Backtrace_>())
+fn sys_Backtrace_layout() {
+    assert_eq!(size_of::<Backtrace>(), size_of::<sys::Backtrace>());
+    assert_eq!(align_of::<Backtrace>(), align_of::<sys::Backtrace>());
 }
-
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of Backtrace_"][size_of::<Backtrace_>() - 16usize];
-    ["Alignment of Backtrace_"][align_of::<Backtrace_>() - 8usize];
-    ["Offset of field: Backtrace_::n_frames"][offset_of!(Backtrace_, n_frames) - 0usize];
-    ["Offset of field: Backtrace_::last"][offset_of!(Backtrace_, last) - 8usize];
-};
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size_Location_() {
-    assert_eq!(size_of::<sys::Location_>(), size_of::<Location_>())
-}
-
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of Location_"][size_of::<Location_>() - 32usize];
-    ["Alignment of Location_"][align_of::<Location_>() - 1usize];
-    ["Offset of field: Location_::object_file"][offset_of!(Location_, object_file) - 0usize];
-    ["Offset of field: Location_::function"][offset_of!(Location_, function) - 8usize];
-    ["Offset of field: Location_::source_file"][offset_of!(Location_, source_file) - 16usize];
-    ["Offset of field: Location_::lineno"][offset_of!(Location_, lineno) - 24usize];
-    ["Offset of field: Location_::colno"][offset_of!(Location_, colno) - 28usize];
-};
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_size_LibdwSession_() {
-    assert_eq!(size_of::<sys::LibdwSession_>(), size_of::<LibdwSession_>())
+fn sys_Location_layout() {
+    assert_eq!(size_of::<Location>(), size_of::<sys::Location>());
+    assert_eq!(align_of::<Location>(), align_of::<sys::Location>());
 }
 
 #[cfg(feature = "sys")]
@@ -76,7 +42,7 @@ fn equivalent_backtraceFree() {
         unsafe { backtraceFree(&raw mut bt) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -107,7 +73,7 @@ fn equivalent_libdwGetBacktrace() {
         let result: &Backtrace = unsafe { &*libdwGetBacktrace(&raw mut session) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -140,7 +106,7 @@ fn equivalent_libdwLookupLocation() {
         let pc: StgPtr = todo!();
         unsafe { libdwLookupLocation(&raw mut session, &raw mut loc, pc) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]

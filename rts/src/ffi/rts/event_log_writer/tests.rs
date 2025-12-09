@@ -2,26 +2,32 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size_EventLogWriter() {
+fn sys_EventLogWriter_layout() {
     assert_eq!(
-        size_of::<sys::EventLogWriter>(),
-        size_of::<EventLogWriter>()
-    )
+        offset_of!(EventLogWriter, initEventLogWriter),
+        offset_of!(sys::EventLogWriter, initEventLogWriter)
+    );
+    assert_eq!(
+        offset_of!(EventLogWriter, writeEventLog),
+        offset_of!(sys::EventLogWriter, writeEventLog)
+    );
+    assert_eq!(
+        offset_of!(EventLogWriter, flushEventLog),
+        offset_of!(sys::EventLogWriter, flushEventLog)
+    );
+    assert_eq!(
+        offset_of!(EventLogWriter, stopEventLogWriter),
+        offset_of!(sys::EventLogWriter, stopEventLogWriter)
+    );
+    assert_eq!(
+        size_of::<EventLogWriter>(),
+        size_of::<sys::EventLogWriter>()
+    );
+    assert_eq!(
+        align_of::<EventLogWriter>(),
+        align_of::<sys::EventLogWriter>()
+    );
 }
-
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of EventLogWriter"][size_of::<EventLogWriter>() - 32usize];
-    ["Alignment of EventLogWriter"][align_of::<EventLogWriter>() - 8usize];
-    ["Offset of field: EventLogWriter::initEventLogWriter"]
-        [offset_of!(EventLogWriter, initEventLogWriter) - 0usize];
-    ["Offset of field: EventLogWriter::writeEventLog"]
-        [offset_of!(EventLogWriter, writeEventLog) - 8usize];
-    ["Offset of field: EventLogWriter::flushEventLog"]
-        [offset_of!(EventLogWriter, flushEventLog) - 16usize];
-    ["Offset of field: EventLogWriter::stopEventLogWriter"]
-        [offset_of!(EventLogWriter, stopEventLogWriter) - 24usize];
-};
 
 #[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
@@ -36,7 +42,7 @@ fn equivalent_startEventLogging() {
         let mut writer: EventLogWriter = todo!();
         unsafe { startEventLogging(&raw mut writer) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -65,7 +71,7 @@ fn equivalent_endEventLogging() {
         unsafe { endEventLogging() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -98,7 +104,7 @@ fn equivalent_flushEventLog() {
         unsafe { flushEventLog(&raw mut cap) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]

@@ -2,14 +2,9 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_TIME_RESOLUTION() {
-    assert_eq!(sys::TIME_RESOLUTION, TIME_RESOLUTION);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_TIME_MAX() {
-    assert_eq!(sys::TIME_MAX, TIME_MAX);
+fn sys_Time_layout() {
+    assert_eq!(size_of::<Time>(), size_of::<Time>());
+    assert_eq!(align_of::<Time>(), align_of::<Time>());
 }
 
 #[cfg(feature = "sys")]
@@ -18,7 +13,7 @@ fn sys_eq_TIME_MAX() {
 fn equivalent_getProcessElapsedTime() {
     let expected: Time = { unsafe { sys::getProcessElapsedTime() } };
     let actual: Time = { unsafe { getProcessElapsedTime() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]

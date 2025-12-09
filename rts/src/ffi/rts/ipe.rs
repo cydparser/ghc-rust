@@ -19,14 +19,7 @@ pub struct InfoProv_ {
     src_span: *const c_char,
 }
 
-#[cfg(feature = "sys")]
-impl From<InfoProv_> for sys::InfoProv_ {
-    fn from(x: InfoProv_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(compiler, ghc_lib)]
 pub type InfoProv = InfoProv_;
 
 /// cbindgen:no-export
@@ -37,19 +30,12 @@ pub struct InfoProvEnt_ {
     prov: InfoProv,
 }
 
-#[cfg(feature = "sys")]
-impl From<InfoProvEnt_> for sys::InfoProvEnt_ {
-    fn from(x: InfoProvEnt_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries, testsuite}
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type InfoProvEnt = InfoProvEnt_;
 
 pub(crate) type StringIdx = u32;
 
-/// - GHC_PLACES: {testsuite}
+#[ffi(testsuite)]
 #[repr(C)]
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
@@ -60,13 +46,6 @@ pub struct IpeBufferEntry {
     pub label: StringIdx,
     pub src_file: StringIdx,
     pub src_span: StringIdx,
-}
-
-#[cfg(feature = "sys")]
-impl From<IpeBufferEntry> for sys::IpeBufferEntry {
-    fn from(x: IpeBufferEntry) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]
@@ -98,54 +77,32 @@ pub struct IpeBufferListNode_ {
     module_name: StringIdx,
 }
 
-#[cfg(feature = "sys")]
-impl From<IpeBufferListNode_> for sys::IpeBufferListNode_ {
-    fn from(x: IpeBufferListNode_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {testsuite}
+#[ffi(compiler, testsuite)]
 pub type IpeBufferListNode = IpeBufferListNode_;
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(compiler, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn registerInfoProvList(node: *mut IpeBufferListNode) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::registerInfoProvList(node as *mut sys::IpeBufferListNode)
+    sys! {
+        registerInfoProvList(node as * mut sys::IpeBufferListNode)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("registerInfoProvList")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn formatClosureDescIpe(ipe_buf: *const InfoProvEnt, str_buf: *mut c_char) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::formatClosureDescIpe(ipe_buf as *const sys::InfoProvEnt, str_buf)
+    sys! {
+        formatClosureDescIpe(ipe_buf as * const sys::InfoProvEnt, str_buf)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("formatClosureDescIpe")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(compiler, ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn lookupIPE(info: *const StgInfoTable, out: *mut InfoProvEnt) -> bool {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::lookupIPE(
-            info as *const sys::StgInfoTable,
-            out as *mut sys::InfoProvEnt,
-        )
+    sys! {
+        lookupIPE(info as * const sys::StgInfoTable, out as * mut sys::InfoProvEnt)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("lookupIPE")
 }

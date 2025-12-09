@@ -16,18 +16,11 @@ pub(crate) const STACK_DIRTY: u32 = 1;
 
 pub(crate) const STACK_SANE: u32 = 64;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgTSOProfInfo {
     pub cccs: *mut CostCentreStack,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgTSOProfInfo> for sys::StgTSOProfInfo {
-    fn from(x: StgTSOProfInfo) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 pub(crate) type StgThreadID = StgWord64;
@@ -45,14 +38,7 @@ pub(crate) union StgTSOBlockInfo {
     target: StgWord,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgTSOBlockInfo> for sys::StgTSOBlockInfo {
-    fn from(x: StgTSOBlockInfo) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries, testsuite}
+#[ffi(ghc_lib, testsuite)]
 pub type StgTSO = StgTSO_;
 
 /// cbindgen:no-export
@@ -79,13 +65,6 @@ pub struct StgTSO_ {
     tot_stack_size: StgWord32,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgTSO_> for sys::StgTSO_ {
-    fn from(x: StgTSO_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 pub(crate) type StgTSOPtr = *mut StgTSO_;
 
 /// cbindgen:no-export
@@ -99,14 +78,7 @@ pub struct StgStack_ {
     stack: __IncompleteArrayField<StgWord>,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgStack_> for sys::StgStack_ {
-    fn from(x: StgStack_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries, testsuite}
+#[ffi(ghc_lib, testsuite)]
 pub type StgStack = StgStack_;
 
 /// cbindgen:no-export
@@ -115,13 +87,6 @@ pub type StgStack = StgStack_;
 #[cfg_attr(test, derive(Clone))]
 pub struct InCall_ {
     _address: u8,
-}
-
-#[cfg(feature = "sys")]
-impl From<InCall_> for sys::InCall_ {
-    fn from(x: InCall_) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]

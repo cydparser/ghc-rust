@@ -14,14 +14,7 @@ pub struct BacktraceChunk_ {
     frames: [StgPtr; 256usize],
 }
 
-#[cfg(feature = "sys")]
-impl From<BacktraceChunk_> for sys::BacktraceChunk_ {
-    fn from(x: BacktraceChunk_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type BacktraceChunk = BacktraceChunk_;
 
 /// cbindgen:no-export
@@ -31,14 +24,7 @@ pub struct Backtrace_ {
     last: *mut BacktraceChunk,
 }
 
-#[cfg(feature = "sys")]
-impl From<Backtrace_> for sys::Backtrace_ {
-    fn from(x: Backtrace_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type Backtrace = Backtrace_;
 
 /// cbindgen:no-export
@@ -51,14 +37,7 @@ pub struct Location_ {
     colno: StgWord32,
 }
 
-#[cfg(feature = "sys")]
-impl From<Location_> for sys::Location_ {
-    fn from(x: Location_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(compiler, ghc_lib)]
 pub type Location = Location_;
 
 /// cbindgen:no-export
@@ -68,44 +47,27 @@ pub struct LibdwSession_ {
     _unused: [u8; 0],
 }
 
-#[cfg(feature = "sys")]
-impl From<LibdwSession_> for sys::LibdwSession_ {
-    fn from(x: LibdwSession_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
+pub(crate) type LibdwSession = LibdwSession_;
 
-/// - GHC_PLACES: {libraries}
-pub type LibdwSession = LibdwSession_;
-
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn backtraceFree(bt: *mut Backtrace) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::backtraceFree(bt as *mut sys::Backtrace)
+    sys! {
+        backtraceFree(bt as * mut sys::Backtrace)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("backtraceFree")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn libdwGetBacktrace(session: *mut LibdwSession) -> *mut Backtrace {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::libdwGetBacktrace(session as *mut sys::LibdwSession) as *mut Backtrace
+    sys! {
+        libdwGetBacktrace(session as * mut sys::LibdwSession).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("libdwGetBacktrace")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn libdwLookupLocation(
@@ -113,14 +75,8 @@ pub unsafe extern "C" fn libdwLookupLocation(
     loc: *mut Location,
     pc: StgPtr,
 ) -> c_int {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::libdwLookupLocation(
-            session as *mut sys::LibdwSession,
-            loc as *mut sys::Location,
-            pc,
-        )
+    sys! {
+        libdwLookupLocation(session as * mut sys::LibdwSession, loc as * mut
+        sys::Location, pc)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("libdwLookupLocation")
 }

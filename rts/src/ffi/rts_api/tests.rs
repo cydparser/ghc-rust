@@ -3,8 +3,65 @@ use crate::ffi::hs_ffi::{HsBool, HsWord};
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size_PauseToken_() {
-    assert_eq!(size_of::<sys::PauseToken_>(), size_of::<PauseToken_>())
+fn sys_SchedulerStatus_layout() {
+    assert_eq!(
+        size_of::<SchedulerStatus>(),
+        size_of::<sys::SchedulerStatus>()
+    );
+    assert_eq!(
+        align_of::<SchedulerStatus>(),
+        align_of::<sys::SchedulerStatus>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_SchedulerStatus_discriminants() {
+    assert_eq!(
+        SchedulerStatus::NoStatus as isize,
+        sys::SchedulerStatus::NoStatus as isize
+    );
+    assert_eq!(
+        SchedulerStatus::Success as isize,
+        sys::SchedulerStatus::Success as isize
+    );
+    assert_eq!(
+        SchedulerStatus::Killed as isize,
+        sys::SchedulerStatus::Killed as isize
+    );
+    assert_eq!(
+        SchedulerStatus::Interrupted as isize,
+        sys::SchedulerStatus::Interrupted as isize
+    );
+    assert_eq!(
+        SchedulerStatus::HeapExhausted as isize,
+        sys::SchedulerStatus::HeapExhausted as isize
+    );
+    assert_eq!(
+        SchedulerStatus::SchedulerStatus_End as isize,
+        sys::SchedulerStatus::SchedulerStatus_End as isize
+    )
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_HaskellObj_layout() {
+    assert_eq!(size_of::<HaskellObj>(), size_of::<sys::HaskellObj>());
+    assert_eq!(align_of::<HaskellObj>(), align_of::<sys::HaskellObj>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_Capability_layout() {
+    assert_eq!(size_of::<Capability>(), size_of::<sys::Capability>());
+    assert_eq!(align_of::<Capability>(), align_of::<sys::Capability>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_PauseToken_layout() {
+    assert_eq!(size_of::<PauseToken>(), size_of::<sys::PauseToken>());
+    assert_eq!(align_of::<PauseToken>(), align_of::<sys::PauseToken>());
 }
 
 #[cfg(feature = "sys")]
@@ -23,7 +80,7 @@ fn equivalent_pauseTokenCapability() {
         let result: &Capability = unsafe { &*pauseTokenCapability(&raw mut pauseToken) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -41,154 +98,144 @@ fn test_pauseTokenCapability() {
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size_CapabilityPublic_() {
+fn sys_RtsOptsEnabledEnum_layout() {
     assert_eq!(
-        size_of::<sys::CapabilityPublic_>(),
-        size_of::<CapabilityPublic_>()
+        size_of::<RtsOptsEnabledEnum>(),
+        size_of::<sys::RtsOptsEnabledEnum>()
+    );
+    assert_eq!(
+        align_of::<RtsOptsEnabledEnum>(),
+        align_of::<sys::RtsOptsEnabledEnum>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_RtsOptsEnabledEnum_discriminants() {
+    assert_eq!(
+        RtsOptsEnabledEnum::RtsOptsNone as isize,
+        sys::RtsOptsEnabledEnum::RtsOptsNone as isize
+    );
+    assert_eq!(
+        RtsOptsEnabledEnum::RtsOptsIgnore as isize,
+        sys::RtsOptsEnabledEnum::RtsOptsIgnore as isize
+    );
+    assert_eq!(
+        RtsOptsEnabledEnum::RtsOptsIgnoreAll as isize,
+        sys::RtsOptsEnabledEnum::RtsOptsIgnoreAll as isize
+    );
+    assert_eq!(
+        RtsOptsEnabledEnum::RtsOptsSafeOnly as isize,
+        sys::RtsOptsEnabledEnum::RtsOptsSafeOnly as isize
+    );
+    assert_eq!(
+        RtsOptsEnabledEnum::RtsOptsAll as isize,
+        sys::RtsOptsEnabledEnum::RtsOptsAll as isize
     )
 }
 
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of CapabilityPublic_"][size_of::<CapabilityPublic_>() - 944usize];
-    ["Alignment of CapabilityPublic_"][align_of::<CapabilityPublic_>() - 8usize];
-    ["Offset of field: CapabilityPublic_::f"][offset_of!(CapabilityPublic_, f) - 0usize];
-    ["Offset of field: CapabilityPublic_::r"][offset_of!(CapabilityPublic_, r) - 24usize];
-};
+#[cfg(feature = "sys")]
+#[test]
+fn sys_RtsConfig_layout() {
+    assert_eq!(
+        size_of::<RtsOptsEnabledEnum>(),
+        size_of::<sys::RtsOptsEnabledEnum>()
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, rts_opts_enabled),
+        offset_of!(sys::RtsConfig, rts_opts_enabled)
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, rts_opts_suggestions),
+        offset_of!(sys::RtsConfig, rts_opts_suggestions)
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, rts_opts),
+        offset_of!(sys::RtsConfig, rts_opts)
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, rts_hs_main),
+        offset_of!(sys::RtsConfig, rts_hs_main)
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, keep_cafs),
+        offset_of!(sys::RtsConfig, keep_cafs)
+    );
+    assert_eq!(
+        size_of::<*const EventLogWriter>(),
+        size_of::<*const sys::EventLogWriter>()
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, eventlog_writer),
+        offset_of!(sys::RtsConfig, eventlog_writer)
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, defaultsHook),
+        offset_of!(sys::RtsConfig, defaultsHook)
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, onExitHook),
+        offset_of!(sys::RtsConfig, onExitHook)
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, stackOverflowHook),
+        offset_of!(sys::RtsConfig, stackOverflowHook)
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, outOfHeapHook),
+        offset_of!(sys::RtsConfig, outOfHeapHook)
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, mallocFailHook),
+        offset_of!(sys::RtsConfig, mallocFailHook)
+    );
+    assert_eq!(
+        size_of::<Option<unsafe extern "C" fn(stats: *const GCDetails_)>>(),
+        size_of::<Option<unsafe extern "C" fn(stats: *const sys::GCDetails_)>>()
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, gcDoneHook),
+        offset_of!(sys::RtsConfig, gcDoneHook)
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, longGCSync),
+        offset_of!(sys::RtsConfig, longGCSync)
+    );
+    assert_eq!(
+        offset_of!(RtsConfig, longGCSyncEnd),
+        offset_of!(sys::RtsConfig, longGCSyncEnd)
+    );
+    assert_eq!(size_of::<RtsConfig>(), size_of::<sys::RtsConfig>());
+    assert_eq!(align_of::<RtsConfig>(), align_of::<sys::RtsConfig>());
+}
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size_RtsConfig() {
-    assert_eq!(size_of::<sys::RtsConfig>(), size_of::<RtsConfig>())
+fn sys_defaultRtsConfig_layout() {
+    // TODO(rust): defaultRtsConfig
+    // assert_eq!(
+    //     size_of_val(&defaultRtsConfig),
+    //     size_of_val(&sys::defaultRtsConfig)
+    // );
+    // assert_eq!(
+    //     align_of_val(&defaultRtsConfig),
+    //     align_of_val(&sys::defaultRtsConfig)
+    // );
 }
-
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of RtsConfig"][size_of::<RtsConfig>() - 112usize];
-    ["Alignment of RtsConfig"][align_of::<RtsConfig>() - 8usize];
-    ["Offset of field: RtsConfig::rts_opts_enabled"]
-        [offset_of!(RtsConfig, rts_opts_enabled) - 0usize];
-    ["Offset of field: RtsConfig::rts_opts_suggestions"]
-        [offset_of!(RtsConfig, rts_opts_suggestions) - 8usize];
-    ["Offset of field: RtsConfig::rts_opts"][offset_of!(RtsConfig, rts_opts) - 16usize];
-    ["Offset of field: RtsConfig::rts_hs_main"][offset_of!(RtsConfig, rts_hs_main) - 24usize];
-    ["Offset of field: RtsConfig::keep_cafs"][offset_of!(RtsConfig, keep_cafs) - 32usize];
-    ["Offset of field: RtsConfig::eventlog_writer"]
-        [offset_of!(RtsConfig, eventlog_writer) - 40usize];
-    ["Offset of field: RtsConfig::defaultsHook"][offset_of!(RtsConfig, defaultsHook) - 48usize];
-    ["Offset of field: RtsConfig::onExitHook"][offset_of!(RtsConfig, onExitHook) - 56usize];
-    ["Offset of field: RtsConfig::stackOverflowHook"]
-        [offset_of!(RtsConfig, stackOverflowHook) - 64usize];
-    ["Offset of field: RtsConfig::outOfHeapHook"][offset_of!(RtsConfig, outOfHeapHook) - 72usize];
-    ["Offset of field: RtsConfig::mallocFailHook"][offset_of!(RtsConfig, mallocFailHook) - 80usize];
-    ["Offset of field: RtsConfig::gcDoneHook"][offset_of!(RtsConfig, gcDoneHook) - 88usize];
-    ["Offset of field: RtsConfig::longGCSync"][offset_of!(RtsConfig, longGCSync) - 96usize];
-    ["Offset of field: RtsConfig::longGCSyncEnd"][offset_of!(RtsConfig, longGCSyncEnd) - 104usize];
-};
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size_GCDetails_() {
-    assert_eq!(size_of::<sys::GCDetails_>(), size_of::<GCDetails_>())
+fn sys_GCDetails_layout() {
+    assert_eq!(size_of::<GCDetails>(), size_of::<sys::GCDetails>());
+    assert_eq!(align_of::<GCDetails>(), align_of::<sys::GCDetails>());
 }
-
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of GCDetails_"][size_of::<GCDetails_>() - 144usize];
-    ["Alignment of GCDetails_"][align_of::<GCDetails_>() - 8usize];
-    ["Offset of field: GCDetails_::gen_"][offset_of!(GCDetails_, gen_) - 0usize];
-    ["Offset of field: GCDetails_::threads"][offset_of!(GCDetails_, threads) - 4usize];
-    ["Offset of field: GCDetails_::allocated_bytes"]
-        [offset_of!(GCDetails_, allocated_bytes) - 8usize];
-    ["Offset of field: GCDetails_::live_bytes"][offset_of!(GCDetails_, live_bytes) - 16usize];
-    ["Offset of field: GCDetails_::large_objects_bytes"]
-        [offset_of!(GCDetails_, large_objects_bytes) - 24usize];
-    ["Offset of field: GCDetails_::compact_bytes"][offset_of!(GCDetails_, compact_bytes) - 32usize];
-    ["Offset of field: GCDetails_::slop_bytes"][offset_of!(GCDetails_, slop_bytes) - 40usize];
-    ["Offset of field: GCDetails_::mem_in_use_bytes"]
-        [offset_of!(GCDetails_, mem_in_use_bytes) - 48usize];
-    ["Offset of field: GCDetails_::copied_bytes"][offset_of!(GCDetails_, copied_bytes) - 56usize];
-    ["Offset of field: GCDetails_::block_fragmentation_bytes"]
-        [offset_of!(GCDetails_, block_fragmentation_bytes) - 64usize];
-    ["Offset of field: GCDetails_::par_max_copied_bytes"]
-        [offset_of!(GCDetails_, par_max_copied_bytes) - 72usize];
-    ["Offset of field: GCDetails_::par_balanced_copied_bytes"]
-        [offset_of!(GCDetails_, par_balanced_copied_bytes) - 80usize];
-    ["Offset of field: GCDetails_::sync_elapsed_ns"]
-        [offset_of!(GCDetails_, sync_elapsed_ns) - 88usize];
-    ["Offset of field: GCDetails_::cpu_ns"][offset_of!(GCDetails_, cpu_ns) - 96usize];
-    ["Offset of field: GCDetails_::elapsed_ns"][offset_of!(GCDetails_, elapsed_ns) - 104usize];
-    ["Offset of field: GCDetails_::nonmoving_gc_sync_cpu_ns"]
-        [offset_of!(GCDetails_, nonmoving_gc_sync_cpu_ns) - 112usize];
-    ["Offset of field: GCDetails_::nonmoving_gc_sync_elapsed_ns"]
-        [offset_of!(GCDetails_, nonmoving_gc_sync_elapsed_ns) - 120usize];
-    ["Offset of field: GCDetails_::nonmoving_gc_cpu_ns"]
-        [offset_of!(GCDetails_, nonmoving_gc_cpu_ns) - 128usize];
-    ["Offset of field: GCDetails_::nonmoving_gc_elapsed_ns"]
-        [offset_of!(GCDetails_, nonmoving_gc_elapsed_ns) - 136usize];
-};
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size__RTSStats() {
-    assert_eq!(size_of::<sys::_RTSStats>(), size_of::<_RTSStats>())
+fn sys_RTSStats_layout() {
+    assert_eq!(size_of::<RTSStats>(), size_of::<sys::RTSStats>());
+    assert_eq!(align_of::<RTSStats>(), align_of::<sys::RTSStats>());
 }
-
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of _RTSStats"][size_of::<_RTSStats>() - 376usize];
-    ["Alignment of _RTSStats"][align_of::<_RTSStats>() - 8usize];
-    ["Offset of field: _RTSStats::gcs"][offset_of!(_RTSStats, gcs) - 0usize];
-    ["Offset of field: _RTSStats::major_gcs"][offset_of!(_RTSStats, major_gcs) - 4usize];
-    ["Offset of field: _RTSStats::allocated_bytes"]
-        [offset_of!(_RTSStats, allocated_bytes) - 8usize];
-    ["Offset of field: _RTSStats::max_live_bytes"][offset_of!(_RTSStats, max_live_bytes) - 16usize];
-    ["Offset of field: _RTSStats::max_large_objects_bytes"]
-        [offset_of!(_RTSStats, max_large_objects_bytes) - 24usize];
-    ["Offset of field: _RTSStats::max_compact_bytes"]
-        [offset_of!(_RTSStats, max_compact_bytes) - 32usize];
-    ["Offset of field: _RTSStats::max_slop_bytes"][offset_of!(_RTSStats, max_slop_bytes) - 40usize];
-    ["Offset of field: _RTSStats::max_mem_in_use_bytes"]
-        [offset_of!(_RTSStats, max_mem_in_use_bytes) - 48usize];
-    ["Offset of field: _RTSStats::cumulative_live_bytes"]
-        [offset_of!(_RTSStats, cumulative_live_bytes) - 56usize];
-    ["Offset of field: _RTSStats::copied_bytes"][offset_of!(_RTSStats, copied_bytes) - 64usize];
-    ["Offset of field: _RTSStats::par_copied_bytes"]
-        [offset_of!(_RTSStats, par_copied_bytes) - 72usize];
-    ["Offset of field: _RTSStats::cumulative_par_max_copied_bytes"]
-        [offset_of!(_RTSStats, cumulative_par_max_copied_bytes) - 80usize];
-    ["Offset of field: _RTSStats::cumulative_par_balanced_copied_bytes"]
-        [offset_of!(_RTSStats, cumulative_par_balanced_copied_bytes) - 88usize];
-    ["Offset of field: _RTSStats::init_cpu_ns"][offset_of!(_RTSStats, init_cpu_ns) - 96usize];
-    ["Offset of field: _RTSStats::init_elapsed_ns"]
-        [offset_of!(_RTSStats, init_elapsed_ns) - 104usize];
-    ["Offset of field: _RTSStats::mutator_cpu_ns"]
-        [offset_of!(_RTSStats, mutator_cpu_ns) - 112usize];
-    ["Offset of field: _RTSStats::mutator_elapsed_ns"]
-        [offset_of!(_RTSStats, mutator_elapsed_ns) - 120usize];
-    ["Offset of field: _RTSStats::gc_cpu_ns"][offset_of!(_RTSStats, gc_cpu_ns) - 128usize];
-    ["Offset of field: _RTSStats::gc_elapsed_ns"][offset_of!(_RTSStats, gc_elapsed_ns) - 136usize];
-    ["Offset of field: _RTSStats::cpu_ns"][offset_of!(_RTSStats, cpu_ns) - 144usize];
-    ["Offset of field: _RTSStats::elapsed_ns"][offset_of!(_RTSStats, elapsed_ns) - 152usize];
-    ["Offset of field: _RTSStats::gc"][offset_of!(_RTSStats, gc) - 160usize];
-    ["Offset of field: _RTSStats::any_work"][offset_of!(_RTSStats, any_work) - 304usize];
-    ["Offset of field: _RTSStats::scav_find_work"]
-        [offset_of!(_RTSStats, scav_find_work) - 312usize];
-    ["Offset of field: _RTSStats::max_n_todo_overflow"]
-        [offset_of!(_RTSStats, max_n_todo_overflow) - 320usize];
-    ["Offset of field: _RTSStats::nonmoving_gc_sync_cpu_ns"]
-        [offset_of!(_RTSStats, nonmoving_gc_sync_cpu_ns) - 328usize];
-    ["Offset of field: _RTSStats::nonmoving_gc_sync_elapsed_ns"]
-        [offset_of!(_RTSStats, nonmoving_gc_sync_elapsed_ns) - 336usize];
-    ["Offset of field: _RTSStats::nonmoving_gc_sync_max_elapsed_ns"]
-        [offset_of!(_RTSStats, nonmoving_gc_sync_max_elapsed_ns) - 344usize];
-    ["Offset of field: _RTSStats::nonmoving_gc_cpu_ns"]
-        [offset_of!(_RTSStats, nonmoving_gc_cpu_ns) - 352usize];
-    ["Offset of field: _RTSStats::nonmoving_gc_elapsed_ns"]
-        [offset_of!(_RTSStats, nonmoving_gc_elapsed_ns) - 360usize];
-    ["Offset of field: _RTSStats::nonmoving_gc_max_elapsed_ns"]
-        [offset_of!(_RTSStats, nonmoving_gc_max_elapsed_ns) - 368usize];
-};
 
 #[cfg(feature = "sys")]
 #[quickcheck]
@@ -196,7 +243,7 @@ const _: () = {
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_getRTSStats(s: RTSStats) -> bool {
     let expected = {
-        let mut s = s.clone().into();
+        let mut s = unsafe { transmute(s.clone()) };
         unsafe { sys::getRTSStats(&raw mut s) };
         todo!()
     };
@@ -205,7 +252,7 @@ fn equivalent_getRTSStats(s: RTSStats) -> bool {
         unsafe { getRTSStats(&raw mut s) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -228,7 +275,7 @@ fn test_getRTSStats() {
 fn equivalent_getRTSStatsEnabled() {
     let expected: c_int = { unsafe { sys::getRTSStatsEnabled() } };
     let actual: c_int = { unsafe { getRTSStatsEnabled() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -246,7 +293,7 @@ fn test_getRTSStatsEnabled() {
 fn equivalent_getAllocations() {
     let expected: u64 = { unsafe { sys::getAllocations() } };
     let actual: u64 = { unsafe { getAllocations() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -280,7 +327,7 @@ fn equivalent_hs_init_with_rtsopts(argc: c_int, argv: c_char) -> bool {
         unsafe { hs_init_with_rtsopts(&raw mut argc, &raw mut argv) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -301,7 +348,7 @@ fn test_hs_init_with_rtsopts() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -324,10 +371,9 @@ fn equivalent_hs_init_ghc(argc: c_int, argv: c_char) -> bool {
         unsafe { hs_init_ghc(&raw mut argc, &raw mut argv, rts_config) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -367,7 +413,7 @@ fn equivalent_getProgArgv(argc: c_int, argv: c_char) -> bool {
         unsafe { getProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -404,7 +450,7 @@ fn equivalent_setProgArgv(argc: c_int, argv: c_char) -> bool {
         unsafe { setProgArgv(argc, &raw mut argv) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -444,7 +490,7 @@ fn equivalent_getFullProgArgv(argc: c_int, argv: c_char) -> bool {
         unsafe { getFullProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -464,7 +510,7 @@ fn test_getFullProgArgv() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -477,10 +523,9 @@ fn equivalent_rts_lock() {
         let result: &Capability = unsafe { &*rts_lock() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -493,7 +538,7 @@ fn test_rts_lock() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -508,10 +553,9 @@ fn equivalent_rts_unlock() {
         unsafe { rts_unlock(&raw mut token) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -538,7 +582,7 @@ fn equivalent_rts_unsafeGetMyCapability() {
         let result: &Capability = unsafe { &*rts_unsafeGetMyCapability() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -567,7 +611,7 @@ fn equivalent_rts_setInCallCapability(preferred_capability: c_int, affinity: c_i
         unsafe { rts_setInCallCapability(preferred_capability, affinity) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -599,7 +643,7 @@ fn equivalent_rts_pinThreadToNumaNode(node: c_int) -> bool {
         unsafe { rts_pinThreadToNumaNode(node) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -632,7 +676,7 @@ fn equivalent_rts_mkChar(c: HsChar) -> bool {
         let result: HaskellObj = unsafe { rts_mkChar(&raw mut arg1, c) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -651,7 +695,7 @@ fn test_rts_mkChar() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -666,10 +710,9 @@ fn equivalent_rts_mkInt(i: HsInt) -> bool {
         let result: HaskellObj = unsafe { rts_mkInt(&raw mut arg1, i) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -700,7 +743,7 @@ fn equivalent_rts_mkInt8(i: HsInt8) -> bool {
         let result: HaskellObj = unsafe { rts_mkInt8(&raw mut arg1, i) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -734,7 +777,7 @@ fn equivalent_rts_mkInt16(i: HsInt16) -> bool {
         let result: HaskellObj = unsafe { rts_mkInt16(&raw mut arg1, i) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -768,7 +811,7 @@ fn equivalent_rts_mkInt32(i: HsInt32) -> bool {
         let result: HaskellObj = unsafe { rts_mkInt32(&raw mut arg1, i) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -802,7 +845,7 @@ fn equivalent_rts_mkInt64(i: HsInt64) -> bool {
         let result: HaskellObj = unsafe { rts_mkInt64(&raw mut arg1, i) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -836,7 +879,7 @@ fn equivalent_rts_mkWord(w: HsWord) -> bool {
         let result: HaskellObj = unsafe { rts_mkWord(&raw mut arg1, w) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -869,7 +912,7 @@ fn equivalent_rts_mkWord8(w: HsWord8) -> bool {
         let result: HaskellObj = unsafe { rts_mkWord8(&raw mut arg1, w) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -903,7 +946,7 @@ fn equivalent_rts_mkWord16(w: HsWord16) -> bool {
         let result: HaskellObj = unsafe { rts_mkWord16(&raw mut arg1, w) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -937,7 +980,7 @@ fn equivalent_rts_mkWord32(w: HsWord32) -> bool {
         let result: HaskellObj = unsafe { rts_mkWord32(&raw mut arg1, w) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -971,7 +1014,7 @@ fn equivalent_rts_mkWord64(w: HsWord64) -> bool {
         let result: HaskellObj = unsafe { rts_mkWord64(&raw mut arg1, w) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1007,7 +1050,7 @@ fn equivalent_rts_mkPtr() {
         let result: HaskellObj = unsafe { rts_mkPtr(&raw mut arg1, a) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1042,7 +1085,7 @@ fn equivalent_rts_mkFunPtr() {
         let result: HaskellObj = unsafe { rts_mkFunPtr(&raw mut arg1, a) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1075,7 +1118,7 @@ fn equivalent_rts_mkFloat(f: HsFloat) -> bool {
         let result: HaskellObj = unsafe { rts_mkFloat(&raw mut arg1, f) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1109,7 +1152,7 @@ fn equivalent_rts_mkDouble(f: HsDouble) -> bool {
         let result: HaskellObj = unsafe { rts_mkDouble(&raw mut arg1, f) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1145,7 +1188,7 @@ fn equivalent_rts_mkStablePtr() {
         let result: HaskellObj = unsafe { rts_mkStablePtr(&raw mut arg1, s) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1178,7 +1221,7 @@ fn equivalent_rts_mkBool(b: HsBool) -> bool {
         let result: HaskellObj = unsafe { rts_mkBool(&raw mut arg1, b) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1213,7 +1256,7 @@ fn equivalent_rts_mkString(s: c_char) -> bool {
         let result: HaskellObj = unsafe { rts_mkString(&raw mut arg1, &raw mut s) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1232,7 +1275,7 @@ fn test_rts_mkString() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1251,10 +1294,9 @@ fn equivalent_rts_apply() {
         let result: HaskellObj = unsafe { rts_apply(&raw mut arg1, arg2, arg3) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1283,7 +1325,7 @@ fn equivalent_rts_getChar() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getChar(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1312,7 +1354,7 @@ fn equivalent_rts_getInt() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1341,7 +1383,7 @@ fn equivalent_rts_getInt8() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt8(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1370,7 +1412,7 @@ fn equivalent_rts_getInt16() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt16(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1399,7 +1441,7 @@ fn equivalent_rts_getInt32() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt32(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1428,7 +1470,7 @@ fn equivalent_rts_getInt64() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt64(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1457,7 +1499,7 @@ fn equivalent_rts_getWord() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1486,7 +1528,7 @@ fn equivalent_rts_getWord8() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord8(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1515,7 +1557,7 @@ fn equivalent_rts_getWord16() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord16(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1544,7 +1586,7 @@ fn equivalent_rts_getWord32() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord32(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1573,7 +1615,7 @@ fn equivalent_rts_getWord64() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord64(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1604,7 +1646,7 @@ fn equivalent_rts_getPtr() {
         let result: HsPtr = unsafe { rts_getPtr(arg1) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1636,7 +1678,7 @@ fn equivalent_rts_getFunPtr() {
         let result: HsFunPtr = unsafe { rts_getFunPtr(arg1) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1666,7 +1708,7 @@ fn equivalent_rts_getFloat() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getFloat(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1695,7 +1737,7 @@ fn equivalent_rts_getDouble() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getDouble(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1726,7 +1768,7 @@ fn equivalent_rts_getStablePtr() {
         let result: HsStablePtr = unsafe { rts_getStablePtr(arg1) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1756,7 +1798,7 @@ fn equivalent_rts_getBool() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getBool(arg1) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1793,7 +1835,7 @@ fn equivalent_rts_eval() {
         unsafe { rts_eval(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1834,7 +1876,7 @@ fn equivalent_rts_eval_(stack_size: c_uint) -> bool {
         unsafe { rts_eval_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1877,7 +1919,7 @@ fn equivalent_rts_evalIO() {
         unsafe { rts_evalIO(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1918,7 +1960,7 @@ fn equivalent_rts_evalStableIOMain() {
         unsafe { rts_evalStableIOMain(&raw mut arg1, s, &raw mut ret) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -1959,7 +2001,7 @@ fn equivalent_rts_evalStableIO() {
         unsafe { rts_evalStableIO(&raw mut arg1, s, &raw mut ret) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -2000,7 +2042,7 @@ fn equivalent_rts_evalLazyIO() {
         unsafe { rts_evalLazyIO(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -2041,7 +2083,7 @@ fn equivalent_rts_evalLazyIO_(stack_size: c_uint) -> bool {
         unsafe { rts_evalLazyIO_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -2063,6 +2105,81 @@ fn test_rts_evalLazyIO_() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_inCall() {
+    let expected = {
+        let mut arg1: sys::Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: sys::HaskellObj = todo!();
+        let mut ret: sys::HaskellObj = todo!();
+        unsafe { sys::rts_inCall(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let mut ret: HaskellObj = todo!();
+        unsafe { rts_inCall(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_inCall() {
+    let actual = {
+        let mut arg1: Capability = todo!();
+        let mut arg1 = &raw mut arg1;
+        let p: HaskellObj = todo!();
+        let ret: HaskellObj = todo!();
+        unsafe { rts_inCall(&raw mut arg1, p, &raw mut ret) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_rts_checkSchedStatus(site: c_char) -> bool {
+    let expected = {
+        let site = site;
+        let mut arg1: sys::Capability = todo!();
+        unsafe { sys::rts_checkSchedStatus(&raw mut site, &raw mut arg1) };
+        todo!()
+    };
+    let actual = {
+        let mut site = site;
+        let mut arg1: Capability = todo!();
+        unsafe { rts_checkSchedStatus(&raw mut site, &raw mut arg1) };
+        todo!()
+    };
+    actual == expected
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_rts_checkSchedStatus() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let site: c_char = Arbitrary::arbitrary(g);
+        let arg1: Capability = todo!();
+        unsafe { rts_checkSchedStatus(&raw mut site, &raw mut arg1) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
 #[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
@@ -2076,7 +2193,7 @@ fn equivalent_rts_getSchedStatus() {
         let mut cap: Capability = todo!();
         unsafe { rts_getSchedStatus(&raw mut cap) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -2105,7 +2222,7 @@ fn equivalent_rts_pause() {
         let result: &PauseToken = unsafe { &*rts_pause() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -2135,7 +2252,7 @@ fn equivalent_rts_resume() {
         unsafe { rts_resume(&raw mut pauseToken) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -2157,7 +2274,7 @@ fn test_rts_resume() {
 fn equivalent_rts_isPaused() {
     let expected: bool = { unsafe { sys::rts_isPaused() } };
     let actual: bool = { unsafe { rts_isPaused() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -2187,7 +2304,7 @@ fn equivalent_rts_listThreads() {
         unsafe { rts_listThreads(cb, &raw mut user) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -2222,7 +2339,7 @@ fn equivalent_rts_listMiscRoots() {
         unsafe { rts_listMiscRoots(cb, &raw mut user) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -2253,7 +2370,7 @@ fn equivalent_rts_clearMemory() {
         unsafe { rts_clearMemory() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]

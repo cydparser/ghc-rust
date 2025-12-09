@@ -13,7 +13,7 @@ fn equivalent_heap_view_closureSize() {
         let mut closure: StgClosure = todo!();
         unsafe { heap_view_closureSize(&raw mut closure) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn equivalent_collect_pointers() {
         let mut ptrs = &raw mut ptrs;
         unsafe { collect_pointers(&raw mut closure, &raw mut ptrs) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]

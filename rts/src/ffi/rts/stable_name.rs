@@ -1,10 +1,5 @@
 use crate::ffi::rts::storage::closures::StgClosure;
 use crate::ffi::stg::types::StgPtr;
-#[cfg(feature = "sys")]
-use crate::prelude::*;
-
-#[cfg(test)]
-mod tests;
 
 /// cbindgen:no-export
 #[repr(C)]
@@ -12,11 +7,4 @@ pub struct snEntry {
     addr: StgPtr,
     old: StgPtr,
     sn_obj: *mut StgClosure,
-}
-
-#[cfg(feature = "sys")]
-impl From<snEntry> for sys::snEntry {
-    fn from(x: snEntry) -> Self {
-        unsafe { transmute(x) }
-    }
 }

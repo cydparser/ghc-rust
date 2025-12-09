@@ -5,7 +5,7 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-#[ffi(ghc-lib)]
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct HsIface {
@@ -62,6 +62,6 @@ pub struct HsIface {
     pub unpackCStringUtf8zh_info: *const StgInfoTable,
 }
 
-#[ffi(compiler, ghc-lib)]
+#[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
 pub static mut ghc_hs_iface: *mut HsIface = null_mut();

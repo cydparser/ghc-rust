@@ -15,7 +15,7 @@ fn equivalent_getOrSetGHCConcSignalSignalHandlerStore() {
         let result: StgStablePtr = unsafe { getOrSetGHCConcSignalSignalHandlerStore(ptr) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -46,7 +46,7 @@ fn equivalent_getOrSetGHCConcWindowsPendingDelaysStore() {
         let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsPendingDelaysStore(ptr) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn equivalent_getOrSetGHCConcWindowsIOManagerThreadStore() {
         let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsIOManagerThreadStore(ptr) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -108,7 +108,7 @@ fn equivalent_getOrSetGHCConcWindowsProddingStore() {
         let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsProddingStore(ptr) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -139,7 +139,7 @@ fn equivalent_getOrSetSystemEventThreadEventManagerStore() {
         let result: StgStablePtr = unsafe { getOrSetSystemEventThreadEventManagerStore(ptr) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -171,7 +171,7 @@ fn equivalent_getOrSetSystemEventThreadIOManagerThreadStore() {
         let result: StgStablePtr = unsafe { getOrSetSystemEventThreadIOManagerThreadStore(ptr) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -202,7 +202,7 @@ fn equivalent_getOrSetSystemTimerThreadEventManagerStore() {
         let result: StgStablePtr = unsafe { getOrSetSystemTimerThreadEventManagerStore(ptr) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -234,7 +234,7 @@ fn equivalent_getOrSetSystemTimerThreadIOManagerThreadStore() {
         let result: StgStablePtr = unsafe { getOrSetSystemTimerThreadIOManagerThreadStore(ptr) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -265,7 +265,7 @@ fn equivalent_getOrSetLibHSghcFastStringTable() {
         let result: StgStablePtr = unsafe { getOrSetLibHSghcFastStringTable(ptr) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -279,4 +279,125 @@ fn test_getOrSetLibHSghcFastStringTable() {
     };
     let expected = todo!();
     assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetLibHSghcGlobalHasPprDebug() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { sys::getOrSetLibHSghcGlobalHasPprDebug(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasPprDebug(ptr) };
+        todo!()
+    };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_getOrSetLibHSghcGlobalHasPprDebug() {
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasPprDebug(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetLibHSghcGlobalHasNoDebugOutput() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { sys::getOrSetLibHSghcGlobalHasNoDebugOutput(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasNoDebugOutput(ptr) };
+        todo!()
+    };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_getOrSetLibHSghcGlobalHasNoDebugOutput() {
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasNoDebugOutput(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_getOrSetLibHSghcGlobalHasNoStateHack() {
+    let expected = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { sys::getOrSetLibHSghcGlobalHasNoStateHack(ptr) };
+        todo!()
+    };
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasNoStateHack(ptr) };
+        todo!()
+    };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_getOrSetLibHSghcGlobalHasNoStateHack() {
+    let actual = {
+        let ptr: StgStablePtr = todo!();
+        let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasNoStateHack(ptr) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[expect(static_mut_refs)]
+fn sys_ghc_unique_counter64_layout() {
+    assert_eq!(
+        size_of_val(unsafe { &ghc_unique_counter64 }),
+        size_of_val(unsafe { &sys::ghc_unique_counter64 })
+    );
+    assert_eq!(
+        align_of_val(unsafe { &ghc_unique_counter64 }),
+        align_of_val(unsafe { &sys::ghc_unique_counter64 })
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[expect(static_mut_refs)]
+fn sys_ghc_unique_inc_layout() {
+    assert_eq!(
+        size_of_val(unsafe { &ghc_unique_inc }),
+        size_of_val(unsafe { &sys::ghc_unique_inc })
+    );
+    assert_eq!(
+        align_of_val(unsafe { &ghc_unique_inc }),
+        align_of_val(unsafe { &sys::ghc_unique_inc })
+    );
 }

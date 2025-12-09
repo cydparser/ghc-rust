@@ -1,12 +1,15 @@
 //! These constants are only used when generating a C header.
+
+use crate::prelude::*;
+
 // TODO(rust): These appear to be only used by rts.
 
 #[cfg(test)]
 mod tests;
 
 // TODO(rust): Set to 1 when defined(UnregisterisedCompiler) || defined(javascript_HOST_ARCH)
-/// - GHC_PLACES: {compiler}
-pub(crate) const MACHREGS_NO_REGS: u32 = 0;
+#[ffi(compiler)]
+pub const MACHREGS_NO_REGS: u32 = 0;
 
 // Target Architecture Constants
 

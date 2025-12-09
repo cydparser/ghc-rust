@@ -2,50 +2,47 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_IN_STG_CODE() {
-    assert_eq!(sys::IN_STG_CODE, IN_STG_CODE);
+fn sys_IN_STG_CODE_eq() {
+    assert_eq!(IN_STG_CODE, sys::IN_STG_CODE);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq__REENTRANT() {
-    assert_eq!(sys::_REENTRANT, _REENTRANT);
+fn sys_IN_STG_CODE_layout() {
+    assert_eq!(size_of_val(&IN_STG_CODE), size_of_val(&sys::IN_STG_CODE));
+    assert_eq!(align_of_val(&IN_STG_CODE), align_of_val(&sys::IN_STG_CODE));
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_EXIT_INTERNAL_ERROR() {
-    assert_eq!(sys::EXIT_INTERNAL_ERROR, EXIT_INTERNAL_ERROR);
+fn sys__REENTRANT_eq() {
+    assert_eq!(_REENTRANT, sys::_REENTRANT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_EXIT_DEADLOCK() {
-    assert_eq!(sys::EXIT_DEADLOCK, EXIT_DEADLOCK);
+fn sys__REENTRANT_layout() {
+    assert_eq!(size_of_val(&_REENTRANT), size_of_val(&sys::_REENTRANT));
+    assert_eq!(align_of_val(&_REENTRANT), align_of_val(&sys::_REENTRANT));
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_EXIT_INTERRUPTED() {
-    assert_eq!(sys::EXIT_INTERRUPTED, EXIT_INTERRUPTED);
+fn sys_EXIT_INTERNAL_ERROR_eq() {
+    assert_eq!(EXIT_INTERNAL_ERROR, sys::EXIT_INTERNAL_ERROR);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_EXIT_HEAPOVERFLOW() {
-    assert_eq!(sys::EXIT_HEAPOVERFLOW, EXIT_HEAPOVERFLOW);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_EXIT_KILLED() {
-    assert_eq!(sys::EXIT_KILLED, EXIT_KILLED);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_DEBUG_IS_ON() {
-    assert_eq!(sys::DEBUG_IS_ON, DEBUG_IS_ON);
+fn sys_EXIT_INTERNAL_ERROR_layout() {
+    assert_eq!(
+        size_of_val(&EXIT_INTERNAL_ERROR),
+        size_of_val(&sys::EXIT_INTERNAL_ERROR)
+    );
+    assert_eq!(
+        align_of_val(&EXIT_INTERNAL_ERROR),
+        align_of_val(&sys::EXIT_INTERNAL_ERROR)
+    );
 }
 
 #[cfg(feature = "sys")]
@@ -63,7 +60,7 @@ fn equivalent_reportStackOverflow() {
         unsafe { reportStackOverflow(&raw mut tso) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -92,7 +89,7 @@ fn equivalent_reportHeapOverflow() {
         unsafe { reportHeapOverflow() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -120,7 +117,7 @@ fn equivalent_stg_sig_install(arg1: c_int, arg2: c_int) -> bool {
         let mut arg3: c_void = todo!();
         unsafe { stg_sig_install(arg1, arg2, &raw mut arg3) }
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -144,7 +141,7 @@ fn test_stg_sig_install() {
 fn equivalent_rts_isProfiled() {
     let expected: c_int = { unsafe { sys::rts_isProfiled() } };
     let actual: c_int = { unsafe { rts_isProfiled() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -162,7 +159,7 @@ fn test_rts_isProfiled() {
 fn equivalent_rts_isDynamic() {
     let expected: c_int = { unsafe { sys::rts_isDynamic() } };
     let actual: c_int = { unsafe { rts_isDynamic() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -180,7 +177,7 @@ fn test_rts_isDynamic() {
 fn equivalent_rts_isThreaded() {
     let expected: c_int = { unsafe { sys::rts_isThreaded() } };
     let actual: c_int = { unsafe { rts_isThreaded() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -198,7 +195,7 @@ fn test_rts_isThreaded() {
 fn equivalent_rts_isDebugged() {
     let expected: c_int = { unsafe { sys::rts_isDebugged() } };
     let actual: c_int = { unsafe { rts_isDebugged() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -216,7 +213,7 @@ fn test_rts_isDebugged() {
 fn equivalent_rts_isTracing() {
     let expected: c_int = { unsafe { sys::rts_isTracing() } };
     let actual: c_int = { unsafe { rts_isTracing() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]

@@ -1,5 +1,12 @@
 use super::*;
 
+#[cfg(feature = "sys")]
+#[test]
+fn sys_pathchar_layout() {
+    assert_eq!(size_of::<pathchar>(), size_of::<pathchar>());
+    assert_eq!(align_of::<pathchar>(), align_of::<pathchar>());
+}
+
 #[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[test]
 #[ignore]
@@ -13,7 +20,7 @@ fn equivalent_initLinker() {
         unsafe { initLinker() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -42,7 +49,7 @@ fn equivalent_initLinker_(retain_cafs: c_int) -> bool {
         unsafe { initLinker_(retain_cafs) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -74,7 +81,7 @@ fn equivalent_lookupSymbol(lbl: c_char) -> bool {
         let result: &c_void = unsafe { &*lookupSymbol(&raw mut lbl) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -91,6 +98,46 @@ fn test_lookupSymbol() {
     assert_eq!(expected, actual);
 }
 
+#[cfg(feature = "sys")]
+#[test]
+fn sys_OStatus_layout() {
+    assert_eq!(size_of::<OStatus>(), size_of::<sys::OStatus>());
+    assert_eq!(align_of::<OStatus>(), align_of::<sys::OStatus>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_OStatus_discriminants() {
+    assert_eq!(
+        OStatus::OBJECT_LOADED as isize,
+        sys::OStatus::OBJECT_LOADED as isize
+    );
+    assert_eq!(
+        OStatus::OBJECT_NEEDED as isize,
+        sys::OStatus::OBJECT_NEEDED as isize
+    );
+    assert_eq!(
+        OStatus::OBJECT_RESOLVED as isize,
+        sys::OStatus::OBJECT_RESOLVED as isize
+    );
+    assert_eq!(
+        OStatus::OBJECT_READY as isize,
+        sys::OStatus::OBJECT_READY as isize
+    );
+    assert_eq!(
+        OStatus::OBJECT_UNLOADED as isize,
+        sys::OStatus::OBJECT_UNLOADED as isize
+    );
+    assert_eq!(
+        OStatus::OBJECT_DONT_RESOLVE as isize,
+        sys::OStatus::OBJECT_DONT_RESOLVE as isize
+    );
+    assert_eq!(
+        OStatus::OBJECT_NOT_LOADED as isize,
+        sys::OStatus::OBJECT_NOT_LOADED as isize
+    )
+}
+
 #[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
 #[ignore]
@@ -103,7 +150,7 @@ fn equivalent_getObjectLoadStatus(path: pathchar) -> bool {
         let mut path = path;
         unsafe { getObjectLoadStatus(&raw mut path) }
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -132,7 +179,7 @@ fn equivalent_unloadObj(path: pathchar) -> bool {
         let mut path = path;
         unsafe { unloadObj(&raw mut path) }
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -160,7 +207,7 @@ fn equivalent_purgeObj(path: pathchar) -> bool {
         let mut path = path;
         unsafe { purgeObj(&raw mut path) }
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -188,7 +235,7 @@ fn equivalent_loadObj(path: pathchar) -> bool {
         let mut path = path;
         unsafe { loadObj(&raw mut path) }
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -216,7 +263,7 @@ fn equivalent_loadArchive(path: pathchar) -> bool {
         let mut path = path;
         unsafe { loadArchive(&raw mut path) }
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -238,7 +285,7 @@ fn test_loadArchive() {
 fn equivalent_resolveObjs() {
     let expected: HsInt = { unsafe { sys::resolveObjs() } };
     let actual: HsInt = { unsafe { resolveObjs() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -269,7 +316,7 @@ fn equivalent_loadNativeObj(path: pathchar, errmsg: c_char) -> bool {
         let result: &c_void = unsafe { &*loadNativeObj(&raw mut path, &raw mut errmsg) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -301,7 +348,7 @@ fn equivalent_unloadNativeObj() {
         let mut handle: c_void = todo!();
         unsafe { unloadNativeObj(&raw mut handle) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -336,7 +383,7 @@ fn equivalent_lookupSymbolInNativeObj(symbol_name: c_char) -> bool {
             unsafe { &*lookupSymbolInNativeObj(&raw mut handle, &raw mut symbol_name) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -367,7 +414,7 @@ fn equivalent_addDLL(dll_name: pathchar) -> bool {
         let mut dll_name = dll_name;
         unsafe { &*addDLL(&raw mut dll_name) }
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -399,7 +446,7 @@ fn equivalent_addLibrarySearchPath(dll_path: pathchar) -> bool {
         let result: HsPtr = unsafe { addLibrarySearchPath(&raw mut dll_path) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -429,7 +476,7 @@ fn equivalent_removeLibrarySearchPath() {
         let dll_path_index: HsPtr = todo!();
         unsafe { removeLibrarySearchPath(dll_path_index) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -456,7 +503,7 @@ fn equivalent_findSystemLibrary(dll_name: pathchar) -> bool {
         let mut dll_name = dll_name;
         unsafe { &*findSystemLibrary(&raw mut dll_name) }
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]

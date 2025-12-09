@@ -10,12 +10,12 @@ mod tests;
 
 pub(crate) const UNIT: u32 = 1;
 
-/// - GHC_PLACES: {compiler, libraries, testsuite}
+#[ffi(compiler, ghc_lib, testsuite)]
 pub const BLOCK_SIZE: u32 = 4096;
 
 pub(crate) const BLOCK_MASK: u32 = 4095;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const MBLOCK_SIZE: u32 = 1048576;
 
 pub(crate) const MBLOCK_MASK: u32 = 1048575;
@@ -58,13 +58,6 @@ pub struct NonmovingSegmentInfo {
     next_free_snap: StgWord16,
 }
 
-#[cfg(feature = "sys")]
-impl From<NonmovingSegmentInfo> for sys::NonmovingSegmentInfo {
-    fn from(x: NonmovingSegmentInfo) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 #[cfg(test)]
 impl Arbitrary for NonmovingSegmentInfo {
     fn arbitrary(g: &mut Gen) -> Self {
@@ -91,24 +84,10 @@ pub struct bdescr_ {
     _padding: [StgWord32; 3usize],
 }
 
-#[cfg(feature = "sys")]
-impl From<bdescr_> for sys::bdescr_ {
-    fn from(x: bdescr_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 #[repr(C)]
 pub(crate) union bdescr___bindgen_ty_1 {
     free: StgPtr,
     nonmoving_segment: NonmovingSegmentInfo,
-}
-
-#[cfg(feature = "sys")]
-impl From<bdescr___bindgen_ty_1> for sys::bdescr___bindgen_ty_1 {
-    fn from(x: bdescr___bindgen_ty_1) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[repr(C)]
@@ -118,51 +97,32 @@ pub(crate) union bdescr___bindgen_ty_2 {
     scan: StgPtr,
 }
 
-#[cfg(feature = "sys")]
-impl From<bdescr___bindgen_ty_2> for sys::bdescr___bindgen_ty_2 {
-    fn from(x: bdescr___bindgen_ty_2) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {testsuite}
+#[ffi(testsuite)]
 pub type bdescr = bdescr_;
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn allocAlignedGroupOnNode(node: u32, n: W_) -> *mut bdescr {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::allocAlignedGroupOnNode(node, n) as *mut bdescr
+    sys! {
+        allocAlignedGroupOnNode(node, n).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("allocAlignedGroupOnNode")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn allocGroup_lock(n: W_) -> *mut bdescr {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::allocGroup_lock(n) as *mut bdescr
+    sys! {
+        allocGroup_lock(n).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("allocGroup_lock")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn freeGroup_lock(p: *mut bdescr) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::freeGroup_lock(p as *mut sys::bdescr)
+    sys! {
+        freeGroup_lock(p as * mut sys::bdescr)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("freeGroup_lock")
 }

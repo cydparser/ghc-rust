@@ -16,13 +16,6 @@ pub struct StgProfHeader {
     hp: StgProfHeader__bindgen_ty_1,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgProfHeader> for sys::StgProfHeader {
-    fn from(x: StgProfHeader) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 #[repr(C)]
 pub(crate) union StgProfHeader__bindgen_ty_1 {
     trav: StgWord,
@@ -30,25 +23,11 @@ pub(crate) union StgProfHeader__bindgen_ty_1 {
     era: StgWord,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgProfHeader__bindgen_ty_1> for sys::StgProfHeader__bindgen_ty_1 {
-    fn from(x: StgProfHeader__bindgen_ty_1) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 /// cbindgen:no-export
 #[repr(C)]
 #[cfg_attr(test, derive(Clone))]
 pub struct StgSMPThunkHeader {
     pad: StgWord,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgSMPThunkHeader> for sys::StgSMPThunkHeader {
-    fn from(x: StgSMPThunkHeader) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]
@@ -60,18 +39,11 @@ impl Arbitrary for StgSMPThunkHeader {
     }
 }
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgHeader {
     pub info: *const StgInfoTable,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgHeader> for sys::StgHeader {
-    fn from(x: StgHeader) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 /// cbindgen:no-export
@@ -81,14 +53,7 @@ pub struct StgThunkHeader {
     smp: StgSMPThunkHeader,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgThunkHeader> for sys::StgThunkHeader {
-    fn from(x: StgThunkHeader) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {driver, libraries, testsuite, utils}
+#[ffi(compiler, driver, ghc_lib, testsuite, utils)]
 pub type StgClosure = StgClosure_;
 
 /// cbindgen:no-export
@@ -99,14 +64,7 @@ pub struct StgClosure_ {
     payload: __IncompleteArrayField<*mut StgClosure_>,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgClosure_> for sys::StgClosure_ {
-    fn from(x: StgClosure_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type StgClosurePtr = *mut StgClosure_;
 
 /// cbindgen:no-export
@@ -116,13 +74,6 @@ pub struct StgThunk_ {
     payload: __IncompleteArrayField<*mut StgClosure_>,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgThunk_> for sys::StgThunk_ {
-    fn from(x: StgThunk_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 pub(crate) type StgThunk = StgThunk_;
 
 /// cbindgen:no-export
@@ -130,13 +81,6 @@ pub(crate) type StgThunk = StgThunk_;
 pub struct StgSelector {
     header: StgThunkHeader,
     selectee: *mut StgClosure,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgSelector> for sys::StgSelector {
-    fn from(x: StgSelector) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 /// cbindgen:no-export
@@ -149,28 +93,14 @@ pub struct StgPAP {
     payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgPAP> for sys::StgPAP {
-    fn from(x: StgPAP) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// cbindgen:no-export
+#[ffi(compiler)]
 #[repr(C)]
 pub struct StgAP {
-    header: StgThunkHeader,
-    arity: StgHalfWord,
-    n_args: StgHalfWord,
-    fun: *mut StgClosure,
-    payload: __IncompleteArrayField<*mut StgClosure>,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgAP> for sys::StgAP {
-    fn from(x: StgAP) -> Self {
-        unsafe { transmute(x) }
-    }
+    pub header: StgThunkHeader,
+    pub arity: StgHalfWord,
+    pub n_args: StgHalfWord,
+    pub fun: *mut StgClosure,
+    pub payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
 /// cbindgen:no-export
@@ -182,26 +112,12 @@ pub struct StgAP_STACK {
     payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgAP_STACK> for sys::StgAP_STACK {
-    fn from(x: StgAP_STACK) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgInd {
     pub header: StgHeader,
     pub indirectee: *mut StgClosure,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgInd> for sys::StgInd {
-    fn from(x: StgInd) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 /// cbindgen:no-export
@@ -212,13 +128,6 @@ pub struct StgIndStatic {
     indirectee: *mut StgClosure,
     static_link: *mut StgClosure,
     saved_info: *const StgInfoTable,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgIndStatic> for sys::StgIndStatic {
-    fn from(x: StgIndStatic) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 /// cbindgen:no-export
@@ -232,28 +141,14 @@ pub struct StgBlockingQueue_ {
     queue: *mut MessageBlackHole_,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgBlockingQueue_> for sys::StgBlockingQueue_ {
-    fn from(x: StgBlockingQueue_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 pub(crate) type StgBlockingQueue = StgBlockingQueue_;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub struct StgArrBytes {
     pub header: StgHeader,
     pub bytes: StgWord,
     pub payload: __IncompleteArrayField<StgWord>,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgArrBytes> for sys::StgArrBytes {
-    fn from(x: StgArrBytes) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 /// cbindgen:no-export
@@ -265,14 +160,7 @@ pub struct _StgMutArrPtrs {
     payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
-#[cfg(feature = "sys")]
-impl From<_StgMutArrPtrs> for sys::_StgMutArrPtrs {
-    fn from(x: _StgMutArrPtrs) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(compiler, ghc_lib)]
 pub type StgMutArrPtrs = _StgMutArrPtrs;
 
 /// cbindgen:no-export
@@ -283,26 +171,12 @@ pub struct StgSmallMutArrPtrs {
     payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgSmallMutArrPtrs> for sys::StgSmallMutArrPtrs {
-    fn from(x: StgSmallMutArrPtrs) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgMutVar {
     header: StgHeader,
     var: *mut StgClosure,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgMutVar> for sys::StgMutVar {
-    fn from(x: StgMutVar) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 /// cbindgen:no-export
@@ -313,14 +187,7 @@ pub struct _StgUpdateFrame {
     updatee: *mut StgClosure,
 }
 
-#[cfg(feature = "sys")]
-impl From<_StgUpdateFrame> for sys::_StgUpdateFrame {
-    fn from(x: _StgUpdateFrame) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type StgUpdateFrame = _StgUpdateFrame;
 
 /// cbindgen:no-export
@@ -329,13 +196,6 @@ pub type StgUpdateFrame = _StgUpdateFrame;
 pub struct _StgOrigThunkInfoFrame {
     header: StgHeader,
     info_ptr: *mut StgInfoTable,
-}
-
-#[cfg(feature = "sys")]
-impl From<_StgOrigThunkInfoFrame> for sys::_StgOrigThunkInfoFrame {
-    fn from(x: _StgOrigThunkInfoFrame) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 pub(crate) type StgOrigThunkInfoFrame = _StgOrigThunkInfoFrame;
@@ -348,14 +208,7 @@ pub struct StgKeepAliveFrame {
     c: *mut StgClosure,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgKeepAliveFrame> for sys::StgKeepAliveFrame {
-    fn from(x: StgKeepAliveFrame) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgCatchFrame {
@@ -363,14 +216,7 @@ pub struct StgCatchFrame {
     pub handler: *mut StgClosure,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgCatchFrame> for sys::StgCatchFrame {
-    fn from(x: StgCatchFrame) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgUnderflowFrame {
@@ -378,25 +224,11 @@ pub struct StgUnderflowFrame {
     pub next_chunk: *mut StgStack_,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgUnderflowFrame> for sys::StgUnderflowFrame {
-    fn from(x: StgUnderflowFrame) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgStopFrame {
     pub header: StgHeader,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgStopFrame> for sys::StgStopFrame {
-    fn from(x: StgStopFrame) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 /// cbindgen:no-export
@@ -407,14 +239,15 @@ pub struct StgDeadThreadFrame {
     result: *mut StgClosure,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgDeadThreadFrame> for sys::StgDeadThreadFrame {
-    fn from(x: StgDeadThreadFrame) -> Self {
-        unsafe { transmute(x) }
-    }
+/// cbindgen:no-export
+#[repr(C)]
+#[derive(Debug)]
+pub struct StgAnnFrame {
+    header: StgHeader,
+    ann: *mut StgClosure,
 }
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 #[repr(C)]
 pub struct StgRetFun {
     pub info: *const StgInfoTable,
@@ -423,25 +256,11 @@ pub struct StgRetFun {
     pub payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgRetFun> for sys::StgRetFun {
-    fn from(x: StgRetFun) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 /// cbindgen:no-export
 #[repr(C)]
 pub struct StgIntCharlikeClosure {
-    header: StgHeader,
-    data: StgWord,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgIntCharlikeClosure> for sys::StgIntCharlikeClosure {
-    fn from(x: StgIntCharlikeClosure) -> Self {
-        unsafe { transmute(x) }
-    }
+    pub(crate) header: StgHeader,
+    pub(crate) data: StgWord,
 }
 
 /// cbindgen:no-export
@@ -449,13 +268,6 @@ impl From<StgIntCharlikeClosure> for sys::StgIntCharlikeClosure {
 pub struct _StgStableName {
     header: StgHeader,
     sn: StgWord,
-}
-
-#[cfg(feature = "sys")]
-impl From<_StgStableName> for sys::_StgStableName {
-    fn from(x: _StgStableName) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 pub(crate) type StgStableName = _StgStableName;
@@ -472,13 +284,6 @@ pub struct _StgWeak {
     link: *mut _StgWeak,
 }
 
-#[cfg(feature = "sys")]
-impl From<_StgWeak> for sys::_StgWeak {
-    fn from(x: _StgWeak) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 pub(crate) type StgWeak = _StgWeak;
 
 /// cbindgen:no-export
@@ -492,16 +297,9 @@ pub struct _StgCFinalizerList {
     flag: StgWord,
 }
 
-#[cfg(feature = "sys")]
-impl From<_StgCFinalizerList> for sys::_StgCFinalizerList {
-    fn from(x: _StgCFinalizerList) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 pub(crate) type StgCFinalizerList = _StgCFinalizerList;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub struct StgBCO {
     pub header: StgHeader,
@@ -513,13 +311,6 @@ pub struct StgBCO {
     pub bitmap: __IncompleteArrayField<StgWord>,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgBCO> for sys::StgBCO {
-    fn from(x: StgBCO) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
@@ -529,30 +320,16 @@ pub struct StgMVarTSOQueue_ {
     tso: *mut StgTSO_,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgMVarTSOQueue_> for sys::StgMVarTSOQueue_ {
-    fn from(x: StgMVarTSOQueue_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 pub(crate) type StgMVarTSOQueue = StgMVarTSOQueue_;
 
-/// cbindgen:no-export
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgMVar {
-    header: StgHeader,
-    head: *mut StgMVarTSOQueue_,
-    tail: *mut StgMVarTSOQueue_,
-    value: *mut StgClosure,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgMVar> for sys::StgMVar {
-    fn from(x: StgMVar) -> Self {
-        unsafe { transmute(x) }
-    }
+    pub header: StgHeader,
+    pub head: *mut StgMVarTSOQueue_,
+    pub tail: *mut StgMVarTSOQueue_,
+    pub value: *mut StgClosure,
 }
 
 pub(crate) type StgTRecHeader = StgTRecHeader_;
@@ -567,13 +344,6 @@ pub struct StgTVarWatchQueue_ {
     prev_queue_entry: *mut StgTVarWatchQueue_,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgTVarWatchQueue_> for sys::StgTVarWatchQueue_ {
-    fn from(x: StgTVarWatchQueue_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 pub(crate) type StgTVarWatchQueue = StgTVarWatchQueue_;
 
 /// cbindgen:no-export
@@ -585,13 +355,6 @@ pub struct StgTVar {
     num_updates: StgInt,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgTVar> for sys::StgTVar {
-    fn from(x: StgTVar) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
@@ -599,13 +362,6 @@ pub struct TRecEntry {
     tvar: *mut StgTVar,
     expected_value: *mut StgClosure,
     new_value: *mut StgClosure,
-}
-
-#[cfg(feature = "sys")]
-impl From<TRecEntry> for sys::TRecEntry {
-    fn from(x: TRecEntry) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 /// cbindgen:no-export
@@ -617,13 +373,6 @@ pub struct StgTRecChunk_ {
     entries: [TRecEntry; 16usize],
 }
 
-#[cfg(feature = "sys")]
-impl From<StgTRecChunk_> for sys::StgTRecChunk_ {
-    fn from(x: StgTRecChunk_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 pub(crate) type StgTRecChunk = StgTRecChunk_;
 
 #[repr(u32)]
@@ -633,6 +382,46 @@ pub(crate) enum TRecState {
     TREC_CONDEMNED = 1,
     TREC_ABORTED = 2,
     TREC_WAITING = 3,
+}
+
+#[cfg(feature = "sys")]
+impl From<TRecState> for sys::TRecState {
+    fn from(v: TRecState) -> Self {
+        use TRecState::*;
+        match v {
+            TREC_ACTIVE => sys::TRecState::TREC_ACTIVE,
+            TREC_CONDEMNED => sys::TRecState::TREC_CONDEMNED,
+            TREC_ABORTED => sys::TRecState::TREC_ABORTED,
+            TREC_WAITING => sys::TRecState::TREC_WAITING,
+        }
+    }
+}
+
+#[cfg(feature = "sys")]
+impl From<sys::TRecState> for TRecState {
+    fn from(v: sys::TRecState) -> Self {
+        use TRecState::*;
+        match v {
+            sys::TRecState::TREC_ACTIVE => TREC_ACTIVE,
+            sys::TRecState::TREC_CONDEMNED => TREC_CONDEMNED,
+            sys::TRecState::TREC_ABORTED => TREC_ABORTED,
+            sys::TRecState::TREC_WAITING => TREC_WAITING,
+        }
+    }
+}
+
+impl TryFrom<u32> for TRecState {
+    type Error = ();
+    fn try_from(d: u32) -> Result<TRecState, ()> {
+        use TRecState::*;
+        match d {
+            0 => Ok(TREC_ACTIVE),
+            1 => Ok(TREC_CONDEMNED),
+            2 => Ok(TREC_ABORTED),
+            3 => Ok(TREC_WAITING),
+            _ => Err(()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -658,14 +447,7 @@ pub struct StgTRecHeader_ {
     state: TRecState,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgTRecHeader_> for sys::StgTRecHeader_ {
-    fn from(x: StgTRecHeader_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgAtomicallyFrame {
@@ -674,14 +456,7 @@ pub struct StgAtomicallyFrame {
     pub result: *mut StgClosure,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgAtomicallyFrame> for sys::StgAtomicallyFrame {
-    fn from(x: StgAtomicallyFrame) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgCatchSTMFrame {
@@ -690,27 +465,13 @@ pub struct StgCatchSTMFrame {
     pub handler: *mut StgClosure,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgCatchSTMFrame> for sys::StgCatchSTMFrame {
-    fn from(x: StgCatchSTMFrame) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 #[repr(C)]
 pub struct StgCatchRetryFrame {
     pub header: StgHeader,
     pub running_alt_code: StgWord,
     pub first_code: *mut StgClosure,
     pub alt_code: *mut StgClosure,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgCatchRetryFrame> for sys::StgCatchRetryFrame {
-    fn from(x: StgCatchRetryFrame) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 /// cbindgen:no-export
@@ -721,14 +482,7 @@ pub struct Message_ {
     link: *mut Message_,
 }
 
-#[cfg(feature = "sys")]
-impl From<Message_> for sys::Message_ {
-    fn from(x: Message_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(compiler, ghc_lib, libraries)]
 pub type Message = Message_;
 
 /// cbindgen:no-export
@@ -738,13 +492,6 @@ pub struct MessageWakeup_ {
     header: StgHeader,
     link: *mut Message,
     tso: *mut StgTSO,
-}
-
-#[cfg(feature = "sys")]
-impl From<MessageWakeup_> for sys::MessageWakeup_ {
-    fn from(x: MessageWakeup_) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 pub(crate) type MessageWakeup = MessageWakeup_;
@@ -760,13 +507,6 @@ pub struct MessageThrowTo_ {
     exception: *mut StgClosure,
 }
 
-#[cfg(feature = "sys")]
-impl From<MessageThrowTo_> for sys::MessageThrowTo_ {
-    fn from(x: MessageThrowTo_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 pub(crate) type MessageThrowTo = MessageThrowTo_;
 
 /// cbindgen:no-export
@@ -777,13 +517,6 @@ pub struct MessageBlackHole_ {
     link: *mut MessageBlackHole_,
     tso: *mut StgTSO,
     bh: *mut StgClosure,
-}
-
-#[cfg(feature = "sys")]
-impl From<MessageBlackHole_> for sys::MessageBlackHole_ {
-    fn from(x: MessageBlackHole_) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 pub(crate) type MessageBlackHole = MessageBlackHole_;
@@ -798,14 +531,8 @@ pub struct MessageCloneStack_ {
     tso: *mut StgTSO,
 }
 
-#[cfg(feature = "sys")]
-impl From<MessageCloneStack_> for sys::MessageCloneStack_ {
-    fn from(x: MessageCloneStack_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-pub(crate) type MessageCloneStack = MessageCloneStack_;
+#[ffi(ghc_lib)]
+pub type MessageCloneStack = MessageCloneStack_;
 
 /// cbindgen:no-export
 #[repr(C)]
@@ -814,13 +541,6 @@ pub struct StgCompactNFDataBlock_ {
     self_: *mut StgCompactNFDataBlock_,
     owner: *mut StgCompactNFData_,
     next: *mut StgCompactNFDataBlock_,
-}
-
-#[cfg(feature = "sys")]
-impl From<StgCompactNFDataBlock_> for sys::StgCompactNFDataBlock_ {
-    fn from(x: StgCompactNFDataBlock_) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 pub(crate) type StgCompactNFDataBlock = StgCompactNFDataBlock_;
@@ -840,13 +560,6 @@ pub struct StgCompactNFData_ {
     link: *mut StgCompactNFData_,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgCompactNFData_> for sys::StgCompactNFData_ {
-    fn from(x: StgCompactNFData_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 pub(crate) type StgCompactNFData = StgCompactNFData_;
 
 pub(crate) type StgPromptTag = *mut StgClosure;
@@ -859,13 +572,6 @@ pub struct StgPromptFrame {
     tag: StgPromptTag,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgPromptFrame> for sys::StgPromptFrame {
-    fn from(x: StgPromptFrame) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 /// cbindgen:no-export
 #[repr(C)]
 pub struct StgContinuation {
@@ -876,26 +582,12 @@ pub struct StgContinuation {
     stack: __IncompleteArrayField<StgWord>,
 }
 
-#[cfg(feature = "sys")]
-impl From<StgContinuation> for sys::StgContinuation {
-    fn from(x: StgContinuation) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {utils}
+#[ffi(compiler, utils)]
 #[repr(C)]
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
 pub struct hashtable {
     pub _address: u8,
-}
-
-#[cfg(feature = "sys")]
-impl From<hashtable> for sys::hashtable {
-    fn from(x: hashtable) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]

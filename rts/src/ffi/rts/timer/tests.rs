@@ -13,7 +13,7 @@ fn equivalent_startTimer() {
         unsafe { startTimer() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -41,7 +41,7 @@ fn equivalent_stopTimer() {
         unsafe { stopTimer() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -62,7 +62,7 @@ fn test_stopTimer() {
 fn equivalent_rtsTimerSignal() {
     let expected: c_int = { unsafe { sys::rtsTimerSignal() } };
     let actual: c_int = { unsafe { rtsTimerSignal() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]

@@ -1,6 +1,18 @@
-#![allow(unused_imports)]
 use super::*;
-use crate::prelude::*;
+
+#[cfg(feature = "sys")]
+#[test]
+#[expect(static_mut_refs)]
+fn sys_mblocks_allocated_layout() {
+    assert_eq!(
+        size_of_val(unsafe { &mblocks_allocated }),
+        size_of_val(unsafe { &sys::mblocks_allocated })
+    );
+    assert_eq!(
+        align_of_val(unsafe { &mblocks_allocated }),
+        align_of_val(unsafe { &sys::mblocks_allocated })
+    );
+}
 
 #[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
@@ -15,7 +27,7 @@ fn equivalent_getMBlocks(n: u32) -> bool {
         let result: &c_void = unsafe { &*getMBlocks(n) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -48,7 +60,7 @@ fn equivalent_freeMBlocks(n: u32) -> bool {
         unsafe { freeMBlocks(&raw mut addr, n) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -80,7 +92,7 @@ fn equivalent_releaseFreeMemory() {
         unsafe { releaseFreeMemory() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]

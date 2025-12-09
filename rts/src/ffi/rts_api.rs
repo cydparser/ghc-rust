@@ -17,7 +17,7 @@ pub use crate::capability::Capability;
 #[cfg(test)]
 mod tests;
 
-/// - GHC_PLACES: {testsuite}
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
 #[repr(u32)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
 pub enum SchedulerStatus {
@@ -27,6 +27,52 @@ pub enum SchedulerStatus {
     Interrupted = 3,
     HeapExhausted = 4,
     SchedulerStatus_End = 5,
+}
+
+#[cfg(feature = "sys")]
+impl From<SchedulerStatus> for sys::SchedulerStatus {
+    fn from(v: SchedulerStatus) -> Self {
+        use SchedulerStatus::*;
+        match v {
+            NoStatus => sys::SchedulerStatus::NoStatus,
+            Success => sys::SchedulerStatus::Success,
+            Killed => sys::SchedulerStatus::Killed,
+            Interrupted => sys::SchedulerStatus::Interrupted,
+            HeapExhausted => sys::SchedulerStatus::HeapExhausted,
+            SchedulerStatus_End => sys::SchedulerStatus::SchedulerStatus_End,
+        }
+    }
+}
+
+#[cfg(feature = "sys")]
+impl From<sys::SchedulerStatus> for SchedulerStatus {
+    fn from(v: sys::SchedulerStatus) -> Self {
+        use SchedulerStatus::*;
+        match v {
+            sys::SchedulerStatus::NoStatus => NoStatus,
+            sys::SchedulerStatus::Success => Success,
+            sys::SchedulerStatus::Killed => Killed,
+            sys::SchedulerStatus::Interrupted => Interrupted,
+            sys::SchedulerStatus::HeapExhausted => HeapExhausted,
+            sys::SchedulerStatus::SchedulerStatus_End => SchedulerStatus_End,
+        }
+    }
+}
+
+impl TryFrom<u32> for SchedulerStatus {
+    type Error = ();
+    fn try_from(d: u32) -> Result<SchedulerStatus, ()> {
+        use SchedulerStatus::*;
+        match d {
+            0 => Ok(NoStatus),
+            1 => Ok(Success),
+            2 => Ok(Killed),
+            3 => Ok(Interrupted),
+            4 => Ok(HeapExhausted),
+            5 => Ok(SchedulerStatus_End),
+            _ => Err(()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -44,7 +90,7 @@ impl Arbitrary for SchedulerStatus {
     }
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type HaskellObj = *mut StgClosure_;
 
 /// cbindgen:no-export
@@ -54,27 +100,16 @@ pub struct PauseToken_ {
     _unused: [u8; 0],
 }
 
-#[cfg(feature = "sys")]
-impl From<PauseToken_> for sys::PauseToken_ {
-    fn from(x: PauseToken_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries, testsuite}
+#[ffi(ghc_lib, testsuite)]
 pub type PauseToken = PauseToken_;
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn pauseTokenCapability(pauseToken: *mut PauseToken) -> *mut Capability {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::pauseTokenCapability(pauseToken as *mut sys::PauseToken) as *mut Capability
+    sys! {
+        pauseTokenCapability(pauseToken as * mut sys::PauseToken).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("pauseTokenCapability")
 }
 
 /// cbindgen:no-export
@@ -84,15 +119,9 @@ pub struct CapabilityPublic_ {
     r: StgRegTable,
 }
 
-#[cfg(feature = "sys")]
-impl From<CapabilityPublic_> for sys::CapabilityPublic_ {
-    fn from(x: CapabilityPublic_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 pub(crate) type CapabilityPublic = CapabilityPublic_;
 
+#[ffi(compiler, testsuite, utils)]
 #[repr(u32)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
 pub enum RtsOptsEnabledEnum {
@@ -101,6 +130,49 @@ pub enum RtsOptsEnabledEnum {
     RtsOptsIgnoreAll = 2,
     RtsOptsSafeOnly = 3,
     RtsOptsAll = 4,
+}
+
+#[cfg(feature = "sys")]
+impl From<RtsOptsEnabledEnum> for sys::RtsOptsEnabledEnum {
+    fn from(v: RtsOptsEnabledEnum) -> Self {
+        use RtsOptsEnabledEnum::*;
+        match v {
+            RtsOptsNone => sys::RtsOptsEnabledEnum::RtsOptsNone,
+            RtsOptsIgnore => sys::RtsOptsEnabledEnum::RtsOptsIgnore,
+            RtsOptsIgnoreAll => sys::RtsOptsEnabledEnum::RtsOptsIgnoreAll,
+            RtsOptsSafeOnly => sys::RtsOptsEnabledEnum::RtsOptsSafeOnly,
+            RtsOptsAll => sys::RtsOptsEnabledEnum::RtsOptsAll,
+        }
+    }
+}
+
+#[cfg(feature = "sys")]
+impl From<sys::RtsOptsEnabledEnum> for RtsOptsEnabledEnum {
+    fn from(v: sys::RtsOptsEnabledEnum) -> Self {
+        use RtsOptsEnabledEnum::*;
+        match v {
+            sys::RtsOptsEnabledEnum::RtsOptsNone => RtsOptsNone,
+            sys::RtsOptsEnabledEnum::RtsOptsIgnore => RtsOptsIgnore,
+            sys::RtsOptsEnabledEnum::RtsOptsIgnoreAll => RtsOptsIgnoreAll,
+            sys::RtsOptsEnabledEnum::RtsOptsSafeOnly => RtsOptsSafeOnly,
+            sys::RtsOptsEnabledEnum::RtsOptsAll => RtsOptsAll,
+        }
+    }
+}
+
+impl TryFrom<u32> for RtsOptsEnabledEnum {
+    type Error = ();
+    fn try_from(d: u32) -> Result<RtsOptsEnabledEnum, ()> {
+        use RtsOptsEnabledEnum::*;
+        match d {
+            0 => Ok(RtsOptsNone),
+            1 => Ok(RtsOptsIgnore),
+            2 => Ok(RtsOptsIgnoreAll),
+            3 => Ok(RtsOptsSafeOnly),
+            4 => Ok(RtsOptsAll),
+            _ => Err(()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -117,7 +189,7 @@ impl Arbitrary for RtsOptsEnabledEnum {
     }
 }
 
-/// - GHC_PLACES: {driver, testsuite, utils}
+#[ffi(compiler, driver, testsuite, utils)]
 #[repr(C)]
 pub struct RtsConfig {
     pub rts_opts_enabled: RtsOptsEnabledEnum,
@@ -136,16 +208,9 @@ pub struct RtsConfig {
     pub longGCSyncEnd: Option<unsafe extern "C" fn(time_ns: Time)>,
 }
 
-#[cfg(feature = "sys")]
-impl From<RtsConfig> for sys::RtsConfig {
-    fn from(x: RtsConfig) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 // #[ffi(compiler, testsuite, utils)]
 // #[unsafe(no_mangle)]
-// TODO(rust): pub static defaultRtsConfig: RtsConfig;
+// TODO(rust): pub static defaultRtsConfig: RtsConfig = todo!();
 
 /// cbindgen:no-export
 #[repr(C)]
@@ -171,13 +236,6 @@ pub struct GCDetails_ {
     nonmoving_gc_sync_elapsed_ns: Time,
     nonmoving_gc_cpu_ns: Time,
     nonmoving_gc_elapsed_ns: Time,
-}
-
-#[cfg(feature = "sys")]
-impl From<GCDetails_> for sys::GCDetails_ {
-    fn from(x: GCDetails_) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]
@@ -207,7 +265,7 @@ impl Arbitrary for GCDetails_ {
     }
 }
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type GCDetails = GCDetails_;
 
 /// cbindgen:no-export
@@ -246,13 +304,6 @@ pub struct _RTSStats {
     nonmoving_gc_cpu_ns: Time,
     nonmoving_gc_elapsed_ns: Time,
     nonmoving_gc_max_elapsed_ns: Time,
-}
-
-#[cfg(feature = "sys")]
-impl From<_RTSStats> for sys::_RTSStats {
-    fn from(x: _RTSStats) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]
@@ -294,63 +345,46 @@ impl Arbitrary for _RTSStats {
     }
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
+#[ffi(ghc_lib, testsuite)]
 pub type RTSStats = _RTSStats;
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getRTSStats(s: *mut RTSStats) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::getRTSStats(s as *mut sys::RTSStats)
+    sys! {
+        getRTSStats(s as * mut sys::RTSStats)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("getRTSStats")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getRTSStatsEnabled() -> c_int {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::getRTSStatsEnabled()
+    sys! {
+        getRTSStatsEnabled()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("getRTSStatsEnabled")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getAllocations() -> u64 {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::getAllocations()
+    sys! {
+        getAllocations()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("getAllocations")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_init_with_rtsopts(argc: *mut c_int, argv: *mut *mut *mut c_char) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::hs_init_with_rtsopts(argc, argv)
+    sys! {
+        hs_init_with_rtsopts(argc, argv)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("hs_init_with_rtsopts")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(compiler, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_init_ghc(
@@ -358,378 +392,264 @@ pub unsafe extern "C" fn hs_init_ghc(
     argv: *mut *mut *mut c_char,
     rts_config: RtsConfig,
 ) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::hs_init_ghc(argc, argv, transmute(rts_config))
+    sys! {
+        hs_init_ghc(argc, argv, transmute(rts_config))
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("hs_init_ghc")
 }
 
-/// - GHC_PLACES: {libraries, utils}
-#[ffi]
+#[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shutdownHaskellAndExit(exitCode: c_int, fastExit: c_int) -> ! {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::shutdownHaskellAndExit(exitCode, fastExit)
+    before_exit("shutdownHaskellAndExit");
+    sys! {
+        shutdownHaskellAndExit(exitCode, fastExit)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("shutdownHaskellAndExit")
 }
 
-/// - GHC_PLACES: {libraries, utils}
-#[ffi]
+#[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shutdownHaskellAndSignal(sig: c_int, fastExit: c_int) -> ! {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::shutdownHaskellAndSignal(sig, fastExit)
+    before_exit("shutdownHaskellAndSignal");
+    sys! {
+        shutdownHaskellAndSignal(sig, fastExit)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("shutdownHaskellAndSignal")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(ghc_lib, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getProgArgv(argc: *mut c_int, argv: *mut *mut *mut c_char) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::getProgArgv(argc, argv)
+    sys! {
+        getProgArgv(argc, argv)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("getProgArgv")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setProgArgv(argc: c_int, argv: *mut *mut c_char) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::setProgArgv(argc, argv)
+    sys! {
+        setProgArgv(argc, argv)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("setProgArgv")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib, libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getFullProgArgv(argc: *mut c_int, argv: *mut *mut *mut c_char) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::getFullProgArgv(argc, argv)
+    sys! {
+        getFullProgArgv(argc, argv)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("getFullProgArgv")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(compiler, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_lock() -> *mut Capability {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_lock() as *mut Capability
+    sys! {
+        rts_lock().cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_lock")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(compiler, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_unlock(token: *mut Capability) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_unlock(token as *mut sys::Capability)
+    sys! {
+        rts_unlock(token as * mut sys::Capability)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_unlock")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_unsafeGetMyCapability() -> *mut Capability {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_unsafeGetMyCapability() as *mut Capability
+    sys! {
+        rts_unsafeGetMyCapability().cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_unsafeGetMyCapability")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_setInCallCapability(preferred_capability: c_int, affinity: c_int) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_setInCallCapability(preferred_capability, affinity)
+    sys! {
+        rts_setInCallCapability(preferred_capability, affinity)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_setInCallCapability")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_pinThreadToNumaNode(node: c_int) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_pinThreadToNumaNode(node)
+    sys! {
+        rts_pinThreadToNumaNode(node)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_pinThreadToNumaNode")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkChar(arg1: *mut Capability, c: HsChar) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkChar(arg1 as *mut sys::Capability, c) as HaskellObj
+    sys! {
+        rts_mkChar(arg1 as * mut sys::Capability, c).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkChar")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(compiler, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt(arg1: *mut Capability, i: HsInt) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkInt(arg1 as *mut sys::Capability, i) as HaskellObj
+    sys! {
+        rts_mkInt(arg1 as * mut sys::Capability, i).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkInt")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt8(arg1: *mut Capability, i: HsInt8) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkInt8(arg1 as *mut sys::Capability, i) as HaskellObj
+    sys! {
+        rts_mkInt8(arg1 as * mut sys::Capability, i).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkInt8")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt16(arg1: *mut Capability, i: HsInt16) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkInt16(arg1 as *mut sys::Capability, i) as HaskellObj
+    sys! {
+        rts_mkInt16(arg1 as * mut sys::Capability, i).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkInt16")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt32(arg1: *mut Capability, i: HsInt32) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkInt32(arg1 as *mut sys::Capability, i) as HaskellObj
+    sys! {
+        rts_mkInt32(arg1 as * mut sys::Capability, i).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkInt32")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt64(arg1: *mut Capability, i: HsInt64) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkInt64(arg1 as *mut sys::Capability, i) as HaskellObj
+    sys! {
+        rts_mkInt64(arg1 as * mut sys::Capability, i).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkInt64")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord(arg1: *mut Capability, w: HsWord) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkWord(arg1 as *mut sys::Capability, w) as HaskellObj
+    sys! {
+        rts_mkWord(arg1 as * mut sys::Capability, w).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkWord")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord8(arg1: *mut Capability, w: HsWord8) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkWord8(arg1 as *mut sys::Capability, w) as HaskellObj
+    sys! {
+        rts_mkWord8(arg1 as * mut sys::Capability, w).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkWord8")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord16(arg1: *mut Capability, w: HsWord16) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkWord16(arg1 as *mut sys::Capability, w) as HaskellObj
+    sys! {
+        rts_mkWord16(arg1 as * mut sys::Capability, w).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkWord16")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord32(arg1: *mut Capability, w: HsWord32) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkWord32(arg1 as *mut sys::Capability, w) as HaskellObj
+    sys! {
+        rts_mkWord32(arg1 as * mut sys::Capability, w).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkWord32")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord64(arg1: *mut Capability, w: HsWord64) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkWord64(arg1 as *mut sys::Capability, w) as HaskellObj
+    sys! {
+        rts_mkWord64(arg1 as * mut sys::Capability, w).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkWord64")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkPtr(arg1: *mut Capability, a: HsPtr) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkPtr(arg1 as *mut sys::Capability, a) as HaskellObj
+    sys! {
+        rts_mkPtr(arg1 as * mut sys::Capability, a).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkPtr")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkFunPtr(arg1: *mut Capability, a: HsFunPtr) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkFunPtr(arg1 as *mut sys::Capability, a) as HaskellObj
+    sys! {
+        rts_mkFunPtr(arg1 as * mut sys::Capability, a).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkFunPtr")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkFloat(arg1: *mut Capability, f: HsFloat) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkFloat(arg1 as *mut sys::Capability, f) as HaskellObj
+    sys! {
+        rts_mkFloat(arg1 as * mut sys::Capability, f).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkFloat")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkDouble(arg1: *mut Capability, f: HsDouble) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkDouble(arg1 as *mut sys::Capability, f) as HaskellObj
+    sys! {
+        rts_mkDouble(arg1 as * mut sys::Capability, f).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkDouble")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkStablePtr(arg1: *mut Capability, s: HsStablePtr) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkStablePtr(arg1 as *mut sys::Capability, s) as HaskellObj
+    sys! {
+        rts_mkStablePtr(arg1 as * mut sys::Capability, s).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkStablePtr")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(compiler, ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkBool(arg1: *mut Capability, b: HsBool) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkBool(arg1 as *mut sys::Capability, b) as HaskellObj
+    sys! {
+        rts_mkBool(arg1 as * mut sys::Capability, b).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkBool")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkString(arg1: *mut Capability, s: *mut c_char) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_mkString(arg1 as *mut sys::Capability, s) as HaskellObj
+    sys! {
+        rts_mkString(arg1 as * mut sys::Capability, s).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_mkString")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(compiler, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_apply(
@@ -737,258 +657,175 @@ pub unsafe extern "C" fn rts_apply(
     arg2: HaskellObj,
     arg3: HaskellObj,
 ) -> HaskellObj {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_apply(
-            arg1 as *mut sys::Capability,
-            arg2 as sys::HaskellObj,
-            arg3 as sys::HaskellObj,
-        ) as HaskellObj
+    sys! {
+        rts_apply(arg1 as * mut sys::Capability, arg2.cast(), arg3.cast()).cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_apply")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getChar(arg1: HaskellObj) -> HsChar {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getChar(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getChar(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getChar")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getInt(arg1: HaskellObj) -> HsInt {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getInt(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getInt(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getInt")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getInt8(arg1: HaskellObj) -> HsInt8 {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getInt8(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getInt8(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getInt8")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getInt16(arg1: HaskellObj) -> HsInt16 {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getInt16(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getInt16(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getInt16")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getInt32(arg1: HaskellObj) -> HsInt32 {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getInt32(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getInt32(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getInt32")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getInt64(arg1: HaskellObj) -> HsInt64 {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getInt64(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getInt64(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getInt64")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getWord(arg1: HaskellObj) -> HsWord {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getWord(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getWord(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getWord")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getWord8(arg1: HaskellObj) -> HsWord8 {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getWord8(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getWord8(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getWord8")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getWord16(arg1: HaskellObj) -> HsWord16 {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getWord16(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getWord16(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getWord16")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getWord32(arg1: HaskellObj) -> HsWord32 {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getWord32(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getWord32(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getWord32")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getWord64(arg1: HaskellObj) -> HsWord64 {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getWord64(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getWord64(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getWord64")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getPtr(arg1: HaskellObj) -> HsPtr {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getPtr(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getPtr(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getPtr")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getFunPtr(arg1: HaskellObj) -> HsFunPtr {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getFunPtr(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getFunPtr(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getFunPtr")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getFloat(arg1: HaskellObj) -> HsFloat {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getFloat(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getFloat(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getFloat")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getDouble(arg1: HaskellObj) -> HsDouble {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getDouble(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getDouble(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getDouble")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getStablePtr(arg1: HaskellObj) -> HsStablePtr {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getStablePtr(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getStablePtr(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getStablePtr")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getBool(arg1: HaskellObj) -> HsBool {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_getBool(arg1 as sys::HaskellObj)
+    sys! {
+        rts_getBool(arg1.cast())
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getBool")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_eval(arg1: *mut *mut Capability, p: HaskellObj, ret: *mut HaskellObj) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_eval(
-            arg1 as *mut *mut sys::Capability,
-            p as sys::HaskellObj,
-            ret as *mut sys::HaskellObj,
-        )
+    sys! {
+        rts_eval(arg1 as * mut * mut sys::Capability, p.cast(), ret as * mut
+        sys::HaskellObj)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_eval")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_eval_(
@@ -997,21 +834,13 @@ pub unsafe extern "C" fn rts_eval_(
     stack_size: c_uint,
     ret: *mut HaskellObj,
 ) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_eval_(
-            arg1 as *mut *mut sys::Capability,
-            p as sys::HaskellObj,
-            stack_size,
-            ret as *mut sys::HaskellObj,
-        )
+    sys! {
+        rts_eval_(arg1 as * mut * mut sys::Capability, p.cast(), stack_size, ret as * mut
+        sys::HaskellObj)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_eval_")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_evalIO(
@@ -1019,20 +848,13 @@ pub unsafe extern "C" fn rts_evalIO(
     p: HaskellObj,
     ret: *mut HaskellObj,
 ) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_evalIO(
-            arg1 as *mut *mut sys::Capability,
-            p as sys::HaskellObj,
-            ret as *mut sys::HaskellObj,
-        )
+    sys! {
+        rts_evalIO(arg1 as * mut * mut sys::Capability, p.cast(), ret as * mut
+        sys::HaskellObj)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_evalIO")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_evalStableIOMain(
@@ -1040,16 +862,12 @@ pub unsafe extern "C" fn rts_evalStableIOMain(
     s: HsStablePtr,
     ret: *mut HsStablePtr,
 ) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_evalStableIOMain(arg1 as *mut *mut sys::Capability, s, ret)
+    sys! {
+        rts_evalStableIOMain(arg1 as * mut * mut sys::Capability, s, ret)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_evalStableIOMain")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_evalStableIO(
@@ -1057,16 +875,12 @@ pub unsafe extern "C" fn rts_evalStableIO(
     s: HsStablePtr,
     ret: *mut HsStablePtr,
 ) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_evalStableIO(arg1 as *mut *mut sys::Capability, s, ret)
+    sys! {
+        rts_evalStableIO(arg1 as * mut * mut sys::Capability, s, ret)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_evalStableIO")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_evalLazyIO(
@@ -1074,20 +888,13 @@ pub unsafe extern "C" fn rts_evalLazyIO(
     p: HaskellObj,
     ret: *mut HaskellObj,
 ) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_evalLazyIO(
-            arg1 as *mut *mut sys::Capability,
-            p as sys::HaskellObj,
-            ret as *mut sys::HaskellObj,
-        )
+    sys! {
+        rts_evalLazyIO(arg1 as * mut * mut sys::Capability, p.cast(), ret as * mut
+        sys::HaskellObj)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_evalLazyIO")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_evalLazyIO_(
@@ -1096,109 +903,97 @@ pub unsafe extern "C" fn rts_evalLazyIO_(
     stack_size: c_uint,
     ret: *mut HaskellObj,
 ) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_evalLazyIO_(
-            arg1 as *mut *mut sys::Capability,
-            p as sys::HaskellObj,
-            stack_size,
-            ret as *mut sys::HaskellObj,
-        )
+    sys! {
+        rts_evalLazyIO_(arg1 as * mut * mut sys::Capability, p.cast(), stack_size, ret as
+        * mut sys::HaskellObj)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_evalLazyIO_")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(compiler)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn rts_inCall(
+    arg1: *mut *mut Capability,
+    p: HaskellObj,
+    ret: *mut HaskellObj,
+) {
+    sys! {
+        rts_inCall(arg1 as * mut * mut sys::Capability, p.cast(), ret as * mut
+        sys::HaskellObj)
+    }
+}
+
+#[ffi(compiler)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn rts_checkSchedStatus(site: *mut c_char, arg1: *mut Capability) {
+    sys! {
+        rts_checkSchedStatus(site, arg1 as * mut sys::Capability)
+    }
+}
+
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_getSchedStatus(cap: *mut Capability) -> SchedulerStatus {
-    #[cfg(feature = "sys")]
-    unsafe {
-        transmute(sys::rts_getSchedStatus(cap as *mut sys::Capability))
+    sys! {
+        transmute(rts_getSchedStatus(cap as * mut sys::Capability))
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_getSchedStatus")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_pause() -> *mut PauseToken {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_pause() as *mut PauseToken
+    sys! {
+        rts_pause().cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_pause")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_resume(pauseToken: *mut PauseToken) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_resume(pauseToken as *mut sys::PauseToken)
+    sys! {
+        rts_resume(pauseToken as * mut sys::PauseToken)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_resume")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isPaused() -> bool {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_isPaused()
+    sys! {
+        rts_isPaused()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_isPaused")
 }
 
 pub(crate) type ListThreadsCb = Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut StgTSO)>;
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_listThreads(cb: ListThreadsCb, user: *mut c_void) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_listThreads(transmute(cb), user)
+    sys! {
+        rts_listThreads(transmute(cb), user)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_listThreads")
 }
 
 pub(crate) type ListRootsCb =
     Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut StgClosure)>;
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_listMiscRoots(cb: ListRootsCb, user: *mut c_void) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_listMiscRoots(transmute(cb), user)
+    sys! {
+        rts_listMiscRoots(transmute(cb), user)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_listMiscRoots")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_clearMemory() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_clearMemory()
+    sys! {
+        rts_clearMemory()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_clearMemory")
 }

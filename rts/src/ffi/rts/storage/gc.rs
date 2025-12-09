@@ -1,8 +1,9 @@
 use crate::capability::Capability;
 use crate::ffi::rts::storage::block::bdescr;
-use crate::ffi::rts::storage::closures::StgWeak;
+use crate::ffi::rts::storage::closures::{StgClosure, StgInd, StgIndStatic, StgMutVar, StgWeak};
 use crate::ffi::rts::storage::tso::StgTSO;
 use crate::ffi::stg::W_;
+use crate::ffi::stg::regs::StgRegTable;
 use crate::ffi::stg::types::{StgPtr, StgWord};
 use crate::prelude::*;
 
@@ -18,14 +19,8 @@ pub struct nursery_ {
     n_blocks: memcount,
 }
 
-#[cfg(feature = "sys")]
-impl From<nursery_> for sys::nursery_ {
-    fn from(x: nursery_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-pub(crate) type nursery = nursery_;
+#[ffi(compiler)]
+pub type nursery = nursery_;
 
 /// cbindgen:no-export
 #[repr(C)]
@@ -63,136 +58,117 @@ pub struct generation_ {
     old_weak_ptr_list: *mut StgWeak,
 }
 
-#[cfg(feature = "sys")]
-impl From<generation_> for sys::generation_ {
-    fn from(x: generation_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(compiler, ghc_lib)]
 pub type generation = generation_;
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 pub static mut generations: *mut generation = null_mut();
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(compiler, ghc_lib, utils)]
 #[unsafe(no_mangle)]
 pub static mut g0: *mut generation = null_mut();
 
 pub(crate) type ListBlocksCb = Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut bdescr)>;
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn allocate(cap: *mut Capability, n: W_) -> StgPtr {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::allocate(cap as *mut sys::Capability, n)
+    sys! {
+        allocate(cap as * mut sys::Capability, n)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("allocate")
 }
 
 pub(crate) type AdjustorWritable = *mut c_void;
 
 pub(crate) type AdjustorExecutable = *mut c_void;
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setAllocLimitKill(arg1: bool, arg2: bool) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::setAllocLimitKill(arg1, arg2)
+    sys! {
+        setAllocLimitKill(arg1, arg2)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("setAllocLimitKill")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn performGC() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::performGC()
+    sys! {
+        performGC()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("performGC")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn performMajorGC() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::performMajorGC()
+    sys! {
+        performMajorGC()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("performMajorGC")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn performBlockingMajorGC() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::performBlockingMajorGC()
+    sys! {
+        performBlockingMajorGC()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("performBlockingMajorGC")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(compiler)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn newCAF(reg: *mut StgRegTable, caf: *mut StgIndStatic) -> *mut StgInd {
+    sys! {
+        newCAF(reg as * mut sys::StgRegTable, caf as * mut sys::StgIndStatic).cast()
+    }
+}
+
+#[ffi(libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn revertCAFs() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::revertCAFs()
+    sys! {
+        revertCAFs()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("revertCAFs")
 }
 
-/// - GHC_PLACES: {compiler}
-#[ffi]
+#[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setKeepCAFs() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::setKeepCAFs()
+    sys! {
+        setKeepCAFs()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("setKeepCAFs")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setHighMemDynamic() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::setHighMemDynamic()
+    sys! {
+        setHighMemDynamic()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("setHighMemDynamic")
 }
 
-/// - GHC_PLACES: {compiler}
-#[ffi]
+#[ffi(compiler)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn dirty_MUT_VAR(
+    reg: *mut StgRegTable,
+    mv: *mut StgMutVar,
+    old: *mut StgClosure,
+) {
+    sys! {
+        dirty_MUT_VAR(reg as * mut sys::StgRegTable, mv as * mut sys::StgMutVar, old as *
+        mut sys::StgClosure)
+    }
+}
+
+#[ffi(compiler)]
 #[unsafe(no_mangle)]
 pub static mut keepCAFs: bool = false;

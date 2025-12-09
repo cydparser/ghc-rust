@@ -17,14 +17,7 @@ pub struct CostCentre_ {
     link: *mut CostCentre_,
 }
 
-#[cfg(feature = "sys")]
-impl From<CostCentre_> for sys::CostCentre_ {
-    fn from(x: CostCentre_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(compiler, ghc_lib)]
 pub type CostCentre = CostCentre_;
 
 /// cbindgen:no-export
@@ -44,40 +37,25 @@ pub struct CostCentreStack_ {
     inherited_ticks: StgWord,
 }
 
-#[cfg(feature = "sys")]
-impl From<CostCentreStack_> for sys::CostCentreStack_ {
-    fn from(x: CostCentreStack_) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(compiler, ghc_lib)]
 pub type CostCentreStack = CostCentreStack_;
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn stopProfTimer() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::stopProfTimer()
+    sys! {
+        stopProfTimer()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("stopProfTimer")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn startProfTimer() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::startProfTimer()
+    sys! {
+        startProfTimer()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("startProfTimer")
 }
 
 /// cbindgen:no-export
@@ -86,13 +64,6 @@ pub unsafe extern "C" fn startProfTimer() {
 #[cfg_attr(test, derive(Clone))]
 pub struct IndexTable_ {
     _address: u8,
-}
-
-#[cfg(feature = "sys")]
-impl From<IndexTable_> for sys::IndexTable_ {
-    fn from(x: IndexTable_) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]

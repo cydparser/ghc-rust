@@ -5,7 +5,7 @@ use super::*;
 fn equivalent___int_encodeDouble(j: I_, e: I_) -> bool {
     let expected: StgDouble = { unsafe { sys::__int_encodeDouble(j, e) } };
     let actual: StgDouble = { unsafe { __int_encodeDouble(j, e) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -27,7 +27,7 @@ fn test___int_encodeDouble() {
 fn equivalent___word_encodeDouble(j: W_, e: I_) -> bool {
     let expected: StgDouble = { unsafe { sys::__word_encodeDouble(j, e) } };
     let actual: StgDouble = { unsafe { __word_encodeDouble(j, e) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]

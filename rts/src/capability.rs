@@ -1,7 +1,7 @@
 #[cfg(feature = "sys")]
 use crate::prelude::*;
 
-#[ffi(compiler, ghc-lib, testsuite)]
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type Capability = Capability_;
 
 /// cbindgen:no-export

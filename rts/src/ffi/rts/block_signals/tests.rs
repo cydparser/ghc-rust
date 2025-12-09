@@ -13,7 +13,7 @@ fn equivalent_blockUserSignals() {
         unsafe { blockUserSignals() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -41,7 +41,7 @@ fn equivalent_unblockUserSignals() {
         unsafe { unblockUserSignals() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]

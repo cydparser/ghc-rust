@@ -6,7 +6,7 @@ use super::*;
 fn equivalent_hs_atomic_add8(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_add8(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_add8(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -29,7 +29,7 @@ fn test_hs_atomic_add8() {
 fn equivalent_hs_atomic_add16(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_add16(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_add16(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -52,7 +52,7 @@ fn test_hs_atomic_add16() {
 fn equivalent_hs_atomic_add32(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_add32(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_add32(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -75,7 +75,7 @@ fn test_hs_atomic_add32() {
 fn equivalent_hs_atomic_add64(x: StgWord, val: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_atomic_add64(x, val) } };
     let actual: StgWord64 = { unsafe { hs_atomic_add64(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -98,7 +98,7 @@ fn test_hs_atomic_add64() {
 fn equivalent_hs_atomic_sub8(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_sub8(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_sub8(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -121,7 +121,7 @@ fn test_hs_atomic_sub8() {
 fn equivalent_hs_atomic_sub16(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_sub16(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_sub16(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -144,7 +144,7 @@ fn test_hs_atomic_sub16() {
 fn equivalent_hs_atomic_sub32(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_sub32(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_sub32(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -167,7 +167,7 @@ fn test_hs_atomic_sub32() {
 fn equivalent_hs_atomic_sub64(x: StgWord, val: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_atomic_sub64(x, val) } };
     let actual: StgWord64 = { unsafe { hs_atomic_sub64(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -190,7 +190,7 @@ fn test_hs_atomic_sub64() {
 fn equivalent_hs_atomic_and8(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_and8(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_and8(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -213,7 +213,7 @@ fn test_hs_atomic_and8() {
 fn equivalent_hs_atomic_and16(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_and16(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_and16(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -236,7 +236,7 @@ fn test_hs_atomic_and16() {
 fn equivalent_hs_atomic_and32(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_and32(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_and32(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -259,7 +259,7 @@ fn test_hs_atomic_and32() {
 fn equivalent_hs_atomic_and64(x: StgWord, val: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_atomic_and64(x, val) } };
     let actual: StgWord64 = { unsafe { hs_atomic_and64(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -282,7 +282,7 @@ fn test_hs_atomic_and64() {
 fn equivalent_hs_atomic_nand8(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_nand8(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_nand8(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -305,7 +305,7 @@ fn test_hs_atomic_nand8() {
 fn equivalent_hs_atomic_nand16(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_nand16(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_nand16(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -328,7 +328,7 @@ fn test_hs_atomic_nand16() {
 fn equivalent_hs_atomic_nand32(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_nand32(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_nand32(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -351,7 +351,7 @@ fn test_hs_atomic_nand32() {
 fn equivalent_hs_atomic_nand64(x: StgWord, val: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_atomic_nand64(x, val) } };
     let actual: StgWord64 = { unsafe { hs_atomic_nand64(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -374,7 +374,7 @@ fn test_hs_atomic_nand64() {
 fn equivalent_hs_atomic_or8(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_or8(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_or8(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -397,7 +397,7 @@ fn test_hs_atomic_or8() {
 fn equivalent_hs_atomic_or16(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_or16(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_or16(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -420,7 +420,7 @@ fn test_hs_atomic_or16() {
 fn equivalent_hs_atomic_or32(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_or32(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_or32(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -443,7 +443,7 @@ fn test_hs_atomic_or32() {
 fn equivalent_hs_atomic_or64(x: StgWord, val: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_atomic_or64(x, val) } };
     let actual: StgWord64 = { unsafe { hs_atomic_or64(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -466,7 +466,7 @@ fn test_hs_atomic_or64() {
 fn equivalent_hs_atomic_xor8(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_xor8(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_xor8(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -489,7 +489,7 @@ fn test_hs_atomic_xor8() {
 fn equivalent_hs_atomic_xor16(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_xor16(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_xor16(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -512,7 +512,7 @@ fn test_hs_atomic_xor16() {
 fn equivalent_hs_atomic_xor32(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomic_xor32(x, val) } };
     let actual: StgWord = { unsafe { hs_atomic_xor32(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -535,7 +535,7 @@ fn test_hs_atomic_xor32() {
 fn equivalent_hs_atomic_xor64(x: StgWord, val: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_atomic_xor64(x, val) } };
     let actual: StgWord64 = { unsafe { hs_atomic_xor64(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -558,7 +558,7 @@ fn test_hs_atomic_xor64() {
 fn equivalent_hs_cmpxchg8(x: StgWord, old: StgWord, new_: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_cmpxchg8(x, old, new_) } };
     let actual: StgWord = { unsafe { hs_cmpxchg8(x, old, new_) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -582,7 +582,7 @@ fn test_hs_cmpxchg8() {
 fn equivalent_hs_cmpxchg16(x: StgWord, old: StgWord, new_: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_cmpxchg16(x, old, new_) } };
     let actual: StgWord = { unsafe { hs_cmpxchg16(x, old, new_) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -606,7 +606,7 @@ fn test_hs_cmpxchg16() {
 fn equivalent_hs_cmpxchg32(x: StgWord, old: StgWord, new_: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_cmpxchg32(x, old, new_) } };
     let actual: StgWord = { unsafe { hs_cmpxchg32(x, old, new_) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -630,7 +630,7 @@ fn test_hs_cmpxchg32() {
 fn equivalent_hs_cmpxchg64(x: StgWord, old: StgWord64, new_: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_cmpxchg64(x, old, new_) } };
     let actual: StgWord64 = { unsafe { hs_cmpxchg64(x, old, new_) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -654,7 +654,7 @@ fn test_hs_cmpxchg64() {
 fn equivalent_hs_atomicread8(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomicread8(x) } };
     let actual: StgWord = { unsafe { hs_atomicread8(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -676,7 +676,7 @@ fn test_hs_atomicread8() {
 fn equivalent_hs_atomicread16(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomicread16(x) } };
     let actual: StgWord = { unsafe { hs_atomicread16(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -698,7 +698,7 @@ fn test_hs_atomicread16() {
 fn equivalent_hs_atomicread32(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_atomicread32(x) } };
     let actual: StgWord = { unsafe { hs_atomicread32(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -720,7 +720,7 @@ fn test_hs_atomicread32() {
 fn equivalent_hs_atomicread64(x: StgWord) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_atomicread64(x) } };
     let actual: StgWord64 = { unsafe { hs_atomicread64(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -749,7 +749,7 @@ fn equivalent_hs_atomicwrite8(x: StgWord, val: StgWord) -> bool {
         unsafe { hs_atomicwrite8(x, val) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -780,7 +780,7 @@ fn equivalent_hs_atomicwrite16(x: StgWord, val: StgWord) -> bool {
         unsafe { hs_atomicwrite16(x, val) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -811,7 +811,7 @@ fn equivalent_hs_atomicwrite32(x: StgWord, val: StgWord) -> bool {
         unsafe { hs_atomicwrite32(x, val) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -842,7 +842,7 @@ fn equivalent_hs_atomicwrite64(x: StgWord, val: StgWord64) -> bool {
         unsafe { hs_atomicwrite64(x, val) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -866,7 +866,7 @@ fn test_hs_atomicwrite64() {
 fn equivalent_hs_xchg8(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_xchg8(x, val) } };
     let actual: StgWord = { unsafe { hs_xchg8(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -889,7 +889,7 @@ fn test_hs_xchg8() {
 fn equivalent_hs_xchg16(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_xchg16(x, val) } };
     let actual: StgWord = { unsafe { hs_xchg16(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -912,7 +912,7 @@ fn test_hs_xchg16() {
 fn equivalent_hs_xchg32(x: StgWord, val: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_xchg32(x, val) } };
     let actual: StgWord = { unsafe { hs_xchg32(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -935,7 +935,7 @@ fn test_hs_xchg32() {
 fn equivalent_hs_xchg64(x: StgWord, val: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_xchg64(x, val) } };
     let actual: StgWord64 = { unsafe { hs_xchg64(x, val) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -958,7 +958,7 @@ fn test_hs_xchg64() {
 fn equivalent_hs_bswap16(x: StgWord16) -> bool {
     let expected: StgWord16 = { unsafe { sys::hs_bswap16(x) } };
     let actual: StgWord16 = { unsafe { hs_bswap16(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -980,7 +980,7 @@ fn test_hs_bswap16() {
 fn equivalent_hs_bswap32(x: StgWord32) -> bool {
     let expected: StgWord32 = { unsafe { sys::hs_bswap32(x) } };
     let actual: StgWord32 = { unsafe { hs_bswap32(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1002,7 +1002,7 @@ fn test_hs_bswap32() {
 fn equivalent_hs_bswap64(x: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_bswap64(x) } };
     let actual: StgWord64 = { unsafe { hs_bswap64(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1024,7 +1024,7 @@ fn test_hs_bswap64() {
 fn equivalent_hs_bitrev8(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_bitrev8(x) } };
     let actual: StgWord = { unsafe { hs_bitrev8(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1046,7 +1046,7 @@ fn test_hs_bitrev8() {
 fn equivalent_hs_bitrev16(x: StgWord16) -> bool {
     let expected: StgWord16 = { unsafe { sys::hs_bitrev16(x) } };
     let actual: StgWord16 = { unsafe { hs_bitrev16(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1068,7 +1068,7 @@ fn test_hs_bitrev16() {
 fn equivalent_hs_bitrev32(x: StgWord32) -> bool {
     let expected: StgWord32 = { unsafe { sys::hs_bitrev32(x) } };
     let actual: StgWord32 = { unsafe { hs_bitrev32(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1090,7 +1090,7 @@ fn test_hs_bitrev32() {
 fn equivalent_hs_bitrev64(x: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_bitrev64(x) } };
     let actual: StgWord64 = { unsafe { hs_bitrev64(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1112,7 +1112,7 @@ fn test_hs_bitrev64() {
 fn equivalent_hs_pdep64(src: StgWord64, mask: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_pdep64(src, mask) } };
     let actual: StgWord64 = { unsafe { hs_pdep64(src, mask) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1135,7 +1135,7 @@ fn test_hs_pdep64() {
 fn equivalent_hs_pdep32(src: StgWord, mask: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_pdep32(src, mask) } };
     let actual: StgWord = { unsafe { hs_pdep32(src, mask) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1158,7 +1158,7 @@ fn test_hs_pdep32() {
 fn equivalent_hs_pdep16(src: StgWord, mask: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_pdep16(src, mask) } };
     let actual: StgWord = { unsafe { hs_pdep16(src, mask) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1181,7 +1181,7 @@ fn test_hs_pdep16() {
 fn equivalent_hs_pdep8(src: StgWord, mask: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_pdep8(src, mask) } };
     let actual: StgWord = { unsafe { hs_pdep8(src, mask) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1204,7 +1204,7 @@ fn test_hs_pdep8() {
 fn equivalent_hs_pext64(src: StgWord64, mask: StgWord64) -> bool {
     let expected: StgWord64 = { unsafe { sys::hs_pext64(src, mask) } };
     let actual: StgWord64 = { unsafe { hs_pext64(src, mask) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1227,7 +1227,7 @@ fn test_hs_pext64() {
 fn equivalent_hs_pext32(src: StgWord, mask: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_pext32(src, mask) } };
     let actual: StgWord = { unsafe { hs_pext32(src, mask) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1250,7 +1250,7 @@ fn test_hs_pext32() {
 fn equivalent_hs_pext16(src: StgWord, mask: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_pext16(src, mask) } };
     let actual: StgWord = { unsafe { hs_pext16(src, mask) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1273,7 +1273,7 @@ fn test_hs_pext16() {
 fn equivalent_hs_pext8(src: StgWord, mask: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_pext8(src, mask) } };
     let actual: StgWord = { unsafe { hs_pext8(src, mask) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1296,7 +1296,7 @@ fn test_hs_pext8() {
 fn equivalent_hs_popcnt8(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_popcnt8(x) } };
     let actual: StgWord = { unsafe { hs_popcnt8(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1318,7 +1318,7 @@ fn test_hs_popcnt8() {
 fn equivalent_hs_popcnt16(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_popcnt16(x) } };
     let actual: StgWord = { unsafe { hs_popcnt16(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1340,7 +1340,7 @@ fn test_hs_popcnt16() {
 fn equivalent_hs_popcnt32(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_popcnt32(x) } };
     let actual: StgWord = { unsafe { hs_popcnt32(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1362,7 +1362,7 @@ fn test_hs_popcnt32() {
 fn equivalent_hs_popcnt64(x: StgWord64) -> bool {
     let expected: StgWord = { unsafe { sys::hs_popcnt64(x) } };
     let actual: StgWord = { unsafe { hs_popcnt64(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1384,7 +1384,7 @@ fn test_hs_popcnt64() {
 fn equivalent_hs_popcnt(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_popcnt(x) } };
     let actual: StgWord = { unsafe { hs_popcnt(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1406,7 +1406,7 @@ fn test_hs_popcnt() {
 fn equivalent_hs_word2float32(x: StgWord) -> bool {
     let expected: StgFloat = { unsafe { sys::hs_word2float32(x) } };
     let actual: StgFloat = { unsafe { hs_word2float32(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1428,7 +1428,7 @@ fn test_hs_word2float32() {
 fn equivalent_hs_word2float64(x: StgWord) -> bool {
     let expected: StgDouble = { unsafe { sys::hs_word2float64(x) } };
     let actual: StgDouble = { unsafe { hs_word2float64(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1450,7 +1450,7 @@ fn test_hs_word2float64() {
 fn equivalent_hs_clz8(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_clz8(x) } };
     let actual: StgWord = { unsafe { hs_clz8(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1472,7 +1472,7 @@ fn test_hs_clz8() {
 fn equivalent_hs_clz16(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_clz16(x) } };
     let actual: StgWord = { unsafe { hs_clz16(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1494,7 +1494,7 @@ fn test_hs_clz16() {
 fn equivalent_hs_clz32(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_clz32(x) } };
     let actual: StgWord = { unsafe { hs_clz32(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1516,7 +1516,7 @@ fn test_hs_clz32() {
 fn equivalent_hs_clz64(x: StgWord64) -> bool {
     let expected: StgWord = { unsafe { sys::hs_clz64(x) } };
     let actual: StgWord = { unsafe { hs_clz64(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1538,7 +1538,7 @@ fn test_hs_clz64() {
 fn equivalent_hs_ctz8(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_ctz8(x) } };
     let actual: StgWord = { unsafe { hs_ctz8(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1560,7 +1560,7 @@ fn test_hs_ctz8() {
 fn equivalent_hs_ctz16(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_ctz16(x) } };
     let actual: StgWord = { unsafe { hs_ctz16(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1582,7 +1582,7 @@ fn test_hs_ctz16() {
 fn equivalent_hs_ctz32(x: StgWord) -> bool {
     let expected: StgWord = { unsafe { sys::hs_ctz32(x) } };
     let actual: StgWord = { unsafe { hs_ctz32(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1604,7 +1604,7 @@ fn test_hs_ctz32() {
 fn equivalent_hs_ctz64(x: StgWord64) -> bool {
     let expected: StgWord = { unsafe { sys::hs_ctz64(x) } };
     let actual: StgWord = { unsafe { hs_ctz64(x) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -1617,5 +1617,28 @@ fn test_hs_ctz64() {
         unsafe { hs_ctz64(x) }
     };
     let expected: StgWord = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+fn equivalent_hs_mulIntMayOflo(a: W_, b: W_) -> bool {
+    let expected: W_ = { unsafe { sys::hs_mulIntMayOflo(a, b) } };
+    let actual: W_ = { unsafe { hs_mulIntMayOflo(a, b) } };
+    actual == expected
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_mulIntMayOflo() {
+    let g = &mut Gen::new(100);
+    let actual: W_ = {
+        let a: W_ = Arbitrary::arbitrary(g);
+        let b: W_ = Arbitrary::arbitrary(g);
+        unsafe { hs_mulIntMayOflo(a, b) }
+    };
+    let expected: W_ = todo!();
     assert_eq!(expected, actual);
 }

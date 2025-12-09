@@ -13,7 +13,7 @@ fn equivalent_setIOManagerControlFd(cap_no: u32, fd: c_int) -> bool {
         unsafe { setIOManagerControlFd(cap_no, fd) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -44,7 +44,7 @@ fn equivalent_setTimerManagerControlFd(fd: c_int) -> bool {
         unsafe { setTimerManagerControlFd(fd) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]
@@ -74,7 +74,7 @@ fn equivalent_setIOManagerWakeupFd(fd: c_int) -> bool {
         unsafe { setIOManagerWakeupFd(fd) };
         todo!()
     };
-    expected == actual
+    actual == expected
 }
 
 #[test]

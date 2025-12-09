@@ -43,12 +43,13 @@ pub mod utils;
 #[cfg(test)]
 mod tests;
 
-pub(crate) const IN_STG_CODE: u32 = 0;
+#[ffi(compiler)]
+pub const IN_STG_CODE: u32 = 0;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib, libraries)]
 pub const _REENTRANT: u32 = 1;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const EXIT_INTERNAL_ERROR: u32 = 254;
 
 pub(crate) const EXIT_DEADLOCK: u32 = 253;
@@ -61,130 +62,92 @@ pub(crate) const EXIT_KILLED: u32 = 250;
 
 pub(crate) const DEBUG_IS_ON: u32 = 0;
 
-/// - GHC_PLACES: {utils}
-#[ffi]
+#[ffi(utils)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -> ! {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::_assertFail(filename, linenum)
+    before_exit("_assertFail");
+    sys! {
+        _assertFail(filename, linenum)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("_assertFail")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn reportStackOverflow(tso: *mut StgTSO) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::reportStackOverflow(tso as *mut sys::StgTSO)
+    sys! {
+        reportStackOverflow(tso as * mut sys::StgTSO)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("reportStackOverflow")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn reportHeapOverflow() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::reportHeapOverflow()
+    sys! {
+        reportHeapOverflow()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("reportHeapOverflow")
 }
 
-/// - GHC_PLACES: {libraries, utils}
-#[ffi]
+#[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn stg_exit(n: c_int) -> ! {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::stg_exit(n)
+    before_exit("stg_exit");
+    sys! {
+        stg_exit(n)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("stg_exit")
 }
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib, libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn stg_sig_install(arg1: c_int, arg2: c_int, arg3: *mut c_void) -> c_int {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::stg_sig_install(arg1, arg2, arg3)
+    sys! {
+        stg_sig_install(arg1, arg2, arg3)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("stg_sig_install")
 }
 
-/// - GHC_PLACES: {compiler}
-#[ffi]
+#[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isProfiled() -> c_int {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_isProfiled()
+    sys! {
+        rts_isProfiled()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_isProfiled")
 }
 
-/// - GHC_PLACES: {compiler}
-#[ffi]
+#[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isDynamic() -> c_int {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_isDynamic()
+    sys! {
+        rts_isDynamic()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_isDynamic")
 }
 
-/// - GHC_PLACES: {compiler, libraries}
-#[ffi]
+#[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isThreaded() -> c_int {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_isThreaded()
+    sys! {
+        rts_isThreaded()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_isThreaded")
 }
 
-/// - GHC_PLACES: {compiler}
-#[ffi]
+#[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isDebugged() -> c_int {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_isDebugged()
+    sys! {
+        rts_isDebugged()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_isDebugged")
 }
 
-/// - GHC_PLACES: {compiler}
-#[ffi]
+#[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isTracing() -> c_int {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::rts_isTracing()
+    sys! {
+        rts_isTracing()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("rts_isTracing")
 }

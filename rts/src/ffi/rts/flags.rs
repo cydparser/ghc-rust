@@ -6,73 +6,73 @@ use libc::FILE;
 #[cfg(test)]
 mod tests;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const NO_GC_STATS: u32 = 0;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const COLLECT_GC_STATS: u32 = 1;
 
-/// - GHC_PLACES: {compiler, libraries}
+#[ffi(compiler, ghc_lib)]
 pub const ONELINE_GC_STATS: u32 = 2;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const SUMMARY_GC_STATS: u32 = 3;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const VERBOSE_GC_STATS: u32 = 4;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const COST_CENTRES_NONE: u32 = 0;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const COST_CENTRES_SUMMARY: u32 = 1;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const COST_CENTRES_VERBOSE: u32 = 2;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const COST_CENTRES_ALL: u32 = 3;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const COST_CENTRES_JSON: u32 = 4;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const NO_HEAP_PROFILING: u32 = 0;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const HEAP_BY_CCS: u32 = 1;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const HEAP_BY_MOD: u32 = 2;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const HEAP_BY_DESCR: u32 = 4;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const HEAP_BY_TYPE: u32 = 5;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const HEAP_BY_RETAINER: u32 = 6;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const HEAP_BY_LDV: u32 = 7;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const HEAP_BY_CLOSURE_TYPE: u32 = 8;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const HEAP_BY_INFO_TABLE: u32 = 9;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const HEAP_BY_ERA: u32 = 10;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const TRACE_NONE: u32 = 0;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const TRACE_EVENTLOG: u32 = 1;
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub const TRACE_STDERR: u32 = 2;
 
 pub(crate) const DEFAULT_LINKER_ALWAYS_PIC: u32 = 1;
@@ -118,14 +118,7 @@ pub struct _GC_FLAGS {
     addressSpaceSize: StgWord64,
 }
 
-#[cfg(feature = "sys")]
-impl From<_GC_FLAGS> for sys::_GC_FLAGS {
-    fn from(x: _GC_FLAGS) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type GC_FLAGS = _GC_FLAGS;
 
 /// cbindgen:no-export
@@ -155,13 +148,6 @@ pub struct _DEBUG_FLAGS {
     compact: bool,
     continuation: bool,
     iomanager: bool,
-}
-
-#[cfg(feature = "sys")]
-impl From<_DEBUG_FLAGS> for sys::_DEBUG_FLAGS {
-    fn from(x: _DEBUG_FLAGS) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]
@@ -194,7 +180,7 @@ impl Arbitrary for _DEBUG_FLAGS {
     }
 }
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type DEBUG_FLAGS = _DEBUG_FLAGS;
 
 /// cbindgen:no-export
@@ -207,14 +193,7 @@ pub struct _COST_CENTRE_FLAGS {
     outputFileNameStem: *const c_char,
 }
 
-#[cfg(feature = "sys")]
-impl From<_COST_CENTRE_FLAGS> for sys::_COST_CENTRE_FLAGS {
-    fn from(x: _COST_CENTRE_FLAGS) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type COST_CENTRE_FLAGS = _COST_CENTRE_FLAGS;
 
 /// cbindgen:no-export
@@ -239,14 +218,7 @@ pub struct _PROFILING_FLAGS {
     bioSelector: *const c_char,
 }
 
-#[cfg(feature = "sys")]
-impl From<_PROFILING_FLAGS> for sys::_PROFILING_FLAGS {
-    fn from(x: _PROFILING_FLAGS) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type PROFILING_FLAGS = _PROFILING_FLAGS;
 
 /// cbindgen:no-export
@@ -267,14 +239,7 @@ pub struct _TRACE_FLAGS {
     nullWriter: bool,
 }
 
-#[cfg(feature = "sys")]
-impl From<_TRACE_FLAGS> for sys::_TRACE_FLAGS {
-    fn from(x: _TRACE_FLAGS) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type TRACE_FLAGS = _TRACE_FLAGS;
 
 /// cbindgen:no-export
@@ -283,13 +248,6 @@ pub type TRACE_FLAGS = _TRACE_FLAGS;
 pub struct _CONCURRENT_FLAGS {
     ctxtSwitchTime: Time,
     ctxtSwitchTicks: c_int,
-}
-
-#[cfg(feature = "sys")]
-impl From<_CONCURRENT_FLAGS> for sys::_CONCURRENT_FLAGS {
-    fn from(x: _CONCURRENT_FLAGS) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]
@@ -302,8 +260,10 @@ impl Arbitrary for _CONCURRENT_FLAGS {
     }
 }
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type CONCURRENT_FLAGS = _CONCURRENT_FLAGS;
+
+pub(crate) type IO_MANAGER_FLAG = _IO_MANAGER_FLAG;
 
 #[repr(u32)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
@@ -313,6 +273,49 @@ pub(crate) enum _IO_MANAGER_FLAG {
     IO_MNGR_FLAG_MIO = 2,
     IO_MNGR_FLAG_WINIO = 3,
     IO_MNGR_FLAG_WIN32_LEGACY = 4,
+}
+
+#[cfg(feature = "sys")]
+impl From<_IO_MANAGER_FLAG> for sys::_IO_MANAGER_FLAG {
+    fn from(v: _IO_MANAGER_FLAG) -> Self {
+        use _IO_MANAGER_FLAG::*;
+        match v {
+            IO_MNGR_FLAG_AUTO => sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_AUTO,
+            IO_MNGR_FLAG_SELECT => sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_SELECT,
+            IO_MNGR_FLAG_MIO => sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_MIO,
+            IO_MNGR_FLAG_WINIO => sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_WINIO,
+            IO_MNGR_FLAG_WIN32_LEGACY => sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_WIN32_LEGACY,
+        }
+    }
+}
+
+#[cfg(feature = "sys")]
+impl From<sys::_IO_MANAGER_FLAG> for _IO_MANAGER_FLAG {
+    fn from(v: sys::_IO_MANAGER_FLAG) -> Self {
+        use _IO_MANAGER_FLAG::*;
+        match v {
+            sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_AUTO => IO_MNGR_FLAG_AUTO,
+            sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_SELECT => IO_MNGR_FLAG_SELECT,
+            sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_MIO => IO_MNGR_FLAG_MIO,
+            sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_WINIO => IO_MNGR_FLAG_WINIO,
+            sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_WIN32_LEGACY => IO_MNGR_FLAG_WIN32_LEGACY,
+        }
+    }
+}
+
+impl TryFrom<u32> for _IO_MANAGER_FLAG {
+    type Error = ();
+    fn try_from(d: u32) -> Result<_IO_MANAGER_FLAG, ()> {
+        use _IO_MANAGER_FLAG::*;
+        match d {
+            0 => Ok(IO_MNGR_FLAG_AUTO),
+            1 => Ok(IO_MNGR_FLAG_SELECT),
+            2 => Ok(IO_MNGR_FLAG_MIO),
+            3 => Ok(IO_MNGR_FLAG_WINIO),
+            4 => Ok(IO_MNGR_FLAG_WIN32_LEGACY),
+            _ => Err(()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -328,8 +331,6 @@ impl Arbitrary for _IO_MANAGER_FLAG {
         }
     }
 }
-
-pub(crate) type IO_MANAGER_FLAG = _IO_MANAGER_FLAG;
 
 /// cbindgen:no-export
 #[repr(C)]
@@ -348,13 +349,6 @@ pub struct _MISC_FLAGS {
     linkerMemBase: StgWord,
     ioManager: IO_MANAGER_FLAG,
     numIoWorkerThreads: u32,
-}
-
-#[cfg(feature = "sys")]
-impl From<_MISC_FLAGS> for sys::_MISC_FLAGS {
-    fn from(x: _MISC_FLAGS) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]
@@ -378,7 +372,7 @@ impl Arbitrary for _MISC_FLAGS {
     }
 }
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type MISC_FLAGS = _MISC_FLAGS;
 
 /// cbindgen:no-export
@@ -396,13 +390,6 @@ pub struct _PAR_FLAGS {
     parGcNoSyncWithIdle: u32,
     parGcThreads: u32,
     setAffinity: bool,
-}
-
-#[cfg(feature = "sys")]
-impl From<_PAR_FLAGS> for sys::_PAR_FLAGS {
-    fn from(x: _PAR_FLAGS) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]
@@ -423,8 +410,10 @@ impl Arbitrary for _PAR_FLAGS {
     }
 }
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type PAR_FLAGS = _PAR_FLAGS;
+
+pub(crate) type HPC_READ_FILE = _HPC_READ_FILE;
 
 #[repr(u32)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
@@ -432,6 +421,43 @@ pub(crate) enum _HPC_READ_FILE {
     HPC_NO_EXPLICIT = 0,
     HPC_YES_IMPLICIT = 1,
     HPC_YES_EXPLICIT = 2,
+}
+
+#[cfg(feature = "sys")]
+impl From<_HPC_READ_FILE> for sys::_HPC_READ_FILE {
+    fn from(v: _HPC_READ_FILE) -> Self {
+        use _HPC_READ_FILE::*;
+        match v {
+            HPC_NO_EXPLICIT => sys::_HPC_READ_FILE::HPC_NO_EXPLICIT,
+            HPC_YES_IMPLICIT => sys::_HPC_READ_FILE::HPC_YES_IMPLICIT,
+            HPC_YES_EXPLICIT => sys::_HPC_READ_FILE::HPC_YES_EXPLICIT,
+        }
+    }
+}
+
+#[cfg(feature = "sys")]
+impl From<sys::_HPC_READ_FILE> for _HPC_READ_FILE {
+    fn from(v: sys::_HPC_READ_FILE) -> Self {
+        use _HPC_READ_FILE::*;
+        match v {
+            sys::_HPC_READ_FILE::HPC_NO_EXPLICIT => HPC_NO_EXPLICIT,
+            sys::_HPC_READ_FILE::HPC_YES_IMPLICIT => HPC_YES_IMPLICIT,
+            sys::_HPC_READ_FILE::HPC_YES_EXPLICIT => HPC_YES_EXPLICIT,
+        }
+    }
+}
+
+impl TryFrom<u32> for _HPC_READ_FILE {
+    type Error = ();
+    fn try_from(d: u32) -> Result<_HPC_READ_FILE, ()> {
+        use _HPC_READ_FILE::*;
+        match d {
+            0 => Ok(HPC_NO_EXPLICIT),
+            1 => Ok(HPC_YES_IMPLICIT),
+            2 => Ok(HPC_YES_EXPLICIT),
+            _ => Err(()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -446,8 +472,6 @@ impl Arbitrary for _HPC_READ_FILE {
     }
 }
 
-pub(crate) type HPC_READ_FILE = _HPC_READ_FILE;
-
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
@@ -455,13 +479,6 @@ pub(crate) type HPC_READ_FILE = _HPC_READ_FILE;
 pub struct _HPC_FLAGS {
     writeTixFile: bool,
     readTixFile: HPC_READ_FILE,
-}
-
-#[cfg(feature = "sys")]
-impl From<_HPC_FLAGS> for sys::_HPC_FLAGS {
-    fn from(x: _HPC_FLAGS) -> Self {
-        unsafe { transmute(x) }
-    }
 }
 
 #[cfg(test)]
@@ -474,7 +491,7 @@ impl Arbitrary for _HPC_FLAGS {
     }
 }
 
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type HPC_FLAGS = _HPC_FLAGS;
 
 /// cbindgen:no-export
@@ -485,14 +502,7 @@ pub struct _TICKY_FLAGS {
     tickyFile: *mut FILE,
 }
 
-#[cfg(feature = "sys")]
-impl From<_TICKY_FLAGS> for sys::_TICKY_FLAGS {
-    fn from(x: _TICKY_FLAGS) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type TICKY_FLAGS = _TICKY_FLAGS;
 
 /// cbindgen:no-export
@@ -510,18 +520,9 @@ pub struct _RTS_FLAGS {
     HpcFlags: HPC_FLAGS,
 }
 
-#[cfg(feature = "sys")]
-impl From<_RTS_FLAGS> for sys::_RTS_FLAGS {
-    fn from(x: _RTS_FLAGS) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// - GHC_PLACES: {libraries}
+#[ffi(ghc_lib)]
 pub type RTS_FLAGS = _RTS_FLAGS;
 
-// TODO(rust): See [RtsFlags is a pointer in STG code]
-// /// - GHC_PLACES: {compiler, libraries}
-// #[ffi]
+// #[ffi(compiler, ghc_lib)]
 // #[unsafe(no_mangle)]
-// pub static mut RtsFlags: RTS_FLAGS = todo!();
+// TODO(rust): pub static mut RtsFlags: RTS_FLAGS = 0;

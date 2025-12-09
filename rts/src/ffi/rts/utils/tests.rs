@@ -6,7 +6,7 @@ use super::*;
 fn equivalent_genericRaise(sig: c_int) -> bool {
     let expected: c_int = { unsafe { sys::genericRaise(sig) } };
     let actual: c_int = { unsafe { genericRaise(sig) } };
-    expected == actual
+    actual == expected
 }
 
 #[test]

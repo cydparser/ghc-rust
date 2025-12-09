@@ -3,423 +3,591 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_MIN_PAYLOAD_SIZE() {
-    assert_eq!(sys::MIN_PAYLOAD_SIZE, MIN_PAYLOAD_SIZE);
+fn sys_RESERVED_STACK_WORDS_eq() {
+    assert_eq!(RESERVED_STACK_WORDS, sys::RESERVED_STACK_WORDS);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_MAX_SPEC_SELECTEE_SIZE() {
-    assert_eq!(sys::MAX_SPEC_SELECTEE_SIZE, MAX_SPEC_SELECTEE_SIZE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MAX_SPEC_AP_SIZE() {
-    assert_eq!(sys::MAX_SPEC_AP_SIZE, MAX_SPEC_AP_SIZE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MAX_SPEC_THUNK_SIZE() {
-    assert_eq!(sys::MAX_SPEC_THUNK_SIZE, MAX_SPEC_THUNK_SIZE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MAX_SPEC_FUN_SIZE() {
-    assert_eq!(sys::MAX_SPEC_FUN_SIZE, MAX_SPEC_FUN_SIZE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MAX_SPEC_CONSTR_SIZE() {
-    assert_eq!(sys::MAX_SPEC_CONSTR_SIZE, MAX_SPEC_CONSTR_SIZE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MAX_INTLIKE() {
-    assert_eq!(sys::MAX_INTLIKE, MAX_INTLIKE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MIN_INTLIKE() {
-    assert_eq!(sys::MIN_INTLIKE, MIN_INTLIKE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MAX_CHARLIKE() {
-    assert_eq!(sys::MAX_CHARLIKE, MAX_CHARLIKE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MIN_CHARLIKE() {
-    assert_eq!(sys::MIN_CHARLIKE, MIN_CHARLIKE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MUT_ARR_PTRS_CARD_BITS() {
-    assert_eq!(sys::MUT_ARR_PTRS_CARD_BITS, MUT_ARR_PTRS_CARD_BITS);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MAX_VANILLA_REG() {
-    assert_eq!(sys::MAX_VANILLA_REG, MAX_VANILLA_REG);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MAX_FLOAT_REG() {
-    assert_eq!(sys::MAX_FLOAT_REG, MAX_FLOAT_REG);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MAX_DOUBLE_REG() {
-    assert_eq!(sys::MAX_DOUBLE_REG, MAX_DOUBLE_REG);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MAX_LONG_REG() {
-    assert_eq!(sys::MAX_LONG_REG, MAX_LONG_REG);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MAX_XMM_REG() {
-    assert_eq!(sys::MAX_XMM_REG, MAX_XMM_REG);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_INFO_OTHER_TAG() {
-    assert_eq!(sys::INFO_OTHER_TAG, INFO_OTHER_TAG);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_INFO_IND_TAG() {
-    assert_eq!(sys::INFO_IND_TAG, INFO_IND_TAG);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_INFO_FIRST_TAG() {
-    assert_eq!(sys::INFO_FIRST_TAG, INFO_FIRST_TAG);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_RESERVED_C_STACK_BYTES() {
-    assert_eq!(sys::RESERVED_C_STACK_BYTES, RESERVED_C_STACK_BYTES);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_STG_RUN() {
-    assert_eq!(sys::STG_RUN, STG_RUN);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_STG_RETURN() {
-    assert_eq!(sys::STG_RETURN, STG_RETURN);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_RESERVED_STACK_WORDS() {
-    assert_eq!(sys::RESERVED_STACK_WORDS, RESERVED_STACK_WORDS);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_AP_STACK_SPLIM() {
-    assert_eq!(sys::AP_STACK_SPLIM, AP_STACK_SPLIM);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BLOCK_SHIFT() {
-    assert_eq!(sys::BLOCK_SHIFT, BLOCK_SHIFT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_MBLOCK_SHIFT() {
-    assert_eq!(sys::MBLOCK_SHIFT, MBLOCK_SHIFT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BITMAP_SIZE_MASK() {
-    assert_eq!(sys::BITMAP_SIZE_MASK, BITMAP_SIZE_MASK);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BITMAP_BITS_SHIFT() {
-    assert_eq!(sys::BITMAP_BITS_SHIFT, BITMAP_BITS_SHIFT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_LDV_SHIFT() {
-    assert_eq!(sys::LDV_SHIFT, LDV_SHIFT);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_LDV_STATE_MASK() {
-    assert_eq!(sys::LDV_STATE_MASK, LDV_STATE_MASK);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_LDV_CREATE_MASK() {
-    assert_eq!(sys::LDV_CREATE_MASK, LDV_CREATE_MASK);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_LDV_LAST_MASK() {
-    assert_eq!(sys::LDV_LAST_MASK, LDV_LAST_MASK);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_LDV_STATE_CREATE() {
-    assert_eq!(sys::LDV_STATE_CREATE, LDV_STATE_CREATE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_LDV_STATE_USE() {
-    assert_eq!(sys::LDV_STATE_USE, LDV_STATE_USE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_INVALID_GHC_POINTER() {
-    assert_eq!(sys::INVALID_GHC_POINTER, INVALID_GHC_POINTER);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_ThreadRunGHC() {
-    assert_eq!(sys::ThreadRunGHC, ThreadRunGHC);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_ThreadInterpret() {
-    assert_eq!(sys::ThreadInterpret, ThreadInterpret);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_ThreadKilled() {
-    assert_eq!(sys::ThreadKilled, ThreadKilled);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_ThreadComplete() {
-    assert_eq!(sys::ThreadComplete, ThreadComplete);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_NotBlocked() {
-    assert_eq!(sys::NotBlocked, NotBlocked);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BlockedOnMVar() {
-    assert_eq!(sys::BlockedOnMVar, BlockedOnMVar);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BlockedOnMVarRead() {
-    assert_eq!(sys::BlockedOnMVarRead, BlockedOnMVarRead);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BlockedOnBlackHole() {
-    assert_eq!(sys::BlockedOnBlackHole, BlockedOnBlackHole);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BlockedOnRead() {
-    assert_eq!(sys::BlockedOnRead, BlockedOnRead);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BlockedOnWrite() {
-    assert_eq!(sys::BlockedOnWrite, BlockedOnWrite);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BlockedOnDelay() {
-    assert_eq!(sys::BlockedOnDelay, BlockedOnDelay);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BlockedOnSTM() {
-    assert_eq!(sys::BlockedOnSTM, BlockedOnSTM);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BlockedOnDoProc() {
-    assert_eq!(sys::BlockedOnDoProc, BlockedOnDoProc);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BlockedOnCCall() {
-    assert_eq!(sys::BlockedOnCCall, BlockedOnCCall);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_eq_BlockedOnCCall_Interruptible() {
+fn sys_RESERVED_STACK_WORDS_layout() {
     assert_eq!(
-        sys::BlockedOnCCall_Interruptible,
-        BlockedOnCCall_Interruptible
+        size_of_val(&RESERVED_STACK_WORDS),
+        size_of_val(&sys::RESERVED_STACK_WORDS)
+    );
+    assert_eq!(
+        align_of_val(&RESERVED_STACK_WORDS),
+        align_of_val(&sys::RESERVED_STACK_WORDS)
     );
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_BlockedOnMsgThrowTo() {
-    assert_eq!(sys::BlockedOnMsgThrowTo, BlockedOnMsgThrowTo);
+fn sys_BITMAP_BITS_SHIFT_eq() {
+    assert_eq!(BITMAP_BITS_SHIFT, sys::BITMAP_BITS_SHIFT);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_ThreadMigrating() {
-    assert_eq!(sys::ThreadMigrating, ThreadMigrating);
+fn sys_BITMAP_BITS_SHIFT_layout() {
+    assert_eq!(
+        size_of_val(&BITMAP_BITS_SHIFT),
+        size_of_val(&sys::BITMAP_BITS_SHIFT)
+    );
+    assert_eq!(
+        align_of_val(&BITMAP_BITS_SHIFT),
+        align_of_val(&sys::BITMAP_BITS_SHIFT)
+    );
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_HeapOverflow() {
-    assert_eq!(sys::HeapOverflow, HeapOverflow);
+fn sys_ThreadRunGHC_eq() {
+    assert_eq!(ThreadRunGHC, sys::ThreadRunGHC);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_StackOverflow() {
-    assert_eq!(sys::StackOverflow, StackOverflow);
+fn sys_ThreadRunGHC_layout() {
+    assert_eq!(size_of_val(&ThreadRunGHC), size_of_val(&sys::ThreadRunGHC));
+    assert_eq!(
+        align_of_val(&ThreadRunGHC),
+        align_of_val(&sys::ThreadRunGHC)
+    );
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_ThreadYielding() {
-    assert_eq!(sys::ThreadYielding, ThreadYielding);
+fn sys_ThreadInterpret_eq() {
+    assert_eq!(ThreadInterpret, sys::ThreadInterpret);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_ThreadBlocked() {
-    assert_eq!(sys::ThreadBlocked, ThreadBlocked);
+fn sys_ThreadInterpret_layout() {
+    assert_eq!(
+        size_of_val(&ThreadInterpret),
+        size_of_val(&sys::ThreadInterpret)
+    );
+    assert_eq!(
+        align_of_val(&ThreadInterpret),
+        align_of_val(&sys::ThreadInterpret)
+    );
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_ThreadFinished() {
-    assert_eq!(sys::ThreadFinished, ThreadFinished);
+fn sys_ThreadKilled_eq() {
+    assert_eq!(ThreadKilled, sys::ThreadKilled);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_TSO_LOCKED() {
-    assert_eq!(sys::TSO_LOCKED, TSO_LOCKED);
+fn sys_ThreadKilled_layout() {
+    assert_eq!(size_of_val(&ThreadKilled), size_of_val(&sys::ThreadKilled));
+    assert_eq!(
+        align_of_val(&ThreadKilled),
+        align_of_val(&sys::ThreadKilled)
+    );
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_TSO_BLOCKEX() {
-    assert_eq!(sys::TSO_BLOCKEX, TSO_BLOCKEX);
+fn sys_ThreadComplete_eq() {
+    assert_eq!(ThreadComplete, sys::ThreadComplete);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_TSO_INTERRUPTIBLE() {
-    assert_eq!(sys::TSO_INTERRUPTIBLE, TSO_INTERRUPTIBLE);
+fn sys_ThreadComplete_layout() {
+    assert_eq!(
+        size_of_val(&ThreadComplete),
+        size_of_val(&sys::ThreadComplete)
+    );
+    assert_eq!(
+        align_of_val(&ThreadComplete),
+        align_of_val(&sys::ThreadComplete)
+    );
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_TSO_STOPPED_ON_BREAKPOINT() {
-    assert_eq!(sys::TSO_STOPPED_ON_BREAKPOINT, TSO_STOPPED_ON_BREAKPOINT);
+fn sys_NotBlocked_eq() {
+    assert_eq!(NotBlocked, sys::NotBlocked);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_TSO_MARKED() {
-    assert_eq!(sys::TSO_MARKED, TSO_MARKED);
+fn sys_NotBlocked_layout() {
+    assert_eq!(size_of_val(&NotBlocked), size_of_val(&sys::NotBlocked));
+    assert_eq!(align_of_val(&NotBlocked), align_of_val(&sys::NotBlocked));
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_TSO_SQUEEZED() {
-    assert_eq!(sys::TSO_SQUEEZED, TSO_SQUEEZED);
+fn sys_BlockedOnMVar_eq() {
+    assert_eq!(BlockedOnMVar, sys::BlockedOnMVar);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_TSO_ALLOC_LIMIT() {
-    assert_eq!(sys::TSO_ALLOC_LIMIT, TSO_ALLOC_LIMIT);
+fn sys_BlockedOnMVar_layout() {
+    assert_eq!(
+        size_of_val(&BlockedOnMVar),
+        size_of_val(&sys::BlockedOnMVar)
+    );
+    assert_eq!(
+        align_of_val(&BlockedOnMVar),
+        align_of_val(&sys::BlockedOnMVar)
+    );
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_TSO_STOP_NEXT_BREAKPOINT() {
-    assert_eq!(sys::TSO_STOP_NEXT_BREAKPOINT, TSO_STOP_NEXT_BREAKPOINT);
+fn sys_BlockedOnMVarRead_eq() {
+    assert_eq!(BlockedOnMVarRead, sys::BlockedOnMVarRead);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_TSO_STOP_AFTER_RETURN() {
-    assert_eq!(sys::TSO_STOP_AFTER_RETURN, TSO_STOP_AFTER_RETURN);
+fn sys_BlockedOnMVarRead_layout() {
+    assert_eq!(
+        size_of_val(&BlockedOnMVarRead),
+        size_of_val(&sys::BlockedOnMVarRead)
+    );
+    assert_eq!(
+        align_of_val(&BlockedOnMVarRead),
+        align_of_val(&sys::BlockedOnMVarRead)
+    );
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_SPIN_COUNT() {
-    assert_eq!(sys::SPIN_COUNT, SPIN_COUNT);
+fn sys_BlockedOnBlackHole_eq() {
+    assert_eq!(BlockedOnBlackHole, sys::BlockedOnBlackHole);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_MAX_SPARE_WORKERS() {
-    assert_eq!(sys::MAX_SPARE_WORKERS, MAX_SPARE_WORKERS);
+fn sys_BlockedOnBlackHole_layout() {
+    assert_eq!(
+        size_of_val(&BlockedOnBlackHole),
+        size_of_val(&sys::BlockedOnBlackHole)
+    );
+    assert_eq!(
+        align_of_val(&BlockedOnBlackHole),
+        align_of_val(&sys::BlockedOnBlackHole)
+    );
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_MAX_NUMA_NODES() {
-    assert_eq!(sys::MAX_NUMA_NODES, MAX_NUMA_NODES);
+fn sys_BlockedOnRead_eq() {
+    assert_eq!(BlockedOnRead, sys::BlockedOnRead);
 }
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_eq_CLOSURE_DESC_BUFFER_SIZE() {
-    assert_eq!(sys::CLOSURE_DESC_BUFFER_SIZE, CLOSURE_DESC_BUFFER_SIZE);
+fn sys_BlockedOnRead_layout() {
+    assert_eq!(
+        size_of_val(&BlockedOnRead),
+        size_of_val(&sys::BlockedOnRead)
+    );
+    assert_eq!(
+        align_of_val(&BlockedOnRead),
+        align_of_val(&sys::BlockedOnRead)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnWrite_eq() {
+    assert_eq!(BlockedOnWrite, sys::BlockedOnWrite);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnWrite_layout() {
+    assert_eq!(
+        size_of_val(&BlockedOnWrite),
+        size_of_val(&sys::BlockedOnWrite)
+    );
+    assert_eq!(
+        align_of_val(&BlockedOnWrite),
+        align_of_val(&sys::BlockedOnWrite)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnDelay_eq() {
+    assert_eq!(BlockedOnDelay, sys::BlockedOnDelay);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnDelay_layout() {
+    assert_eq!(
+        size_of_val(&BlockedOnDelay),
+        size_of_val(&sys::BlockedOnDelay)
+    );
+    assert_eq!(
+        align_of_val(&BlockedOnDelay),
+        align_of_val(&sys::BlockedOnDelay)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnSTM_eq() {
+    assert_eq!(BlockedOnSTM, sys::BlockedOnSTM);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnSTM_layout() {
+    assert_eq!(size_of_val(&BlockedOnSTM), size_of_val(&sys::BlockedOnSTM));
+    assert_eq!(
+        align_of_val(&BlockedOnSTM),
+        align_of_val(&sys::BlockedOnSTM)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnDoProc_eq() {
+    assert_eq!(BlockedOnDoProc, sys::BlockedOnDoProc);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnDoProc_layout() {
+    assert_eq!(
+        size_of_val(&BlockedOnDoProc),
+        size_of_val(&sys::BlockedOnDoProc)
+    );
+    assert_eq!(
+        align_of_val(&BlockedOnDoProc),
+        align_of_val(&sys::BlockedOnDoProc)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnCCall_eq() {
+    assert_eq!(BlockedOnCCall, sys::BlockedOnCCall);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnCCall_layout() {
+    assert_eq!(
+        size_of_val(&BlockedOnCCall),
+        size_of_val(&sys::BlockedOnCCall)
+    );
+    assert_eq!(
+        align_of_val(&BlockedOnCCall),
+        align_of_val(&sys::BlockedOnCCall)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnCCall_Interruptible_eq() {
+    assert_eq!(
+        BlockedOnCCall_Interruptible,
+        sys::BlockedOnCCall_Interruptible
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnCCall_Interruptible_layout() {
+    assert_eq!(
+        size_of_val(&BlockedOnCCall_Interruptible),
+        size_of_val(&sys::BlockedOnCCall_Interruptible)
+    );
+    assert_eq!(
+        align_of_val(&BlockedOnCCall_Interruptible),
+        align_of_val(&sys::BlockedOnCCall_Interruptible)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnMsgThrowTo_eq() {
+    assert_eq!(BlockedOnMsgThrowTo, sys::BlockedOnMsgThrowTo);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_BlockedOnMsgThrowTo_layout() {
+    assert_eq!(
+        size_of_val(&BlockedOnMsgThrowTo),
+        size_of_val(&sys::BlockedOnMsgThrowTo)
+    );
+    assert_eq!(
+        align_of_val(&BlockedOnMsgThrowTo),
+        align_of_val(&sys::BlockedOnMsgThrowTo)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_ThreadMigrating_eq() {
+    assert_eq!(ThreadMigrating, sys::ThreadMigrating);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_ThreadMigrating_layout() {
+    assert_eq!(
+        size_of_val(&ThreadMigrating),
+        size_of_val(&sys::ThreadMigrating)
+    );
+    assert_eq!(
+        align_of_val(&ThreadMigrating),
+        align_of_val(&sys::ThreadMigrating)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_HeapOverflow_eq() {
+    assert_eq!(HeapOverflow, sys::HeapOverflow);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_HeapOverflow_layout() {
+    assert_eq!(size_of_val(&HeapOverflow), size_of_val(&sys::HeapOverflow));
+    assert_eq!(
+        align_of_val(&HeapOverflow),
+        align_of_val(&sys::HeapOverflow)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StackOverflow_eq() {
+    assert_eq!(StackOverflow, sys::StackOverflow);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StackOverflow_layout() {
+    assert_eq!(
+        size_of_val(&StackOverflow),
+        size_of_val(&sys::StackOverflow)
+    );
+    assert_eq!(
+        align_of_val(&StackOverflow),
+        align_of_val(&sys::StackOverflow)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_ThreadBlocked_eq() {
+    assert_eq!(ThreadBlocked, sys::ThreadBlocked);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_ThreadBlocked_layout() {
+    assert_eq!(
+        size_of_val(&ThreadBlocked),
+        size_of_val(&sys::ThreadBlocked)
+    );
+    assert_eq!(
+        align_of_val(&ThreadBlocked),
+        align_of_val(&sys::ThreadBlocked)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_ThreadFinished_eq() {
+    assert_eq!(ThreadFinished, sys::ThreadFinished);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_ThreadFinished_layout() {
+    assert_eq!(
+        size_of_val(&ThreadFinished),
+        size_of_val(&sys::ThreadFinished)
+    );
+    assert_eq!(
+        align_of_val(&ThreadFinished),
+        align_of_val(&sys::ThreadFinished)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_LOCKED_eq() {
+    assert_eq!(TSO_LOCKED, sys::TSO_LOCKED);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_LOCKED_layout() {
+    assert_eq!(size_of_val(&TSO_LOCKED), size_of_val(&sys::TSO_LOCKED));
+    assert_eq!(align_of_val(&TSO_LOCKED), align_of_val(&sys::TSO_LOCKED));
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_BLOCKEX_eq() {
+    assert_eq!(TSO_BLOCKEX, sys::TSO_BLOCKEX);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_BLOCKEX_layout() {
+    assert_eq!(size_of_val(&TSO_BLOCKEX), size_of_val(&sys::TSO_BLOCKEX));
+    assert_eq!(align_of_val(&TSO_BLOCKEX), align_of_val(&sys::TSO_BLOCKEX));
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_INTERRUPTIBLE_eq() {
+    assert_eq!(TSO_INTERRUPTIBLE, sys::TSO_INTERRUPTIBLE);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_INTERRUPTIBLE_layout() {
+    assert_eq!(
+        size_of_val(&TSO_INTERRUPTIBLE),
+        size_of_val(&sys::TSO_INTERRUPTIBLE)
+    );
+    assert_eq!(
+        align_of_val(&TSO_INTERRUPTIBLE),
+        align_of_val(&sys::TSO_INTERRUPTIBLE)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_STOPPED_ON_BREAKPOINT_eq() {
+    assert_eq!(TSO_STOPPED_ON_BREAKPOINT, sys::TSO_STOPPED_ON_BREAKPOINT);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_STOPPED_ON_BREAKPOINT_layout() {
+    assert_eq!(
+        size_of_val(&TSO_STOPPED_ON_BREAKPOINT),
+        size_of_val(&sys::TSO_STOPPED_ON_BREAKPOINT)
+    );
+    assert_eq!(
+        align_of_val(&TSO_STOPPED_ON_BREAKPOINT),
+        align_of_val(&sys::TSO_STOPPED_ON_BREAKPOINT)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_MARKED_eq() {
+    assert_eq!(TSO_MARKED, sys::TSO_MARKED);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_MARKED_layout() {
+    assert_eq!(size_of_val(&TSO_MARKED), size_of_val(&sys::TSO_MARKED));
+    assert_eq!(align_of_val(&TSO_MARKED), align_of_val(&sys::TSO_MARKED));
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_SQUEEZED_eq() {
+    assert_eq!(TSO_SQUEEZED, sys::TSO_SQUEEZED);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_SQUEEZED_layout() {
+    assert_eq!(size_of_val(&TSO_SQUEEZED), size_of_val(&sys::TSO_SQUEEZED));
+    assert_eq!(
+        align_of_val(&TSO_SQUEEZED),
+        align_of_val(&sys::TSO_SQUEEZED)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_ALLOC_LIMIT_eq() {
+    assert_eq!(TSO_ALLOC_LIMIT, sys::TSO_ALLOC_LIMIT);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_ALLOC_LIMIT_layout() {
+    assert_eq!(
+        size_of_val(&TSO_ALLOC_LIMIT),
+        size_of_val(&sys::TSO_ALLOC_LIMIT)
+    );
+    assert_eq!(
+        align_of_val(&TSO_ALLOC_LIMIT),
+        align_of_val(&sys::TSO_ALLOC_LIMIT)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_STOP_NEXT_BREAKPOINT_eq() {
+    assert_eq!(TSO_STOP_NEXT_BREAKPOINT, sys::TSO_STOP_NEXT_BREAKPOINT);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_STOP_NEXT_BREAKPOINT_layout() {
+    assert_eq!(
+        size_of_val(&TSO_STOP_NEXT_BREAKPOINT),
+        size_of_val(&sys::TSO_STOP_NEXT_BREAKPOINT)
+    );
+    assert_eq!(
+        align_of_val(&TSO_STOP_NEXT_BREAKPOINT),
+        align_of_val(&sys::TSO_STOP_NEXT_BREAKPOINT)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_STOP_AFTER_RETURN_eq() {
+    assert_eq!(TSO_STOP_AFTER_RETURN, sys::TSO_STOP_AFTER_RETURN);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TSO_STOP_AFTER_RETURN_layout() {
+    assert_eq!(
+        size_of_val(&TSO_STOP_AFTER_RETURN),
+        size_of_val(&sys::TSO_STOP_AFTER_RETURN)
+    );
+    assert_eq!(
+        align_of_val(&TSO_STOP_AFTER_RETURN),
+        align_of_val(&sys::TSO_STOP_AFTER_RETURN)
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_CLOSURE_DESC_BUFFER_SIZE_eq() {
+    assert_eq!(CLOSURE_DESC_BUFFER_SIZE, sys::CLOSURE_DESC_BUFFER_SIZE);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_CLOSURE_DESC_BUFFER_SIZE_layout() {
+    assert_eq!(
+        size_of_val(&CLOSURE_DESC_BUFFER_SIZE),
+        size_of_val(&sys::CLOSURE_DESC_BUFFER_SIZE)
+    );
+    assert_eq!(
+        align_of_val(&CLOSURE_DESC_BUFFER_SIZE),
+        align_of_val(&sys::CLOSURE_DESC_BUFFER_SIZE)
+    );
 }

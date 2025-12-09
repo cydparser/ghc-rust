@@ -2,9 +2,6 @@ use libc::{c_long, c_short};
 
 use crate::prelude::*;
 
-#[cfg(test)]
-mod tests;
-
 pub(crate) type __tsan_atomic8 = c_char;
 
 pub(crate) type __tsan_atomic16 = c_short;

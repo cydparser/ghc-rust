@@ -11,26 +11,21 @@ pub struct _ObjectCode {
     _unused: [u8; 0],
 }
 
-#[cfg(feature = "sys")]
-impl From<_ObjectCode> for sys::_ObjectCode {
-    fn from(x: _ObjectCode) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
-/// cbindgen:no-export
+#[ffi(compiler)]
 #[repr(C)]
 pub struct ForeignExportsList {
-    next: *mut ForeignExportsList,
-    n_entries: c_int,
-    oc: *mut _ObjectCode,
-    stable_ptrs: *mut *mut StgStablePtr,
-    exports: __IncompleteArrayField<StgPtr>,
+    pub next: *mut ForeignExportsList,
+    pub n_entries: c_int,
+    pub oc: *mut _ObjectCode,
+    pub stable_ptrs: *mut *mut StgStablePtr,
+    pub exports: __IncompleteArrayField<StgPtr>,
 }
 
-#[cfg(feature = "sys")]
-impl From<ForeignExportsList> for sys::ForeignExportsList {
-    fn from(x: ForeignExportsList) -> Self {
-        unsafe { transmute(x) }
+#[ffi(compiler)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn registerForeignExports(exports: *mut ForeignExportsList) {
+    sys! {
+        registerForeignExports(exports as * mut sys::ForeignExportsList)
     }
 }

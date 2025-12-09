@@ -4,7 +4,7 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-/// - GHC_PLACES: {testsuite}
+#[ffi(testsuite)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct EventLogWriter {
@@ -15,19 +15,49 @@ pub struct EventLogWriter {
     pub stopEventLogWriter: Option<unsafe extern "C" fn()>,
 }
 
-#[cfg(feature = "sys")]
-impl From<EventLogWriter> for sys::EventLogWriter {
-    fn from(x: EventLogWriter) -> Self {
-        unsafe { transmute(x) }
-    }
-}
-
 #[repr(u32)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
 pub(crate) enum EventLogStatus {
     EVENTLOG_NOT_SUPPORTED = 0,
     EVENTLOG_NOT_CONFIGURED = 1,
     EVENTLOG_RUNNING = 2,
+}
+
+#[cfg(feature = "sys")]
+impl From<EventLogStatus> for sys::EventLogStatus {
+    fn from(v: EventLogStatus) -> Self {
+        use EventLogStatus::*;
+        match v {
+            EVENTLOG_NOT_SUPPORTED => sys::EventLogStatus::EVENTLOG_NOT_SUPPORTED,
+            EVENTLOG_NOT_CONFIGURED => sys::EventLogStatus::EVENTLOG_NOT_CONFIGURED,
+            EVENTLOG_RUNNING => sys::EventLogStatus::EVENTLOG_RUNNING,
+        }
+    }
+}
+
+#[cfg(feature = "sys")]
+impl From<sys::EventLogStatus> for EventLogStatus {
+    fn from(v: sys::EventLogStatus) -> Self {
+        use EventLogStatus::*;
+        match v {
+            sys::EventLogStatus::EVENTLOG_NOT_SUPPORTED => EVENTLOG_NOT_SUPPORTED,
+            sys::EventLogStatus::EVENTLOG_NOT_CONFIGURED => EVENTLOG_NOT_CONFIGURED,
+            sys::EventLogStatus::EVENTLOG_RUNNING => EVENTLOG_RUNNING,
+        }
+    }
+}
+
+impl TryFrom<u32> for EventLogStatus {
+    type Error = ();
+    fn try_from(d: u32) -> Result<EventLogStatus, ()> {
+        use EventLogStatus::*;
+        match d {
+            0 => Ok(EVENTLOG_NOT_SUPPORTED),
+            1 => Ok(EVENTLOG_NOT_CONFIGURED),
+            2 => Ok(EVENTLOG_RUNNING),
+            _ => Err(()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -42,41 +72,29 @@ impl Arbitrary for EventLogStatus {
     }
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn startEventLogging(writer: *const EventLogWriter) -> bool {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::startEventLogging(writer as *const sys::EventLogWriter)
+    sys! {
+        startEventLogging(writer as * const sys::EventLogWriter)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("startEventLogging")
 }
 
-#[cfg(feature = "ghc_testsuite")]
-#[ffi]
+#[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn endEventLogging() {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::endEventLogging()
+    sys! {
+        endEventLogging()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("endEventLogging")
 }
 
-/// - GHC_PLACES: {libraries, testsuite}
-#[ffi]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn flushEventLog(cap: *mut *mut Capability) {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::flushEventLog(cap as *mut *mut sys::Capability)
+    sys! {
+        flushEventLog(cap as * mut * mut sys::Capability)
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("flushEventLog")
 }

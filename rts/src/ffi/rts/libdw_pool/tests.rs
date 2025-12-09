@@ -13,7 +13,7 @@ fn equivalent_libdwPoolTake() {
         let result: &LibdwSession = unsafe { &*libdwPoolTake() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn equivalent_libdwPoolRelease() {
         unsafe { libdwPoolRelease(&raw mut sess) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -72,7 +72,7 @@ fn equivalent_libdwPoolClear() {
         unsafe { libdwPoolClear() };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]

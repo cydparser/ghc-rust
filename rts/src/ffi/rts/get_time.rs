@@ -4,15 +4,11 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getMonotonicNSec() -> StgWord64 {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::getMonotonicNSec()
+    sys! {
+        getMonotonicNSec()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("getMonotonicNSec")
 }

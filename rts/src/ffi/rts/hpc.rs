@@ -15,25 +15,28 @@ pub struct _HpcModuleInfo {
     next: *mut _HpcModuleInfo,
 }
 
-#[cfg(feature = "sys")]
-impl From<_HpcModuleInfo> for sys::_HpcModuleInfo {
-    fn from(x: _HpcModuleInfo) -> Self {
-        unsafe { transmute(x) }
+#[ffi(libraries)]
+pub type HpcModuleInfo = _HpcModuleInfo;
+
+#[ffi(compiler)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn hs_hpc_module(
+    modName: *mut c_char,
+    modCount: StgWord32,
+    modHashNo: StgWord32,
+    tixArr: *mut StgWord64,
+) {
+    sys! {
+        hs_hpc_module(modName, modCount, modHashNo, tixArr)
     }
 }
 
-/// - GHC_PLACES: {libraries}
-pub type HpcModuleInfo = _HpcModuleInfo;
-
-/// - GHC_PLACES: {libraries}
-#[ffi]
+#[ffi(libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_hpc_rootModule() -> *mut HpcModuleInfo {
-    #[cfg(feature = "sys")]
-    unsafe {
-        sys::hs_hpc_rootModule() as *mut HpcModuleInfo
+    sys! {
+        hs_hpc_rootModule().cast()
     }
-    #[cfg(not(feature = "sys"))]
-    unimplemented!("hs_hpc_rootModule")
 }

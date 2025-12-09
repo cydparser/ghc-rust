@@ -2,16 +2,35 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_size_Condition() {
-    assert_eq!(size_of::<sys::Condition>(), size_of::<Condition>())
+fn sys_Condition_layout() {
+    assert_eq!(
+        offset_of!(Condition, cond),
+        offset_of!(sys::Condition, cond)
+    );
+    assert_eq!(size_of::<Condition>(), size_of::<sys::Condition>());
+    assert_eq!(align_of::<Condition>(), align_of::<sys::Condition>());
 }
 
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of Condition"][size_of::<Condition>() - 48usize];
-    ["Alignment of Condition"][align_of::<Condition>() - 8usize];
-    ["Offset of field: Condition::cond"][offset_of!(Condition, cond) - 0usize];
-};
+#[cfg(feature = "sys")]
+#[test]
+fn sys_Mutex_layout() {
+    assert_eq!(size_of::<Mutex>(), size_of::<sys::Mutex>());
+    assert_eq!(align_of::<Mutex>(), align_of::<sys::Mutex>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_OSThreadId_layout() {
+    assert_eq!(size_of::<OSThreadId>(), size_of::<sys::OSThreadId>());
+    assert_eq!(align_of::<OSThreadId>(), align_of::<sys::OSThreadId>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_OSThreadProc_layout() {
+    assert_eq!(size_of::<OSThreadProc>(), size_of::<OSThreadProc>());
+    assert_eq!(align_of::<OSThreadProc>(), align_of::<OSThreadProc>());
+}
 
 #[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
 #[quickcheck]
@@ -32,7 +51,7 @@ fn equivalent_createOSThread(name: c_char) -> bool {
         let mut param: c_void = todo!();
         unsafe { createOSThread(&raw mut tid, &raw mut name, startProc, &raw mut param) }
     };
-    expected == actual
+    actual == expected
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -67,7 +86,7 @@ fn equivalent_initCondition() {
         unsafe { initCondition(&raw mut pCond) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -99,7 +118,7 @@ fn equivalent_broadcastCondition() {
         unsafe { broadcastCondition(&raw mut pCond) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -133,7 +152,7 @@ fn equivalent_waitCondition() {
         unsafe { waitCondition(&raw mut pCond, &raw mut pMut) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -166,7 +185,7 @@ fn equivalent_initMutex() {
         unsafe { initMutex(&raw mut pMut) };
         todo!()
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[cfg(feature = "ghc_testsuite")]
@@ -196,7 +215,7 @@ fn equivalent_forkOS_createThread() {
         let entry: HsStablePtr = todo!();
         unsafe { forkOS_createThread(entry) }
     };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -217,7 +236,7 @@ fn test_forkOS_createThread() {
 fn equivalent_getNumberOfProcessors() {
     let expected: u32 = { unsafe { sys::getNumberOfProcessors() } };
     let actual: u32 = { unsafe { getNumberOfProcessors() } };
-    assert_eq!(expected, actual);
+    assert_eq!(actual, expected);
 }
 
 #[test]

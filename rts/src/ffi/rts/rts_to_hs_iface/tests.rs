@@ -417,6 +417,7 @@ fn sys_HsIface_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+#[expect(static_mut_refs)]
 fn sys_ghc_hs_iface_layout() {
     assert_eq!(
         size_of_val(unsafe { &ghc_hs_iface }),
