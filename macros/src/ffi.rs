@@ -1,10 +1,66 @@
+use std::collections::BTreeSet;
+
 use proc_macro2 as proc2;
 use proc_macro2::{Delimiter, Group, Spacing, TokenStream, TokenTree};
 use syn::{Ident, Token};
 
-pub fn ffi_attribute(_args: TokenStream, item: TokenStream) -> syn::Result<TokenStream> {
+pub fn ffi_attribute(args: TokenStream, item: TokenStream) -> syn::Result<TokenStream> {
+    let _consumers: Consumers = syn::parse2(args)?;
     let item: FfiItem = syn::parse2(item)?;
     Ok([item.attrs, item.code].into_iter().collect())
+}
+
+// Duplicated from generated/consumer to avoid a dependency.
+#[derive(PartialEq, PartialOrd, Eq, Ord)]
+enum Consumer {
+    Compiler,
+    Docs,
+    Driver,
+    GhcLib,
+    Libraries,
+    Testsuite,
+    Utils,
+}
+
+#[expect(dead_code)]
+struct Consumers(BTreeSet<Consumer>);
+
+impl syn::parse::Parse for Consumers {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use Consumer::*;
+        let mut consumers = BTreeSet::new();
+
+        while !input.is_empty() {
+            let ident: syn::Ident = input.parse()?;
+
+            let consumer = if ident == "compiler" {
+                Compiler
+            } else if ident == "docs" {
+                Docs
+            } else if ident == "driver" {
+                Driver
+            } else if ident == "ghc_lib" {
+                GhcLib
+            } else if ident == "libraries" {
+                Libraries
+            } else if ident == "testsuite" {
+                Testsuite
+            } else if ident == "utils" {
+                Utils
+            } else {
+                return Err(input.error("expected a known consumer"));
+            };
+            consumers.insert(consumer);
+
+            if input.is_empty() {
+                break;
+            }
+
+            let _comma = input.parse::<Token![,]>();
+        }
+
+        Ok(Consumers(consumers))
+    }
 }
 
 struct FfiItem {
