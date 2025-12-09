@@ -38,6 +38,7 @@ impl<T: HasReferences> AsMut<T> for WithReferences<T> {
     }
 }
 
+#[expect(unused)]
 impl<T: HasReferences> WithReferences<T> {
     fn as_mut_ptr(&mut self) -> *mut T {
         self.inner.get_mut() as *mut T
