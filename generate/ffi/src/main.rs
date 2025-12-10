@@ -659,6 +659,9 @@ fn transform_union(
 
     if consumers.is_empty() {
         item_union.vis = parse_quote! { pub(crate) };
+        item_union
+            .attrs
+            .insert(0, parse_quote! { #[doc = " cbindgen:no-export"] });
     } else {
         item_union.attrs.insert(0, attr_ffi(consumers));
     }

@@ -51,6 +51,7 @@ pub struct StgLargeBitmap_ {
 #[ffi(ghc_lib, testsuite)]
 pub type StgLargeBitmap = StgLargeBitmap_;
 
+/// cbindgen:no-export
 #[repr(C)]
 pub(crate) union StgClosureInfo {
     pub(crate) payload: StgClosureInfo__bindgen_ty_1,
@@ -92,6 +93,7 @@ pub struct StgFunInfoExtraRev_ {
     pub(crate) arity: StgHalfWord,
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 pub(crate) union StgFunInfoExtraRev___bindgen_ty_1 {
     pub(crate) bitmap: StgWord,
@@ -110,6 +112,7 @@ pub struct StgFunInfoExtraFwd_ {
     slow_apply: StgFun,
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 pub(crate) union StgFunInfoExtraFwd___bindgen_ty_1 {
     bitmap: StgWord,

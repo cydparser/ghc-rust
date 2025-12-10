@@ -16,6 +16,7 @@ pub struct StgProfHeader {
     hp: StgProfHeader__bindgen_ty_1,
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 pub(crate) union StgProfHeader__bindgen_ty_1 {
     trav: StgWord,

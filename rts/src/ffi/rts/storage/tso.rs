@@ -27,6 +27,7 @@ pub(crate) type StgThreadID = StgWord64;
 
 pub(crate) type StgThreadReturnCode = c_uint;
 
+/// cbindgen:no-export
 #[repr(C)]
 pub(crate) union StgTSOBlockInfo {
     closure: *mut StgClosure,

@@ -84,12 +84,14 @@ pub struct bdescr_ {
     _padding: [StgWord32; 3usize],
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 pub(crate) union bdescr___bindgen_ty_1 {
     free: StgPtr,
     nonmoving_segment: NonmovingSegmentInfo,
 }
 
+/// cbindgen:no-export
 #[repr(C)]
 pub(crate) union bdescr___bindgen_ty_2 {
     back: *mut bdescr_,
