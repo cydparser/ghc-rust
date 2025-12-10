@@ -19,4 +19,4 @@ test-rts-rust:
     cargo test -p ghc-rts --no-default-features --features tracing
 
 test-rts-sys:
-    cargo test -p ghc-rts --features sys,tracing
+    cargo test -p ghc-rts --no-default-features --features sys,tracing
