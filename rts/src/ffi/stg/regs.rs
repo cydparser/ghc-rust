@@ -20,15 +20,15 @@ pub struct StgFunTable {
     stgGCFun: StgFunPtr,
 }
 
-/// cbindgen:no-export
+#[ffi]
 #[repr(C)]
 pub union StgUnion {
-    pub(crate) w: StgWord,
-    pub(crate) a: StgAddr,
-    pub(crate) c: StgChar,
-    pub(crate) f: StgFloat,
-    pub(crate) i: StgInt,
-    pub(crate) p: StgPtr,
+    pub w: StgWord,
+    pub a: StgAddr,
+    pub c: StgChar,
+    pub f: StgFloat,
+    pub i: StgInt,
+    pub p: StgPtr,
 }
 
 #[ffi(compiler)]
