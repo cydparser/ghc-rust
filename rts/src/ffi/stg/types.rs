@@ -88,7 +88,7 @@ pub type StgInt64 = i64;
 pub type StgWord64 = u64;
 
 // TODO(rust): pub type StgWord128 = u128;
-/// cbindgen:no-export
+#[ffi]
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct StgWord128 {
@@ -120,7 +120,7 @@ impl Arbitrary for StgWord128 {
     }
 }
 
-/// cbindgen:no-export
+#[ffi]
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct StgWord256 {
@@ -158,7 +158,7 @@ impl Arbitrary for StgWord256 {
     }
 }
 
-/// cbindgen:no-export
+#[ffi]
 #[repr(C)]
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
