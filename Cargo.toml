@@ -3,9 +3,9 @@ members = [
   "build-utils",
   "generate/consumers",
   "generate/ffi",
+  "generate/headers",
   "generate/symbol-consumers",
   "generate/symbols",
-  "include",
   "macros",
   "rts",
   "rts-sys",
@@ -25,6 +25,7 @@ crane.name = "ghc-rts"
 [workspace.dependencies]
 bindgen = "0.72.0"
 build-utils = { path = "build-utils" }
+cbindgen = { version = "0.29.2", default-features = false }
 generate-consumers = { path = "generate/consumers" }
 generate-symbols = { path = "generate/symbols" }
 libc = "0.2.171"
