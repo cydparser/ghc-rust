@@ -5,6 +5,9 @@ generate-symbols:
     cargo run -p generate-symbol-consumers
     rustfmt generate/symbols/src/lib.rs
 
+generate-includes:
+    scripts/locate-ghc-rts-header-includes > generate/includes.json
+
 regenerate *args:
     scripts/regenerate {{ args }}
 
