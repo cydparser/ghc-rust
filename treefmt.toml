@@ -1,5 +1,10 @@
 excludes = [".gitignore", "*.lock"]
 
+[formatter.clang-format]
+command = "clang-format"
+options = ["-i"]
+includes = "*.h"
+
 [formatter.nix]
 command = "nixfmt"
 includes = ["*.nix"]
