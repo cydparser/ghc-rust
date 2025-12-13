@@ -41,6 +41,19 @@ fn sys_StgFunInfoExtraRev___bindgen_ty_1_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_StgFunInfoExtraRev_layout() {
+    assert_eq!(
+        size_of::<StgFunInfoExtraRev>(),
+        size_of::<sys::StgFunInfoExtraRev>()
+    );
+    assert_eq!(
+        align_of::<StgFunInfoExtraRev>(),
+        align_of::<sys::StgFunInfoExtraRev>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_StgFunInfoExtraFwd___bindgen_ty_1_layout() {
     assert_eq!(
         size_of::<StgFunInfoExtraFwd___bindgen_ty_1>(),

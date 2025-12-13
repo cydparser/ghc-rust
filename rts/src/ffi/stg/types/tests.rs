@@ -125,6 +125,37 @@ fn sys_StgWord64_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_StgWord128_layout() {
+    assert_eq!(offset_of!(StgWord128, h), offset_of!(sys::StgWord128, h));
+    assert_eq!(offset_of!(StgWord128, l), offset_of!(sys::StgWord128, l));
+    assert_eq!(size_of::<StgWord128>(), size_of::<sys::StgWord128>());
+    assert_eq!(align_of::<StgWord128>(), align_of::<sys::StgWord128>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgWord256_layout() {
+    assert_eq!(size_of::<StgWord128>(), size_of::<sys::StgWord128>());
+    assert_eq!(offset_of!(StgWord256, h), offset_of!(sys::StgWord256, h));
+    assert_eq!(size_of::<StgWord128>(), size_of::<sys::StgWord128>());
+    assert_eq!(offset_of!(StgWord256, l), offset_of!(sys::StgWord256, l));
+    assert_eq!(size_of::<StgWord256>(), size_of::<sys::StgWord256>());
+    assert_eq!(align_of::<StgWord256>(), align_of::<sys::StgWord256>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgWord512_layout() {
+    assert_eq!(size_of::<StgWord256>(), size_of::<sys::StgWord256>());
+    assert_eq!(offset_of!(StgWord512, h), offset_of!(sys::StgWord512, h));
+    assert_eq!(size_of::<StgWord256>(), size_of::<sys::StgWord256>());
+    assert_eq!(offset_of!(StgWord512, l), offset_of!(sys::StgWord512, l));
+    assert_eq!(size_of::<StgWord512>(), size_of::<sys::StgWord512>());
+    assert_eq!(align_of::<StgWord512>(), align_of::<sys::StgWord512>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_StgInt_layout() {
     assert_eq!(size_of::<StgInt>(), size_of::<StgInt>());
     assert_eq!(align_of::<StgInt>(), align_of::<StgInt>());
