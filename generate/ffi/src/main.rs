@@ -451,7 +451,7 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         }
     }));
 
-    if let Some(tests) = generate_ffi::generate_tests(symbols, sig, consumers) {
+    if let Some(tests) = generate_ffi::generate_tests(symbols, sig) {
         for test in tests {
             tests_file.items.push(syn::Item::Fn(test));
         }
