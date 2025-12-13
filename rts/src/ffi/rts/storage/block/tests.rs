@@ -62,7 +62,7 @@ fn sys_bdescr_layout() {
     assert_eq!(align_of::<bdescr>(), align_of::<sys::bdescr>());
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -78,7 +78,6 @@ fn equivalent_allocAlignedGroupOnNode(node: u32, n: W_) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -94,7 +93,7 @@ fn test_allocAlignedGroupOnNode() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -110,7 +109,6 @@ fn equivalent_allocGroup_lock(n: W_) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -125,7 +123,7 @@ fn test_allocGroup_lock() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -143,7 +141,6 @@ fn equivalent_freeGroup_lock() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

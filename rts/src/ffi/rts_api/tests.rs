@@ -287,7 +287,7 @@ fn test_getRTSStatsEnabled() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 fn equivalent_getAllocations() {
@@ -296,7 +296,6 @@ fn equivalent_getAllocations() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -306,7 +305,7 @@ fn test_getAllocations() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -330,7 +329,6 @@ fn equivalent_hs_init_with_rtsopts(argc: c_int, argv: c_char) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -569,7 +567,7 @@ fn test_rts_unlock() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -585,7 +583,6 @@ fn equivalent_rts_unsafeGetMyCapability() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -598,7 +595,7 @@ fn test_rts_unsafeGetMyCapability() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -614,7 +611,6 @@ fn equivalent_rts_setInCallCapability(preferred_capability: c_int, affinity: c_i
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -630,7 +626,7 @@ fn test_rts_setInCallCapability() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -646,7 +642,6 @@ fn equivalent_rts_pinThreadToNumaNode(node: c_int) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -661,7 +656,7 @@ fn test_rts_pinThreadToNumaNode() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -679,7 +674,6 @@ fn equivalent_rts_mkChar(c: HsChar) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -728,7 +722,7 @@ fn test_rts_mkInt() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -746,7 +740,6 @@ fn equivalent_rts_mkInt8(i: HsInt8) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -762,7 +755,7 @@ fn test_rts_mkInt8() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -780,7 +773,6 @@ fn equivalent_rts_mkInt16(i: HsInt16) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -796,7 +788,7 @@ fn test_rts_mkInt16() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -814,7 +806,6 @@ fn equivalent_rts_mkInt32(i: HsInt32) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -830,7 +821,7 @@ fn test_rts_mkInt32() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -848,7 +839,6 @@ fn equivalent_rts_mkInt64(i: HsInt64) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -897,7 +887,7 @@ fn test_rts_mkWord() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -915,7 +905,6 @@ fn equivalent_rts_mkWord8(w: HsWord8) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -931,7 +920,7 @@ fn test_rts_mkWord8() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -949,7 +938,6 @@ fn equivalent_rts_mkWord16(w: HsWord16) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -965,7 +953,7 @@ fn test_rts_mkWord16() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -983,7 +971,6 @@ fn equivalent_rts_mkWord32(w: HsWord32) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -999,7 +986,7 @@ fn test_rts_mkWord32() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1017,7 +1004,6 @@ fn equivalent_rts_mkWord64(w: HsWord64) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1033,7 +1019,7 @@ fn test_rts_mkWord64() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1053,7 +1039,6 @@ fn equivalent_rts_mkPtr() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1068,7 +1053,7 @@ fn test_rts_mkPtr() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1088,7 +1073,6 @@ fn equivalent_rts_mkFunPtr() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1103,7 +1087,7 @@ fn test_rts_mkFunPtr() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1121,7 +1105,6 @@ fn equivalent_rts_mkFloat(f: HsFloat) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1137,7 +1120,7 @@ fn test_rts_mkFloat() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1155,7 +1138,6 @@ fn equivalent_rts_mkDouble(f: HsDouble) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1171,7 +1153,7 @@ fn test_rts_mkDouble() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1191,7 +1173,6 @@ fn equivalent_rts_mkStablePtr() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1239,7 +1220,7 @@ fn test_rts_mkBool() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1259,7 +1240,6 @@ fn equivalent_rts_mkString(s: c_char) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1312,7 +1292,7 @@ fn test_rts_apply() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1328,7 +1308,6 @@ fn equivalent_rts_getChar() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1341,7 +1320,7 @@ fn test_rts_getChar() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1357,7 +1336,6 @@ fn equivalent_rts_getInt() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1370,7 +1348,7 @@ fn test_rts_getInt() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1386,7 +1364,6 @@ fn equivalent_rts_getInt8() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1399,7 +1376,7 @@ fn test_rts_getInt8() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1415,7 +1392,6 @@ fn equivalent_rts_getInt16() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1428,7 +1404,7 @@ fn test_rts_getInt16() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1444,7 +1420,6 @@ fn equivalent_rts_getInt32() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1457,7 +1432,7 @@ fn test_rts_getInt32() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1473,7 +1448,6 @@ fn equivalent_rts_getInt64() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1486,7 +1460,7 @@ fn test_rts_getInt64() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1502,7 +1476,6 @@ fn equivalent_rts_getWord() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1515,7 +1488,7 @@ fn test_rts_getWord() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1531,7 +1504,6 @@ fn equivalent_rts_getWord8() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1544,7 +1516,7 @@ fn test_rts_getWord8() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1560,7 +1532,6 @@ fn equivalent_rts_getWord16() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1573,7 +1544,7 @@ fn test_rts_getWord16() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1589,7 +1560,6 @@ fn equivalent_rts_getWord32() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1602,7 +1572,7 @@ fn test_rts_getWord32() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1618,7 +1588,6 @@ fn equivalent_rts_getWord64() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1631,7 +1600,7 @@ fn test_rts_getWord64() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1649,7 +1618,6 @@ fn equivalent_rts_getPtr() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1663,7 +1631,7 @@ fn test_rts_getPtr() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1681,7 +1649,6 @@ fn equivalent_rts_getFunPtr() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1695,7 +1662,7 @@ fn test_rts_getFunPtr() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1711,7 +1678,6 @@ fn equivalent_rts_getFloat() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1724,7 +1690,7 @@ fn test_rts_getFloat() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1740,7 +1706,6 @@ fn equivalent_rts_getDouble() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1753,7 +1718,7 @@ fn test_rts_getDouble() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1771,7 +1736,6 @@ fn equivalent_rts_getStablePtr() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1785,7 +1749,7 @@ fn test_rts_getStablePtr() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1801,7 +1765,6 @@ fn equivalent_rts_getBool() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1814,7 +1777,7 @@ fn test_rts_getBool() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1838,7 +1801,6 @@ fn equivalent_rts_eval() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1855,7 +1817,7 @@ fn test_rts_eval() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1879,7 +1841,6 @@ fn equivalent_rts_eval_(stack_size: c_uint) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1898,7 +1859,7 @@ fn test_rts_eval_() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1922,7 +1883,6 @@ fn equivalent_rts_evalIO() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1939,7 +1899,7 @@ fn test_rts_evalIO() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1963,7 +1923,6 @@ fn equivalent_rts_evalStableIOMain() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -1980,7 +1939,7 @@ fn test_rts_evalStableIOMain() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2004,7 +1963,6 @@ fn equivalent_rts_evalStableIO() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2021,7 +1979,7 @@ fn test_rts_evalStableIO() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2045,7 +2003,6 @@ fn equivalent_rts_evalLazyIO() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2062,7 +2019,7 @@ fn test_rts_evalLazyIO() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2086,7 +2043,6 @@ fn equivalent_rts_evalLazyIO_(stack_size: c_uint) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2180,7 +2136,7 @@ fn test_rts_checkSchedStatus() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2196,7 +2152,6 @@ fn equivalent_rts_getSchedStatus() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2268,7 +2223,7 @@ fn test_rts_resume() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 fn equivalent_rts_isPaused() {
@@ -2277,7 +2232,6 @@ fn equivalent_rts_isPaused() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2287,7 +2241,7 @@ fn test_rts_isPaused() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2307,7 +2261,6 @@ fn equivalent_rts_listThreads() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2322,7 +2275,7 @@ fn test_rts_listThreads() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2342,7 +2295,6 @@ fn equivalent_rts_listMiscRoots() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2357,7 +2309,7 @@ fn test_rts_listMiscRoots() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -2373,7 +2325,6 @@ fn equivalent_rts_clearMemory() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

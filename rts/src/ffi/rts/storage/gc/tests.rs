@@ -280,7 +280,7 @@ fn test_setKeepCAFs() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -296,7 +296,6 @@ fn equivalent_setHighMemDynamic() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

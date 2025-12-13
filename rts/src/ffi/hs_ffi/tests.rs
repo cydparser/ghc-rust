@@ -190,7 +190,7 @@ fn test_hs_exit() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -206,7 +206,6 @@ fn equivalent_hs_thread_done() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -219,7 +218,7 @@ fn test_hs_thread_done() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -235,7 +234,6 @@ fn equivalent_hs_perform_gc() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -359,7 +357,7 @@ fn test_hs_spt_key_count() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -377,7 +375,6 @@ fn equivalent_hs_try_putmvar(capability: c_int) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

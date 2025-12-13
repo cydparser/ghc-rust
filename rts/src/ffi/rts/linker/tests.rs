@@ -7,7 +7,7 @@ fn sys_pathchar_layout() {
     assert_eq!(align_of::<pathchar>(), align_of::<pathchar>());
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -23,7 +23,6 @@ fn equivalent_initLinker() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -138,7 +137,7 @@ fn sys_OStatus_discriminants() {
     )
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 fn equivalent_getObjectLoadStatus(path: pathchar) -> bool {
@@ -153,7 +152,6 @@ fn equivalent_getObjectLoadStatus(path: pathchar) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -335,7 +333,7 @@ fn test_loadNativeObj() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -351,7 +349,6 @@ fn equivalent_unloadNativeObj() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -402,7 +399,7 @@ fn test_lookupSymbolInNativeObj() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 fn equivalent_addDLL(dll_name: pathchar) -> bool {
@@ -417,7 +414,6 @@ fn equivalent_addDLL(dll_name: pathchar) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

@@ -1,4 +1,3 @@
-#[cfg(feature = "ghc_testsuite")]
 use crate::ffi::stg::W_;
 #[cfg(feature = "sys")]
 use crate::prelude::*;

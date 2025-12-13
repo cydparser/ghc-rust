@@ -14,7 +14,7 @@ fn sys_mblocks_allocated_layout() {
     );
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -30,7 +30,6 @@ fn equivalent_getMBlocks(n: u32) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -45,7 +44,7 @@ fn test_getMBlocks() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -63,7 +62,6 @@ fn equivalent_freeMBlocks(n: u32) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -79,7 +77,7 @@ fn test_freeMBlocks() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -95,7 +93,6 @@ fn equivalent_releaseFreeMemory() {
     assert_eq!(actual, expected);
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]

@@ -95,7 +95,7 @@ fn test_registerInfoProvList() {
     assert_eq!(expected, actual);
 }
 
-#[cfg(all(feature = "ghc_testsuite", feature = "sys"))]
+#[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
@@ -115,7 +115,6 @@ fn equivalent_formatClosureDescIpe(str_buf: c_char) -> bool {
     actual == expected
 }
 
-#[cfg(feature = "ghc_testsuite")]
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
