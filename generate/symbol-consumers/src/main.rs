@@ -468,6 +468,7 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
     let search = |args: &[&str]| -> BTreeMap<String, Consumers> {
         let output = Command::new("rg")
             .current_dir(path)
+            .arg("--with-filename")
             .args(["-g", "!/.gitlab"])
             .args(["-g", "!/bindisttest"])
             .args(["-g", "!/distrib"])
