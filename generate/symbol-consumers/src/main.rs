@@ -525,7 +525,7 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
                             "docs" => Some(Consumer::Docs),
                             "driver" => Some(Consumer::Driver),
                             "libraries" => {
-                                if rest.starts_with("ghc-") {
+                                if rest.starts_with("ghc-") || rest.starts_with("ghci") {
                                     Some(Consumer::GhcLib)
                                 } else {
                                     Some(Consumer::Libraries)
