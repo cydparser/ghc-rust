@@ -349,6 +349,10 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
         if !is_bindgen(&s) {
             self.add_symbol(s.clone());
 
+            if let syn::Fields::Named(fs) = &i.fields {
+                add_fields(self, &s, fs);
+            }
+
             if i.generics.params.is_empty() && self.all_fields_simple_types(&i.fields) {
                 match &i.fields {
                     syn::Fields::Named(fs)
@@ -361,10 +365,6 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
                     }
                     _ => {
                         self.simple_types.insert(i.ident.clone());
-
-                        if let syn::Fields::Named(fs) = &i.fields {
-                            add_fields(self, &s, fs);
-                        }
                     }
                 }
             } else {
@@ -419,10 +419,8 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
     fn visit_item_union(&mut self, i: &'ast syn::ItemUnion) {
         let s = i.ident.to_string();
 
-        if !is_bindgen(&s) {
-            add_fields(self, &s, &i.fields);
-            self.add_symbol(s);
-        }
+        add_fields(self, &s, &i.fields);
+        self.add_symbol(s);
     }
 
     fn visit_use_rename(&mut self, i: &'ast syn::UseRename) {
