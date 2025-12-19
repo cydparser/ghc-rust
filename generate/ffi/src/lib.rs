@@ -1,4 +1,4 @@
-use generate_consumers::{Consumer, Consumers};
+use generate_consumers::Consumers;
 use generate_symbols as symbols;
 use proc_macro2::Span;
 use std::collections::{HashMap, HashSet};
@@ -40,19 +40,10 @@ impl Symbols {
             },
             symbols: {
                 let mut hs = HashMap::new();
-                for (sym, c) in symbols::SYMBOLS.into_iter().chain(
-                    [
-                        ("StgFunInfoExtraRev___bindgen_ty_1", Consumer::GhcLib as u32),
-                        ("StgFunInfoExtraRev_", Consumer::GhcLib as u32),
-                        ("StgFunInfoExtraRev", Consumer::GhcLib as u32),
-                        ("StgWord128", Consumer::Compiler as u32),
-                        ("StgWord256", Consumer::Compiler as u32),
-                        ("StgWord512", Consumer::Compiler as u32),
-                        ("StgUnion", Consumer::Compiler as u32),
-                    ]
-                    .into_iter(),
-                ) {
-                    if sym.contains(":") {
+
+                for (sym, c) in symbols::SYMBOLS.into_iter() {
+                    // Skip informational strings like 'Enum::Variant' and 'Struct.field'.
+                    if sym.chars().any(|c| c == '.' || c == ':') {
                         continue;
                     }
                     hs.insert(
