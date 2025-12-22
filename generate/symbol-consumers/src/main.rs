@@ -346,12 +346,12 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
     fn visit_item_struct(&mut self, i: &'ast syn::ItemStruct) {
         let s = i.ident.to_string();
 
+        if let syn::Fields::Named(fs) = &i.fields {
+            add_fields(self, &s, fs);
+        }
+
         if !is_bindgen(&s) {
             self.add_symbol(s.clone());
-
-            if let syn::Fields::Named(fs) = &i.fields {
-                add_fields(self, &s, fs);
-            }
 
             if i.generics.params.is_empty() && self.all_fields_simple_types(&i.fields) {
                 match &i.fields {
