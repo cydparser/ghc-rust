@@ -5,6 +5,7 @@ use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::File;
 use std::io::Write as _;
+use std::iter;
 use std::path::Path;
 use std::process::Command;
 use syn::{Ident, Type};
@@ -489,47 +490,62 @@ fn add_fields(visitor: &mut SymbolVisitor, name: &str, fields_named: &syn::Field
 fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<String, Consumers> {
     let path = path.as_ref();
 
-    let syms_pattern = {
-        let mut regex = String::with_capacity(visitor.symbols.len() * 10);
-        regex.push_str(r"\b(");
+    let (syms_pattern, syms_and_fields_pattern) = {
+        let mut syms_pattern = String::with_capacity(visitor.symbols.len() * 10);
+        syms_pattern.push_str(r"\b(");
         interpolate_inplace(
-            &mut regex,
+            &mut syms_pattern,
             visitor.symbols.iter().chain(visitor.variant_symbols.keys()),
         );
 
-        regex.push_str(r"|([.]|->)(");
+        let mut syms_and_fields_pattern = syms_pattern.clone();
+        syms_and_fields_pattern.push_str(r"|([.]|->)(");
         interpolate_inplace(
-            &mut regex,
+            &mut syms_and_fields_pattern,
             visitor.field_symbols.iter().flat_map(|(_, v)| v),
         );
-        regex.push_str(r"))\b");
+        syms_and_fields_pattern.push_str(r"))\b");
+        syms_pattern.push_str(r")\b");
 
-        regex
+        (syms_pattern, syms_and_fields_pattern)
     };
 
     let syms_regex = Regex::new(&format!(r"(?<sym>{})", syms_pattern)).unwrap();
+    let syms_and_fields_regex =
+        Regex::new(&format!(r"(?<sym>{})", syms_and_fields_pattern)).unwrap();
 
-    let subs: HashMap<String, (String, String)> = {
-        let mut subs = HashMap::with_capacity(1024);
+    let subs: HashMap<String, BTreeSet<(String, String)>> = {
+        let mut subs: HashMap<String, BTreeSet<_>> = HashMap::with_capacity(1024);
 
         for (v, e) in visitor.variant_symbols.iter() {
-            subs.insert(v.clone(), (e.clone(), format!("{}::{}", e, v)));
+            subs.insert(
+                v.clone(),
+                iter::once((e.clone(), format!("{}::{}", e, v))).collect(),
+            );
         }
 
         for (name, fields) in visitor.field_symbols.iter() {
             for field in fields {
                 let dot_field = format!(".{field}");
-                let value = (name.clone(), format!("{name}{dot_field}"));
+                let mut value: BTreeSet<_> =
+                    iter::once((name.clone(), format!("{name}{dot_field}"))).collect();
 
-                subs.insert(dot_field.clone(), value.clone());
-                subs.insert(format!("->{}", field), value);
+                subs.entry(dot_field.clone())
+                    .or_default()
+                    .append(&mut value.clone());
+                subs.entry(format!("->{}", field))
+                    .or_default()
+                    .append(&mut value);
             }
         }
+
+        // Some fields, like 'header' and payload', are too common.
+        subs.retain(|_, v| v.len() < 4);
 
         subs
     };
 
-    let search = |args: &[&str]| -> BTreeMap<String, Consumers> {
+    let search = |syms_regex: &Regex, args: &[&str]| -> BTreeMap<String, Consumers> {
         let output = Command::new("rg")
             .current_dir(path)
             .arg("--with-filename")
@@ -576,12 +592,17 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
                     }
 
                     for caps in syms_regex.captures_iter(s) {
-                        let (main_key, sub_key) = {
+                        let (main_keys, sub_keys) = {
                             let sym = String::from(&caps["sym"]);
 
                             match subs.get(&sym) {
-                                Some((k, s)) => (k.clone(), Some(s.clone())),
-                                None => (sym, None),
+                                Some(keys) => {
+                                    keys.iter().map(|(k, s)| (k.clone(), s.clone())).collect()
+                                }
+                                None if !(sym.starts_with('.') || sym.starts_with("->")) => {
+                                    (vec![sym], vec![])
+                                }
+                                _ => (vec![], vec![]),
                             }
                         };
 
@@ -602,7 +623,7 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
                         });
 
                         if let Some(consumer) = consumer {
-                            for key in [main_key].into_iter().chain(sub_key.into_iter()) {
+                            for key in main_keys.into_iter().chain(sub_keys.into_iter()) {
                                 sym_consumers
                                     .entry(key)
                                     .or_insert_with(Consumers::new)
@@ -618,37 +639,43 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
         sym_consumers
     };
 
-    let mut sym_consumers: BTreeMap<String, Consumers> =
-        search(&["-g", "*.{c,h,hsc}", &syms_pattern]);
+    let mut sym_consumers: BTreeMap<String, Consumers> = search(
+        &syms_and_fields_regex,
+        &["-g", "*.{c,h,hsc}", &syms_and_fields_pattern],
+    );
 
     let foreign_pat = format!(
         r#"^(foreign +import +(ccall|javascript|prim) +(safe|unsafe)?.*| +data +){}"#,
         syms_pattern
     );
 
-    let hs_consumers = search(&["-g", "*.hs", &foreign_pat]);
+    let hs_consumers = search(&syms_regex, &["-g", "*.hs", &foreign_pat]);
 
-    let plain_symbols = syms_pattern.to_string();
+    let internal_consumers = search(
+        &syms_and_fields_regex,
+        &[
+            "-g",
+            "*.hs",
+            &syms_and_fields_pattern,
+            "compiler",
+            "libraries/ghc-bignum",
+            "libraries/ghc-boot",
+            "libraries/ghc-boot-th",
+            "libraries/ghc-boot-th-next",
+            "libraries/ghc-compact",
+            "libraries/ghc-experimental",
+            "libraries/ghc-heap",
+            "libraries/ghc-internal",
+            "libraries/ghc-platform",
+            "libraries/ghc-prim",
+            "utils/ghc-toolchain",
+        ],
+    );
 
-    let internal_consumers = search(&[
-        "-g",
-        "*.hs",
-        &plain_symbols,
-        "compiler",
-        "libraries/ghc-bignum",
-        "libraries/ghc-boot",
-        "libraries/ghc-boot-th",
-        "libraries/ghc-boot-th-next",
-        "libraries/ghc-compact",
-        "libraries/ghc-experimental",
-        "libraries/ghc-heap",
-        "libraries/ghc-internal",
-        "libraries/ghc-platform",
-        "libraries/ghc-prim",
-        "utils/ghc-toolchain",
-    ]);
-
-    let doc_consumers = search(&[&plain_symbols, "docs/users_guide/exts/ffi.rst"]);
+    let doc_consumers = search(
+        &syms_and_fields_regex,
+        &[&syms_and_fields_pattern, "docs/users_guide/exts/ffi.rst"],
+    );
 
     // Merge the HashMaps.
     for cs in [hs_consumers, internal_consumers, doc_consumers] {
