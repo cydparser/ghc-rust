@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "sys"), expect(unused_imports))]
 use super::*;
 
 #[cfg(feature = "sys")]

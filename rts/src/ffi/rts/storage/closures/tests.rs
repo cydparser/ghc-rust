@@ -1,4 +1,31 @@
+#![cfg_attr(not(feature = "sys"), expect(unused_imports))]
 use super::*;
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgProfHeader_layout() {
+    assert_eq!(
+        size_of::<*mut CostCentreStack>(),
+        size_of::<*mut sys::CostCentreStack>()
+    );
+    assert_eq!(
+        offset_of!(StgProfHeader, ccs),
+        offset_of!(sys::StgProfHeader, ccs)
+    );
+    assert_eq!(
+        size_of::<StgProfHeader__bindgen_ty_1>(),
+        size_of::<sys::StgProfHeader__bindgen_ty_1>()
+    );
+    assert_eq!(
+        offset_of!(StgProfHeader, hp),
+        offset_of!(sys::StgProfHeader, hp)
+    );
+    assert_eq!(size_of::<StgProfHeader>(), size_of::<sys::StgProfHeader>());
+    assert_eq!(
+        align_of::<StgProfHeader>(),
+        align_of::<sys::StgProfHeader>()
+    );
+}
 
 #[cfg(feature = "sys")]
 #[test]
@@ -26,6 +53,35 @@ fn sys_StgHeader_layout() {
     );
     assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
     assert_eq!(align_of::<StgHeader>(), align_of::<sys::StgHeader>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgThunkHeader_layout() {
+    assert_eq!(
+        size_of::<*const StgInfoTable>(),
+        size_of::<*const sys::StgInfoTable>()
+    );
+    assert_eq!(
+        offset_of!(StgThunkHeader, info),
+        offset_of!(sys::StgThunkHeader, info)
+    );
+    assert_eq!(
+        size_of::<StgSMPThunkHeader>(),
+        size_of::<sys::StgSMPThunkHeader>()
+    );
+    assert_eq!(
+        offset_of!(StgThunkHeader, smp),
+        offset_of!(sys::StgThunkHeader, smp)
+    );
+    assert_eq!(
+        size_of::<StgThunkHeader>(),
+        size_of::<sys::StgThunkHeader>()
+    );
+    assert_eq!(
+        align_of::<StgThunkHeader>(),
+        align_of::<sys::StgThunkHeader>()
+    );
 }
 
 #[cfg(feature = "sys")]
@@ -81,6 +137,42 @@ fn sys_StgInd_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_StgIndStatic_layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(StgIndStatic, header),
+        offset_of!(sys::StgIndStatic, header)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(
+        offset_of!(StgIndStatic, indirectee),
+        offset_of!(sys::StgIndStatic, indirectee)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(
+        offset_of!(StgIndStatic, static_link),
+        offset_of!(sys::StgIndStatic, static_link)
+    );
+    assert_eq!(
+        size_of::<*const StgInfoTable>(),
+        size_of::<*const sys::StgInfoTable>()
+    );
+    assert_eq!(
+        offset_of!(StgIndStatic, saved_info),
+        offset_of!(sys::StgIndStatic, saved_info)
+    );
+    assert_eq!(size_of::<StgIndStatic>(), size_of::<sys::StgIndStatic>());
+    assert_eq!(align_of::<StgIndStatic>(), align_of::<sys::StgIndStatic>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_StgArrBytes_layout() {
     assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
     assert_eq!(
@@ -106,6 +198,79 @@ fn sys_StgMutArrPtrs_layout() {
     assert_eq!(
         align_of::<StgMutArrPtrs>(),
         align_of::<sys::StgMutArrPtrs>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgSmallMutArrPtrs_layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(StgSmallMutArrPtrs, header),
+        offset_of!(sys::StgSmallMutArrPtrs, header)
+    );
+    assert_eq!(
+        offset_of!(StgSmallMutArrPtrs, ptrs),
+        offset_of!(sys::StgSmallMutArrPtrs, ptrs)
+    );
+    assert_eq!(
+        size_of::<__IncompleteArrayField<*mut StgClosure>>(),
+        size_of::<__IncompleteArrayField<*mut sys::StgClosure>>()
+    );
+    assert_eq!(
+        offset_of!(StgSmallMutArrPtrs, payload),
+        offset_of!(sys::StgSmallMutArrPtrs, payload)
+    );
+    assert_eq!(
+        size_of::<StgSmallMutArrPtrs>(),
+        size_of::<sys::StgSmallMutArrPtrs>()
+    );
+    assert_eq!(
+        align_of::<StgSmallMutArrPtrs>(),
+        align_of::<sys::StgSmallMutArrPtrs>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgMutVar_layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(StgMutVar, header),
+        offset_of!(sys::StgMutVar, header)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(offset_of!(StgMutVar, var), offset_of!(sys::StgMutVar, var));
+    assert_eq!(size_of::<StgMutVar>(), size_of::<sys::StgMutVar>());
+    assert_eq!(align_of::<StgMutVar>(), align_of::<sys::StgMutVar>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys__StgUpdateFrame_layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(_StgUpdateFrame, header),
+        offset_of!(sys::_StgUpdateFrame, header)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(
+        offset_of!(_StgUpdateFrame, updatee),
+        offset_of!(sys::_StgUpdateFrame, updatee)
+    );
+    assert_eq!(
+        size_of::<_StgUpdateFrame>(),
+        size_of::<sys::_StgUpdateFrame>()
+    );
+    assert_eq!(
+        align_of::<_StgUpdateFrame>(),
+        align_of::<sys::_StgUpdateFrame>()
     );
 }
 
@@ -220,6 +385,91 @@ fn sys_StgRetFun_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys__StgWeak_layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(_StgWeak, header),
+        offset_of!(sys::_StgWeak, header)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(
+        offset_of!(_StgWeak, cfinalizers),
+        offset_of!(sys::_StgWeak, cfinalizers)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(offset_of!(_StgWeak, key), offset_of!(sys::_StgWeak, key));
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(
+        offset_of!(_StgWeak, value),
+        offset_of!(sys::_StgWeak, value)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(
+        offset_of!(_StgWeak, finalizer),
+        offset_of!(sys::_StgWeak, finalizer)
+    );
+    assert_eq!(size_of::<*mut _StgWeak>(), size_of::<*mut sys::_StgWeak>());
+    assert_eq!(offset_of!(_StgWeak, link), offset_of!(sys::_StgWeak, link));
+    assert_eq!(size_of::<_StgWeak>(), size_of::<sys::_StgWeak>());
+    assert_eq!(align_of::<_StgWeak>(), align_of::<sys::_StgWeak>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys__StgCFinalizerList_layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(_StgCFinalizerList, header),
+        offset_of!(sys::_StgCFinalizerList, header)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(
+        offset_of!(_StgCFinalizerList, link),
+        offset_of!(sys::_StgCFinalizerList, link)
+    );
+    assert_eq!(
+        offset_of!(_StgCFinalizerList, fptr),
+        offset_of!(sys::_StgCFinalizerList, fptr)
+    );
+    assert_eq!(
+        offset_of!(_StgCFinalizerList, ptr),
+        offset_of!(sys::_StgCFinalizerList, ptr)
+    );
+    assert_eq!(
+        offset_of!(_StgCFinalizerList, eptr),
+        offset_of!(sys::_StgCFinalizerList, eptr)
+    );
+    assert_eq!(
+        offset_of!(_StgCFinalizerList, flag),
+        offset_of!(sys::_StgCFinalizerList, flag)
+    );
+    assert_eq!(
+        size_of::<_StgCFinalizerList>(),
+        size_of::<sys::_StgCFinalizerList>()
+    );
+    assert_eq!(
+        align_of::<_StgCFinalizerList>(),
+        align_of::<sys::_StgCFinalizerList>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_StgBCO_layout() {
     assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
     assert_eq!(offset_of!(StgBCO, header), offset_of!(sys::StgBCO, header));
@@ -273,6 +523,34 @@ fn sys_StgMVar_layout() {
     assert_eq!(offset_of!(StgMVar, value), offset_of!(sys::StgMVar, value));
     assert_eq!(size_of::<StgMVar>(), size_of::<sys::StgMVar>());
     assert_eq!(align_of::<StgMVar>(), align_of::<sys::StgMVar>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TRecState_layout() {
+    assert_eq!(size_of::<TRecState>(), size_of::<sys::TRecState>());
+    assert_eq!(align_of::<TRecState>(), align_of::<sys::TRecState>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TRecState_discriminants() {
+    assert_eq!(
+        TRecState::TREC_ACTIVE as isize,
+        sys::TRecState::TREC_ACTIVE as isize
+    );
+    assert_eq!(
+        TRecState::TREC_CONDEMNED as isize,
+        sys::TRecState::TREC_CONDEMNED as isize
+    );
+    assert_eq!(
+        TRecState::TREC_ABORTED as isize,
+        sys::TRecState::TREC_ABORTED as isize
+    );
+    assert_eq!(
+        TRecState::TREC_WAITING as isize,
+        sys::TRecState::TREC_WAITING as isize
+    )
 }
 
 #[cfg(feature = "sys")]
@@ -398,6 +676,44 @@ fn sys_MessageCloneStack_layout() {
     assert_eq!(
         align_of::<MessageCloneStack>(),
         align_of::<sys::MessageCloneStack>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgContinuation_layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(StgContinuation, header),
+        offset_of!(sys::StgContinuation, header)
+    );
+    assert_eq!(
+        size_of::<*const StgInfoTable>(),
+        size_of::<*const sys::StgInfoTable>()
+    );
+    assert_eq!(
+        offset_of!(StgContinuation, apply_mask_frame),
+        offset_of!(sys::StgContinuation, apply_mask_frame)
+    );
+    assert_eq!(
+        offset_of!(StgContinuation, mask_frame_offset),
+        offset_of!(sys::StgContinuation, mask_frame_offset)
+    );
+    assert_eq!(
+        offset_of!(StgContinuation, stack_size),
+        offset_of!(sys::StgContinuation, stack_size)
+    );
+    assert_eq!(
+        offset_of!(StgContinuation, stack),
+        offset_of!(sys::StgContinuation, stack)
+    );
+    assert_eq!(
+        size_of::<StgContinuation>(),
+        size_of::<sys::StgContinuation>()
+    );
+    assert_eq!(
+        align_of::<StgContinuation>(),
+        align_of::<sys::StgContinuation>()
     );
 }
 

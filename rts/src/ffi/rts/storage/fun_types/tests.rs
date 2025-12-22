@@ -1,4 +1,4 @@
-#![allow(unused_imports)]
+#![cfg_attr(not(feature = "sys"), expect(unused_imports))]
 use super::*;
 use crate::prelude::*;
 

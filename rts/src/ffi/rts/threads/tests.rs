@@ -4,39 +4,6 @@ use super::*;
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_createThread(stack_size: W_) -> bool {
-    let expected = {
-        let mut cap: sys::Capability = todo!();
-        let result: &StgTSO = unsafe { transmute(&*sys::createThread(&raw mut cap, stack_size)) };
-        todo!()
-    };
-    let actual = {
-        let mut cap: Capability = todo!();
-        let result: &StgTSO = unsafe { &*createThread(&raw mut cap, stack_size) };
-        todo!()
-    };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-#[expect(unreachable_code, unused_variables)]
-fn test_createThread() {
-    let g = &mut Gen::new(100);
-    let actual = {
-        let cap: Capability = todo!();
-        let stack_size: W_ = Arbitrary::arbitrary(g);
-        let result: &StgTSO = unsafe { &*createThread(&raw mut cap, stack_size) };
-        todo!()
-    };
-    let expected = todo!();
-    assert_eq!(expected, actual);
-}
-
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-#[expect(unreachable_code, unused_variables)]
 fn equivalent_createGenThread(stack_size: W_) -> bool {
     let expected = {
         let mut cap: sys::Capability = todo!();
@@ -396,21 +363,6 @@ fn sys_enabled_capabilities_layout() {
         align_of_val(unsafe { &enabled_capabilities }),
         align_of_val(unsafe { &sys::enabled_capabilities })
     );
-}
-
-#[cfg(feature = "sys")]
-#[test]
-#[ignore]
-fn sys_MainCapability_layout() {
-    // TODO(rust): MainCapability
-    // assert_eq!(
-    //     size_of_val(unsafe { &MainCapability }),
-    //     size_of_val(unsafe { &sys::MainCapability })
-    // );
-    // assert_eq!(
-    //     align_of_val(unsafe { &MainCapability }),
-    //     align_of_val(unsafe { &sys::MainCapability })
-    // );
 }
 
 #[cfg(feature = "sys")]

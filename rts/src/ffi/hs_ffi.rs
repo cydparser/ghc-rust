@@ -1,3 +1,4 @@
+use crate::ffi::rts::storage::closures::StgClosure;
 use crate::ffi::stg::types::{
     StgChar, StgDouble, StgFloat, StgInt, StgInt8, StgInt16, StgInt32, StgInt64, StgPtr, StgWord,
     StgWord8, StgWord16, StgWord32, StgWord64,
@@ -13,7 +14,7 @@ pub(crate) const HS_CHAR_MAX: u32 = 1114111;
 
 pub(crate) const HS_BOOL_FALSE: u32 = 0;
 
-#[ffi(ghc_lib)]
+#[ffi(docs, ghc_lib)]
 pub const HS_BOOL_TRUE: u32 = 1;
 
 pub(crate) const HS_BOOL_MIN: u32 = 0;
@@ -53,7 +54,7 @@ pub(crate) const HS_WORD64_MAX: i32 = -1;
 #[ffi(compiler, ghc_lib)]
 pub type HsChar = StgChar;
 
-#[ffi(compiler, ghc_lib, libraries, testsuite)]
+#[ffi(compiler, docs, ghc_lib, libraries, testsuite)]
 pub type HsInt = StgInt;
 
 #[ffi(ghc_lib, testsuite)]
@@ -89,17 +90,17 @@ pub type HsFloat = StgFloat;
 #[ffi(compiler, ghc_lib, libraries)]
 pub type HsDouble = StgDouble;
 
-#[ffi(compiler, ghc_lib)]
+#[ffi(compiler, docs, driver, ghc_lib, testsuite, utils)]
 pub type HsBool = StgInt;
 
 pub(crate) type HsPtr = *mut c_void;
 
 pub(crate) type HsFunPtr = Option<unsafe extern "C" fn()>;
 
-#[ffi(ghc_lib, testsuite)]
+#[ffi(docs, ghc_lib, testsuite)]
 pub type HsStablePtr = *mut c_void;
 
-#[ffi(libraries, testsuite)]
+#[ffi(docs, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_init(argc: *mut c_int, argv: *mut *mut *mut c_char) {
@@ -108,7 +109,7 @@ pub unsafe extern "C" fn hs_init(argc: *mut c_int, argv: *mut *mut *mut c_char) 
     }
 }
 
-#[ffi(ghc_lib, libraries, testsuite)]
+#[ffi(docs, ghc_lib, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_exit() {
@@ -117,7 +118,16 @@ pub unsafe extern "C" fn hs_exit() {
     }
 }
 
-#[ffi(testsuite)]
+#[ffi(docs)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn hs_exit_nowait() {
+    sys! {
+        hs_exit_nowait()
+    }
+}
+
+#[ffi(docs, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_thread_done() {
@@ -135,12 +145,66 @@ pub unsafe extern "C" fn hs_perform_gc() {
     }
 }
 
-#[ffi(ghc_lib)]
+#[ffi(docs)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn hs_lock_stable_ptr_table() {
+    sys! {
+        hs_lock_stable_ptr_table()
+    }
+}
+
+#[ffi(docs)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn hs_lock_stable_tables() {
+    sys! {
+        hs_lock_stable_tables()
+    }
+}
+
+#[ffi(docs)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn hs_unlock_stable_ptr_table() {
+    sys! {
+        hs_unlock_stable_ptr_table()
+    }
+}
+
+#[ffi(docs)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn hs_unlock_stable_tables() {
+    sys! {
+        hs_unlock_stable_tables()
+    }
+}
+
+#[ffi(docs)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn hs_free_stable_ptr_unsafe(sp: HsStablePtr) {
+    sys! {
+        hs_free_stable_ptr_unsafe(sp)
+    }
+}
+
+#[ffi(docs, ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_free_stable_ptr(sp: HsStablePtr) {
     sys! {
         hs_free_stable_ptr(sp)
+    }
+}
+
+#[ffi(docs)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn hs_free_fun_ptr(fp: HsFunPtr) {
+    sys! {
+        hs_free_fun_ptr(fp)
     }
 }
 
@@ -171,11 +235,24 @@ pub unsafe extern "C" fn hs_spt_key_count() -> c_int {
     }
 }
 
-#[ffi(testsuite)]
+#[ffi(docs, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_try_putmvar(capability: c_int, sp: HsStablePtr) {
     sys! {
         hs_try_putmvar(capability, sp)
+    }
+}
+
+#[ffi(docs)]
+#[unsafe(no_mangle)]
+#[instrument]
+pub unsafe extern "C" fn hs_try_putmvar_with_value(
+    capability: c_int,
+    sp: HsStablePtr,
+    value: *mut StgClosure,
+) {
+    sys! {
+        hs_try_putmvar_with_value(capability, sp, value as * mut sys::StgClosure)
     }
 }

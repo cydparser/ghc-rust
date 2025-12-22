@@ -70,7 +70,8 @@ pub static mut generations: *mut generation = null_mut();
 pub static mut g0: *mut generation = null_mut();
 
 pub(crate) type ListBlocksCb = Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut bdescr)>;
-#[ffi(compiler, ghc_lib, libraries, testsuite)]
+
+#[ffi(compiler, docs, ghc_lib, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn allocate(cap: *mut Capability, n: W_) -> StgPtr {
@@ -128,7 +129,7 @@ pub unsafe extern "C" fn newCAF(reg: *mut StgRegTable, caf: *mut StgIndStatic) -
     }
 }
 
-#[ffi(libraries)]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn revertCAFs() {

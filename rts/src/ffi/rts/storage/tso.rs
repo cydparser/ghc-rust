@@ -23,20 +23,21 @@ pub struct StgTSOProfInfo {
     pub cccs: *mut CostCentreStack,
 }
 
-pub(crate) type StgThreadID = StgWord64;
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
+pub type StgThreadID = StgWord64;
 
 pub(crate) type StgThreadReturnCode = c_uint;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
 #[repr(C)]
-pub(crate) union StgTSOBlockInfo {
-    closure: *mut StgClosure,
-    prev: *mut StgTSO,
-    bh: *mut MessageBlackHole_,
-    throwto: *mut MessageThrowTo_,
-    wakeup: *mut MessageWakeup_,
-    fd: StgInt,
-    target: StgWord,
+pub union StgTSOBlockInfo {
+    pub closure: *mut StgClosure,
+    pub prev: *mut StgTSO,
+    pub bh: *mut MessageBlackHole_,
+    pub throwto: *mut MessageThrowTo_,
+    pub wakeup: *mut MessageWakeup_,
+    pub fd: StgInt,
+    pub target: StgWord,
 }
 
 #[ffi(ghc_lib, testsuite)]

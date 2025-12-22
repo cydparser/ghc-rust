@@ -19,7 +19,7 @@ pub struct InfoProv_ {
     src_span: *const c_char,
 }
 
-#[ffi(compiler, ghc_lib)]
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type InfoProv = InfoProv_;
 
 /// cbindgen:no-export
@@ -33,7 +33,8 @@ pub struct InfoProvEnt_ {
 #[ffi(compiler, ghc_lib, testsuite)]
 pub type InfoProvEnt = InfoProvEnt_;
 
-pub(crate) type StringIdx = u32;
+#[ffi(compiler, libraries, testsuite)]
+pub type StringIdx = u32;
 
 #[ffi(testsuite)]
 #[repr(C)]

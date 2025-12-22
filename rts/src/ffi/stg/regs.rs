@@ -6,21 +6,20 @@ use crate::ffi::stg::types::{
     StgAddr, StgChar, StgDouble, StgFloat, StgFunPtr, StgInt, StgPtr, StgWord, StgWord64,
     StgWord128, StgWord256, StgWord512,
 };
-#[cfg(feature = "sys")]
 use crate::prelude::*;
 
 #[cfg(test)]
 mod tests;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib, libraries, utils)]
 #[repr(C)]
 pub struct StgFunTable {
-    stgEagerBlackholeInfo: StgWord,
-    stgGCEnter1: StgFunPtr,
-    stgGCFun: StgFunPtr,
+    pub stgEagerBlackholeInfo: StgWord,
+    pub stgGCEnter1: StgFunPtr,
+    pub stgGCFun: StgFunPtr,
 }
 
-#[ffi]
+#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
 #[repr(C)]
 pub union StgUnion {
     pub w: StgWord,
@@ -31,7 +30,7 @@ pub union StgUnion {
     pub p: StgPtr,
 }
 
-#[ffi(compiler)]
+#[ffi(compiler, ghc_lib, libraries, utils)]
 #[repr(C)]
 pub struct StgRegTable {
     pub rR1: StgUnion,

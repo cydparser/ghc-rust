@@ -5,7 +5,7 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct HsIface {

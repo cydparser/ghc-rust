@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "sys"), expect(unused_imports))]
 use super::*;
 
 #[cfg(feature = "sys")]
@@ -19,6 +20,13 @@ fn sys_StgTSOProfInfo_layout() {
         align_of::<StgTSOProfInfo>(),
         align_of::<sys::StgTSOProfInfo>()
     );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgThreadID_layout() {
+    assert_eq!(size_of::<StgThreadID>(), size_of::<StgThreadID>());
+    assert_eq!(align_of::<StgThreadID>(), align_of::<StgThreadID>());
 }
 
 #[cfg(feature = "sys")]

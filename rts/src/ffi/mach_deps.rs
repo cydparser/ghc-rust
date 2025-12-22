@@ -5,7 +5,7 @@ mod tests;
 
 // TODO(rust): Set constants same way as ghcautoconf.h
 
-#[ffi(ghc_lib, libraries)]
+#[ffi(ghc_lib)]
 pub const SIZEOF_HSINT: u32 = 8;
 
 #[ffi(ghc_lib)]

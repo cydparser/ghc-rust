@@ -16,6 +16,13 @@ fn sys_InfoProvEnt_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_StringIdx_layout() {
+    assert_eq!(size_of::<StringIdx>(), size_of::<StringIdx>());
+    assert_eq!(align_of::<StringIdx>(), align_of::<StringIdx>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_IpeBufferEntry_layout() {
     assert_eq!(
         offset_of!(IpeBufferEntry, table_name),

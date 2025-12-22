@@ -1,4 +1,3 @@
-#[cfg(feature = "sys")]
 use crate::prelude::*;
 
 #[ffi(compiler, ghc_lib, testsuite)]

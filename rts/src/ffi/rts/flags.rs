@@ -79,75 +79,75 @@ pub(crate) const DEFAULT_LINKER_ALWAYS_PIC: u32 = 1;
 
 pub(crate) const STATS_FILENAME_MAXLEN: u32 = 128;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub struct _GC_FLAGS {
-    statsFile: *mut FILE,
-    giveStats: u32,
-    maxStkSize: u32,
-    initialStkSize: u32,
-    stkChunkSize: u32,
-    stkChunkBufferSize: u32,
-    maxHeapSize: u32,
-    minAllocAreaSize: u32,
-    largeAllocLim: u32,
-    nurseryChunkSize: u32,
-    minOldGenSize: u32,
-    heapSizeSuggestion: u32,
-    heapSizeSuggestionAuto: bool,
-    oldGenFactor: f64,
-    returnDecayFactor: f64,
-    pcFreeHeap: f64,
-    useNonmoving: bool,
-    nonmovingDenseAllocatorCount: u16,
-    generations: u32,
-    squeezeUpdFrames: bool,
-    compact: bool,
-    compactThreshold: f64,
-    sweep: bool,
-    ringBell: bool,
-    idleGCDelayTime: Time,
-    interIdleGCWait: Time,
-    doIdleGC: bool,
-    longGCSync: Time,
-    heapBase: StgWord,
-    allocLimitGrace: StgWord,
-    heapLimitGrace: StgWord,
-    numa: bool,
-    numaMask: StgWord,
-    addressSpaceSize: StgWord64,
+    pub(crate) statsFile: *mut FILE,
+    pub giveStats: u32,
+    pub(crate) maxStkSize: u32,
+    pub(crate) initialStkSize: u32,
+    pub(crate) stkChunkSize: u32,
+    pub(crate) stkChunkBufferSize: u32,
+    pub maxHeapSize: u32,
+    pub(crate) minAllocAreaSize: u32,
+    pub(crate) largeAllocLim: u32,
+    pub(crate) nurseryChunkSize: u32,
+    pub(crate) minOldGenSize: u32,
+    pub heapSizeSuggestion: u32,
+    pub(crate) heapSizeSuggestionAuto: bool,
+    pub(crate) oldGenFactor: f64,
+    pub(crate) returnDecayFactor: f64,
+    pub(crate) pcFreeHeap: f64,
+    pub(crate) useNonmoving: bool,
+    pub(crate) nonmovingDenseAllocatorCount: u16,
+    pub(crate) generations: u32,
+    pub(crate) squeezeUpdFrames: bool,
+    pub compact: bool,
+    pub(crate) compactThreshold: f64,
+    pub(crate) sweep: bool,
+    pub(crate) ringBell: bool,
+    pub(crate) idleGCDelayTime: Time,
+    pub(crate) interIdleGCWait: Time,
+    pub(crate) doIdleGC: bool,
+    pub(crate) longGCSync: Time,
+    pub(crate) heapBase: StgWord,
+    pub(crate) allocLimitGrace: StgWord,
+    pub(crate) heapLimitGrace: StgWord,
+    pub(crate) numa: bool,
+    pub(crate) numaMask: StgWord,
+    pub(crate) addressSpaceSize: StgWord64,
 }
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 pub type GC_FLAGS = _GC_FLAGS;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
 pub struct _DEBUG_FLAGS {
-    scheduler: bool,
-    interpreter: bool,
-    weak: bool,
-    gccafs: bool,
-    gc: bool,
-    nonmoving_gc: bool,
-    block_alloc: bool,
-    sanity: bool,
-    zero_on_gc: bool,
-    stable: bool,
-    prof: bool,
-    linker: bool,
-    linker_verbose: bool,
-    apply: bool,
-    stm: bool,
-    squeeze: bool,
-    hpc: bool,
-    sparks: bool,
-    numa: bool,
-    compact: bool,
-    continuation: bool,
-    iomanager: bool,
+    pub scheduler: bool,
+    pub interpreter: bool,
+    pub weak: bool,
+    pub gccafs: bool,
+    pub gc: bool,
+    pub nonmoving_gc: bool,
+    pub block_alloc: bool,
+    pub sanity: bool,
+    pub zero_on_gc: bool,
+    pub stable: bool,
+    pub prof: bool,
+    pub linker: bool,
+    pub linker_verbose: bool,
+    pub apply: bool,
+    pub stm: bool,
+    pub squeeze: bool,
+    pub hpc: bool,
+    pub sparks: bool,
+    pub numa: bool,
+    pub compact: bool,
+    pub continuation: bool,
+    pub iomanager: bool,
 }
 
 #[cfg(test)]
@@ -180,7 +180,7 @@ impl Arbitrary for _DEBUG_FLAGS {
     }
 }
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 pub type DEBUG_FLAGS = _DEBUG_FLAGS;
 
 /// cbindgen:no-export
@@ -193,7 +193,7 @@ pub struct _COST_CENTRE_FLAGS {
     outputFileNameStem: *const c_char,
 }
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 pub type COST_CENTRE_FLAGS = _COST_CENTRE_FLAGS;
 
 /// cbindgen:no-export
@@ -218,7 +218,7 @@ pub struct _PROFILING_FLAGS {
     bioSelector: *const c_char,
 }
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 pub type PROFILING_FLAGS = _PROFILING_FLAGS;
 
 /// cbindgen:no-export
@@ -239,7 +239,7 @@ pub struct _TRACE_FLAGS {
     nullWriter: bool,
 }
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 pub type TRACE_FLAGS = _TRACE_FLAGS;
 
 /// cbindgen:no-export
@@ -260,7 +260,7 @@ impl Arbitrary for _CONCURRENT_FLAGS {
     }
 }
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 pub type CONCURRENT_FLAGS = _CONCURRENT_FLAGS;
 
 pub(crate) type IO_MANAGER_FLAG = _IO_MANAGER_FLAG;
@@ -372,7 +372,7 @@ impl Arbitrary for _MISC_FLAGS {
     }
 }
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 pub type MISC_FLAGS = _MISC_FLAGS;
 
 /// cbindgen:no-export
@@ -410,7 +410,7 @@ impl Arbitrary for _PAR_FLAGS {
     }
 }
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 pub type PAR_FLAGS = _PAR_FLAGS;
 
 pub(crate) type HPC_READ_FILE = _HPC_READ_FILE;
@@ -491,7 +491,7 @@ impl Arbitrary for _HPC_FLAGS {
     }
 }
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 pub type HPC_FLAGS = _HPC_FLAGS;
 
 /// cbindgen:no-export
@@ -502,22 +502,22 @@ pub struct _TICKY_FLAGS {
     tickyFile: *mut FILE,
 }
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 pub type TICKY_FLAGS = _TICKY_FLAGS;
 
-/// cbindgen:no-export
+#[ffi(compiler)]
 #[repr(C)]
 pub struct _RTS_FLAGS {
-    GcFlags: GC_FLAGS,
-    ConcFlags: CONCURRENT_FLAGS,
-    MiscFlags: MISC_FLAGS,
-    DebugFlags: DEBUG_FLAGS,
-    CcFlags: COST_CENTRE_FLAGS,
-    ProfFlags: PROFILING_FLAGS,
-    TraceFlags: TRACE_FLAGS,
-    TickyFlags: TICKY_FLAGS,
-    ParFlags: PAR_FLAGS,
-    HpcFlags: HPC_FLAGS,
+    pub GcFlags: GC_FLAGS,
+    pub ConcFlags: CONCURRENT_FLAGS,
+    pub MiscFlags: MISC_FLAGS,
+    pub DebugFlags: DEBUG_FLAGS,
+    pub CcFlags: COST_CENTRE_FLAGS,
+    pub ProfFlags: PROFILING_FLAGS,
+    pub TraceFlags: TRACE_FLAGS,
+    pub TickyFlags: TICKY_FLAGS,
+    pub ParFlags: PAR_FLAGS,
+    pub HpcFlags: HPC_FLAGS,
 }
 
 #[ffi(ghc_lib)]

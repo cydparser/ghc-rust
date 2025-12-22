@@ -19,6 +19,7 @@ pub mod libdw;
 pub mod libdw_pool;
 pub mod linker;
 pub mod main;
+pub mod messages;
 pub mod non_moving;
 pub mod os_threads;
 pub mod parallel;

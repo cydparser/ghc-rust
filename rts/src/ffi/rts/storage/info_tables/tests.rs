@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "sys"), expect(unused_imports))]
 use super::*;
 
 #[cfg(feature = "sys")]
@@ -24,6 +25,34 @@ fn sys_StgClosureInfo_layout() {
         align_of::<StgClosureInfo>(),
         align_of::<sys::StgClosureInfo>()
     );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgClosureInfo__bindgen_ty_1_layout() {
+    assert_eq!(
+        offset_of!(StgClosureInfo__bindgen_ty_1, ptrs),
+        offset_of!(sys::StgClosureInfo__bindgen_ty_1, ptrs)
+    );
+    assert_eq!(
+        offset_of!(StgClosureInfo__bindgen_ty_1, nptrs),
+        offset_of!(sys::StgClosureInfo__bindgen_ty_1, nptrs)
+    );
+    assert_eq!(
+        size_of::<StgClosureInfo__bindgen_ty_1>(),
+        size_of::<sys::StgClosureInfo__bindgen_ty_1>()
+    );
+    assert_eq!(
+        align_of::<StgClosureInfo__bindgen_ty_1>(),
+        align_of::<sys::StgClosureInfo__bindgen_ty_1>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgSRTField_layout() {
+    assert_eq!(size_of::<StgSRTField>(), size_of::<StgSRTField>());
+    assert_eq!(align_of::<StgSRTField>(), align_of::<StgSRTField>());
 }
 
 #[cfg(feature = "sys")]

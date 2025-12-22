@@ -1,5 +1,4 @@
 use crate::ffi::stg::W_;
-#[cfg(feature = "sys")]
 use crate::prelude::*;
 
 #[cfg(test)]

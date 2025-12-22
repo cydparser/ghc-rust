@@ -6,7 +6,7 @@ mod tests;
 #[ffi(compiler, ghc_lib)]
 pub const INVALID_OBJECT: u32 = 0;
 
-#[ffi(compiler, ghc_lib, libraries)]
+#[ffi(compiler, ghc_lib)]
 pub const CONSTR: u32 = 1;
 
 #[ffi(compiler, ghc_lib)]

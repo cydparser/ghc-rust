@@ -194,6 +194,34 @@ fn test_hs_exit() {
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_exit_nowait() {
+    let expected = {
+        unsafe { sys::hs_exit_nowait() };
+        todo!()
+    };
+    let actual = {
+        unsafe { hs_exit_nowait() };
+        todo!()
+    };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_exit_nowait() {
+    let actual = {
+        unsafe { hs_exit_nowait() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_hs_thread_done() {
     let expected = {
         unsafe { sys::hs_thread_done() };
@@ -250,6 +278,149 @@ fn test_hs_perform_gc() {
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_lock_stable_ptr_table() {
+    let expected = {
+        unsafe { sys::hs_lock_stable_ptr_table() };
+        todo!()
+    };
+    let actual = {
+        unsafe { hs_lock_stable_ptr_table() };
+        todo!()
+    };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_lock_stable_ptr_table() {
+    let actual = {
+        unsafe { hs_lock_stable_ptr_table() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_lock_stable_tables() {
+    let expected = {
+        unsafe { sys::hs_lock_stable_tables() };
+        todo!()
+    };
+    let actual = {
+        unsafe { hs_lock_stable_tables() };
+        todo!()
+    };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_lock_stable_tables() {
+    let actual = {
+        unsafe { hs_lock_stable_tables() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_unlock_stable_ptr_table() {
+    let expected = {
+        unsafe { sys::hs_unlock_stable_ptr_table() };
+        todo!()
+    };
+    let actual = {
+        unsafe { hs_unlock_stable_ptr_table() };
+        todo!()
+    };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_unlock_stable_ptr_table() {
+    let actual = {
+        unsafe { hs_unlock_stable_ptr_table() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_unlock_stable_tables() {
+    let expected = {
+        unsafe { sys::hs_unlock_stable_tables() };
+        todo!()
+    };
+    let actual = {
+        unsafe { hs_unlock_stable_tables() };
+        todo!()
+    };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_unlock_stable_tables() {
+    let actual = {
+        unsafe { hs_unlock_stable_tables() };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_free_stable_ptr_unsafe() {
+    let expected = {
+        let sp: HsStablePtr = todo!();
+        unsafe { sys::hs_free_stable_ptr_unsafe(sp) };
+        todo!()
+    };
+    let actual = {
+        let sp: HsStablePtr = todo!();
+        unsafe { hs_free_stable_ptr_unsafe(sp) };
+        todo!()
+    };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_free_stable_ptr_unsafe() {
+    let actual = {
+        let sp: HsStablePtr = todo!();
+        unsafe { hs_free_stable_ptr_unsafe(sp) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
 fn equivalent_hs_free_stable_ptr() {
     let expected = {
         let sp: HsStablePtr = todo!();
@@ -271,6 +442,37 @@ fn test_hs_free_stable_ptr() {
     let actual = {
         let sp: HsStablePtr = todo!();
         unsafe { hs_free_stable_ptr(sp) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_free_fun_ptr() {
+    let expected = {
+        let fp: HsFunPtr = todo!();
+        unsafe { sys::hs_free_fun_ptr(fp) };
+        todo!()
+    };
+    let actual = {
+        let fp: HsFunPtr = todo!();
+        unsafe { hs_free_fun_ptr(fp) };
+        todo!()
+    };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_free_fun_ptr() {
+    let actual = {
+        let fp: HsFunPtr = todo!();
+        unsafe { hs_free_fun_ptr(fp) };
         todo!()
     };
     let expected = todo!();
@@ -384,6 +586,42 @@ fn test_hs_try_putmvar() {
         let capability: c_int = Arbitrary::arbitrary(g);
         let sp: HsStablePtr = todo!();
         unsafe { hs_try_putmvar(capability, sp) };
+        todo!()
+    };
+    let expected = todo!();
+    assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[quickcheck]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn equivalent_hs_try_putmvar_with_value(capability: c_int) -> bool {
+    let expected = {
+        let sp: HsStablePtr = todo!();
+        let mut value: sys::StgClosure = todo!();
+        unsafe { sys::hs_try_putmvar_with_value(capability, sp, &raw mut value) };
+        todo!()
+    };
+    let actual = {
+        let sp: HsStablePtr = todo!();
+        let mut value: StgClosure = todo!();
+        unsafe { hs_try_putmvar_with_value(capability, sp, &raw mut value) };
+        todo!()
+    };
+    actual == expected
+}
+
+#[test]
+#[ignore]
+#[expect(unreachable_code, unused_variables)]
+fn test_hs_try_putmvar_with_value() {
+    let g = &mut Gen::new(100);
+    let actual = {
+        let capability: c_int = Arbitrary::arbitrary(g);
+        let sp: HsStablePtr = todo!();
+        let value: StgClosure = todo!();
+        unsafe { hs_try_putmvar_with_value(capability, sp, &raw mut value) };
         todo!()
     };
     let expected = todo!();

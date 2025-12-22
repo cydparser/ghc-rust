@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "sys"), expect(unused_imports))]
 use super::*;
 
 #[cfg(feature = "sys")]
@@ -397,9 +398,248 @@ fn sys_TRACE_STDERR_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys__GC_FLAGS_layout() {
+    assert_eq!(size_of::<*mut FILE>(), size_of::<*mut sys::FILE>());
+    assert_eq!(
+        offset_of!(_GC_FLAGS, statsFile),
+        offset_of!(sys::_GC_FLAGS, statsFile)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, giveStats),
+        offset_of!(sys::_GC_FLAGS, giveStats)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, maxStkSize),
+        offset_of!(sys::_GC_FLAGS, maxStkSize)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, initialStkSize),
+        offset_of!(sys::_GC_FLAGS, initialStkSize)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, stkChunkSize),
+        offset_of!(sys::_GC_FLAGS, stkChunkSize)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, stkChunkBufferSize),
+        offset_of!(sys::_GC_FLAGS, stkChunkBufferSize)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, maxHeapSize),
+        offset_of!(sys::_GC_FLAGS, maxHeapSize)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, minAllocAreaSize),
+        offset_of!(sys::_GC_FLAGS, minAllocAreaSize)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, largeAllocLim),
+        offset_of!(sys::_GC_FLAGS, largeAllocLim)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, nurseryChunkSize),
+        offset_of!(sys::_GC_FLAGS, nurseryChunkSize)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, minOldGenSize),
+        offset_of!(sys::_GC_FLAGS, minOldGenSize)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, heapSizeSuggestion),
+        offset_of!(sys::_GC_FLAGS, heapSizeSuggestion)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, heapSizeSuggestionAuto),
+        offset_of!(sys::_GC_FLAGS, heapSizeSuggestionAuto)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, oldGenFactor),
+        offset_of!(sys::_GC_FLAGS, oldGenFactor)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, returnDecayFactor),
+        offset_of!(sys::_GC_FLAGS, returnDecayFactor)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, pcFreeHeap),
+        offset_of!(sys::_GC_FLAGS, pcFreeHeap)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, useNonmoving),
+        offset_of!(sys::_GC_FLAGS, useNonmoving)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, nonmovingDenseAllocatorCount),
+        offset_of!(sys::_GC_FLAGS, nonmovingDenseAllocatorCount)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, generations),
+        offset_of!(sys::_GC_FLAGS, generations)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, squeezeUpdFrames),
+        offset_of!(sys::_GC_FLAGS, squeezeUpdFrames)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, compact),
+        offset_of!(sys::_GC_FLAGS, compact)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, compactThreshold),
+        offset_of!(sys::_GC_FLAGS, compactThreshold)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, sweep),
+        offset_of!(sys::_GC_FLAGS, sweep)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, ringBell),
+        offset_of!(sys::_GC_FLAGS, ringBell)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, idleGCDelayTime),
+        offset_of!(sys::_GC_FLAGS, idleGCDelayTime)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, interIdleGCWait),
+        offset_of!(sys::_GC_FLAGS, interIdleGCWait)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, doIdleGC),
+        offset_of!(sys::_GC_FLAGS, doIdleGC)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, longGCSync),
+        offset_of!(sys::_GC_FLAGS, longGCSync)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, heapBase),
+        offset_of!(sys::_GC_FLAGS, heapBase)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, allocLimitGrace),
+        offset_of!(sys::_GC_FLAGS, allocLimitGrace)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, heapLimitGrace),
+        offset_of!(sys::_GC_FLAGS, heapLimitGrace)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, numa),
+        offset_of!(sys::_GC_FLAGS, numa)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, numaMask),
+        offset_of!(sys::_GC_FLAGS, numaMask)
+    );
+    assert_eq!(
+        offset_of!(_GC_FLAGS, addressSpaceSize),
+        offset_of!(sys::_GC_FLAGS, addressSpaceSize)
+    );
+    assert_eq!(size_of::<_GC_FLAGS>(), size_of::<sys::_GC_FLAGS>());
+    assert_eq!(align_of::<_GC_FLAGS>(), align_of::<sys::_GC_FLAGS>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_GC_FLAGS_layout() {
     assert_eq!(size_of::<GC_FLAGS>(), size_of::<sys::GC_FLAGS>());
     assert_eq!(align_of::<GC_FLAGS>(), align_of::<sys::GC_FLAGS>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys__DEBUG_FLAGS_layout() {
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, scheduler),
+        offset_of!(sys::_DEBUG_FLAGS, scheduler)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, interpreter),
+        offset_of!(sys::_DEBUG_FLAGS, interpreter)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, weak),
+        offset_of!(sys::_DEBUG_FLAGS, weak)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, gccafs),
+        offset_of!(sys::_DEBUG_FLAGS, gccafs)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, gc),
+        offset_of!(sys::_DEBUG_FLAGS, gc)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, nonmoving_gc),
+        offset_of!(sys::_DEBUG_FLAGS, nonmoving_gc)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, block_alloc),
+        offset_of!(sys::_DEBUG_FLAGS, block_alloc)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, sanity),
+        offset_of!(sys::_DEBUG_FLAGS, sanity)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, zero_on_gc),
+        offset_of!(sys::_DEBUG_FLAGS, zero_on_gc)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, stable),
+        offset_of!(sys::_DEBUG_FLAGS, stable)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, prof),
+        offset_of!(sys::_DEBUG_FLAGS, prof)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, linker),
+        offset_of!(sys::_DEBUG_FLAGS, linker)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, linker_verbose),
+        offset_of!(sys::_DEBUG_FLAGS, linker_verbose)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, apply),
+        offset_of!(sys::_DEBUG_FLAGS, apply)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, stm),
+        offset_of!(sys::_DEBUG_FLAGS, stm)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, squeeze),
+        offset_of!(sys::_DEBUG_FLAGS, squeeze)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, hpc),
+        offset_of!(sys::_DEBUG_FLAGS, hpc)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, sparks),
+        offset_of!(sys::_DEBUG_FLAGS, sparks)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, numa),
+        offset_of!(sys::_DEBUG_FLAGS, numa)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, compact),
+        offset_of!(sys::_DEBUG_FLAGS, compact)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, continuation),
+        offset_of!(sys::_DEBUG_FLAGS, continuation)
+    );
+    assert_eq!(
+        offset_of!(_DEBUG_FLAGS, iomanager),
+        offset_of!(sys::_DEBUG_FLAGS, iomanager)
+    );
+    assert_eq!(size_of::<_DEBUG_FLAGS>(), size_of::<sys::_DEBUG_FLAGS>());
+    assert_eq!(align_of::<_DEBUG_FLAGS>(), align_of::<sys::_DEBUG_FLAGS>());
 }
 
 #[cfg(feature = "sys")]
@@ -485,22 +725,73 @@ fn sys_TICKY_FLAGS_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_RTS_FLAGS_layout() {
-    assert_eq!(size_of::<RTS_FLAGS>(), size_of::<sys::RTS_FLAGS>());
-    assert_eq!(align_of::<RTS_FLAGS>(), align_of::<sys::RTS_FLAGS>());
+fn sys__RTS_FLAGS_layout() {
+    assert_eq!(size_of::<GC_FLAGS>(), size_of::<sys::GC_FLAGS>());
+    assert_eq!(
+        offset_of!(_RTS_FLAGS, GcFlags),
+        offset_of!(sys::_RTS_FLAGS, GcFlags)
+    );
+    assert_eq!(
+        size_of::<CONCURRENT_FLAGS>(),
+        size_of::<sys::CONCURRENT_FLAGS>()
+    );
+    assert_eq!(
+        offset_of!(_RTS_FLAGS, ConcFlags),
+        offset_of!(sys::_RTS_FLAGS, ConcFlags)
+    );
+    assert_eq!(size_of::<MISC_FLAGS>(), size_of::<sys::MISC_FLAGS>());
+    assert_eq!(
+        offset_of!(_RTS_FLAGS, MiscFlags),
+        offset_of!(sys::_RTS_FLAGS, MiscFlags)
+    );
+    assert_eq!(size_of::<DEBUG_FLAGS>(), size_of::<sys::DEBUG_FLAGS>());
+    assert_eq!(
+        offset_of!(_RTS_FLAGS, DebugFlags),
+        offset_of!(sys::_RTS_FLAGS, DebugFlags)
+    );
+    assert_eq!(
+        size_of::<COST_CENTRE_FLAGS>(),
+        size_of::<sys::COST_CENTRE_FLAGS>()
+    );
+    assert_eq!(
+        offset_of!(_RTS_FLAGS, CcFlags),
+        offset_of!(sys::_RTS_FLAGS, CcFlags)
+    );
+    assert_eq!(
+        size_of::<PROFILING_FLAGS>(),
+        size_of::<sys::PROFILING_FLAGS>()
+    );
+    assert_eq!(
+        offset_of!(_RTS_FLAGS, ProfFlags),
+        offset_of!(sys::_RTS_FLAGS, ProfFlags)
+    );
+    assert_eq!(size_of::<TRACE_FLAGS>(), size_of::<sys::TRACE_FLAGS>());
+    assert_eq!(
+        offset_of!(_RTS_FLAGS, TraceFlags),
+        offset_of!(sys::_RTS_FLAGS, TraceFlags)
+    );
+    assert_eq!(size_of::<TICKY_FLAGS>(), size_of::<sys::TICKY_FLAGS>());
+    assert_eq!(
+        offset_of!(_RTS_FLAGS, TickyFlags),
+        offset_of!(sys::_RTS_FLAGS, TickyFlags)
+    );
+    assert_eq!(size_of::<PAR_FLAGS>(), size_of::<sys::PAR_FLAGS>());
+    assert_eq!(
+        offset_of!(_RTS_FLAGS, ParFlags),
+        offset_of!(sys::_RTS_FLAGS, ParFlags)
+    );
+    assert_eq!(size_of::<HPC_FLAGS>(), size_of::<sys::HPC_FLAGS>());
+    assert_eq!(
+        offset_of!(_RTS_FLAGS, HpcFlags),
+        offset_of!(sys::_RTS_FLAGS, HpcFlags)
+    );
+    assert_eq!(size_of::<_RTS_FLAGS>(), size_of::<sys::_RTS_FLAGS>());
+    assert_eq!(align_of::<_RTS_FLAGS>(), align_of::<sys::_RTS_FLAGS>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
-#[ignore]
-fn sys_RtsFlags_layout() {
-    // TODO(rust): RtsFlags
-    // assert_eq!(
-    //     size_of_val(unsafe { &RtsFlags }),
-    //     size_of_val(unsafe { &sys::RtsFlags })
-    // );
-    // assert_eq!(
-    //     align_of_val(unsafe { &RtsFlags }),
-    //     align_of_val(unsafe { &sys::RtsFlags })
-    // );
+fn sys_RTS_FLAGS_layout() {
+    assert_eq!(size_of::<RTS_FLAGS>(), size_of::<sys::RTS_FLAGS>());
+    assert_eq!(align_of::<RTS_FLAGS>(), align_of::<sys::RTS_FLAGS>());
 }

@@ -1,8 +1,6 @@
 use crate::ffi::rts::storage::gc::generation_;
-#[cfg(feature = "sys")]
 use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
-#[allow(unused_imports)]
 use crate::prelude::*;
 
 #[cfg(test)]
@@ -50,12 +48,12 @@ pub(crate) const BF_NONMOVING_SWEEPING: u32 = 2048;
 
 pub(crate) const BF_FLAG_MAX: u32 = 32768;
 
-/// cbindgen:no-export
+#[ffi(compiler, docs, ghc_lib)]
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy)]
 pub struct NonmovingSegmentInfo {
-    allocator_idx: StgWord16,
-    next_free_snap: StgWord16,
+    pub(crate) allocator_idx: StgWord16,
+    pub(crate) next_free_snap: StgWord16,
 }
 
 #[cfg(test)]
@@ -84,19 +82,19 @@ pub struct bdescr_ {
     _padding: [StgWord32; 3usize],
 }
 
-/// cbindgen:no-export
+#[ffi(compiler, docs, ghc_lib)]
 #[repr(C)]
-pub(crate) union bdescr___bindgen_ty_1 {
-    free: StgPtr,
-    nonmoving_segment: NonmovingSegmentInfo,
+pub union bdescr___bindgen_ty_1 {
+    pub free: StgPtr,
+    pub(crate) nonmoving_segment: NonmovingSegmentInfo,
 }
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
-pub(crate) union bdescr___bindgen_ty_2 {
-    back: *mut bdescr_,
-    bitmap: *mut StgWord,
-    scan: StgPtr,
+pub union bdescr___bindgen_ty_2 {
+    pub back: *mut bdescr_,
+    pub(crate) bitmap: *mut StgWord,
+    pub(crate) scan: StgPtr,
 }
 
 #[ffi(testsuite)]

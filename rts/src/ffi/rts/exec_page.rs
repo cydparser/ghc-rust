@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-#[ffi(libraries)]
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ExecPage {
@@ -19,7 +19,7 @@ impl Arbitrary for ExecPage {
     }
 }
 
-#[ffi(libraries)]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn allocateExecPage() -> *mut ExecPage {
@@ -28,7 +28,7 @@ pub unsafe extern "C" fn allocateExecPage() -> *mut ExecPage {
     }
 }
 
-#[ffi(libraries)]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn freezeExecPage(page: *mut ExecPage) {

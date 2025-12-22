@@ -1,5 +1,4 @@
 use crate::ffi::hs_ffi::{HsBool, HsWord};
-#[cfg(feature = "sys")]
 use crate::ffi::hs_ffi::{
     HsChar, HsDouble, HsFloat, HsFunPtr, HsInt, HsInt8, HsInt16, HsInt32, HsInt64, HsPtr,
     HsStablePtr, HsWord8, HsWord16, HsWord32, HsWord64,
@@ -119,9 +118,10 @@ pub struct CapabilityPublic_ {
     r: StgRegTable,
 }
 
+#[expect(unused)]
 pub(crate) type CapabilityPublic = CapabilityPublic_;
 
-#[ffi(compiler, testsuite, utils)]
+#[ffi(compiler, docs, driver, testsuite, utils)]
 #[repr(u32)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
 pub enum RtsOptsEnabledEnum {
@@ -189,7 +189,7 @@ impl Arbitrary for RtsOptsEnabledEnum {
     }
 }
 
-#[ffi(compiler, driver, testsuite, utils)]
+#[ffi(compiler, docs, driver, testsuite, utils)]
 #[repr(C)]
 pub struct RtsConfig {
     pub rts_opts_enabled: RtsOptsEnabledEnum,
@@ -208,7 +208,7 @@ pub struct RtsConfig {
     pub longGCSyncEnd: Option<unsafe extern "C" fn(time_ns: Time)>,
 }
 
-// #[ffi(compiler, testsuite, utils)]
+// #[ffi(compiler, docs, testsuite, utils)]
 // #[unsafe(no_mangle)]
 // TODO(rust): pub static defaultRtsConfig: RtsConfig = todo!();
 
@@ -384,7 +384,7 @@ pub unsafe extern "C" fn hs_init_with_rtsopts(argc: *mut c_int, argv: *mut *mut 
     }
 }
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, docs, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_init_ghc(

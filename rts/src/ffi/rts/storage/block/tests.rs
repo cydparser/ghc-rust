@@ -1,4 +1,4 @@
-#![allow(unused_imports)]
+#![cfg_attr(not(feature = "sys"), expect(unused_imports))]
 use super::*;
 use crate::ffi::stg::W_;
 use crate::prelude::*;
@@ -27,6 +27,27 @@ fn sys_MBLOCK_SIZE_eq() {
 fn sys_MBLOCK_SIZE_layout() {
     assert_eq!(size_of_val(&MBLOCK_SIZE), size_of_val(&sys::MBLOCK_SIZE));
     assert_eq!(align_of_val(&MBLOCK_SIZE), align_of_val(&sys::MBLOCK_SIZE));
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_NonmovingSegmentInfo_layout() {
+    assert_eq!(
+        offset_of!(NonmovingSegmentInfo, allocator_idx),
+        offset_of!(sys::NonmovingSegmentInfo, allocator_idx)
+    );
+    assert_eq!(
+        offset_of!(NonmovingSegmentInfo, next_free_snap),
+        offset_of!(sys::NonmovingSegmentInfo, next_free_snap)
+    );
+    assert_eq!(
+        size_of::<NonmovingSegmentInfo>(),
+        size_of::<sys::NonmovingSegmentInfo>()
+    );
+    assert_eq!(
+        align_of::<NonmovingSegmentInfo>(),
+        align_of::<sys::NonmovingSegmentInfo>()
+    );
 }
 
 #[cfg(feature = "sys")]
@@ -152,10 +173,4 @@ fn test_freeGroup_lock() {
     };
     let expected = todo!();
     assert_eq!(expected, actual);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_size_generation_() {
-    assert_eq!(size_of::<sys::generation_>(), size_of::<generation_>())
 }

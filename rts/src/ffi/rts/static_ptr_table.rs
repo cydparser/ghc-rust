@@ -13,7 +13,7 @@ pub unsafe extern "C" fn hs_spt_insert(key: *mut StgWord64, spe_closure: *mut c_
     }
 }
 
-#[ffi(libraries)]
+#[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_spt_insert_stableptr(key: *mut StgWord64, entry: *mut StgStablePtr) {

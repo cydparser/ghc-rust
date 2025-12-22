@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "sys"), expect(unused_imports))]
 use super::*;
 
 #[cfg(feature = "sys")]
@@ -222,4 +223,11 @@ fn sys_StgPtr_layout() {
 fn sys_StgStablePtr_layout() {
     assert_eq!(size_of::<StgStablePtr>(), size_of::<StgStablePtr>());
     assert_eq!(align_of::<StgStablePtr>(), align_of::<StgStablePtr>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgFun_layout() {
+    assert_eq!(size_of::<StgFun>(), size_of::<StgFun>());
+    assert_eq!(align_of::<StgFun>(), align_of::<StgFun>());
 }

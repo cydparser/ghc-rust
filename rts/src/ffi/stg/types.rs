@@ -66,34 +66,33 @@ pub const STG_WORD_MAX: StgWord = StgWord::MAX;
 #[ffi(compiler, testsuite)]
 pub type StgInt8 = i8;
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type StgWord8 = u8;
 
 #[ffi(compiler, testsuite)]
 pub type StgInt16 = i16;
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
 pub type StgWord16 = u16;
 
 #[ffi(compiler, testsuite)]
 pub type StgInt32 = i32;
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
 pub type StgWord32 = u32;
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
 pub type StgInt64 = i64;
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
 pub type StgWord64 = u64;
 
-// TODO(rust): pub type StgWord128 = u128;
-#[ffi]
+#[ffi(compiler, ghc_lib, libraries, utils)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct StgWord128 {
-    h: StgWord64,
-    l: StgWord64,
+    pub h: StgWord64,
+    pub l: StgWord64,
 }
 
 #[cfg(feature = "sys")]
@@ -120,12 +119,22 @@ impl Arbitrary for StgWord128 {
     }
 }
 
-#[ffi]
+#[ffi(compiler, ghc_lib, libraries, utils)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct StgWord256 {
-    h: StgWord128,
-    l: StgWord128,
+    pub h: StgWord128,
+    pub l: StgWord128,
+}
+
+#[cfg(test)]
+impl Arbitrary for StgWord256 {
+    fn arbitrary(g: &mut Gen) -> Self {
+        StgWord256 {
+            h: Arbitrary::arbitrary(g),
+            l: Arbitrary::arbitrary(g),
+        }
+    }
 }
 
 #[cfg(feature = "sys")]
@@ -148,23 +157,13 @@ impl From<StgWord256> for sys::StgWord256 {
     }
 }
 
-#[cfg(test)]
-impl Arbitrary for StgWord256 {
-    fn arbitrary(g: &mut Gen) -> Self {
-        StgWord256 {
-            h: Arbitrary::arbitrary(g),
-            l: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
-#[ffi]
+#[ffi(compiler, ghc_lib, libraries, utils)]
 #[repr(C)]
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
 pub struct StgWord512 {
-    h: StgWord256,
-    l: StgWord256,
+    pub h: StgWord256,
+    pub l: StgWord256,
 }
 
 #[cfg(test)]
@@ -190,13 +189,13 @@ const _: () = {
 
 // TODO(rust): The `cfg` attributes are only needed for cbingen---these should be isize/usize.
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
 #[cfg(target_pointer_width = "64")]
 pub type StgInt = i64;
 #[cfg(target_pointer_width = "32")]
 pub type StgInt = i32;
 
-#[ffi(compiler, ghc_lib, testsuite)]
+#[ffi(compiler, docs, ghc_lib, libraries, testsuite, utils)]
 #[cfg(target_pointer_width = "64")]
 pub type StgWord = u64;
 #[cfg(target_pointer_width = "32")]
@@ -207,28 +206,28 @@ pub(crate) type StgHalfInt = i32;
 #[cfg(target_pointer_width = "32")]
 pub(crate) type StgHalfInt = i16;
 
-#[ffi(compiler)]
+#[ffi(compiler, ghc_lib)]
 pub type StgHalfWord = u32;
 
 // Other commonly-used STG datatypes.
 
-#[ffi(compiler)]
+#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
 pub type StgAddr = *mut c_void;
 
 #[ffi(compiler, testsuite)]
 pub type StgChar = StgWord32;
 
-#[ffi(testsuite)]
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type StgBool = c_int;
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
 pub type StgFloat = f32;
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
 pub type StgDouble = f64;
 
 /// A heap or stack pointer.
-#[ffi(compiler, ghc_lib, testsuite)]
+#[ffi(compiler, docs, ghc_lib, libraries, testsuite, utils)]
 pub type StgPtr = *mut StgWord;
 
 /// A pointer to a volatile word.
@@ -261,4 +260,5 @@ pub(crate) type StgByteArray = *mut StgWord8;
 pub(crate) type StgFunPtr =
     Option<unsafe extern "C" fn() -> Option<unsafe extern "C" fn() -> *mut c_void>>;
 
-pub(crate) type StgFun = Option<unsafe extern "C" fn() -> StgFunPtr>;
+#[ffi(compiler, ghc_lib)]
+pub type StgFun = Option<unsafe extern "C" fn() -> StgFunPtr>;

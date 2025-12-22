@@ -16,7 +16,7 @@ pub unsafe extern "C" fn initLinker() {
     }
 }
 
-#[ffi(libraries, testsuite)]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn initLinker_(retain_cafs: c_int) {
@@ -25,7 +25,7 @@ pub unsafe extern "C" fn initLinker_(retain_cafs: c_int) {
     }
 }
 
-#[ffi(compiler, libraries, testsuite)]
+#[ffi(compiler, ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn lookupSymbol(lbl: *mut c_char) -> *mut c_void {
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn getObjectLoadStatus(path: *mut pathchar) -> OStatus {
     }
 }
 
-#[ffi(compiler, libraries, testsuite)]
+#[ffi(compiler, ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn unloadObj(path: *mut pathchar) -> HsInt {
@@ -130,7 +130,7 @@ pub unsafe extern "C" fn unloadObj(path: *mut pathchar) -> HsInt {
     }
 }
 
-#[ffi(libraries, testsuite)]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn purgeObj(path: *mut pathchar) -> HsInt {
@@ -139,7 +139,7 @@ pub unsafe extern "C" fn purgeObj(path: *mut pathchar) -> HsInt {
     }
 }
 
-#[ffi(compiler, libraries, testsuite)]
+#[ffi(compiler, ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn loadObj(path: *mut pathchar) -> HsInt {
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn loadObj(path: *mut pathchar) -> HsInt {
     }
 }
 
-#[ffi(compiler, libraries, testsuite)]
+#[ffi(compiler, ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn loadArchive(path: *mut pathchar) -> HsInt {
@@ -157,7 +157,7 @@ pub unsafe extern "C" fn loadArchive(path: *mut pathchar) -> HsInt {
     }
 }
 
-#[ffi(compiler, libraries, testsuite)]
+#[ffi(compiler, ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn resolveObjs() -> HsInt {
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn resolveObjs() -> HsInt {
     }
 }
 
-#[ffi(libraries, testsuite)]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn loadNativeObj(
@@ -187,7 +187,7 @@ pub unsafe extern "C" fn unloadNativeObj(handle: *mut c_void) -> HsInt {
     }
 }
 
-#[ffi(libraries, testsuite)]
+#[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn lookupSymbolInNativeObj(
@@ -208,7 +208,7 @@ pub unsafe extern "C" fn addDLL(dll_name: *mut pathchar) -> *const c_char {
     }
 }
 
-#[ffi(compiler, libraries)]
+#[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn addLibrarySearchPath(dll_path: *mut pathchar) -> HsPtr {
@@ -217,7 +217,7 @@ pub unsafe extern "C" fn addLibrarySearchPath(dll_path: *mut pathchar) -> HsPtr 
     }
 }
 
-#[ffi(compiler, libraries)]
+#[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn removeLibrarySearchPath(dll_path_index: HsPtr) -> HsBool {
@@ -226,7 +226,7 @@ pub unsafe extern "C" fn removeLibrarySearchPath(dll_path_index: HsPtr) -> HsBoo
     }
 }
 
-#[ffi(compiler, libraries)]
+#[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn findSystemLibrary(dll_name: *mut pathchar) -> *mut pathchar {
