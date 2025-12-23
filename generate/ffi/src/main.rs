@@ -19,11 +19,8 @@ fn main() {
             .nth(1)
             .expect("Missing destination directory argument"),
     );
-    dbg!(&dst_dir);
 
     fs::create_dir_all(&dst_dir).unwrap();
-
-    dbg!(&src_dir);
 
     let mut symbols = Symbols::new();
 
