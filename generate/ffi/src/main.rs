@@ -1,7 +1,6 @@
 use std::{
     fs, iter,
     path::{Path, PathBuf},
-    process::Command,
 };
 
 use proc_macro2 as proc2;
@@ -67,10 +66,6 @@ fn main() {
                 &file,
                 add_blank_lines(prettyplease::unparse(&syn_file)).as_bytes(),
             )?;
-            Command::new("rustfmt")
-                .arg(&file)
-                .status()
-                .unwrap_or_else(|_| panic!("Error running rustfmt {}", file.display()));
         }
 
         Ok(())
