@@ -4,37 +4,37 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib, testsuite)]
 #[repr(C)]
 pub struct CostCentre_ {
-    ccID: StgInt,
-    label: *mut c_char,
-    module: *mut c_char,
-    srcloc: *mut c_char,
-    mem_alloc: StgWord64,
-    time_ticks: StgWord,
-    is_caf: StgBool,
-    link: *mut CostCentre_,
+    pub ccID: StgInt,
+    pub label: *mut c_char,
+    pub module: *mut c_char,
+    pub srcloc: *mut c_char,
+    pub mem_alloc: StgWord64,
+    pub time_ticks: StgWord,
+    pub is_caf: StgBool,
+    pub link: *mut CostCentre_,
 }
 
 #[ffi(compiler, ghc_lib)]
 pub type CostCentre = CostCentre_;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub struct CostCentreStack_ {
-    ccsID: StgInt,
-    cc: *mut CostCentre,
-    prevStack: *mut CostCentreStack_,
-    indexTable: *mut IndexTable_,
-    root: *mut CostCentreStack_,
-    depth: StgWord,
-    scc_count: StgWord64,
-    selected: StgWord,
-    time_ticks: StgWord,
-    mem_alloc: StgWord64,
-    inherited_alloc: StgWord64,
-    inherited_ticks: StgWord,
+    pub ccsID: StgInt,
+    pub cc: *mut CostCentre,
+    pub prevStack: *mut CostCentreStack_,
+    pub indexTable: *mut IndexTable_,
+    pub root: *mut CostCentreStack_,
+    pub depth: StgWord,
+    pub scc_count: StgWord64,
+    pub selected: StgWord,
+    pub time_ticks: StgWord,
+    pub mem_alloc: StgWord64,
+    pub inherited_alloc: StgWord64,
+    pub inherited_ticks: StgWord,
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -58,7 +58,7 @@ pub unsafe extern "C" fn startProfTimer() {
     }
 }
 
-/// cbindgen:no-export
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]

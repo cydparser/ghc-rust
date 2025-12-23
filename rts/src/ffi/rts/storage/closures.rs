@@ -19,9 +19,9 @@ pub struct StgProfHeader {
 #[ffi(compiler)]
 #[repr(C)]
 pub union StgProfHeader__bindgen_ty_1 {
-    pub(crate) trav: StgWord,
-    pub(crate) ldvw: StgWord,
-    pub(crate) era: StgWord,
+    pub trav: StgWord,
+    pub ldvw: StgWord,
+    pub era: StgWord,
 }
 
 /// cbindgen:no-export
@@ -125,10 +125,10 @@ pub struct StgInd {
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgIndStatic {
-    pub(crate) header: StgHeader,
+    pub header: StgHeader,
     pub indirectee: *mut StgClosure,
-    pub(crate) static_link: *mut StgClosure,
-    pub(crate) saved_info: *const StgInfoTable,
+    pub static_link: *mut StgClosure,
+    pub saved_info: *const StgInfoTable,
 }
 
 /// cbindgen:no-export
@@ -365,13 +365,13 @@ pub struct TRecEntry {
     new_value: *mut StgClosure,
 }
 
-/// cbindgen:no-export
+#[ffi(testsuite)]
 #[repr(C)]
 pub struct StgTRecChunk_ {
-    header: StgHeader,
-    prev_chunk: *mut StgTRecChunk_,
-    next_entry_idx: StgWord,
-    entries: [TRecEntry; 16usize],
+    pub(crate) header: StgHeader,
+    pub(crate) prev_chunk: *mut StgTRecChunk_,
+    pub(crate) next_entry_idx: StgWord,
+    pub(crate) entries: [TRecEntry; 16usize],
 }
 
 pub(crate) type StgTRecChunk = StgTRecChunk_;
@@ -439,14 +439,14 @@ impl Arbitrary for TRecState {
     }
 }
 
-/// cbindgen:no-export
+#[ffi(compiler)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgTRecHeader_ {
-    header: StgHeader,
-    enclosing_trec: *mut StgTRecHeader_,
-    current_chunk: *mut StgTRecChunk,
-    state: TRecState,
+    pub header: StgHeader,
+    pub enclosing_trec: *mut StgTRecHeader_,
+    pub current_chunk: *mut StgTRecChunk,
+    pub state: TRecState,
 }
 
 #[ffi(ghc_lib)]
@@ -523,14 +523,14 @@ pub struct MessageBlackHole_ {
 
 pub(crate) type MessageBlackHole = MessageBlackHole_;
 
-/// cbindgen:no-export
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct MessageCloneStack_ {
-    header: StgHeader,
-    link: *mut Message,
-    result: *mut StgMVar,
-    tso: *mut StgTSO,
+    pub header: StgHeader,
+    pub link: *mut Message,
+    pub result: *mut StgMVar,
+    pub tso: *mut StgTSO,
 }
 
 #[ffi(ghc_lib)]
@@ -547,19 +547,19 @@ pub struct StgCompactNFDataBlock_ {
 
 pub(crate) type StgCompactNFDataBlock = StgCompactNFDataBlock_;
 
-/// cbindgen:no-export
+#[ffi(compiler)]
 #[repr(C)]
 pub struct StgCompactNFData_ {
-    header: StgHeader,
-    totalW: StgWord,
-    autoBlockW: StgWord,
-    hp: StgPtr,
-    hpLim: StgPtr,
-    nursery: *mut StgCompactNFDataBlock,
-    last: *mut StgCompactNFDataBlock,
-    hash: *mut hashtable,
-    result: *mut StgClosure,
-    link: *mut StgCompactNFData_,
+    pub header: StgHeader,
+    pub totalW: StgWord,
+    pub autoBlockW: StgWord,
+    pub hp: StgPtr,
+    pub hpLim: StgPtr,
+    pub nursery: *mut StgCompactNFDataBlock,
+    pub last: *mut StgCompactNFDataBlock,
+    pub hash: *mut hashtable,
+    pub result: *mut StgClosure,
+    pub link: *mut StgCompactNFData_,
 }
 
 pub(crate) type StgCompactNFData = StgCompactNFData_;

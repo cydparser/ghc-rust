@@ -52,8 +52,8 @@ pub(crate) const BF_FLAG_MAX: u32 = 32768;
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct NonmovingSegmentInfo {
-    pub(crate) allocator_idx: StgWord16,
-    pub(crate) next_free_snap: StgWord16,
+    pub allocator_idx: StgWord16,
+    pub next_free_snap: StgWord16,
 }
 
 #[cfg(test)]
@@ -66,35 +66,35 @@ impl Arbitrary for NonmovingSegmentInfo {
     }
 }
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub struct bdescr_ {
-    start: StgPtr,
-    __bindgen_anon_1: bdescr___bindgen_ty_1,
-    link: *mut bdescr_,
-    u: bdescr___bindgen_ty_2,
-    gen_: *mut generation_,
-    gen_no: StgWord16,
-    dest_no: StgWord16,
-    node: StgWord16,
-    flags: StgWord16,
-    blocks: StgWord32,
-    _padding: [StgWord32; 3usize],
+    pub start: StgPtr,
+    pub __bindgen_anon_1: bdescr___bindgen_ty_1,
+    pub link: *mut bdescr_,
+    pub u: bdescr___bindgen_ty_2,
+    pub gen_: *mut generation_,
+    pub gen_no: StgWord16,
+    pub dest_no: StgWord16,
+    pub node: StgWord16,
+    pub flags: StgWord16,
+    pub blocks: StgWord32,
+    pub _padding: [StgWord32; 3usize],
 }
 
 #[ffi(compiler, docs, ghc_lib)]
 #[repr(C)]
 pub union bdescr___bindgen_ty_1 {
     pub free: StgPtr,
-    pub(crate) nonmoving_segment: NonmovingSegmentInfo,
+    pub nonmoving_segment: NonmovingSegmentInfo,
 }
 
 #[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub union bdescr___bindgen_ty_2 {
     pub back: *mut bdescr_,
-    pub(crate) bitmap: *mut StgWord,
-    pub(crate) scan: StgPtr,
+    pub bitmap: *mut StgWord,
+    pub scan: StgPtr,
 }
 
 #[ffi(testsuite)]

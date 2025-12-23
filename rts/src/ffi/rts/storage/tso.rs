@@ -43,41 +43,41 @@ pub union StgTSOBlockInfo {
 #[ffi(ghc_lib, testsuite)]
 pub type StgTSO = StgTSO_;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
 #[repr(C)]
 pub struct StgTSO_ {
-    header: StgHeader,
-    _link: *mut StgTSO_,
-    global_link: *mut StgTSO_,
-    stackobj: *mut StgStack_,
-    what_next: StgWord16,
-    flags: StgWord32,
-    why_blocked: StgWord32,
-    block_info: StgTSOBlockInfo,
-    id: StgThreadID,
-    saved_errno: StgWord32,
-    dirty: StgWord32,
-    bound: *mut InCall_,
-    cap: *mut Capability_,
-    trec: *mut StgTRecHeader_,
-    label: *mut StgArrBytes,
-    blocked_exceptions: *mut MessageThrowTo_,
-    bq: *mut StgBlockingQueue_,
-    alloc_limit: StgInt64,
-    tot_stack_size: StgWord32,
+    pub header: StgHeader,
+    pub _link: *mut StgTSO_,
+    pub global_link: *mut StgTSO_,
+    pub stackobj: *mut StgStack_,
+    pub what_next: StgWord16,
+    pub flags: StgWord32,
+    pub why_blocked: StgWord32,
+    pub block_info: StgTSOBlockInfo,
+    pub id: StgThreadID,
+    pub saved_errno: StgWord32,
+    pub dirty: StgWord32,
+    pub bound: *mut InCall_,
+    pub cap: *mut Capability_,
+    pub trec: *mut StgTRecHeader_,
+    pub label: *mut StgArrBytes,
+    pub blocked_exceptions: *mut MessageThrowTo_,
+    pub bq: *mut StgBlockingQueue_,
+    pub alloc_limit: StgInt64,
+    pub tot_stack_size: StgWord32,
 }
 
 pub(crate) type StgTSOPtr = *mut StgTSO_;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib, testsuite)]
 #[repr(C)]
 pub struct StgStack_ {
-    header: StgHeader,
-    stack_size: StgWord32,
-    dirty: StgWord8,
-    marking: StgWord8,
-    sp: StgPtr,
-    stack: __IncompleteArrayField<StgWord>,
+    pub header: StgHeader,
+    pub stack_size: StgWord32,
+    pub dirty: StgWord8,
+    pub marking: StgWord8,
+    pub sp: StgPtr,
+    pub stack: __IncompleteArrayField<StgWord>,
 }
 
 #[ffi(ghc_lib, testsuite)]

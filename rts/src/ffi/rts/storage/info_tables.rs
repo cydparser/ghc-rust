@@ -74,24 +74,24 @@ pub type StgSRTField = StgHalfInt;
 #[ffi(compiler, ghc_lib, libraries, testsuite)]
 pub type StgInfoTable = StgInfoTable_;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub struct StgInfoTable_ {
-    pub(crate) layout: StgClosureInfo,
-    pub(crate) type_: StgHalfWord,
-    pub(crate) srt: StgSRTField,
-    pub(crate) code: __IncompleteArrayField<StgCode>,
+    pub layout: StgClosureInfo,
+    pub type_: StgHalfWord,
+    pub srt: StgSRTField,
+    pub code: __IncompleteArrayField<StgCode>,
 }
 
 pub(crate) type StgInfoTablePtr = *mut StgInfoTable_;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub struct StgFunInfoExtraRev_ {
-    pub(crate) slow_apply_offset: StgInt,
-    pub(crate) b: StgFunInfoExtraRev___bindgen_ty_1,
-    pub(crate) fun_type: StgHalfWord,
-    pub(crate) arity: StgHalfWord,
+    pub slow_apply_offset: StgInt,
+    pub b: StgFunInfoExtraRev___bindgen_ty_1,
+    pub fun_type: StgHalfWord,
+    pub arity: StgHalfWord,
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -104,14 +104,14 @@ pub union StgFunInfoExtraRev___bindgen_ty_1 {
 #[ffi(compiler, ghc_lib, libraries)]
 pub type StgFunInfoExtraRev = StgFunInfoExtraRev_;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub struct StgFunInfoExtraFwd_ {
-    fun_type: StgHalfWord,
-    arity: StgHalfWord,
-    srt: *mut StgClosure,
-    b: StgFunInfoExtraFwd___bindgen_ty_1,
-    slow_apply: StgFun,
+    pub fun_type: StgHalfWord,
+    pub arity: StgHalfWord,
+    pub srt: *mut StgClosure,
+    pub b: StgFunInfoExtraFwd___bindgen_ty_1,
+    pub slow_apply: StgFun,
 }
 
 #[ffi(compiler, ghc_lib)]

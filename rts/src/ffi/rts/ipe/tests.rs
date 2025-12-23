@@ -2,9 +2,68 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_InfoProv__layout() {
+    assert_eq!(
+        offset_of!(InfoProv_, table_name),
+        offset_of!(sys::InfoProv_, table_name)
+    );
+    assert_eq!(
+        offset_of!(InfoProv_, closure_desc),
+        offset_of!(sys::InfoProv_, closure_desc)
+    );
+    assert_eq!(
+        offset_of!(InfoProv_, ty_desc),
+        offset_of!(sys::InfoProv_, ty_desc)
+    );
+    assert_eq!(
+        offset_of!(InfoProv_, label),
+        offset_of!(sys::InfoProv_, label)
+    );
+    assert_eq!(
+        offset_of!(InfoProv_, unit_id),
+        offset_of!(sys::InfoProv_, unit_id)
+    );
+    assert_eq!(
+        offset_of!(InfoProv_, module),
+        offset_of!(sys::InfoProv_, module)
+    );
+    assert_eq!(
+        offset_of!(InfoProv_, src_file),
+        offset_of!(sys::InfoProv_, src_file)
+    );
+    assert_eq!(
+        offset_of!(InfoProv_, src_span),
+        offset_of!(sys::InfoProv_, src_span)
+    );
+    assert_eq!(size_of::<InfoProv_>(), size_of::<sys::InfoProv_>());
+    assert_eq!(align_of::<InfoProv_>(), align_of::<sys::InfoProv_>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_InfoProv_layout() {
     assert_eq!(size_of::<InfoProv>(), size_of::<sys::InfoProv>());
     assert_eq!(align_of::<InfoProv>(), align_of::<sys::InfoProv>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_InfoProvEnt__layout() {
+    assert_eq!(
+        size_of::<*const StgInfoTable>(),
+        size_of::<*const sys::StgInfoTable>()
+    );
+    assert_eq!(
+        offset_of!(InfoProvEnt_, info),
+        offset_of!(sys::InfoProvEnt_, info)
+    );
+    assert_eq!(size_of::<InfoProv>(), size_of::<sys::InfoProv>());
+    assert_eq!(
+        offset_of!(InfoProvEnt_, prov),
+        offset_of!(sys::InfoProvEnt_, prov)
+    );
+    assert_eq!(size_of::<InfoProvEnt_>(), size_of::<sys::InfoProvEnt_>());
+    assert_eq!(align_of::<InfoProvEnt_>(), align_of::<sys::InfoProvEnt_>());
 }
 
 #[cfg(feature = "sys")]
@@ -55,6 +114,71 @@ fn sys_IpeBufferEntry_layout() {
     assert_eq!(
         align_of::<IpeBufferEntry>(),
         align_of::<sys::IpeBufferEntry>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_IpeBufferListNode__layout() {
+    assert_eq!(
+        size_of::<*mut IpeBufferListNode_>(),
+        size_of::<*mut sys::IpeBufferListNode_>()
+    );
+    assert_eq!(
+        offset_of!(IpeBufferListNode_, next),
+        offset_of!(sys::IpeBufferListNode_, next)
+    );
+    assert_eq!(
+        offset_of!(IpeBufferListNode_, compressed),
+        offset_of!(sys::IpeBufferListNode_, compressed)
+    );
+    assert_eq!(
+        offset_of!(IpeBufferListNode_, count),
+        offset_of!(sys::IpeBufferListNode_, count)
+    );
+    assert_eq!(
+        size_of::<*mut *const StgInfoTable>(),
+        size_of::<*mut *const sys::StgInfoTable>()
+    );
+    assert_eq!(
+        offset_of!(IpeBufferListNode_, tables),
+        offset_of!(sys::IpeBufferListNode_, tables)
+    );
+    assert_eq!(
+        size_of::<*mut IpeBufferEntry>(),
+        size_of::<*mut sys::IpeBufferEntry>()
+    );
+    assert_eq!(
+        offset_of!(IpeBufferListNode_, entries),
+        offset_of!(sys::IpeBufferListNode_, entries)
+    );
+    assert_eq!(
+        offset_of!(IpeBufferListNode_, entries_size),
+        offset_of!(sys::IpeBufferListNode_, entries_size)
+    );
+    assert_eq!(
+        offset_of!(IpeBufferListNode_, string_table),
+        offset_of!(sys::IpeBufferListNode_, string_table)
+    );
+    assert_eq!(
+        offset_of!(IpeBufferListNode_, string_table_size),
+        offset_of!(sys::IpeBufferListNode_, string_table_size)
+    );
+    assert_eq!(
+        offset_of!(IpeBufferListNode_, unit_id),
+        offset_of!(sys::IpeBufferListNode_, unit_id)
+    );
+    assert_eq!(
+        offset_of!(IpeBufferListNode_, module_name),
+        offset_of!(sys::IpeBufferListNode_, module_name)
+    );
+    assert_eq!(
+        size_of::<IpeBufferListNode_>(),
+        size_of::<sys::IpeBufferListNode_>()
+    );
+    assert_eq!(
+        align_of::<IpeBufferListNode_>(),
+        align_of::<sys::IpeBufferListNode_>()
     );
 }
 

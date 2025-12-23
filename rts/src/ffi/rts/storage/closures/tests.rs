@@ -527,6 +527,41 @@ fn sys_StgMVar_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_StgTRecChunk__layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(StgTRecChunk_, header),
+        offset_of!(sys::StgTRecChunk_, header)
+    );
+    assert_eq!(
+        size_of::<*mut StgTRecChunk_>(),
+        size_of::<*mut sys::StgTRecChunk_>()
+    );
+    assert_eq!(
+        offset_of!(StgTRecChunk_, prev_chunk),
+        offset_of!(sys::StgTRecChunk_, prev_chunk)
+    );
+    assert_eq!(
+        offset_of!(StgTRecChunk_, next_entry_idx),
+        offset_of!(sys::StgTRecChunk_, next_entry_idx)
+    );
+    assert_eq!(
+        size_of::<[TRecEntry; 16usize]>(),
+        size_of::<[sys::TRecEntry; 16usize]>()
+    );
+    assert_eq!(
+        offset_of!(StgTRecChunk_, entries),
+        offset_of!(sys::StgTRecChunk_, entries)
+    );
+    assert_eq!(size_of::<StgTRecChunk_>(), size_of::<sys::StgTRecChunk_>());
+    assert_eq!(
+        align_of::<StgTRecChunk_>(),
+        align_of::<sys::StgTRecChunk_>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_TRecState_layout() {
     assert_eq!(size_of::<TRecState>(), size_of::<sys::TRecState>());
     assert_eq!(align_of::<TRecState>(), align_of::<sys::TRecState>());
@@ -551,6 +586,45 @@ fn sys_TRecState_discriminants() {
         TRecState::TREC_WAITING as isize,
         sys::TRecState::TREC_WAITING as isize
     )
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgTRecHeader__layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(StgTRecHeader_, header),
+        offset_of!(sys::StgTRecHeader_, header)
+    );
+    assert_eq!(
+        size_of::<*mut StgTRecHeader_>(),
+        size_of::<*mut sys::StgTRecHeader_>()
+    );
+    assert_eq!(
+        offset_of!(StgTRecHeader_, enclosing_trec),
+        offset_of!(sys::StgTRecHeader_, enclosing_trec)
+    );
+    assert_eq!(
+        size_of::<*mut StgTRecChunk>(),
+        size_of::<*mut sys::StgTRecChunk>()
+    );
+    assert_eq!(
+        offset_of!(StgTRecHeader_, current_chunk),
+        offset_of!(sys::StgTRecHeader_, current_chunk)
+    );
+    assert_eq!(size_of::<TRecState>(), size_of::<sys::TRecState>());
+    assert_eq!(
+        offset_of!(StgTRecHeader_, state),
+        offset_of!(sys::StgTRecHeader_, state)
+    );
+    assert_eq!(
+        size_of::<StgTRecHeader_>(),
+        size_of::<sys::StgTRecHeader_>()
+    );
+    assert_eq!(
+        align_of::<StgTRecHeader_>(),
+        align_of::<sys::StgTRecHeader_>()
+    );
 }
 
 #[cfg(feature = "sys")]
@@ -668,6 +742,39 @@ fn sys_Message_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_MessageCloneStack__layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(MessageCloneStack_, header),
+        offset_of!(sys::MessageCloneStack_, header)
+    );
+    assert_eq!(size_of::<*mut Message>(), size_of::<*mut sys::Message>());
+    assert_eq!(
+        offset_of!(MessageCloneStack_, link),
+        offset_of!(sys::MessageCloneStack_, link)
+    );
+    assert_eq!(size_of::<*mut StgMVar>(), size_of::<*mut sys::StgMVar>());
+    assert_eq!(
+        offset_of!(MessageCloneStack_, result),
+        offset_of!(sys::MessageCloneStack_, result)
+    );
+    assert_eq!(size_of::<*mut StgTSO>(), size_of::<*mut sys::StgTSO>());
+    assert_eq!(
+        offset_of!(MessageCloneStack_, tso),
+        offset_of!(sys::MessageCloneStack_, tso)
+    );
+    assert_eq!(
+        size_of::<MessageCloneStack_>(),
+        size_of::<sys::MessageCloneStack_>()
+    );
+    assert_eq!(
+        align_of::<MessageCloneStack_>(),
+        align_of::<sys::MessageCloneStack_>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_MessageCloneStack_layout() {
     assert_eq!(
         size_of::<MessageCloneStack>(),
@@ -676,6 +783,76 @@ fn sys_MessageCloneStack_layout() {
     assert_eq!(
         align_of::<MessageCloneStack>(),
         align_of::<sys::MessageCloneStack>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgCompactNFData__layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(StgCompactNFData_, header),
+        offset_of!(sys::StgCompactNFData_, header)
+    );
+    assert_eq!(
+        offset_of!(StgCompactNFData_, totalW),
+        offset_of!(sys::StgCompactNFData_, totalW)
+    );
+    assert_eq!(
+        offset_of!(StgCompactNFData_, autoBlockW),
+        offset_of!(sys::StgCompactNFData_, autoBlockW)
+    );
+    assert_eq!(
+        offset_of!(StgCompactNFData_, hp),
+        offset_of!(sys::StgCompactNFData_, hp)
+    );
+    assert_eq!(
+        offset_of!(StgCompactNFData_, hpLim),
+        offset_of!(sys::StgCompactNFData_, hpLim)
+    );
+    assert_eq!(
+        size_of::<*mut StgCompactNFDataBlock>(),
+        size_of::<*mut sys::StgCompactNFDataBlock>()
+    );
+    assert_eq!(
+        offset_of!(StgCompactNFData_, nursery),
+        offset_of!(sys::StgCompactNFData_, nursery)
+    );
+    assert_eq!(
+        size_of::<*mut StgCompactNFDataBlock>(),
+        size_of::<*mut sys::StgCompactNFDataBlock>()
+    );
+    assert_eq!(
+        offset_of!(StgCompactNFData_, last),
+        offset_of!(sys::StgCompactNFData_, last)
+    );
+    assert_eq!(
+        offset_of!(StgCompactNFData_, hash),
+        offset_of!(sys::StgCompactNFData_, hash)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(
+        offset_of!(StgCompactNFData_, result),
+        offset_of!(sys::StgCompactNFData_, result)
+    );
+    assert_eq!(
+        size_of::<*mut StgCompactNFData_>(),
+        size_of::<*mut sys::StgCompactNFData_>()
+    );
+    assert_eq!(
+        offset_of!(StgCompactNFData_, link),
+        offset_of!(sys::StgCompactNFData_, link)
+    );
+    assert_eq!(
+        size_of::<StgCompactNFData_>(),
+        size_of::<sys::StgCompactNFData_>()
+    );
+    assert_eq!(
+        align_of::<StgCompactNFData_>(),
+        align_of::<sys::StgCompactNFData_>()
     );
 }
 

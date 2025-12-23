@@ -2,6 +2,35 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_BacktraceChunk__layout() {
+    assert_eq!(
+        offset_of!(BacktraceChunk_, n_frames),
+        offset_of!(sys::BacktraceChunk_, n_frames)
+    );
+    assert_eq!(
+        size_of::<*mut BacktraceChunk_>(),
+        size_of::<*mut sys::BacktraceChunk_>()
+    );
+    assert_eq!(
+        offset_of!(BacktraceChunk_, next),
+        offset_of!(sys::BacktraceChunk_, next)
+    );
+    assert_eq!(
+        offset_of!(BacktraceChunk_, frames),
+        offset_of!(sys::BacktraceChunk_, frames)
+    );
+    assert_eq!(
+        size_of::<BacktraceChunk_>(),
+        size_of::<sys::BacktraceChunk_>()
+    );
+    assert_eq!(
+        align_of::<BacktraceChunk_>(),
+        align_of::<sys::BacktraceChunk_>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_BacktraceChunk_layout() {
     assert_eq!(
         size_of::<BacktraceChunk>(),
@@ -11,6 +40,25 @@ fn sys_BacktraceChunk_layout() {
         align_of::<BacktraceChunk>(),
         align_of::<sys::BacktraceChunk>()
     );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_Backtrace__layout() {
+    assert_eq!(
+        offset_of!(Backtrace_, n_frames),
+        offset_of!(sys::Backtrace_, n_frames)
+    );
+    assert_eq!(
+        size_of::<*mut BacktraceChunk>(),
+        size_of::<*mut sys::BacktraceChunk>()
+    );
+    assert_eq!(
+        offset_of!(Backtrace_, last),
+        offset_of!(sys::Backtrace_, last)
+    );
+    assert_eq!(size_of::<Backtrace_>(), size_of::<sys::Backtrace_>());
+    assert_eq!(align_of::<Backtrace_>(), align_of::<sys::Backtrace_>());
 }
 
 #[cfg(feature = "sys")]

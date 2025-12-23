@@ -57,6 +57,69 @@ fn sys_StgSRTField_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_StgInfoTable__layout() {
+    assert_eq!(
+        size_of::<StgClosureInfo>(),
+        size_of::<sys::StgClosureInfo>()
+    );
+    assert_eq!(
+        offset_of!(StgInfoTable_, layout),
+        offset_of!(sys::StgInfoTable_, layout)
+    );
+    assert_eq!(
+        offset_of!(StgInfoTable_, type_),
+        offset_of!(sys::StgInfoTable_, type_)
+    );
+    assert_eq!(
+        offset_of!(StgInfoTable_, srt),
+        offset_of!(sys::StgInfoTable_, srt)
+    );
+    assert_eq!(
+        offset_of!(StgInfoTable_, code),
+        offset_of!(sys::StgInfoTable_, code)
+    );
+    assert_eq!(size_of::<StgInfoTable_>(), size_of::<sys::StgInfoTable_>());
+    assert_eq!(
+        align_of::<StgInfoTable_>(),
+        align_of::<sys::StgInfoTable_>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgFunInfoExtraRev__layout() {
+    assert_eq!(
+        offset_of!(StgFunInfoExtraRev_, slow_apply_offset),
+        offset_of!(sys::StgFunInfoExtraRev_, slow_apply_offset)
+    );
+    assert_eq!(
+        size_of::<StgFunInfoExtraRev___bindgen_ty_1>(),
+        size_of::<sys::StgFunInfoExtraRev___bindgen_ty_1>()
+    );
+    assert_eq!(
+        offset_of!(StgFunInfoExtraRev_, b),
+        offset_of!(sys::StgFunInfoExtraRev_, b)
+    );
+    assert_eq!(
+        offset_of!(StgFunInfoExtraRev_, fun_type),
+        offset_of!(sys::StgFunInfoExtraRev_, fun_type)
+    );
+    assert_eq!(
+        offset_of!(StgFunInfoExtraRev_, arity),
+        offset_of!(sys::StgFunInfoExtraRev_, arity)
+    );
+    assert_eq!(
+        size_of::<StgFunInfoExtraRev_>(),
+        size_of::<sys::StgFunInfoExtraRev_>()
+    );
+    assert_eq!(
+        align_of::<StgFunInfoExtraRev_>(),
+        align_of::<sys::StgFunInfoExtraRev_>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_StgFunInfoExtraRev___bindgen_ty_1_layout() {
     assert_eq!(
         size_of::<StgFunInfoExtraRev___bindgen_ty_1>(),
@@ -78,6 +141,47 @@ fn sys_StgFunInfoExtraRev_layout() {
     assert_eq!(
         align_of::<StgFunInfoExtraRev>(),
         align_of::<sys::StgFunInfoExtraRev>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_StgFunInfoExtraFwd__layout() {
+    assert_eq!(
+        offset_of!(StgFunInfoExtraFwd_, fun_type),
+        offset_of!(sys::StgFunInfoExtraFwd_, fun_type)
+    );
+    assert_eq!(
+        offset_of!(StgFunInfoExtraFwd_, arity),
+        offset_of!(sys::StgFunInfoExtraFwd_, arity)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(
+        offset_of!(StgFunInfoExtraFwd_, srt),
+        offset_of!(sys::StgFunInfoExtraFwd_, srt)
+    );
+    assert_eq!(
+        size_of::<StgFunInfoExtraFwd___bindgen_ty_1>(),
+        size_of::<sys::StgFunInfoExtraFwd___bindgen_ty_1>()
+    );
+    assert_eq!(
+        offset_of!(StgFunInfoExtraFwd_, b),
+        offset_of!(sys::StgFunInfoExtraFwd_, b)
+    );
+    assert_eq!(
+        offset_of!(StgFunInfoExtraFwd_, slow_apply),
+        offset_of!(sys::StgFunInfoExtraFwd_, slow_apply)
+    );
+    assert_eq!(
+        size_of::<StgFunInfoExtraFwd_>(),
+        size_of::<sys::StgFunInfoExtraFwd_>()
+    );
+    assert_eq!(
+        align_of::<StgFunInfoExtraFwd_>(),
+        align_of::<sys::StgFunInfoExtraFwd_>()
     );
 }
 

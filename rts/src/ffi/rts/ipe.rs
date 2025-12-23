@@ -5,29 +5,29 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-/// cbindgen:no-export
+#[ffi(compiler, testsuite)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct InfoProv_ {
-    table_name: *const c_char,
-    closure_desc: u32,
-    ty_desc: *const c_char,
-    label: *const c_char,
-    unit_id: *const c_char,
-    module: *const c_char,
-    src_file: *const c_char,
-    src_span: *const c_char,
+    pub table_name: *const c_char,
+    pub closure_desc: u32,
+    pub ty_desc: *const c_char,
+    pub label: *const c_char,
+    pub unit_id: *const c_char,
+    pub module: *const c_char,
+    pub src_file: *const c_char,
+    pub src_span: *const c_char,
 }
 
 #[ffi(compiler, ghc_lib, testsuite)]
 pub type InfoProv = InfoProv_;
 
-/// cbindgen:no-export
+#[ffi(testsuite)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct InfoProvEnt_ {
-    info: *const StgInfoTable,
-    prov: InfoProv,
+    pub(crate) info: *const StgInfoTable,
+    pub(crate) prov: InfoProv,
 }
 
 #[ffi(compiler, ghc_lib, testsuite)]
@@ -41,12 +41,12 @@ pub type StringIdx = u32;
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
 pub struct IpeBufferEntry {
-    pub table_name: StringIdx,
-    pub closure_desc: u32,
-    pub ty_desc: StringIdx,
-    pub label: StringIdx,
-    pub src_file: StringIdx,
-    pub src_span: StringIdx,
+    pub(crate) table_name: StringIdx,
+    pub(crate) closure_desc: u32,
+    pub(crate) ty_desc: StringIdx,
+    pub(crate) label: StringIdx,
+    pub(crate) src_file: StringIdx,
+    pub(crate) src_span: StringIdx,
 }
 
 #[cfg(test)]
@@ -63,19 +63,19 @@ impl Arbitrary for IpeBufferEntry {
     }
 }
 
-/// cbindgen:no-export
+#[ffi(compiler, libraries, testsuite)]
 #[repr(C)]
 pub struct IpeBufferListNode_ {
-    next: *mut IpeBufferListNode_,
-    compressed: StgWord,
-    count: StgWord,
-    tables: *mut *const StgInfoTable,
-    entries: *mut IpeBufferEntry,
-    entries_size: StgWord,
-    string_table: *const c_char,
-    string_table_size: StgWord,
-    unit_id: StringIdx,
-    module_name: StringIdx,
+    pub next: *mut IpeBufferListNode_,
+    pub compressed: StgWord,
+    pub count: StgWord,
+    pub tables: *mut *const StgInfoTable,
+    pub entries: *mut IpeBufferEntry,
+    pub entries_size: StgWord,
+    pub string_table: *const c_char,
+    pub string_table_size: StgWord,
+    pub unit_id: StringIdx,
+    pub module_name: StringIdx,
 }
 
 #[ffi(compiler, testsuite)]

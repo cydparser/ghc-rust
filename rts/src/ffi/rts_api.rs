@@ -111,11 +111,11 @@ pub unsafe extern "C" fn pauseTokenCapability(pauseToken: *mut PauseToken) -> *m
     }
 }
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib, libraries, utils)]
 #[repr(C)]
 pub struct CapabilityPublic_ {
-    f: StgFunTable,
-    r: StgRegTable,
+    pub f: StgFunTable,
+    pub r: StgRegTable,
 }
 
 #[expect(unused)]
