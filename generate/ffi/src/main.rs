@@ -580,16 +580,23 @@ fn transform_struct(
 
     let consumers = symbols.consumers(&ident);
 
-    if consumers.is_empty() || ident.to_string().ends_with("_") {
+    if (consumers.is_empty() || consumers == Consumer::Testsuite)
+        && let syn::Fields::Named(syn::FieldsNamed { named, .. }) = &mut item_struct.fields
+    {
+        let vis = if consumers == Consumer::Testsuite {
+            parse_quote! { pub(crate) }
+        } else {
+            Visibility::Inherited
+        };
+
+        for f in named {
+            f.vis = vis.clone();
+        }
+    }
+    if consumers.is_empty() {
         item_struct
             .attrs
             .insert(0, parse_quote! { #[doc = " cbindgen:no-export"] });
-
-        if let syn::Fields::Named(syn::FieldsNamed { named, .. }) = &mut item_struct.fields {
-            for f in named {
-                f.vis = Visibility::Inherited;
-            }
-        }
     } else {
         item_struct.attrs.insert(0, attr_ffi(consumers));
 
