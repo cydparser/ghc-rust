@@ -1,22 +1,26 @@
 use crate::ffi::hs_ffi::HsStablePtr;
 use crate::ffi::stg::types::StgWord64;
 use crate::prelude::*;
-use libc::{pthread_cond_t, pthread_mutex_t, pthread_t};
 
 #[cfg(test)]
 mod tests;
 
+// TODO(rust): Use Rust's cross-platform, safe threading API.
+
 #[ffi(compiler, testsuite)]
+pub type Condition = TODO_;
+
+#[ffi(testsuite)]
+pub type Mutex = TODO_;
+
+#[ffi(testsuite)]
+pub type OSThreadId = TODO_;
+
+/// cbindgen:no-export
 #[repr(C)]
-pub struct Condition {
-    pub cond: pthread_cond_t,
+pub struct TODO_ {
+    _unused: [u8; 0],
 }
-
-#[ffi(testsuite)]
-pub type Mutex = pthread_mutex_t;
-
-#[ffi(testsuite)]
-pub type OSThreadId = pthread_t;
 
 #[ffi(utils)]
 #[unsafe(no_mangle)]
@@ -29,6 +33,7 @@ pub unsafe extern "C" fn shutdownThread() -> ! {
 
 #[ffi(testsuite)]
 pub type OSThreadProc = Option<unsafe extern "C" fn(arg1: *mut c_void) -> *mut c_void>;
+
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]

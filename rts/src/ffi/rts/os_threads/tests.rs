@@ -2,31 +2,6 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_Condition_layout() {
-    assert_eq!(
-        offset_of!(Condition, cond),
-        offset_of!(sys::Condition, cond)
-    );
-    assert_eq!(size_of::<Condition>(), size_of::<sys::Condition>());
-    assert_eq!(align_of::<Condition>(), align_of::<sys::Condition>());
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_Mutex_layout() {
-    assert_eq!(size_of::<Mutex>(), size_of::<sys::Mutex>());
-    assert_eq!(align_of::<Mutex>(), align_of::<sys::Mutex>());
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_OSThreadId_layout() {
-    assert_eq!(size_of::<OSThreadId>(), size_of::<sys::OSThreadId>());
-    assert_eq!(align_of::<OSThreadId>(), align_of::<sys::OSThreadId>());
-}
-
-#[cfg(feature = "sys")]
-#[test]
 fn sys_OSThreadProc_layout() {
     assert_eq!(size_of::<OSThreadProc>(), size_of::<OSThreadProc>());
     assert_eq!(align_of::<OSThreadProc>(), align_of::<OSThreadProc>());
