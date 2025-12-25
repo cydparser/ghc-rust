@@ -47,7 +47,7 @@ fn equivalent_updateRemembSetPushThunk_() {
     };
     let actual = {
         let mut reg: StgRegTable = todo!();
-        let mut p: StgThunk_ = todo!();
+        let mut p: StgThunk = todo!();
         unsafe { updateRemembSetPushThunk_(&raw mut reg, &raw mut p) };
         todo!()
     };
@@ -60,7 +60,7 @@ fn equivalent_updateRemembSetPushThunk_() {
 fn test_updateRemembSetPushThunk_() {
     let actual = {
         let reg: StgRegTable = todo!();
-        let p: StgThunk_ = todo!();
+        let p: StgThunk = todo!();
         unsafe { updateRemembSetPushThunk_(&raw mut reg, &raw mut p) };
         todo!()
     };

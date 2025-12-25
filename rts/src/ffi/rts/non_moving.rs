@@ -1,4 +1,4 @@
-use crate::ffi::rts::storage::closures::{StgClosure_, StgThunk_};
+use crate::ffi::rts::storage::closures::{StgClosure_, StgThunk};
 use crate::ffi::stg::regs::StgRegTable;
 use crate::ffi::stg::types::{StgFunPtr, StgWord};
 use crate::prelude::*;
@@ -19,7 +19,7 @@ pub unsafe extern "C" fn updateRemembSetPushClosure_(reg: *mut StgRegTable, p: *
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn updateRemembSetPushThunk_(reg: *mut StgRegTable, p: *mut StgThunk_) {
+pub unsafe extern "C" fn updateRemembSetPushThunk_(reg: *mut StgRegTable, p: *mut StgThunk) {
     sys! {
         updateRemembSetPushThunk_(reg as * mut sys::StgRegTable, p as * mut
         sys::StgThunk_)
