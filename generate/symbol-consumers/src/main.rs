@@ -174,7 +174,7 @@ pub fn main() {
 struct SymbolVisitor {
     symbols: Vec<String>,
     field_symbols: HashMap<String, Vec<String>>,
-    field_types: HashMap<String, Vec<String>>,
+    exposed_symbols: HashMap<String, Vec<String>>,
     variant_symbols: HashMap<String, String>,
     pointer_types: BTreeSet<Ident>,
     primitive_types: BTreeSet<Ident>,
@@ -305,19 +305,99 @@ impl SymbolVisitor {
     fn is_std(&self, ident: &Ident) -> bool {
         self.std_types.contains(ident) || self.is_primitive(ident) || ident == "c_void"
     }
+
+    fn set_exposed_symbols<'a, S, I>(&mut self, sym: S, types: I)
+    where
+        S: ToString,
+        I: IntoIterator<Item = &'a Type>,
+    {
+        let types = types.into_iter();
+
+        if types.size_hint().0 < 1 {
+            return;
+        }
+
+        let mut syms = vec![];
+
+        for ty in types {
+            push_exposed(self, &mut syms, ty);
+        }
+
+        self.exposed_symbols.insert(sym.to_string(), syms);
+
+        fn push_exposed(visitor: &SymbolVisitor, syms: &mut Vec<String>, ty: &Type) {
+            match ty {
+                Type::Array(type_array) => push_exposed(visitor, syms, type_array.elem.as_ref()),
+                Type::BareFn(type_bare_fn) => {
+                    for arg in type_bare_fn.inputs.iter() {
+                        push_exposed(visitor, syms, &arg.ty);
+                    }
+                    if let syn::ReturnType::Type(_, rty) = &type_bare_fn.output {
+                        push_exposed(visitor, syms, rty.as_ref());
+                    }
+                }
+                Type::Path(type_path) => {
+                    if let Some(ty_ident) = type_path.path.get_ident()
+                        && !visitor.looks_primitive(ty_ident)
+                        && ty_ident != "c_void"
+                    {
+                        syms.push(ty_ident.to_string());
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
 }
 
 impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
     fn visit_foreign_item_fn(&mut self, i: &'ast syn::ForeignItemFn) {
         self.add_symbol(i.sig.ident.to_string());
+
+        let ty = {
+            let syn::Signature {
+                fn_token,
+                paren_token,
+                inputs,
+                output,
+                ..
+            } = &i.sig;
+
+            Type::BareFn(syn::TypeBareFn {
+                lifetimes: None,
+                unsafety: None,
+                abi: None,
+                fn_token: *fn_token,
+                paren_token: *paren_token,
+                inputs: inputs
+                    .clone()
+                    .into_iter()
+                    .map(|arg| {
+                        let syn::FnArg::Typed(syn::PatType { attrs, ty, .. }) = arg else {
+                            panic!("unexpected receiver: {:?}", i);
+                        };
+                        syn::BareFnArg {
+                            attrs,
+                            name: None,
+                            ty: *ty,
+                        }
+                    })
+                    .collect(),
+                variadic: None,
+                output: output.clone(),
+            })
+        };
+        self.set_exposed_symbols(&i.sig.ident, iter::once(&ty));
     }
 
     fn visit_foreign_item_static(&mut self, i: &'ast syn::ForeignItemStatic) {
         self.add_symbol(i.ident.to_string());
+        self.set_exposed_symbols(&i.ident, iter::once(i.ty.as_ref()));
     }
 
     fn visit_item_const(&mut self, i: &'ast syn::ItemConst) {
         self.add_symbol(i.ident.to_string());
+        self.set_exposed_symbols(&i.ident, iter::once(i.ty.as_ref()));
     }
 
     fn visit_item_enum(&mut self, i: &'ast syn::ItemEnum) {
@@ -342,6 +422,7 @@ impl<'ast> syn::visit::Visit<'ast> for SymbolVisitor {
 
     fn visit_item_static(&mut self, i: &'ast syn::ItemStatic) {
         self.add_symbol(i.ident.to_string());
+        self.set_exposed_symbols(&i.ident, iter::once(i.ty.as_ref()));
     }
 
     fn visit_item_struct(&mut self, i: &'ast syn::ItemStruct) {
@@ -458,7 +539,7 @@ fn add_fields(visitor: &mut SymbolVisitor, name: &str, fields_named: &syn::Field
     let fields_named = fields_named.named.iter();
     let field_count = fields_named.size_hint().0;
     let mut field_names = Vec::with_capacity(field_count);
-    let mut field_types = Vec::with_capacity(field_count);
+    let mut exposed_types = Vec::with_capacity(field_count);
 
     for f in fields_named {
         let field_name = f.ident.as_ref().unwrap().to_string();
@@ -467,23 +548,14 @@ fn add_fields(visitor: &mut SymbolVisitor, name: &str, fields_named: &syn::Field
             continue;
         }
 
-        if let Type::Path(type_path) = &f.ty
-            && let Some(ty_ident) = type_path.path.get_ident()
-            && !visitor.looks_primitive(ty_ident)
-            && ty_ident != "c_void"
-        {
-            field_types.push(ty_ident.to_string());
-        }
-
         field_names.push(field_name);
+        exposed_types.push(&f.ty);
     }
+
+    visitor.set_exposed_symbols(name, exposed_types);
 
     if !field_names.is_empty() {
         visitor.field_symbols.insert(name.to_string(), field_names);
-
-        if !field_types.is_empty() {
-            visitor.field_types.insert(name.to_string(), field_types);
-        }
     }
 }
 
@@ -685,7 +757,7 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
     }
 
     // The fields of a composite type inherit the consumers of the composite type.
-    for (sym, field_syms) in visitor.field_types.iter() {
+    for (sym, field_syms) in visitor.exposed_symbols.iter() {
         if let Some(c) = sym_consumers.get(sym).copied() {
             for field_sym in field_syms {
                 *(sym_consumers.entry(field_sym.clone()).or_default()) |= c;
