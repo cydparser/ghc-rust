@@ -51,7 +51,7 @@ pub(crate) const HS_WORD32_MAX: u32 = 4294967295;
 
 pub(crate) const HS_WORD64_MAX: i32 = -1;
 
-#[ffi(compiler, ghc_lib)]
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type HsChar = StgChar;
 
 #[ffi(compiler, docs, ghc_lib, libraries, testsuite)]
@@ -72,30 +72,32 @@ pub type HsInt64 = StgInt64;
 #[ffi(compiler, ghc_lib, testsuite)]
 pub type HsWord = StgWord;
 
-#[ffi(compiler, ghc_lib)]
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type HsWord8 = StgWord8;
 
-#[ffi(ghc_lib)]
+#[ffi(ghc_lib, testsuite)]
 pub type HsWord16 = StgWord16;
 
-#[ffi(ghc_lib)]
+#[ffi(ghc_lib, testsuite)]
 pub type HsWord32 = StgWord32;
 
-#[ffi(compiler, ghc_lib)]
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type HsWord64 = StgWord64;
 
 #[ffi(compiler, ghc_lib, libraries, testsuite)]
 pub type HsFloat = StgFloat;
 
-#[ffi(compiler, ghc_lib, libraries)]
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
 pub type HsDouble = StgDouble;
 
-#[ffi(compiler, docs, driver, ghc_lib, testsuite, utils)]
+#[ffi(compiler, docs, driver, ghc_lib, libraries, testsuite, utils)]
 pub type HsBool = StgInt;
 
-pub(crate) type HsPtr = *mut c_void;
+#[ffi(compiler, ghc_lib, testsuite)]
+pub type HsPtr = *mut c_void;
 
-pub(crate) type HsFunPtr = Option<unsafe extern "C" fn()>;
+#[ffi(docs, testsuite)]
+pub type HsFunPtr = Option<unsafe extern "C" fn()>;
 
 #[ffi(docs, ghc_lib, testsuite)]
 pub type HsStablePtr = *mut c_void;

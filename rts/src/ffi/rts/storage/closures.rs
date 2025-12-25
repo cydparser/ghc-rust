@@ -24,11 +24,11 @@ pub union StgProfHeader__bindgen_ty_1 {
     pub era: StgWord,
 }
 
-/// cbindgen:no-export
+#[ffi(compiler)]
 #[repr(C)]
 #[cfg_attr(test, derive(Clone))]
 pub struct StgSMPThunkHeader {
-    pad: StgWord,
+    pub pad: StgWord,
 }
 
 #[cfg(test)]
@@ -257,11 +257,11 @@ pub struct StgRetFun {
     pub payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
-/// cbindgen:no-export
+#[ffi(compiler)]
 #[repr(C)]
 pub struct StgIntCharlikeClosure {
-    pub(crate) header: StgHeader,
-    pub(crate) data: StgWord,
+    pub header: StgHeader,
+    pub data: StgWord,
 }
 
 /// cbindgen:no-export
@@ -356,13 +356,13 @@ pub struct StgTVar {
     num_updates: StgInt,
 }
 
-/// cbindgen:no-export
+#[ffi(testsuite)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct TRecEntry {
-    tvar: *mut StgTVar,
-    expected_value: *mut StgClosure,
-    new_value: *mut StgClosure,
+    pub(crate) tvar: *mut StgTVar,
+    pub(crate) expected_value: *mut StgClosure,
+    pub(crate) new_value: *mut StgClosure,
 }
 
 #[ffi(testsuite)]

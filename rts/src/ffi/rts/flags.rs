@@ -520,7 +520,7 @@ pub struct _RTS_FLAGS {
     pub HpcFlags: HPC_FLAGS,
 }
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib)]
 pub type RTS_FLAGS = _RTS_FLAGS;
 
 // #[ffi(compiler, ghc_lib)]

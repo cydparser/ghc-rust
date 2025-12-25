@@ -239,7 +239,7 @@ pub(crate) type StgOffset = StgWord;
 pub(crate) type StgCode = StgWord8;
 
 /// An adjusted index into stable_ptr_table (see [ref:NULL StgStablePtr])
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type StgStablePtr = *mut c_void;
 
 pub(crate) type StgByteArray = *mut StgWord8;
@@ -257,7 +257,8 @@ pub(crate) type StgByteArray = *mut StgWord8;
 // The only way round this would be to write a recursive type but
 // C only allows that if you're defining a struct or union.
 
-pub(crate) type StgFunPtr =
+#[ffi(compiler, ghc_lib, libraries, utils)]
+pub type StgFunPtr =
     Option<unsafe extern "C" fn() -> Option<unsafe extern "C" fn() -> *mut c_void>>;
 
 #[ffi(compiler, ghc_lib)]

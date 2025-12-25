@@ -227,6 +227,13 @@ fn sys_StgStablePtr_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_StgFunPtr_layout() {
+    assert_eq!(size_of::<StgFunPtr>(), size_of::<StgFunPtr>());
+    assert_eq!(align_of::<StgFunPtr>(), align_of::<StgFunPtr>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_StgFun_layout() {
     assert_eq!(size_of::<StgFun>(), size_of::<StgFun>());
     assert_eq!(align_of::<StgFun>(), align_of::<StgFun>());

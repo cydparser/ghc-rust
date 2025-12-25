@@ -2266,6 +2266,16 @@ fn test_rts_isPaused() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_ListThreadsCb_layout() {
+    assert_eq!(size_of::<ListThreadsCb>(), size_of::<sys::ListThreadsCb>());
+    assert_eq!(
+        align_of::<ListThreadsCb>(),
+        align_of::<sys::ListThreadsCb>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_rts_listThreads() {
@@ -2296,6 +2306,13 @@ fn test_rts_listThreads() {
     };
     let expected = todo!();
     assert_eq!(expected, actual);
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_ListRootsCb_layout() {
+    assert_eq!(size_of::<ListRootsCb>(), size_of::<sys::ListRootsCb>());
+    assert_eq!(align_of::<ListRootsCb>(), align_of::<sys::ListRootsCb>());
 }
 
 #[cfg(feature = "sys")]

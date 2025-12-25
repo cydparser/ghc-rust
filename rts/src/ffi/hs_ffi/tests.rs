@@ -116,6 +116,20 @@ fn sys_HsBool_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_HsPtr_layout() {
+    assert_eq!(size_of::<HsPtr>(), size_of::<HsPtr>());
+    assert_eq!(align_of::<HsPtr>(), align_of::<HsPtr>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_HsFunPtr_layout() {
+    assert_eq!(size_of::<HsFunPtr>(), size_of::<HsFunPtr>());
+    assert_eq!(align_of::<HsFunPtr>(), align_of::<HsFunPtr>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_HsStablePtr_layout() {
     assert_eq!(size_of::<HsStablePtr>(), size_of::<HsStablePtr>());
     assert_eq!(align_of::<HsStablePtr>(), align_of::<HsStablePtr>());

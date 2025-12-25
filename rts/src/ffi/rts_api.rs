@@ -968,7 +968,9 @@ pub unsafe extern "C" fn rts_isPaused() -> bool {
     }
 }
 
-pub(crate) type ListThreadsCb = Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut StgTSO)>;
+#[ffi(testsuite)]
+pub type ListThreadsCb = Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut StgTSO)>;
+
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
@@ -978,8 +980,9 @@ pub unsafe extern "C" fn rts_listThreads(cb: ListThreadsCb, user: *mut c_void) {
     }
 }
 
-pub(crate) type ListRootsCb =
-    Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut StgClosure)>;
+#[ffi(testsuite)]
+pub type ListRootsCb = Option<unsafe extern "C" fn(user: *mut c_void, arg1: *mut StgClosure)>;
+
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]

@@ -42,6 +42,23 @@ fn sys_StgProfHeader__bindgen_ty_1_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_StgSMPThunkHeader_layout() {
+    assert_eq!(
+        offset_of!(StgSMPThunkHeader, pad),
+        offset_of!(sys::StgSMPThunkHeader, pad)
+    );
+    assert_eq!(
+        size_of::<StgSMPThunkHeader>(),
+        size_of::<sys::StgSMPThunkHeader>()
+    );
+    assert_eq!(
+        align_of::<StgSMPThunkHeader>(),
+        align_of::<sys::StgSMPThunkHeader>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_StgHeader_layout() {
     assert_eq!(
         size_of::<*const StgInfoTable>(),
@@ -385,6 +402,28 @@ fn sys_StgRetFun_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_StgIntCharlikeClosure_layout() {
+    assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
+    assert_eq!(
+        offset_of!(StgIntCharlikeClosure, header),
+        offset_of!(sys::StgIntCharlikeClosure, header)
+    );
+    assert_eq!(
+        offset_of!(StgIntCharlikeClosure, data),
+        offset_of!(sys::StgIntCharlikeClosure, data)
+    );
+    assert_eq!(
+        size_of::<StgIntCharlikeClosure>(),
+        size_of::<sys::StgIntCharlikeClosure>()
+    );
+    assert_eq!(
+        align_of::<StgIntCharlikeClosure>(),
+        align_of::<sys::StgIntCharlikeClosure>()
+    );
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys__StgWeak_layout() {
     assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
     assert_eq!(
@@ -523,6 +562,34 @@ fn sys_StgMVar_layout() {
     assert_eq!(offset_of!(StgMVar, value), offset_of!(sys::StgMVar, value));
     assert_eq!(size_of::<StgMVar>(), size_of::<sys::StgMVar>());
     assert_eq!(align_of::<StgMVar>(), align_of::<sys::StgMVar>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
+fn sys_TRecEntry_layout() {
+    assert_eq!(size_of::<*mut StgTVar>(), size_of::<*mut sys::StgTVar>());
+    assert_eq!(
+        offset_of!(TRecEntry, tvar),
+        offset_of!(sys::TRecEntry, tvar)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(
+        offset_of!(TRecEntry, expected_value),
+        offset_of!(sys::TRecEntry, expected_value)
+    );
+    assert_eq!(
+        size_of::<*mut StgClosure>(),
+        size_of::<*mut sys::StgClosure>()
+    );
+    assert_eq!(
+        offset_of!(TRecEntry, new_value),
+        offset_of!(sys::TRecEntry, new_value)
+    );
+    assert_eq!(size_of::<TRecEntry>(), size_of::<sys::TRecEntry>());
+    assert_eq!(align_of::<TRecEntry>(), align_of::<sys::TRecEntry>());
 }
 
 #[cfg(feature = "sys")]

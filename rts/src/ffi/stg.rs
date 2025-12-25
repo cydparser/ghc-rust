@@ -16,13 +16,13 @@ pub(crate) const BITS_PER_BYTE: u32 = 8;
 #[ffi(compiler)]
 pub type C_ = StgChar;
 
-#[ffi(compiler, ghc_lib, testsuite)]
+#[ffi(compiler, docs, ghc_lib, libraries, testsuite)]
 pub type W_ = StgWord;
 
 #[ffi(compiler)]
 pub type P_ = *mut StgWord;
 
-#[ffi(compiler)]
+#[ffi(compiler, ghc_lib)]
 pub type I_ = StgInt;
 
 pub(crate) type StgWordArray = [StgWord; 0usize];
