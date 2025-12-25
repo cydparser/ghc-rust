@@ -5,6 +5,10 @@ generate-symbols:
     cargo run -p generate-symbol-consumers
     treefmt -q generate/symbols/src/lib.rs
 
+generate-headers:
+    cargo run -p generate-headers
+    treefmt -q include/*.h
+
 generate-includes:
     scripts/locate-ghc-rts-header-includes > generate/includes.json
 
