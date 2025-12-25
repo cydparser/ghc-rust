@@ -203,7 +203,7 @@ pub struct RtsConfig {
     pub stackOverflowHook: Option<unsafe extern "C" fn(stack_size: W_)>,
     pub outOfHeapHook: Option<unsafe extern "C" fn(request_size: W_, heap_size: W_)>,
     pub mallocFailHook: Option<unsafe extern "C" fn(request_size: W_, msg: *const c_char)>,
-    pub gcDoneHook: Option<unsafe extern "C" fn(stats: *const GCDetails_)>,
+    pub gcDoneHook: Option<unsafe extern "C" fn(stats: *const GCDetails)>,
     pub longGCSync: Option<unsafe extern "C" fn(this_cap: u32, time_ns: Time)>,
     pub longGCSyncEnd: Option<unsafe extern "C" fn(time_ns: Time)>,
 }
@@ -211,6 +211,9 @@ pub struct RtsConfig {
 // #[ffi(compiler, docs, testsuite, utils)]
 // #[unsafe(no_mangle)]
 // TODO(rust): pub static defaultRtsConfig: RtsConfig = todo!();
+
+#[ffi(compiler, docs, driver, testsuite, utils)]
+pub type GCDetails = GCDetails_;
 
 /// cbindgen:no-export
 #[repr(C)]
@@ -264,9 +267,6 @@ impl Arbitrary for GCDetails_ {
         }
     }
 }
-
-#[ffi(ghc_lib)]
-pub type GCDetails = GCDetails_;
 
 /// cbindgen:no-export
 #[repr(C)]
