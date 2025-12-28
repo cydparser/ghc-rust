@@ -28,49 +28,7 @@ pub fn main() {
     };
 
     let visitor = {
-        let mut visitor = SymbolVisitor::default();
-        visitor.copy_types.extend(
-            [
-                "bool",
-                "c_char",
-                "c_double",
-                "c_float",
-                "c_int",
-                "c_long",
-                "c_longlong",
-                "c_schar",
-                "c_short",
-                "c_uchar",
-                "c_uint",
-                "c_ulong",
-                "c_ulonglong",
-                "c_ushort",
-                "char",
-                "f128",
-                "f16",
-                "f32",
-                "f64",
-                "i128",
-                "i16",
-                "i32",
-                "i64",
-                "i8",
-                "isize",
-                "u128",
-                "u16",
-                "u32",
-                "u64",
-                "u8",
-                "usize",
-            ]
-            .into_iter()
-            .map(|s| Ident::new(s, Span::call_site())),
-        );
-        visitor.non_simple_types.extend(
-            ["c_void", "pthread_cond_t", "pthread_mutex_t", "pthread_t"]
-                .into_iter()
-                .map(|s| Ident::new(s, Span::call_site())),
-        );
+        let mut visitor = SymbolVisitor::new();
 
         let code = std::str::from_utf8(&buf).unwrap();
 
@@ -170,7 +128,7 @@ pub fn main() {
     .unwrap();
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct SymbolVisitor {
     symbols: Vec<String>,
     field_symbols: HashMap<String, Vec<String>>,
@@ -183,9 +141,82 @@ struct SymbolVisitor {
     simple_types: BTreeSet<Ident>,
     non_simple_types: BTreeSet<Ident>,
     std_types: BTreeSet<Ident>,
+    ignored_fields: BTreeSet<Ident>,
 }
 
 impl SymbolVisitor {
+    fn new() -> Self {
+        let mut visitor = SymbolVisitor {
+            symbols: Vec::default(),
+            field_symbols: HashMap::default(),
+            exposed_symbols: HashMap::default(),
+            variant_symbols: HashMap::default(),
+            pointer_types: BTreeSet::default(),
+            primitive_types: BTreeSet::default(),
+            option_types: BTreeSet::default(),
+            copy_types: BTreeSet::default(),
+            simple_types: BTreeSet::default(),
+            non_simple_types: BTreeSet::default(),
+            std_types: BTreeSet::default(),
+            ignored_fields: BTreeSet::default(),
+        };
+
+        visitor.ignored_fields.extend(
+            [
+                "_unused", "back", "c", "compact", "contents", "entries", "f", "frames", "h",
+                "head", "module", "r", "state", "tail", "u", "value", "var",
+            ]
+            .into_iter()
+            .map(|s| Ident::new(s, Span::call_site())),
+        );
+
+        visitor.copy_types.extend(
+            [
+                "bool",
+                "c_char",
+                "c_double",
+                "c_float",
+                "c_int",
+                "c_long",
+                "c_longlong",
+                "c_schar",
+                "c_short",
+                "c_uchar",
+                "c_uint",
+                "c_ulong",
+                "c_ulonglong",
+                "c_ushort",
+                "char",
+                "f128",
+                "f16",
+                "f32",
+                "f64",
+                "i128",
+                "i16",
+                "i32",
+                "i64",
+                "i8",
+                "isize",
+                "u128",
+                "u16",
+                "u32",
+                "u64",
+                "u8",
+                "usize",
+            ]
+            .into_iter()
+            .map(|s| Ident::new(s, Span::call_site())),
+        );
+
+        visitor.non_simple_types.extend(
+            ["c_void", "pthread_cond_t", "pthread_mutex_t", "pthread_t"]
+                .into_iter()
+                .map(|s| Ident::new(s, Span::call_site())),
+        );
+
+        visitor
+    }
+
     fn add_symbol(&mut self, sym: String) {
         if sym != "_" {
             self.symbols.push(sym);
@@ -542,13 +573,13 @@ fn add_fields(visitor: &mut SymbolVisitor, name: &str, fields_named: &syn::Field
     let mut exposed_types = Vec::with_capacity(field_count);
 
     for f in fields_named {
-        let field_name = f.ident.as_ref().unwrap().to_string();
+        let fident = f.ident.as_ref().unwrap();
 
-        if field_name == "c" || field_name == "h" || field_name == "_unused" {
+        if visitor.ignored_fields.contains(fident) {
             continue;
         }
 
-        field_names.push(field_name);
+        field_names.push(fident.to_string());
         exposed_types.push(&f.ty);
     }
 
