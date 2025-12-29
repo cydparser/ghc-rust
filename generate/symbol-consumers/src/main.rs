@@ -575,11 +575,9 @@ fn add_fields(visitor: &mut SymbolVisitor, name: &str, fields_named: &syn::Field
     for f in fields_named {
         let fident = f.ident.as_ref().unwrap();
 
-        if visitor.ignored_fields.contains(fident) {
-            continue;
+        if !visitor.ignored_fields.contains(fident) {
+            field_names.push(fident.to_string());
         }
-
-        field_names.push(fident.to_string());
         exposed_types.push(&f.ty);
     }
 
