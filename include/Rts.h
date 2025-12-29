@@ -463,8 +463,6 @@ enum SchedulerStatus
 typedef uint32_t SchedulerStatus;
 #endif // __cplusplus
 
-typedef struct BacktraceChunk_ BacktraceChunk_;
-
 typedef void *HsStablePtr;
 
 typedef void (*HsFunPtr)(void);
@@ -576,33 +574,15 @@ typedef StgWord64 StgThreadID;
 
 typedef struct StgTVarWatchQueue_ StgTVarWatchQueue;
 
-typedef struct TRecEntry {
-  struct StgTVar *tvar;
-  StgClosure *expected_value;
-  StgClosure *new_value;
-} TRecEntry;
-
-typedef struct StgTRecChunk_ {
-  struct StgHeader header;
-  struct StgTRecChunk_ *prev_chunk;
-  StgWord next_entry_idx;
-  struct TRecEntry entries[16];
-} StgTRecChunk_;
-
 typedef struct StgTRecChunk_ StgTRecChunk;
-
-typedef struct StgTRecHeader_ {
-  struct StgHeader header;
-  struct StgTRecHeader_ *enclosing_trec;
-  StgTRecChunk *current_chunk;
-  TRecState state;
-} StgTRecHeader_;
 
 typedef struct StgArrBytes {
   struct StgHeader header;
   StgWord bytes;
   struct __IncompleteArrayField_StgWord payload;
 } StgArrBytes;
+
+typedef struct StgBlockingQueue_ StgBlockingQueue;
 
 typedef int64_t StgInt64;
 
@@ -623,7 +603,7 @@ typedef struct StgTSO_ {
   struct StgTRecHeader_ *trec;
   struct StgArrBytes *label;
   struct MessageThrowTo_ *blocked_exceptions;
-  struct StgBlockingQueue_ *bq;
+  StgBlockingQueue *bq;
   StgInt64 alloc_limit;
   StgWord32 tot_stack_size;
 } StgTSO_;
@@ -838,15 +818,6 @@ typedef union bdescr___bindgen_ty_2 {
 
 typedef StgWord memcount;
 
-typedef struct _StgWeak {
-  struct StgHeader header;
-  StgClosure *cfinalizers;
-  StgClosure *key;
-  StgClosure *value;
-  StgClosure *finalizer;
-  struct _StgWeak *link;
-} _StgWeak;
-
 typedef struct _StgWeak StgWeak;
 
 typedef struct generation_ {
@@ -959,15 +930,6 @@ typedef struct StgRegTable {
   StgWord rRet;
 } StgRegTable;
 
-typedef struct StgSMPThunkHeader {
-  StgWord pad;
-} StgSMPThunkHeader;
-
-typedef struct StgThunkHeader {
-  const StgInfoTable *info;
-  struct StgSMPThunkHeader smp;
-} StgThunkHeader;
-
 typedef struct StgThunk_ StgThunk;
 
 typedef struct TODO_ OSThreadId;
@@ -993,11 +955,6 @@ typedef struct StgIndStatic {
   StgClosure *static_link;
   const StgInfoTable *saved_info;
 } StgIndStatic;
-
-typedef struct StgMutVar {
-  struct StgHeader header;
-  StgClosure *var;
-} StgMutVar;
 
 typedef struct __IncompleteArrayField_____StgClosure {
   StgClosure *_0[0];
