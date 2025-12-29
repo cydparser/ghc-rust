@@ -111,11 +111,11 @@ pub unsafe extern "C" fn pauseTokenCapability(pauseToken: *mut PauseToken) -> *m
     }
 }
 
-#[ffi(compiler, ghc_lib, libraries, utils)]
+/// cbindgen:no-export
 #[repr(C)]
 pub struct CapabilityPublic_ {
-    pub f: StgFunTable,
-    pub r: StgRegTable,
+    f: StgFunTable,
+    r: StgRegTable,
 }
 
 #[expect(unused)]
@@ -212,9 +212,6 @@ pub struct RtsConfig {
 // #[unsafe(no_mangle)]
 // TODO(rust): pub static defaultRtsConfig: RtsConfig = todo!();
 
-#[ffi(compiler, docs, driver, testsuite, utils)]
-pub type GCDetails = GCDetails_;
-
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
@@ -267,6 +264,9 @@ impl Arbitrary for GCDetails_ {
         }
     }
 }
+
+#[ffi(ghc_lib)]
+pub type GCDetails = GCDetails_;
 
 /// cbindgen:no-export
 #[repr(C)]

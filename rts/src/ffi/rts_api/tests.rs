@@ -98,29 +98,6 @@ fn test_pauseTokenCapability() {
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_CapabilityPublic__layout() {
-    assert_eq!(size_of::<StgFunTable>(), size_of::<sys::StgFunTable>());
-    assert_eq!(
-        offset_of!(CapabilityPublic_, f),
-        offset_of!(sys::CapabilityPublic_, f)
-    );
-    assert_eq!(size_of::<StgRegTable>(), size_of::<sys::StgRegTable>());
-    assert_eq!(
-        offset_of!(CapabilityPublic_, r),
-        offset_of!(sys::CapabilityPublic_, r)
-    );
-    assert_eq!(
-        size_of::<CapabilityPublic_>(),
-        size_of::<sys::CapabilityPublic_>()
-    );
-    assert_eq!(
-        align_of::<CapabilityPublic_>(),
-        align_of::<sys::CapabilityPublic_>()
-    );
-}
-
-#[cfg(feature = "sys")]
-#[test]
 fn sys_RtsOptsEnabledEnum_layout() {
     assert_eq!(
         size_of::<RtsOptsEnabledEnum>(),

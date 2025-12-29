@@ -4,24 +4,24 @@ set -eo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 _files=(
-  # rts/src/ffi/hs_ffi.rs
-  # rts/src/ffi/hs_ffi/tests.rs
+  rts/src/ffi/hs_ffi.rs
+  rts/src/ffi/hs_ffi/tests.rs
   # rts/src/ffi/mach_deps.rs
   # rts/src/ffi/mach_deps/tests.rs
-  # rts/src/ffi/rts/prof/ccs.rs
-  # rts/src/ffi/rts/prof/ccs/tests.rs
-  # rts/src/ffi/rts/storage/block.rs
-  # rts/src/ffi/rts/storage/block/tests.rs
-  # rts/src/ffi/rts/storage/gc.rs
-  # rts/src/ffi/rts/storage/gc/tests.rs
-  # rts/src/ffi/rts/storage/info_tables.rs
-  # rts/src/ffi/rts/storage/info_tables/tests.rs
+  rts/src/ffi/rts/prof/ccs.rs
+  rts/src/ffi/rts/prof/ccs/tests.rs
+  rts/src/ffi/rts/storage/block.rs
+  rts/src/ffi/rts/storage/block/tests.rs
+  rts/src/ffi/rts/storage/gc.rs
+  rts/src/ffi/rts/storage/gc/tests.rs
+  rts/src/ffi/rts/storage/info_tables.rs
+  rts/src/ffi/rts/storage/info_tables/tests.rs
   # rts/src/ffi/rts/storage/tso.rs
   # rts/src/ffi/rts/storage/tso/tests.rs
   # rts/src/ffi/rts.rs
   # rts/src/ffi/rts/tests.rs
-  # rts/src/ffi/stg/regs.rs
-  # rts/src/ffi/stg/regs/tests.rs
+  rts/src/ffi/stg/regs.rs
+  rts/src/ffi/stg/regs/tests.rs
   # rts/src/ffi/rts/adjustor/tests.rs
   # rts/src/ffi/rts/adjustor.rs
   # rts/src/ffi/rts/block_signals/tests.rs
@@ -32,12 +32,12 @@ _files=(
   # rts/src/ffi/rts/constants.rs
   # rts/src/ffi/rts/event_log_writer/tests.rs
   # rts/src/ffi/rts/event_log_writer.rs
-  # rts/src/ffi/rts/exec_page/tests.rs
-  # rts/src/ffi/rts/exec_page.rs
+  rts/src/ffi/rts/exec_page/tests.rs
+  rts/src/ffi/rts/exec_page.rs
   # rts/src/ffi/rts/file_lock/tests.rs
   # rts/src/ffi/rts/file_lock.rs
-  # rts/src/ffi/rts/flags/tests.rs
-  # rts/src/ffi/rts/flags.rs
+  rts/src/ffi/rts/flags/tests.rs
+  rts/src/ffi/rts/flags.rs
   # rts/src/ffi/rts/foreign_exports/tests.rs
   # rts/src/ffi/rts/foreign_exports.rs
   # rts/src/ffi/rts/get_time/tests.rs
@@ -48,10 +48,10 @@ _files=(
   # rts/src/ffi/rts/hpc.rs
   # rts/src/ffi/rts/io_interface/tests.rs
   # rts/src/ffi/rts/io_interface.rs
-  # rts/src/ffi/rts/ipe/tests.rs
-  # rts/src/ffi/rts/ipe.rs
-  # rts/src/ffi/rts/libdw/tests.rs
-  # rts/src/ffi/rts/libdw.rs
+  rts/src/ffi/rts/ipe/tests.rs
+  rts/src/ffi/rts/ipe.rs
+  rts/src/ffi/rts/libdw/tests.rs
+  rts/src/ffi/rts/libdw.rs
   # rts/src/ffi/rts/libdw_pool/tests.rs
   # rts/src/ffi/rts/libdw_pool.rs
   # rts/src/ffi/rts/linker/tests.rs
@@ -85,8 +85,8 @@ _files=(
   # rts/src/ffi/rts/storage/closure_macros.rs
   # rts/src/ffi/rts/storage/closure_types/tests.rs
   # rts/src/ffi/rts/storage/closure_types.rs
-  # rts/src/ffi/rts/storage/closures/tests.rs
-  # rts/src/ffi/rts/storage/closures.rs
+  rts/src/ffi/rts/storage/closures/tests.rs
+  rts/src/ffi/rts/storage/closures.rs
   # rts/src/ffi/rts/storage/fun_types/tests.rs
   # rts/src/ffi/rts/storage/fun_types.rs
   # rts/src/ffi/rts/storage/heap/tests.rs
@@ -107,10 +107,10 @@ _files=(
   # rts/src/ffi/rts/tty.rs
   # rts/src/ffi/rts/utils/tests.rs
   # rts/src/ffi/rts/utils.rs
-  # rts/src/ffi/rts_api/tests.rs
-  # rts/src/ffi/rts_api.rs
-  # rts/src/ffi/stg.rs
-  # rts/src/ffi/stg/tests.rs
+  rts/src/ffi/rts_api/tests.rs
+  rts/src/ffi/rts_api.rs
+  rts/src/ffi/stg.rs
+  rts/src/ffi/stg/tests.rs
   # rts/src/ffi/stg/mach_regs_for_host.rs
   # rts/src/ffi/stg/mach_regs_for_host/tests.rs
   # rts/src/ffi/stg/misc_closures/tests.rs
@@ -121,8 +121,8 @@ _files=(
   # rts/src/ffi/stg/smp.rs
   # rts/src/ffi/stg/ticky/tests.rs
   # rts/src/ffi/stg/ticky.rs
-  # rts/src/ffi/stg/types.rs
-  # rts/src/ffi/stg/types/tests.rs
+  rts/src/ffi/stg/types.rs
+  rts/src/ffi/stg/types/tests.rs
 )
 
 if [[ $# -gt 0 ]]; then

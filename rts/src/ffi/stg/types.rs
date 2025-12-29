@@ -84,10 +84,10 @@ pub type StgWord32 = u32;
 #[ffi(compiler, ghc_lib, libraries, testsuite)]
 pub type StgInt64 = i64;
 
-#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
 pub type StgWord64 = u64;
 
-#[ffi(compiler, ghc_lib, libraries, utils)]
+#[ffi(compiler)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct StgWord128 {
@@ -119,7 +119,7 @@ impl Arbitrary for StgWord128 {
     }
 }
 
-#[ffi(compiler, ghc_lib, libraries, utils)]
+#[ffi(compiler)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct StgWord256 {
@@ -157,7 +157,7 @@ impl From<StgWord256> for sys::StgWord256 {
     }
 }
 
-#[ffi(compiler, ghc_lib, libraries, utils)]
+#[ffi(compiler)]
 #[repr(C)]
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
@@ -189,7 +189,7 @@ const _: () = {
 
 // TODO(rust): The `cfg` attributes are only needed for cbingen---these should be isize/usize.
 
-#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
+#[ffi(compiler, ghc_lib, testsuite, utils)]
 #[cfg(target_pointer_width = "64")]
 pub type StgInt = i64;
 #[cfg(target_pointer_width = "32")]
@@ -211,19 +211,19 @@ pub type StgHalfWord = u32;
 
 // Other commonly-used STG datatypes.
 
-#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
+#[ffi(compiler, ghc_lib, testsuite, utils)]
 pub type StgAddr = *mut c_void;
 
 #[ffi(compiler, testsuite)]
 pub type StgChar = StgWord32;
 
-#[ffi(compiler, ghc_lib, testsuite)]
+#[ffi(ghc_lib, testsuite)]
 pub type StgBool = c_int;
 
-#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
+#[ffi(compiler, testsuite)]
 pub type StgFloat = f32;
 
-#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type StgDouble = f64;
 
 /// A heap or stack pointer.
@@ -257,7 +257,7 @@ pub(crate) type StgByteArray = *mut StgWord8;
 // The only way round this would be to write a recursive type but
 // C only allows that if you're defining a struct or union.
 
-#[ffi(compiler, ghc_lib, libraries, utils)]
+#[ffi(compiler, ghc_lib)]
 pub type StgFunPtr =
     Option<unsafe extern "C" fn() -> Option<unsafe extern "C" fn() -> *mut c_void>>;
 

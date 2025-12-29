@@ -5,18 +5,18 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-#[ffi(compiler, testsuite)]
+#[ffi(testsuite)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct InfoProv_ {
-    pub table_name: *const c_char,
-    pub closure_desc: u32,
-    pub ty_desc: *const c_char,
-    pub label: *const c_char,
-    pub unit_id: *const c_char,
-    pub module: *const c_char,
-    pub src_file: *const c_char,
-    pub src_span: *const c_char,
+    pub(crate) table_name: *const c_char,
+    pub(crate) closure_desc: u32,
+    pub(crate) ty_desc: *const c_char,
+    pub(crate) label: *const c_char,
+    pub(crate) unit_id: *const c_char,
+    pub(crate) module: *const c_char,
+    pub(crate) src_file: *const c_char,
+    pub(crate) src_span: *const c_char,
 }
 
 #[ffi(compiler, ghc_lib, testsuite)]

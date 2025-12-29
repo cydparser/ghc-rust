@@ -11,15 +11,15 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-#[ffi(compiler, ghc_lib, libraries, utils)]
+/// cbindgen:no-export
 #[repr(C)]
 pub struct StgFunTable {
-    pub stgEagerBlackholeInfo: StgWord,
-    pub stgGCEnter1: StgFunPtr,
-    pub stgGCFun: StgFunPtr,
+    stgEagerBlackholeInfo: StgWord,
+    stgGCEnter1: StgFunPtr,
+    stgGCFun: StgFunPtr,
 }
 
-#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
+#[ffi(compiler, ghc_lib, testsuite, utils)]
 #[repr(C)]
 pub union StgUnion {
     pub w: StgWord,
@@ -30,7 +30,7 @@ pub union StgUnion {
     pub p: StgPtr,
 }
 
-#[ffi(compiler, ghc_lib, libraries, utils)]
+#[ffi(compiler)]
 #[repr(C)]
 pub struct StgRegTable {
     pub rR1: StgUnion,

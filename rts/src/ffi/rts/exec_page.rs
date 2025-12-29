@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-#[ffi(compiler, ghc_lib)]
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ExecPage {

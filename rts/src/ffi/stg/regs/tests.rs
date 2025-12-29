@@ -3,25 +3,6 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_StgFunTable_layout() {
-    assert_eq!(
-        offset_of!(StgFunTable, stgEagerBlackholeInfo),
-        offset_of!(sys::StgFunTable, stgEagerBlackholeInfo)
-    );
-    assert_eq!(
-        offset_of!(StgFunTable, stgGCEnter1),
-        offset_of!(sys::StgFunTable, stgGCEnter1)
-    );
-    assert_eq!(
-        offset_of!(StgFunTable, stgGCFun),
-        offset_of!(sys::StgFunTable, stgGCFun)
-    );
-    assert_eq!(size_of::<StgFunTable>(), size_of::<sys::StgFunTable>());
-    assert_eq!(align_of::<StgFunTable>(), align_of::<sys::StgFunTable>());
-}
-
-#[cfg(feature = "sys")]
-#[test]
 fn sys_StgUnion_layout() {
     assert_eq!(size_of::<StgUnion>(), size_of::<sys::StgUnion>());
     assert_eq!(align_of::<StgUnion>(), align_of::<sys::StgUnion>());

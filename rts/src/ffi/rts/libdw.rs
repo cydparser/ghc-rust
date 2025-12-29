@@ -6,12 +6,12 @@ mod tests;
 
 pub(crate) const BACKTRACE_CHUNK_SZ: u32 = 256;
 
-#[ffi(compiler)]
+/// cbindgen:no-export
 #[repr(C, packed)]
 pub struct BacktraceChunk_ {
-    pub n_frames: StgWord,
-    pub next: *mut BacktraceChunk_,
-    pub frames: [StgPtr; 256usize],
+    n_frames: StgWord,
+    next: *mut BacktraceChunk_,
+    frames: [StgPtr; 256usize],
 }
 
 #[ffi(ghc_lib)]

@@ -4,7 +4,7 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-#[ffi(compiler, ghc_lib, testsuite)]
+#[ffi(ghc_lib)]
 #[repr(C)]
 pub struct CostCentre_ {
     pub ccID: StgInt,

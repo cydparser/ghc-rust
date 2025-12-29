@@ -71,7 +71,7 @@ pub struct StgClosureInfo__bindgen_ty_1 {
 #[ffi(compiler, ghc_lib)]
 pub type StgSRTField = StgHalfInt;
 
-#[ffi(compiler, ghc_lib, libraries, testsuite)]
+#[ffi(compiler, ghc_lib, testsuite)]
 pub type StgInfoTable = StgInfoTable_;
 
 #[ffi(compiler, ghc_lib)]
@@ -101,7 +101,7 @@ pub union StgFunInfoExtraRev___bindgen_ty_1 {
     pub bitmap_offset: StgInt,
 }
 
-#[ffi(compiler, ghc_lib, libraries)]
+#[ffi(compiler, ghc_lib)]
 pub type StgFunInfoExtraRev = StgFunInfoExtraRev_;
 
 #[ffi(compiler, ghc_lib)]
@@ -122,7 +122,7 @@ pub union StgFunInfoExtraFwd___bindgen_ty_1 {
 
 pub(crate) type StgFunInfoExtraFwd = StgFunInfoExtraFwd_;
 
-#[ffi(compiler, ghc_lib, libraries)]
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub struct StgFunInfoTable {
     pub f: StgFunInfoExtraRev,

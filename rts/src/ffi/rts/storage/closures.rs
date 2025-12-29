@@ -24,11 +24,11 @@ pub union StgProfHeader__bindgen_ty_1 {
     pub era: StgWord,
 }
 
-#[ffi(compiler)]
+/// cbindgen:no-export
 #[repr(C)]
 #[cfg_attr(test, derive(Clone))]
 pub struct StgSMPThunkHeader {
-    pub pad: StgWord,
+    pad: StgWord,
 }
 
 #[cfg(test)]
@@ -172,12 +172,12 @@ pub struct StgSmallMutArrPtrs {
     pub payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
-#[ffi(compiler)]
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgMutVar {
-    pub header: StgHeader,
-    pub var: *mut StgClosure,
+    header: StgHeader,
+    var: *mut StgClosure,
 }
 
 #[ffi(ghc_lib)]
@@ -273,16 +273,16 @@ pub struct _StgStableName {
 
 pub(crate) type StgStableName = _StgStableName;
 
-#[ffi(ghc_lib)]
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
 pub struct _StgWeak {
-    pub header: StgHeader,
-    pub cfinalizers: *mut StgClosure,
-    pub key: *mut StgClosure,
-    pub value: *mut StgClosure,
-    pub finalizer: *mut StgClosure,
-    pub link: *mut _StgWeak,
+    header: StgHeader,
+    cfinalizers: *mut StgClosure,
+    key: *mut StgClosure,
+    value: *mut StgClosure,
+    finalizer: *mut StgClosure,
+    link: *mut _StgWeak,
 }
 
 pub(crate) type StgWeak = _StgWeak;
@@ -323,7 +323,7 @@ pub struct StgMVarTSOQueue_ {
 
 pub(crate) type StgMVarTSOQueue = StgMVarTSOQueue_;
 
-#[ffi(compiler, ghc_lib, libraries)]
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgMVar {
@@ -356,30 +356,29 @@ pub struct StgTVar {
     num_updates: StgInt,
 }
 
-#[ffi(testsuite)]
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
 pub struct TRecEntry {
-    pub(crate) tvar: *mut StgTVar,
-    pub(crate) expected_value: *mut StgClosure,
-    pub(crate) new_value: *mut StgClosure,
+    tvar: *mut StgTVar,
+    expected_value: *mut StgClosure,
+    new_value: *mut StgClosure,
 }
 
-#[ffi(testsuite)]
+/// cbindgen:no-export
 #[repr(C)]
 pub struct StgTRecChunk_ {
-    pub(crate) header: StgHeader,
-    pub(crate) prev_chunk: *mut StgTRecChunk_,
-    pub(crate) next_entry_idx: StgWord,
-    pub(crate) entries: [TRecEntry; 16usize],
+    header: StgHeader,
+    prev_chunk: *mut StgTRecChunk_,
+    next_entry_idx: StgWord,
+    entries: [TRecEntry; 16usize],
 }
 
 pub(crate) type StgTRecChunk = StgTRecChunk_;
 
-#[ffi(compiler)]
 #[repr(u32)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
-pub enum TRecState {
+pub(crate) enum TRecState {
     TREC_ACTIVE = 0,
     TREC_CONDEMNED = 1,
     TREC_ABORTED = 2,
@@ -439,14 +438,14 @@ impl Arbitrary for TRecState {
     }
 }
 
-#[ffi(compiler)]
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgTRecHeader_ {
-    pub header: StgHeader,
-    pub enclosing_trec: *mut StgTRecHeader_,
-    pub current_chunk: *mut StgTRecChunk,
-    pub state: TRecState,
+    header: StgHeader,
+    enclosing_trec: *mut StgTRecHeader_,
+    current_chunk: *mut StgTRecChunk,
+    state: TRecState,
 }
 
 #[ffi(ghc_lib)]

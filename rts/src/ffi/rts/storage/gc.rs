@@ -22,7 +22,7 @@ pub struct nursery_ {
 #[ffi(compiler)]
 pub type nursery = nursery_;
 
-#[ffi(compiler, ghc_lib)]
+#[ffi(compiler)]
 #[repr(C)]
 pub struct generation_ {
     pub no: u32,

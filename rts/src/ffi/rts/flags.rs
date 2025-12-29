@@ -79,49 +79,49 @@ pub(crate) const DEFAULT_LINKER_ALWAYS_PIC: u32 = 1;
 
 pub(crate) const STATS_FILENAME_MAXLEN: u32 = 128;
 
-#[ffi(compiler, ghc_lib)]
+#[ffi(compiler)]
 #[repr(C)]
 pub struct _GC_FLAGS {
-    pub(crate) statsFile: *mut FILE,
+    pub statsFile: *mut FILE,
     pub giveStats: u32,
-    pub(crate) maxStkSize: u32,
-    pub(crate) initialStkSize: u32,
-    pub(crate) stkChunkSize: u32,
-    pub(crate) stkChunkBufferSize: u32,
+    pub maxStkSize: u32,
+    pub initialStkSize: u32,
+    pub stkChunkSize: u32,
+    pub stkChunkBufferSize: u32,
     pub maxHeapSize: u32,
-    pub(crate) minAllocAreaSize: u32,
-    pub(crate) largeAllocLim: u32,
-    pub(crate) nurseryChunkSize: u32,
-    pub(crate) minOldGenSize: u32,
+    pub minAllocAreaSize: u32,
+    pub largeAllocLim: u32,
+    pub nurseryChunkSize: u32,
+    pub minOldGenSize: u32,
     pub heapSizeSuggestion: u32,
-    pub(crate) heapSizeSuggestionAuto: bool,
-    pub(crate) oldGenFactor: f64,
-    pub(crate) returnDecayFactor: f64,
-    pub(crate) pcFreeHeap: f64,
-    pub(crate) useNonmoving: bool,
-    pub(crate) nonmovingDenseAllocatorCount: u16,
-    pub(crate) generations: u32,
-    pub(crate) squeezeUpdFrames: bool,
+    pub heapSizeSuggestionAuto: bool,
+    pub oldGenFactor: f64,
+    pub returnDecayFactor: f64,
+    pub pcFreeHeap: f64,
+    pub useNonmoving: bool,
+    pub nonmovingDenseAllocatorCount: u16,
+    pub generations: u32,
+    pub squeezeUpdFrames: bool,
     pub compact: bool,
-    pub(crate) compactThreshold: f64,
-    pub(crate) sweep: bool,
-    pub(crate) ringBell: bool,
-    pub(crate) idleGCDelayTime: Time,
-    pub(crate) interIdleGCWait: Time,
-    pub(crate) doIdleGC: bool,
-    pub(crate) longGCSync: Time,
-    pub(crate) heapBase: StgWord,
-    pub(crate) allocLimitGrace: StgWord,
-    pub(crate) heapLimitGrace: StgWord,
-    pub(crate) numa: bool,
-    pub(crate) numaMask: StgWord,
-    pub(crate) addressSpaceSize: StgWord64,
+    pub compactThreshold: f64,
+    pub sweep: bool,
+    pub ringBell: bool,
+    pub idleGCDelayTime: Time,
+    pub interIdleGCWait: Time,
+    pub doIdleGC: bool,
+    pub longGCSync: Time,
+    pub heapBase: StgWord,
+    pub allocLimitGrace: StgWord,
+    pub heapLimitGrace: StgWord,
+    pub numa: bool,
+    pub numaMask: StgWord,
+    pub addressSpaceSize: StgWord64,
 }
 
 #[ffi(compiler, ghc_lib)]
 pub type GC_FLAGS = _GC_FLAGS;
 
-#[ffi(compiler, ghc_lib)]
+#[ffi(compiler)]
 #[repr(C)]
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
