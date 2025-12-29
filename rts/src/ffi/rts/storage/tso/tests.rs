@@ -114,8 +114,8 @@ fn sys_StgTSO__layout() {
         offset_of!(sys::StgTSO_, blocked_exceptions)
     );
     assert_eq!(
-        size_of::<*mut StgBlockingQueue_>(),
-        size_of::<*mut sys::StgBlockingQueue_>()
+        size_of::<*mut StgBlockingQueue>(),
+        size_of::<*mut sys::StgBlockingQueue>()
     );
     assert_eq!(offset_of!(StgTSO_, bq), offset_of!(sys::StgTSO_, bq));
     assert_eq!(

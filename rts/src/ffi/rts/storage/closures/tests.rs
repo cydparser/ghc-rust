@@ -57,65 +57,12 @@ fn sys_StgHeader_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_StgThunkHeader_layout() {
-    assert_eq!(
-        size_of::<*const StgInfoTable>(),
-        size_of::<*const sys::StgInfoTable>()
-    );
-    assert_eq!(
-        offset_of!(StgThunkHeader, info),
-        offset_of!(sys::StgThunkHeader, info)
-    );
-    assert_eq!(
-        size_of::<StgSMPThunkHeader>(),
-        size_of::<sys::StgSMPThunkHeader>()
-    );
-    assert_eq!(
-        offset_of!(StgThunkHeader, smp),
-        offset_of!(sys::StgThunkHeader, smp)
-    );
-    assert_eq!(
-        size_of::<StgThunkHeader>(),
-        size_of::<sys::StgThunkHeader>()
-    );
-    assert_eq!(
-        align_of::<StgThunkHeader>(),
-        align_of::<sys::StgThunkHeader>()
-    );
-}
-
-#[cfg(feature = "sys")]
-#[test]
 fn sys_StgClosurePtr_layout() {
     assert_eq!(size_of::<StgClosurePtr>(), size_of::<sys::StgClosurePtr>());
     assert_eq!(
         align_of::<StgClosurePtr>(),
         align_of::<sys::StgClosurePtr>()
     );
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_StgAP_layout() {
-    assert_eq!(
-        size_of::<StgThunkHeader>(),
-        size_of::<sys::StgThunkHeader>()
-    );
-    assert_eq!(offset_of!(StgAP, header), offset_of!(sys::StgAP, header));
-    assert_eq!(offset_of!(StgAP, arity), offset_of!(sys::StgAP, arity));
-    assert_eq!(offset_of!(StgAP, n_args), offset_of!(sys::StgAP, n_args));
-    assert_eq!(
-        size_of::<*mut StgClosure>(),
-        size_of::<*mut sys::StgClosure>()
-    );
-    assert_eq!(offset_of!(StgAP, fun), offset_of!(sys::StgAP, fun));
-    assert_eq!(
-        size_of::<__IncompleteArrayField<*mut StgClosure>>(),
-        size_of::<__IncompleteArrayField<*mut sys::StgClosure>>()
-    );
-    assert_eq!(offset_of!(StgAP, payload), offset_of!(sys::StgAP, payload));
-    assert_eq!(size_of::<StgAP>(), size_of::<sys::StgAP>());
-    assert_eq!(align_of::<StgAP>(), align_of::<sys::StgAP>());
 }
 
 #[cfg(feature = "sys")]

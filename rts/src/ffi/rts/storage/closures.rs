@@ -27,7 +27,7 @@ pub union StgProfHeader__bindgen_ty_1 {
 /// cbindgen:no-export
 #[repr(C)]
 #[cfg_attr(test, derive(Clone))]
-pub struct StgSMPThunkHeader {
+struct StgSMPThunkHeader {
     pad: StgWord,
 }
 
@@ -47,11 +47,11 @@ pub struct StgHeader {
     pub info: *const StgInfoTable,
 }
 
-#[ffi(compiler)]
+/// cbindgen:no-export
 #[repr(C)]
-pub struct StgThunkHeader {
-    pub info: *const StgInfoTable,
-    pub smp: StgSMPThunkHeader,
+struct StgThunkHeader {
+    info: *const StgInfoTable,
+    smp: StgSMPThunkHeader,
 }
 
 #[ffi(compiler, docs, driver, ghc_lib, testsuite, utils)]
@@ -79,14 +79,14 @@ pub(crate) type StgThunk = StgThunk_;
 
 /// cbindgen:no-export
 #[repr(C)]
-pub struct StgSelector {
+struct StgSelector {
     header: StgThunkHeader,
     selectee: *mut StgClosure,
 }
 
 /// cbindgen:no-export
 #[repr(C)]
-pub struct StgPAP {
+struct StgPAP {
     header: StgHeader,
     arity: StgHalfWord,
     n_args: StgHalfWord,
@@ -94,19 +94,19 @@ pub struct StgPAP {
     payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
-#[ffi(compiler)]
+/// cbindgen:no-export
 #[repr(C)]
-pub struct StgAP {
-    pub header: StgThunkHeader,
-    pub arity: StgHalfWord,
-    pub n_args: StgHalfWord,
-    pub fun: *mut StgClosure,
-    pub payload: __IncompleteArrayField<*mut StgClosure>,
+struct StgAP {
+    header: StgThunkHeader,
+    arity: StgHalfWord,
+    n_args: StgHalfWord,
+    fun: *mut StgClosure,
+    payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
 /// cbindgen:no-export
 #[repr(C)]
-pub struct StgAP_STACK {
+struct StgAP_STACK {
     header: StgThunkHeader,
     size: StgWord,
     fun: *mut StgClosure,
@@ -142,7 +142,8 @@ pub struct StgBlockingQueue_ {
     queue: *mut MessageBlackHole_,
 }
 
-pub(crate) type StgBlockingQueue = StgBlockingQueue_;
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
+pub type StgBlockingQueue = StgBlockingQueue_;
 
 #[ffi(compiler, docs, ghc_lib)]
 #[repr(C)]
@@ -194,7 +195,7 @@ pub type StgUpdateFrame = _StgUpdateFrame;
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
-pub struct _StgOrigThunkInfoFrame {
+struct _StgOrigThunkInfoFrame {
     header: StgHeader,
     info_ptr: *mut StgInfoTable,
 }
@@ -204,7 +205,7 @@ pub(crate) type StgOrigThunkInfoFrame = _StgOrigThunkInfoFrame;
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
-pub struct StgKeepAliveFrame {
+struct StgKeepAliveFrame {
     header: StgHeader,
     c: *mut StgClosure,
 }
@@ -235,7 +236,7 @@ pub struct StgStopFrame {
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
-pub struct StgDeadThreadFrame {
+struct StgDeadThreadFrame {
     header: StgHeader,
     result: *mut StgClosure,
 }
@@ -243,7 +244,7 @@ pub struct StgDeadThreadFrame {
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
-pub struct StgAnnFrame {
+struct StgAnnFrame {
     header: StgHeader,
     ann: *mut StgClosure,
 }
@@ -266,12 +267,10 @@ pub struct StgIntCharlikeClosure {
 
 /// cbindgen:no-export
 #[repr(C)]
-pub struct _StgStableName {
+struct _StgStableName {
     header: StgHeader,
     sn: StgWord,
 }
-
-pub(crate) type StgStableName = _StgStableName;
 
 /// cbindgen:no-export
 #[repr(C)]
@@ -285,7 +284,8 @@ pub struct _StgWeak {
     link: *mut _StgWeak,
 }
 
-pub(crate) type StgWeak = _StgWeak;
+#[ffi(compiler)]
+pub type StgWeak = _StgWeak;
 
 #[ffi(ghc_lib)]
 #[repr(C)]
@@ -321,15 +321,16 @@ pub struct StgMVarTSOQueue_ {
     tso: *mut StgTSO_,
 }
 
-pub(crate) type StgMVarTSOQueue = StgMVarTSOQueue_;
+#[ffi(ghc_lib)]
+pub type StgMVarTSOQueue = StgMVarTSOQueue_;
 
 #[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgMVar {
     pub header: StgHeader,
-    pub head: *mut StgMVarTSOQueue_,
-    pub tail: *mut StgMVarTSOQueue_,
+    pub head: *mut StgMVarTSOQueue,
+    pub tail: *mut StgMVarTSOQueue,
     pub value: *mut StgClosure,
 }
 

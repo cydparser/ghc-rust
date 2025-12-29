@@ -1,7 +1,7 @@
 use crate::capability::Capability_;
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::closures::{
-    MessageBlackHole_, MessageThrowTo_, MessageWakeup_, StgArrBytes, StgBlockingQueue_, StgClosure,
+    MessageBlackHole_, MessageThrowTo_, MessageWakeup_, StgArrBytes, StgBlockingQueue, StgClosure,
     StgHeader, StgTRecHeader_,
 };
 use crate::ffi::stg::types::{
@@ -62,7 +62,7 @@ pub struct StgTSO_ {
     pub trec: *mut StgTRecHeader_,
     pub label: *mut StgArrBytes,
     pub blocked_exceptions: *mut MessageThrowTo_,
-    pub bq: *mut StgBlockingQueue_,
+    pub bq: *mut StgBlockingQueue,
     pub alloc_limit: StgInt64,
     pub tot_stack_size: StgWord32,
 }
