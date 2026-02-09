@@ -156,7 +156,7 @@
                 enable = true;
                 settings.formatters = [
                   crane.rustfmt
-                  pkgs.nixfmt-rfc-style
+                  pkgs.nixfmt
                   pkgs.taplo
                 ];
               };
