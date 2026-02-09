@@ -195,7 +195,7 @@ pub type StgUpdateFrame = _StgUpdateFrame;
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
-struct _StgOrigThunkInfoFrame {
+pub(crate) struct _StgOrigThunkInfoFrame {
     header: StgHeader,
     info_ptr: *mut StgInfoTable,
 }
