@@ -3,6 +3,7 @@ members = [
   "build-utils",
   "generate/consumers",
   "generate/ffi",
+  "generate/format",
   "generate/headers",
   "generate/symbol-consumers",
   "generate/symbols",
@@ -27,6 +28,7 @@ bindgen = "0.72.0"
 build-utils = { path = "build-utils" }
 cbindgen = { version = "0.29.2", default-features = false }
 generate-consumers = { path = "generate/consumers" }
+generate-format = { path = "generate/format" }
 generate-symbols = { path = "generate/symbols" }
 libc = "0.2.171"
 proc-macro2 = "1.0.93"

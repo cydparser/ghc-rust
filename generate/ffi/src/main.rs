@@ -61,35 +61,14 @@ fn main() {
 
             fs::write(
                 &file,
-                add_blank_lines(prettyplease::unparse(&syn_file)).as_bytes(),
+                generate_format::add_blank_lines(prettyplease::unparse(&syn_file).as_ref())
+                    .as_bytes(),
             )?;
         }
 
         Ok(())
     })
     .unwrap();
-}
-
-fn add_blank_lines(src: String) -> String {
-    let mut padded = String::with_capacity((src.len() as f64 * 1.1) as usize);
-    let mut imports = true;
-
-    for line in src.lines() {
-        if imports && !line.starts_with("use") {
-            imports = false;
-            padded.push('\n')
-        }
-        padded.push_str(line);
-        padded.push('\n');
-
-        if line.starts_with("}")
-            || ((line.starts_with("pub") || line.starts_with("static")) && line.ends_with(";"))
-            || line == "mod tests;"
-        {
-            padded.push('\n');
-        }
-    }
-    padded
 }
 
 fn for_each_rs<F>(dir: &Path, f: &mut F) -> Result<(), Box<dyn std::error::Error>>

@@ -138,6 +138,7 @@ dependencies = [
  "bindgen",
  "build-utils",
  "generate-consumers",
+ "generate-format",
  "generate-symbols",
  "prettyplease",
  "proc-macro2",
@@ -145,6 +146,10 @@ dependencies = [
  "stringcase",
  "syn",
 ]
+
+[[package]]
+name = "generate-format"
+version = "0.0.0"
 
 [[package]]
 name = "generate-headers"
