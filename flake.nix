@@ -200,6 +200,10 @@
             export GHC_LIB_DIR=${lib.optionalString false "${ghc}/lib/ghc-${ghc.version}/lib"}
           ''
           + self.checks.${system}.pre-commit.shellHook;
+
+          passthru = {
+            inherit crane;
+          };
         };
       }
     );
