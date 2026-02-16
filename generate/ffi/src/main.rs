@@ -9,7 +9,7 @@ use quote::{format_ident, quote};
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
 use generate_consumers::{Consumer, Consumers};
-use generate_ffi::{Symbols, enums, fields, prefix_with_sys};
+use generate_ffi::{Symbols, attr_ffi, enums, fields, parse_token_stream, prefix_with_sys};
 
 fn main() {
     let src_dir = PathBuf::from(String::from(env!("OUT_DIR")));
@@ -671,15 +671,6 @@ fn transform_union(
         .push(Item::Fn(fn_test_layout(symbols, &ident)));
 }
 
-fn parse_token_stream<S>(s: S) -> TokenStream
-where
-    S: AsRef<str> + std::fmt::Display,
-{
-    s.as_ref()
-        .parse::<TokenStream>()
-        .unwrap_or_else(|e| panic!("Unable to parse TokenStream: {s}: {e}"))
-}
-
 fn impl_arbitrary_struct(ident: &Ident, fields: &syn::Fields) -> syn::ItemImpl {
     let arbitrary_fields = arbitrary_data_constructor(ident, fields);
 
@@ -854,21 +845,4 @@ fn assert_layout_of_val(ident: &Ident, safe: bool, sys_safe: bool) -> Vec<syn::S
     };
 
     block.stmts
-}
-
-fn attr_ffi(consumers: Consumers) -> syn::Attribute {
-    let mut cs = String::with_capacity(100);
-    let mut is_first = true;
-
-    for p in consumers {
-        if !is_first {
-            cs.push_str(", ");
-        } else {
-            is_first = false;
-        }
-        cs.push_str(p.to_str());
-    }
-    let cs = parse_token_stream(cs);
-
-    parse_quote! { #[ffi(#cs)] }
 }

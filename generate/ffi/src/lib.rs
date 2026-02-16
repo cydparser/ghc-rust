@@ -1,6 +1,6 @@
 use generate_consumers::Consumers;
 use generate_symbols as symbols;
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use syn::{Ident, Type, TypePath, parse_quote};
@@ -288,7 +288,7 @@ pub fn prefix_with_sys(symbols: &Symbols, ty: &Type) -> Type {
             }
 
             if let syn::ReturnType::Type(_, rty) = &mut type_bare_fn.output {
-                *rty = Box::new(prefix_with_sys(symbols, rty));
+                **rty = prefix_with_sys(symbols, rty);
             }
 
             Type::BareFn(type_bare_fn)
@@ -337,4 +337,30 @@ pub fn prefix_with_sys(symbols: &Symbols, ty: &Type) -> Type {
         }
         ty => panic!("Unexpected type: {ty:?}"),
     }
+}
+
+pub fn attr_ffi(consumers: Consumers) -> syn::Attribute {
+    let mut cs = String::with_capacity(100);
+    let mut is_first = true;
+
+    for p in consumers {
+        if !is_first {
+            cs.push_str(", ");
+        } else {
+            is_first = false;
+        }
+        cs.push_str(p.to_str());
+    }
+    let cs = parse_token_stream(cs);
+
+    parse_quote! { #[ffi(#cs)] }
+}
+
+pub fn parse_token_stream<S>(s: S) -> TokenStream
+where
+    S: AsRef<str> + std::fmt::Display,
+{
+    s.as_ref()
+        .parse::<TokenStream>()
+        .unwrap_or_else(|e| panic!("Unable to parse TokenStream: {s}: {e}"))
 }
