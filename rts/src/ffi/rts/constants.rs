@@ -173,5 +173,4 @@ pub(crate) const MAX_SPARE_WORKERS: u32 = 6;
 
 pub(crate) const MAX_NUMA_NODES: u32 = 16;
 
-#[ffi(testsuite)]
-pub const CLOSURE_DESC_BUFFER_SIZE: u32 = 11;
+pub(crate) const CLOSURE_DESC_BUFFER_SIZE: u32 = 11;

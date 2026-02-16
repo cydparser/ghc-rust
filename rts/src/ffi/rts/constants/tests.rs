@@ -572,22 +572,3 @@ fn sys_TSO_STOP_AFTER_RETURN_layout() {
         align_of_val(&sys::TSO_STOP_AFTER_RETURN)
     );
 }
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_CLOSURE_DESC_BUFFER_SIZE_eq() {
-    assert_eq!(CLOSURE_DESC_BUFFER_SIZE, sys::CLOSURE_DESC_BUFFER_SIZE);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_CLOSURE_DESC_BUFFER_SIZE_layout() {
-    assert_eq!(
-        size_of_val(&CLOSURE_DESC_BUFFER_SIZE),
-        size_of_val(&sys::CLOSURE_DESC_BUFFER_SIZE)
-    );
-    assert_eq!(
-        align_of_val(&CLOSURE_DESC_BUFFER_SIZE),
-        align_of_val(&sys::CLOSURE_DESC_BUFFER_SIZE)
-    );
-}

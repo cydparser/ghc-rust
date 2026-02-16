@@ -19,18 +19,18 @@ pub struct InfoProv_ {
     pub(crate) src_span: *const c_char,
 }
 
-#[ffi(compiler, ghc_lib, testsuite)]
+#[ffi(compiler, ghc_lib)]
 pub type InfoProv = InfoProv_;
 
-#[ffi(testsuite)]
+/// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
 pub struct InfoProvEnt_ {
-    pub(crate) info: *const StgInfoTable,
-    pub(crate) prov: InfoProv,
+    info: *const StgInfoTable,
+    prov: InfoProv,
 }
 
-#[ffi(compiler, ghc_lib, testsuite)]
+#[ffi(compiler, ghc_lib)]
 pub type InfoProvEnt = InfoProvEnt_;
 
 #[ffi(compiler, libraries, testsuite)]
@@ -81,7 +81,7 @@ pub struct IpeBufferListNode_ {
 #[ffi(compiler, testsuite)]
 pub type IpeBufferListNode = IpeBufferListNode_;
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn registerInfoProvList(node: *mut IpeBufferListNode) {
@@ -90,16 +90,7 @@ pub unsafe extern "C" fn registerInfoProvList(node: *mut IpeBufferListNode) {
     }
 }
 
-#[ffi(testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn formatClosureDescIpe(ipe_buf: *const InfoProvEnt, str_buf: *mut c_char) {
-    sys! {
-        formatClosureDescIpe(ipe_buf as * const sys::InfoProvEnt, str_buf)
-    }
-}
-
-#[ffi(compiler, ghc_lib, testsuite)]
+#[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn lookupIPE(info: *const StgInfoTable, out: *mut InfoProvEnt) -> bool {

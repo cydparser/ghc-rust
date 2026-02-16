@@ -8,11 +8,12 @@ mod tests;
 #[repr(C)]
 #[derive(Debug)]
 pub struct EventLogWriter {
-    pub initEventLogWriter: Option<unsafe extern "C" fn()>,
-    pub writeEventLog:
+    pub(crate) initEventLogWriter: Option<unsafe extern "C" fn()>,
+
+    pub(crate) writeEventLog:
         Option<unsafe extern "C" fn(eventlog: *mut c_void, eventlog_size: usize) -> bool>,
-    pub flushEventLog: Option<unsafe extern "C" fn()>,
-    pub stopEventLogWriter: Option<unsafe extern "C" fn()>,
+    pub(crate) flushEventLog: Option<unsafe extern "C" fn()>,
+    pub(crate) stopEventLogWriter: Option<unsafe extern "C" fn()>,
 }
 
 #[repr(u32)]

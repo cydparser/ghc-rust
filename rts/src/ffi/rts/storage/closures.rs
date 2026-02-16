@@ -27,7 +27,7 @@ pub union StgProfHeader__bindgen_ty_1 {
 /// cbindgen:no-export
 #[repr(C)]
 #[cfg_attr(test, derive(Clone))]
-struct StgSMPThunkHeader {
+pub struct StgSMPThunkHeader {
     pad: StgWord,
 }
 
@@ -284,8 +284,7 @@ pub struct _StgWeak {
     link: *mut _StgWeak,
 }
 
-#[ffi(compiler)]
-pub type StgWeak = _StgWeak;
+pub(crate) type StgWeak = _StgWeak;
 
 #[ffi(ghc_lib)]
 #[repr(C)]
@@ -321,8 +320,7 @@ pub struct StgMVarTSOQueue_ {
     tso: *mut StgTSO_,
 }
 
-#[ffi(ghc_lib)]
-pub type StgMVarTSOQueue = StgMVarTSOQueue_;
+pub(crate) type StgMVarTSOQueue = StgMVarTSOQueue_;
 
 #[ffi(ghc_lib)]
 #[repr(C)]

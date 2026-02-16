@@ -48,26 +48,6 @@ fn sys_InfoProv_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_InfoProvEnt__layout() {
-    assert_eq!(
-        size_of::<*const StgInfoTable>(),
-        size_of::<*const sys::StgInfoTable>()
-    );
-    assert_eq!(
-        offset_of!(InfoProvEnt_, info),
-        offset_of!(sys::InfoProvEnt_, info)
-    );
-    assert_eq!(size_of::<InfoProv>(), size_of::<sys::InfoProv>());
-    assert_eq!(
-        offset_of!(InfoProvEnt_, prov),
-        offset_of!(sys::InfoProvEnt_, prov)
-    );
-    assert_eq!(size_of::<InfoProvEnt_>(), size_of::<sys::InfoProvEnt_>());
-    assert_eq!(align_of::<InfoProvEnt_>(), align_of::<sys::InfoProvEnt_>());
-}
-
-#[cfg(feature = "sys")]
-#[test]
 fn sys_InfoProvEnt_layout() {
     assert_eq!(size_of::<InfoProvEnt>(), size_of::<sys::InfoProvEnt>());
     assert_eq!(align_of::<InfoProvEnt>(), align_of::<sys::InfoProvEnt>());
@@ -222,41 +202,7 @@ fn test_registerInfoProvList() {
         unsafe { registerInfoProvList(&raw mut node) };
         todo!()
     };
-    let expected = todo!();
-    assert_eq!(expected, actual);
-}
 
-#[cfg(feature = "sys")]
-#[quickcheck]
-#[ignore]
-#[expect(unreachable_code, unused_variables)]
-fn equivalent_formatClosureDescIpe(str_buf: c_char) -> bool {
-    let expected = {
-        let mut ipe_buf: sys::InfoProvEnt = todo!();
-        let mut str_buf = str_buf;
-        unsafe { sys::formatClosureDescIpe(&raw mut ipe_buf, &raw mut str_buf) };
-        todo!()
-    };
-    let actual = {
-        let mut ipe_buf: InfoProvEnt = todo!();
-        let mut str_buf = str_buf;
-        unsafe { formatClosureDescIpe(&raw mut ipe_buf, &raw mut str_buf) };
-        todo!()
-    };
-    actual == expected
-}
-
-#[test]
-#[ignore]
-#[expect(unreachable_code, unused_variables)]
-fn test_formatClosureDescIpe() {
-    let g = &mut Gen::new(100);
-    let actual = {
-        let ipe_buf: InfoProvEnt = todo!();
-        let mut str_buf: c_char = Arbitrary::arbitrary(g);
-        unsafe { formatClosureDescIpe(&raw mut ipe_buf, &raw mut str_buf) };
-        todo!()
-    };
     let expected = todo!();
     assert_eq!(expected, actual);
 }
