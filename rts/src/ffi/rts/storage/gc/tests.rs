@@ -215,11 +215,13 @@ fn equivalent_allocate(n: W_) -> bool {
         let result: StgPtr = unsafe { sys::allocate(&raw mut cap, n) };
         todo!()
     };
+
     let actual = {
         let mut cap: Capability = todo!();
         let result: StgPtr = unsafe { allocate(&raw mut cap, n) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -234,6 +236,7 @@ fn test_allocate() {
         let result: StgPtr = unsafe { allocate(&raw mut cap, n) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -247,10 +250,12 @@ fn equivalent_setAllocLimitKill(arg1: bool, arg2: bool) -> bool {
         unsafe { sys::setAllocLimitKill(arg1, arg2) };
         todo!()
     };
+
     let actual = {
         unsafe { setAllocLimitKill(arg1, arg2) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -265,6 +270,7 @@ fn test_setAllocLimitKill() {
         unsafe { setAllocLimitKill(arg1, arg2) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -278,10 +284,12 @@ fn equivalent_performGC() {
         unsafe { sys::performGC() };
         todo!()
     };
+
     let actual = {
         unsafe { performGC() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -293,6 +301,7 @@ fn test_performGC() {
         unsafe { performGC() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -306,10 +315,12 @@ fn equivalent_performMajorGC() {
         unsafe { sys::performMajorGC() };
         todo!()
     };
+
     let actual = {
         unsafe { performMajorGC() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -321,6 +332,7 @@ fn test_performMajorGC() {
         unsafe { performMajorGC() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -334,10 +346,12 @@ fn equivalent_performBlockingMajorGC() {
         unsafe { sys::performBlockingMajorGC() };
         todo!()
     };
+
     let actual = {
         unsafe { performBlockingMajorGC() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -349,6 +363,7 @@ fn test_performBlockingMajorGC() {
         unsafe { performBlockingMajorGC() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -364,12 +379,14 @@ fn equivalent_newCAF() {
         let result: &StgInd = unsafe { transmute(&*sys::newCAF(&raw mut reg, &raw mut caf)) };
         todo!()
     };
+
     let actual = {
         let mut reg: StgRegTable = todo!();
         let mut caf: StgIndStatic = todo!();
         let result: &StgInd = unsafe { &*newCAF(&raw mut reg, &raw mut caf) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -383,6 +400,7 @@ fn test_newCAF() {
         let result: &StgInd = unsafe { &*newCAF(&raw mut reg, &raw mut caf) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -396,10 +414,12 @@ fn equivalent_revertCAFs() {
         unsafe { sys::revertCAFs() };
         todo!()
     };
+
     let actual = {
         unsafe { revertCAFs() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -411,6 +431,7 @@ fn test_revertCAFs() {
         unsafe { revertCAFs() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -424,10 +445,12 @@ fn equivalent_setKeepCAFs() {
         unsafe { sys::setKeepCAFs() };
         todo!()
     };
+
     let actual = {
         unsafe { setKeepCAFs() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -439,6 +462,7 @@ fn test_setKeepCAFs() {
         unsafe { setKeepCAFs() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -452,10 +476,12 @@ fn equivalent_setHighMemDynamic() {
         unsafe { sys::setHighMemDynamic() };
         todo!()
     };
+
     let actual = {
         unsafe { setHighMemDynamic() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -467,6 +493,7 @@ fn test_setHighMemDynamic() {
         unsafe { setHighMemDynamic() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -483,6 +510,7 @@ fn equivalent_dirty_MUT_VAR() {
         unsafe { sys::dirty_MUT_VAR(&raw mut reg, &raw mut mv, &raw mut old) };
         todo!()
     };
+
     let actual = {
         let mut reg: StgRegTable = todo!();
         let mut mv: StgMutVar = todo!();
@@ -490,6 +518,7 @@ fn equivalent_dirty_MUT_VAR() {
         unsafe { dirty_MUT_VAR(&raw mut reg, &raw mut mv, &raw mut old) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -504,6 +533,7 @@ fn test_dirty_MUT_VAR() {
         unsafe { dirty_MUT_VAR(&raw mut reg, &raw mut mv, &raw mut old) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

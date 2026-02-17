@@ -51,11 +51,13 @@ fn equivalent_registerForeignExports() {
         unsafe { sys::registerForeignExports(&raw mut exports) };
         todo!()
     };
+
     let actual = {
         let mut exports: ForeignExportsList = todo!();
         unsafe { registerForeignExports(&raw mut exports) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -68,6 +70,7 @@ fn test_registerForeignExports() {
         unsafe { registerForeignExports(&raw mut exports) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

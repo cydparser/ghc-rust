@@ -11,12 +11,14 @@ fn equivalent_hs_spt_insert(key: StgWord64) -> bool {
         unsafe { sys::hs_spt_insert(&raw mut key, &raw mut spe_closure) };
         todo!()
     };
+
     let actual = {
         let mut key = key;
         let mut spe_closure: c_void = todo!();
         unsafe { hs_spt_insert(&raw mut key, &raw mut spe_closure) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -31,6 +33,7 @@ fn test_hs_spt_insert() {
         unsafe { hs_spt_insert(&raw mut key, &raw mut spe_closure) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -46,12 +49,14 @@ fn equivalent_hs_spt_insert_stableptr(key: StgWord64) -> bool {
         unsafe { sys::hs_spt_insert_stableptr(&raw mut key, &raw mut entry) };
         todo!()
     };
+
     let actual = {
         let mut key = key;
         let mut entry: StgStablePtr = todo!();
         unsafe { hs_spt_insert_stableptr(&raw mut key, &raw mut entry) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -66,6 +71,7 @@ fn test_hs_spt_insert_stableptr() {
         unsafe { hs_spt_insert_stableptr(&raw mut key, &raw mut entry) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -80,11 +86,13 @@ fn equivalent_hs_spt_remove(key: StgWord64) -> bool {
         unsafe { sys::hs_spt_remove(&raw mut key) };
         todo!()
     };
+
     let actual = {
         let mut key = key;
         unsafe { hs_spt_remove(&raw mut key) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -98,6 +106,7 @@ fn test_hs_spt_remove() {
         unsafe { hs_spt_remove(&raw mut key) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

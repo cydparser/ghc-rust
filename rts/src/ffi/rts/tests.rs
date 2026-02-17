@@ -55,11 +55,13 @@ fn equivalent_reportStackOverflow() {
         unsafe { sys::reportStackOverflow(&raw mut tso) };
         todo!()
     };
+
     let actual = {
         let mut tso: StgTSO = todo!();
         unsafe { reportStackOverflow(&raw mut tso) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -72,6 +74,7 @@ fn test_reportStackOverflow() {
         unsafe { reportStackOverflow(&raw mut tso) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -85,10 +88,12 @@ fn equivalent_reportHeapOverflow() {
         unsafe { sys::reportHeapOverflow() };
         todo!()
     };
+
     let actual = {
         unsafe { reportHeapOverflow() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -100,6 +105,7 @@ fn test_reportHeapOverflow() {
         unsafe { reportHeapOverflow() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -113,10 +119,12 @@ fn equivalent_stg_sig_install(arg1: c_int, arg2: c_int) -> bool {
         let mut arg3: c_void = todo!();
         unsafe { sys::stg_sig_install(arg1, arg2, &raw mut arg3) }
     };
+
     let actual: c_int = {
         let mut arg3: c_void = todo!();
         unsafe { stg_sig_install(arg1, arg2, &raw mut arg3) }
     };
+
     actual == expected
 }
 
@@ -131,6 +139,7 @@ fn test_stg_sig_install() {
         let arg3: c_void = todo!();
         unsafe { stg_sig_install(arg1, arg2, &raw mut arg3) }
     };
+
     let expected: c_int = todo!();
     assert_eq!(expected, actual);
 }

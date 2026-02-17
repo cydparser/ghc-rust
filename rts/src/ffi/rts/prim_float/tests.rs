@@ -18,6 +18,7 @@ fn test___int_encodeDouble() {
         let e: I_ = Arbitrary::arbitrary(g);
         unsafe { __int_encodeDouble(j, e) }
     };
+
     let expected: StgDouble = todo!();
     assert_eq!(expected, actual);
 }
@@ -40,6 +41,7 @@ fn test___word_encodeDouble() {
         let e: I_ = Arbitrary::arbitrary(g);
         unsafe { __word_encodeDouble(j, e) }
     };
+
     let expected: StgDouble = todo!();
     assert_eq!(expected, actual);
 }

@@ -128,10 +128,12 @@ fn equivalent_allocAlignedGroupOnNode(node: u32, n: W_) -> bool {
         let result: &bdescr = unsafe { transmute(&*sys::allocAlignedGroupOnNode(node, n)) };
         todo!()
     };
+
     let actual = {
         let result: &bdescr = unsafe { &*allocAlignedGroupOnNode(node, n) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -146,6 +148,7 @@ fn test_allocAlignedGroupOnNode() {
         let result: &bdescr = unsafe { &*allocAlignedGroupOnNode(node, n) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -159,10 +162,12 @@ fn equivalent_allocGroup_lock(n: W_) -> bool {
         let result: &bdescr = unsafe { transmute(&*sys::allocGroup_lock(n)) };
         todo!()
     };
+
     let actual = {
         let result: &bdescr = unsafe { &*allocGroup_lock(n) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -176,6 +181,7 @@ fn test_allocGroup_lock() {
         let result: &bdescr = unsafe { &*allocGroup_lock(n) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -190,11 +196,13 @@ fn equivalent_freeGroup_lock() {
         unsafe { sys::freeGroup_lock(&raw mut p) };
         todo!()
     };
+
     let actual = {
         let mut p: bdescr = todo!();
         unsafe { freeGroup_lock(&raw mut p) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -207,6 +215,7 @@ fn test_freeGroup_lock() {
         unsafe { freeGroup_lock(&raw mut p) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

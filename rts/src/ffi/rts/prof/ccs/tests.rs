@@ -149,10 +149,12 @@ fn equivalent_stopProfTimer() {
         unsafe { sys::stopProfTimer() };
         todo!()
     };
+
     let actual = {
         unsafe { stopProfTimer() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -164,6 +166,7 @@ fn test_stopProfTimer() {
         unsafe { stopProfTimer() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -177,10 +180,12 @@ fn equivalent_startProfTimer() {
         unsafe { sys::startProfTimer() };
         todo!()
     };
+
     let actual = {
         unsafe { startProfTimer() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -192,6 +197,7 @@ fn test_startProfTimer() {
         unsafe { startProfTimer() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

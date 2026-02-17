@@ -10,11 +10,13 @@ fn equivalent_newSpark() {
         let mut p: sys::StgClosure = todo!();
         unsafe { sys::newSpark(&raw mut reg, &raw mut p) }
     };
+
     let actual: StgInt = {
         let mut reg: StgRegTable = todo!();
         let mut p: StgClosure = todo!();
         unsafe { newSpark(&raw mut reg, &raw mut p) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -27,6 +29,7 @@ fn test_newSpark() {
         let p: StgClosure = todo!();
         unsafe { newSpark(&raw mut reg, &raw mut p) }
     };
+
     let expected: StgInt = todo!();
     assert_eq!(expected, actual);
 }

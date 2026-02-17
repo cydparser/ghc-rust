@@ -28,6 +28,7 @@ pub(crate) enum EventLogStatus {
 impl From<EventLogStatus> for sys::EventLogStatus {
     fn from(v: EventLogStatus) -> Self {
         use EventLogStatus::*;
+
         match v {
             EVENTLOG_NOT_SUPPORTED => sys::EventLogStatus::EVENTLOG_NOT_SUPPORTED,
             EVENTLOG_NOT_CONFIGURED => sys::EventLogStatus::EVENTLOG_NOT_CONFIGURED,
@@ -40,6 +41,7 @@ impl From<EventLogStatus> for sys::EventLogStatus {
 impl From<sys::EventLogStatus> for EventLogStatus {
     fn from(v: sys::EventLogStatus) -> Self {
         use EventLogStatus::*;
+
         match v {
             sys::EventLogStatus::EVENTLOG_NOT_SUPPORTED => EVENTLOG_NOT_SUPPORTED,
             sys::EventLogStatus::EVENTLOG_NOT_CONFIGURED => EVENTLOG_NOT_CONFIGURED,
@@ -52,6 +54,7 @@ impl TryFrom<u32> for EventLogStatus {
     type Error = ();
     fn try_from(d: u32) -> Result<EventLogStatus, ()> {
         use EventLogStatus::*;
+
         match d {
             0 => Ok(EVENTLOG_NOT_SUPPORTED),
             1 => Ok(EVENTLOG_NOT_CONFIGURED),
@@ -65,6 +68,7 @@ impl TryFrom<u32> for EventLogStatus {
 impl Arbitrary for EventLogStatus {
     fn arbitrary(g: &mut Gen) -> Self {
         use EventLogStatus::*;
+
         match usize::arbitrary(g) % 3 {
             0 => EVENTLOG_NOT_SUPPORTED,
             1 => EVENTLOG_NOT_CONFIGURED,

@@ -9,10 +9,12 @@ fn equivalent_heap_view_closureSize() {
         let mut closure: sys::StgClosure = todo!();
         unsafe { sys::heap_view_closureSize(&raw mut closure) }
     };
+
     let actual: StgWord = {
         let mut closure: StgClosure = todo!();
         unsafe { heap_view_closureSize(&raw mut closure) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -24,6 +26,7 @@ fn test_heap_view_closureSize() {
         let closure: StgClosure = todo!();
         unsafe { heap_view_closureSize(&raw mut closure) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -39,12 +42,14 @@ fn equivalent_collect_pointers() {
         let mut ptrs = &raw mut ptrs;
         unsafe { sys::collect_pointers(&raw mut closure, &raw mut ptrs) }
     };
+
     let actual: StgWord = {
         let mut closure: StgClosure = todo!();
         let mut ptrs: StgClosure = todo!();
         let mut ptrs = &raw mut ptrs;
         unsafe { collect_pointers(&raw mut closure, &raw mut ptrs) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -58,6 +63,7 @@ fn test_collect_pointers() {
         let mut ptrs = &raw mut ptrs;
         unsafe { collect_pointers(&raw mut closure, &raw mut ptrs) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }

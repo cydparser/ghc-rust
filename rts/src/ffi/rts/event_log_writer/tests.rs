@@ -38,10 +38,12 @@ fn equivalent_startEventLogging() {
         let mut writer: sys::EventLogWriter = todo!();
         unsafe { sys::startEventLogging(&raw mut writer) }
     };
+
     let actual: bool = {
         let mut writer: EventLogWriter = todo!();
         unsafe { startEventLogging(&raw mut writer) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -53,6 +55,7 @@ fn test_startEventLogging() {
         let writer: EventLogWriter = todo!();
         unsafe { startEventLogging(&raw mut writer) }
     };
+
     let expected: bool = todo!();
     assert_eq!(expected, actual);
 }
@@ -66,10 +69,12 @@ fn equivalent_endEventLogging() {
         unsafe { sys::endEventLogging() };
         todo!()
     };
+
     let actual = {
         unsafe { endEventLogging() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -81,6 +86,7 @@ fn test_endEventLogging() {
         unsafe { endEventLogging() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -96,12 +102,14 @@ fn equivalent_flushEventLog() {
         unsafe { sys::flushEventLog(&raw mut cap) };
         todo!()
     };
+
     let actual = {
         let mut cap: Capability = todo!();
         let mut cap = &raw mut cap;
         unsafe { flushEventLog(&raw mut cap) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -115,6 +123,7 @@ fn test_flushEventLog() {
         unsafe { flushEventLog(&raw mut cap) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

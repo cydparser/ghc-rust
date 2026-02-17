@@ -148,6 +148,7 @@ fn equivalent_hs_init(argc: c_int, argv: c_char) -> bool {
         unsafe { sys::hs_init(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     let actual = {
         let mut argc = argc;
         let mut argv = argv;
@@ -156,6 +157,7 @@ fn equivalent_hs_init(argc: c_int, argv: c_char) -> bool {
         unsafe { hs_init(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -172,6 +174,7 @@ fn test_hs_init() {
         unsafe { hs_init(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -185,10 +188,12 @@ fn equivalent_hs_exit() {
         unsafe { sys::hs_exit() };
         todo!()
     };
+
     let actual = {
         unsafe { hs_exit() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -200,6 +205,7 @@ fn test_hs_exit() {
         unsafe { hs_exit() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -213,10 +219,12 @@ fn equivalent_hs_exit_nowait() {
         unsafe { sys::hs_exit_nowait() };
         todo!()
     };
+
     let actual = {
         unsafe { hs_exit_nowait() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -228,6 +236,7 @@ fn test_hs_exit_nowait() {
         unsafe { hs_exit_nowait() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -241,10 +250,12 @@ fn equivalent_hs_thread_done() {
         unsafe { sys::hs_thread_done() };
         todo!()
     };
+
     let actual = {
         unsafe { hs_thread_done() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -256,6 +267,7 @@ fn test_hs_thread_done() {
         unsafe { hs_thread_done() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -269,10 +281,12 @@ fn equivalent_hs_perform_gc() {
         unsafe { sys::hs_perform_gc() };
         todo!()
     };
+
     let actual = {
         unsafe { hs_perform_gc() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -284,6 +298,7 @@ fn test_hs_perform_gc() {
         unsafe { hs_perform_gc() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -297,10 +312,12 @@ fn equivalent_hs_lock_stable_ptr_table() {
         unsafe { sys::hs_lock_stable_ptr_table() };
         todo!()
     };
+
     let actual = {
         unsafe { hs_lock_stable_ptr_table() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -312,6 +329,7 @@ fn test_hs_lock_stable_ptr_table() {
         unsafe { hs_lock_stable_ptr_table() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -325,10 +343,12 @@ fn equivalent_hs_lock_stable_tables() {
         unsafe { sys::hs_lock_stable_tables() };
         todo!()
     };
+
     let actual = {
         unsafe { hs_lock_stable_tables() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -340,6 +360,7 @@ fn test_hs_lock_stable_tables() {
         unsafe { hs_lock_stable_tables() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -353,10 +374,12 @@ fn equivalent_hs_unlock_stable_ptr_table() {
         unsafe { sys::hs_unlock_stable_ptr_table() };
         todo!()
     };
+
     let actual = {
         unsafe { hs_unlock_stable_ptr_table() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -368,6 +391,7 @@ fn test_hs_unlock_stable_ptr_table() {
         unsafe { hs_unlock_stable_ptr_table() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -381,10 +405,12 @@ fn equivalent_hs_unlock_stable_tables() {
         unsafe { sys::hs_unlock_stable_tables() };
         todo!()
     };
+
     let actual = {
         unsafe { hs_unlock_stable_tables() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -396,6 +422,7 @@ fn test_hs_unlock_stable_tables() {
         unsafe { hs_unlock_stable_tables() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -410,11 +437,13 @@ fn equivalent_hs_free_stable_ptr_unsafe() {
         unsafe { sys::hs_free_stable_ptr_unsafe(sp) };
         todo!()
     };
+
     let actual = {
         let sp: HsStablePtr = todo!();
         unsafe { hs_free_stable_ptr_unsafe(sp) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -427,6 +456,7 @@ fn test_hs_free_stable_ptr_unsafe() {
         unsafe { hs_free_stable_ptr_unsafe(sp) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -441,11 +471,13 @@ fn equivalent_hs_free_stable_ptr() {
         unsafe { sys::hs_free_stable_ptr(sp) };
         todo!()
     };
+
     let actual = {
         let sp: HsStablePtr = todo!();
         unsafe { hs_free_stable_ptr(sp) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -458,6 +490,7 @@ fn test_hs_free_stable_ptr() {
         unsafe { hs_free_stable_ptr(sp) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -472,11 +505,13 @@ fn equivalent_hs_free_fun_ptr() {
         unsafe { sys::hs_free_fun_ptr(fp) };
         todo!()
     };
+
     let actual = {
         let fp: HsFunPtr = todo!();
         unsafe { hs_free_fun_ptr(fp) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -489,6 +524,7 @@ fn test_hs_free_fun_ptr() {
         unsafe { hs_free_fun_ptr(fp) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -503,11 +539,13 @@ fn equivalent_hs_spt_lookup(key: StgWord64) -> bool {
         let result: StgPtr = unsafe { sys::hs_spt_lookup(&raw mut key) };
         todo!()
     };
+
     let actual = {
         let mut key = key;
         let result: StgPtr = unsafe { hs_spt_lookup(&raw mut key) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -521,6 +559,7 @@ fn test_hs_spt_lookup() {
         let result: StgPtr = unsafe { hs_spt_lookup(&raw mut key) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -534,10 +573,12 @@ fn equivalent_hs_spt_keys(szKeys: c_int) -> bool {
         let mut keys: StgPtr = todo!();
         unsafe { sys::hs_spt_keys(&raw mut keys, szKeys) }
     };
+
     let actual: c_int = {
         let mut keys: StgPtr = todo!();
         unsafe { hs_spt_keys(&raw mut keys, szKeys) }
     };
+
     actual == expected
 }
 
@@ -551,6 +592,7 @@ fn test_hs_spt_keys() {
         let szKeys: c_int = Arbitrary::arbitrary(g);
         unsafe { hs_spt_keys(&raw mut keys, szKeys) }
     };
+
     let expected: c_int = todo!();
     assert_eq!(expected, actual);
 }
@@ -583,11 +625,13 @@ fn equivalent_hs_try_putmvar(capability: c_int) -> bool {
         unsafe { sys::hs_try_putmvar(capability, sp) };
         todo!()
     };
+
     let actual = {
         let sp: HsStablePtr = todo!();
         unsafe { hs_try_putmvar(capability, sp) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -602,6 +646,7 @@ fn test_hs_try_putmvar() {
         unsafe { hs_try_putmvar(capability, sp) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -617,12 +662,14 @@ fn equivalent_hs_try_putmvar_with_value(capability: c_int) -> bool {
         unsafe { sys::hs_try_putmvar_with_value(capability, sp, &raw mut value) };
         todo!()
     };
+
     let actual = {
         let sp: HsStablePtr = todo!();
         let mut value: StgClosure = todo!();
         unsafe { hs_try_putmvar_with_value(capability, sp, &raw mut value) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -638,6 +685,7 @@ fn test_hs_try_putmvar_with_value() {
         unsafe { hs_try_putmvar_with_value(capability, sp, &raw mut value) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

@@ -11,12 +11,14 @@ fn equivalent_updateRemembSetPushClosure_() {
         unsafe { sys::updateRemembSetPushClosure_(&raw mut reg, &raw mut p) };
         todo!()
     };
+
     let actual = {
         let mut reg: StgRegTable = todo!();
         let mut p: StgClosure_ = todo!();
         unsafe { updateRemembSetPushClosure_(&raw mut reg, &raw mut p) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -30,6 +32,7 @@ fn test_updateRemembSetPushClosure_() {
         unsafe { updateRemembSetPushClosure_(&raw mut reg, &raw mut p) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -45,12 +48,14 @@ fn equivalent_updateRemembSetPushThunk_() {
         unsafe { sys::updateRemembSetPushThunk_(&raw mut reg, &raw mut p) };
         todo!()
     };
+
     let actual = {
         let mut reg: StgRegTable = todo!();
         let mut p: StgThunk = todo!();
         unsafe { updateRemembSetPushThunk_(&raw mut reg, &raw mut p) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -64,6 +69,7 @@ fn test_updateRemembSetPushThunk_() {
         unsafe { updateRemembSetPushThunk_(&raw mut reg, &raw mut p) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -77,10 +83,12 @@ fn equivalent_stg_copyArray_barrier() {
         let result: StgFunPtr = unsafe { sys::stg_copyArray_barrier() };
         todo!()
     };
+
     let actual = {
         let result: StgFunPtr = unsafe { stg_copyArray_barrier() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -92,6 +100,7 @@ fn test_stg_copyArray_barrier() {
         let result: StgFunPtr = unsafe { stg_copyArray_barrier() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

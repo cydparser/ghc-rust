@@ -185,11 +185,13 @@ fn equivalent_registerInfoProvList() {
         unsafe { sys::registerInfoProvList(&raw mut node) };
         todo!()
     };
+
     let actual = {
         let mut node: IpeBufferListNode = todo!();
         unsafe { registerInfoProvList(&raw mut node) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -217,11 +219,13 @@ fn equivalent_lookupIPE() {
         let mut out: sys::InfoProvEnt = todo!();
         unsafe { sys::lookupIPE(&raw mut info, &raw mut out) }
     };
+
     let actual: bool = {
         let mut info: StgInfoTable = todo!();
         let mut out: InfoProvEnt = todo!();
         unsafe { lookupIPE(&raw mut info, &raw mut out) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -234,6 +238,7 @@ fn test_lookupIPE() {
         let out: InfoProvEnt = todo!();
         unsafe { lookupIPE(&raw mut info, &raw mut out) }
     };
+
     let expected: bool = todo!();
     assert_eq!(expected, actual);
 }

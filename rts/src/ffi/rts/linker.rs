@@ -51,6 +51,7 @@ pub enum OStatus {
 impl From<OStatus> for sys::OStatus {
     fn from(v: OStatus) -> Self {
         use OStatus::*;
+
         match v {
             OBJECT_LOADED => sys::OStatus::OBJECT_LOADED,
             OBJECT_NEEDED => sys::OStatus::OBJECT_NEEDED,
@@ -67,6 +68,7 @@ impl From<OStatus> for sys::OStatus {
 impl From<sys::OStatus> for OStatus {
     fn from(v: sys::OStatus) -> Self {
         use OStatus::*;
+
         match v {
             sys::OStatus::OBJECT_LOADED => OBJECT_LOADED,
             sys::OStatus::OBJECT_NEEDED => OBJECT_NEEDED,
@@ -83,6 +85,7 @@ impl TryFrom<u32> for OStatus {
     type Error = ();
     fn try_from(d: u32) -> Result<OStatus, ()> {
         use OStatus::*;
+
         match d {
             0 => Ok(OBJECT_LOADED),
             1 => Ok(OBJECT_NEEDED),
@@ -100,6 +103,7 @@ impl TryFrom<u32> for OStatus {
 impl Arbitrary for OStatus {
     fn arbitrary(g: &mut Gen) -> Self {
         use OStatus::*;
+
         match usize::arbitrary(g) % 7 {
             0 => OBJECT_LOADED,
             1 => OBJECT_NEEDED,

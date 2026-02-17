@@ -388,6 +388,7 @@ pub(crate) enum TRecState {
 impl From<TRecState> for sys::TRecState {
     fn from(v: TRecState) -> Self {
         use TRecState::*;
+
         match v {
             TREC_ACTIVE => sys::TRecState::TREC_ACTIVE,
             TREC_CONDEMNED => sys::TRecState::TREC_CONDEMNED,
@@ -401,6 +402,7 @@ impl From<TRecState> for sys::TRecState {
 impl From<sys::TRecState> for TRecState {
     fn from(v: sys::TRecState) -> Self {
         use TRecState::*;
+
         match v {
             sys::TRecState::TREC_ACTIVE => TREC_ACTIVE,
             sys::TRecState::TREC_CONDEMNED => TREC_CONDEMNED,
@@ -414,6 +416,7 @@ impl TryFrom<u32> for TRecState {
     type Error = ();
     fn try_from(d: u32) -> Result<TRecState, ()> {
         use TRecState::*;
+
         match d {
             0 => Ok(TREC_ACTIVE),
             1 => Ok(TREC_CONDEMNED),
@@ -428,6 +431,7 @@ impl TryFrom<u32> for TRecState {
 impl Arbitrary for TRecState {
     fn arbitrary(g: &mut Gen) -> Self {
         use TRecState::*;
+
         match usize::arbitrary(g) % 4 {
             0 => TREC_ACTIVE,
             1 => TREC_CONDEMNED,

@@ -10,11 +10,13 @@ fn equivalent_getOrSetGHCConcSignalSignalHandlerStore() {
         let result: StgStablePtr = unsafe { sys::getOrSetGHCConcSignalSignalHandlerStore(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetGHCConcSignalSignalHandlerStore(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -27,6 +29,7 @@ fn test_getOrSetGHCConcSignalSignalHandlerStore() {
         let result: StgStablePtr = unsafe { getOrSetGHCConcSignalSignalHandlerStore(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -41,11 +44,13 @@ fn equivalent_getOrSetGHCConcWindowsPendingDelaysStore() {
         let result: StgStablePtr = unsafe { sys::getOrSetGHCConcWindowsPendingDelaysStore(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsPendingDelaysStore(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -58,6 +63,7 @@ fn test_getOrSetGHCConcWindowsPendingDelaysStore() {
         let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsPendingDelaysStore(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -72,11 +78,13 @@ fn equivalent_getOrSetGHCConcWindowsIOManagerThreadStore() {
         let result: StgStablePtr = unsafe { sys::getOrSetGHCConcWindowsIOManagerThreadStore(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsIOManagerThreadStore(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -89,6 +97,7 @@ fn test_getOrSetGHCConcWindowsIOManagerThreadStore() {
         let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsIOManagerThreadStore(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -103,11 +112,13 @@ fn equivalent_getOrSetGHCConcWindowsProddingStore() {
         let result: StgStablePtr = unsafe { sys::getOrSetGHCConcWindowsProddingStore(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsProddingStore(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -120,6 +131,7 @@ fn test_getOrSetGHCConcWindowsProddingStore() {
         let result: StgStablePtr = unsafe { getOrSetGHCConcWindowsProddingStore(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -134,11 +146,13 @@ fn equivalent_getOrSetSystemEventThreadEventManagerStore() {
         let result: StgStablePtr = unsafe { sys::getOrSetSystemEventThreadEventManagerStore(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetSystemEventThreadEventManagerStore(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -151,6 +165,7 @@ fn test_getOrSetSystemEventThreadEventManagerStore() {
         let result: StgStablePtr = unsafe { getOrSetSystemEventThreadEventManagerStore(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -166,11 +181,13 @@ fn equivalent_getOrSetSystemEventThreadIOManagerThreadStore() {
             unsafe { sys::getOrSetSystemEventThreadIOManagerThreadStore(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetSystemEventThreadIOManagerThreadStore(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -183,6 +200,7 @@ fn test_getOrSetSystemEventThreadIOManagerThreadStore() {
         let result: StgStablePtr = unsafe { getOrSetSystemEventThreadIOManagerThreadStore(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -197,11 +215,13 @@ fn equivalent_getOrSetSystemTimerThreadEventManagerStore() {
         let result: StgStablePtr = unsafe { sys::getOrSetSystemTimerThreadEventManagerStore(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetSystemTimerThreadEventManagerStore(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -214,6 +234,7 @@ fn test_getOrSetSystemTimerThreadEventManagerStore() {
         let result: StgStablePtr = unsafe { getOrSetSystemTimerThreadEventManagerStore(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -229,11 +250,13 @@ fn equivalent_getOrSetSystemTimerThreadIOManagerThreadStore() {
             unsafe { sys::getOrSetSystemTimerThreadIOManagerThreadStore(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetSystemTimerThreadIOManagerThreadStore(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -246,6 +269,7 @@ fn test_getOrSetSystemTimerThreadIOManagerThreadStore() {
         let result: StgStablePtr = unsafe { getOrSetSystemTimerThreadIOManagerThreadStore(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -260,11 +284,13 @@ fn equivalent_getOrSetLibHSghcFastStringTable() {
         let result: StgStablePtr = unsafe { sys::getOrSetLibHSghcFastStringTable(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetLibHSghcFastStringTable(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -277,6 +303,7 @@ fn test_getOrSetLibHSghcFastStringTable() {
         let result: StgStablePtr = unsafe { getOrSetLibHSghcFastStringTable(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -291,11 +318,13 @@ fn equivalent_getOrSetLibHSghcGlobalHasPprDebug() {
         let result: StgStablePtr = unsafe { sys::getOrSetLibHSghcGlobalHasPprDebug(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasPprDebug(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -308,6 +337,7 @@ fn test_getOrSetLibHSghcGlobalHasPprDebug() {
         let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasPprDebug(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -322,11 +352,13 @@ fn equivalent_getOrSetLibHSghcGlobalHasNoDebugOutput() {
         let result: StgStablePtr = unsafe { sys::getOrSetLibHSghcGlobalHasNoDebugOutput(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasNoDebugOutput(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -339,6 +371,7 @@ fn test_getOrSetLibHSghcGlobalHasNoDebugOutput() {
         let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasNoDebugOutput(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -353,11 +386,13 @@ fn equivalent_getOrSetLibHSghcGlobalHasNoStateHack() {
         let result: StgStablePtr = unsafe { sys::getOrSetLibHSghcGlobalHasNoStateHack(ptr) };
         todo!()
     };
+
     let actual = {
         let ptr: StgStablePtr = todo!();
         let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasNoStateHack(ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -370,6 +405,7 @@ fn test_getOrSetLibHSghcGlobalHasNoStateHack() {
         let result: StgStablePtr = unsafe { getOrSetLibHSghcGlobalHasNoStateHack(ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

@@ -15,8 +15,10 @@ fn equivalent_createGenThread(stack_size: W_) -> bool {
                 &raw mut closure,
             ))
         };
+
         todo!()
     };
+
     let actual = {
         let mut cap: Capability = todo!();
         let mut closure: StgClosure = todo!();
@@ -24,6 +26,7 @@ fn equivalent_createGenThread(stack_size: W_) -> bool {
             unsafe { &*createGenThread(&raw mut cap, stack_size, &raw mut closure) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -40,6 +43,7 @@ fn test_createGenThread() {
             unsafe { &*createGenThread(&raw mut cap, stack_size, &raw mut closure) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -54,11 +58,13 @@ fn equivalent_suspendThread(interruptible: bool) -> bool {
         let result: &c_void = unsafe { &*sys::suspendThread(&raw mut arg1, interruptible) };
         todo!()
     };
+
     let actual = {
         let mut arg1: StgRegTable = todo!();
         let result: &c_void = unsafe { &*suspendThread(&raw mut arg1, interruptible) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -73,6 +79,7 @@ fn test_suspendThread() {
         let result: &c_void = unsafe { &*suspendThread(&raw mut arg1, interruptible) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -87,11 +94,13 @@ fn equivalent_resumeThread() {
         let result: &StgRegTable = unsafe { transmute(&*sys::resumeThread(&raw mut arg1)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: c_void = todo!();
         let result: &StgRegTable = unsafe { &*resumeThread(&raw mut arg1) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -104,6 +113,7 @@ fn test_resumeThread() {
         let result: &StgRegTable = unsafe { &*resumeThread(&raw mut arg1) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -118,11 +128,13 @@ fn equivalent_eq_thread() {
         let tso2: StgPtr = todo!();
         unsafe { sys::eq_thread(tso1, tso2) }
     };
+
     let actual: bool = {
         let tso1: StgPtr = todo!();
         let tso2: StgPtr = todo!();
         unsafe { eq_thread(tso1, tso2) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -135,6 +147,7 @@ fn test_eq_thread() {
         let tso2: StgPtr = todo!();
         unsafe { eq_thread(tso1, tso2) }
     };
+
     let expected: bool = todo!();
     assert_eq!(expected, actual);
 }
@@ -149,11 +162,13 @@ fn equivalent_cmp_thread() {
         let tso2: StgPtr = todo!();
         unsafe { sys::cmp_thread(tso1, tso2) }
     };
+
     let actual: c_int = {
         let tso1: StgPtr = todo!();
         let tso2: StgPtr = todo!();
         unsafe { cmp_thread(tso1, tso2) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -166,6 +181,7 @@ fn test_cmp_thread() {
         let tso2: StgPtr = todo!();
         unsafe { cmp_thread(tso1, tso2) }
     };
+
     let expected: c_int = todo!();
     assert_eq!(expected, actual);
 }
@@ -179,10 +195,12 @@ fn equivalent_rts_getThreadId() {
         let tso: StgPtr = todo!();
         unsafe { sys::rts_getThreadId(tso) }
     };
+
     let actual: StgThreadID = {
         let tso: StgPtr = todo!();
         unsafe { rts_getThreadId(tso) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -194,6 +212,7 @@ fn test_rts_getThreadId() {
         let tso: StgPtr = todo!();
         unsafe { rts_getThreadId(tso) }
     };
+
     let expected: StgThreadID = todo!();
     assert_eq!(expected, actual);
 }
@@ -208,11 +227,13 @@ fn equivalent_rts_enableThreadAllocationLimit() {
         unsafe { sys::rts_enableThreadAllocationLimit(tso) };
         todo!()
     };
+
     let actual = {
         let tso: StgPtr = todo!();
         unsafe { rts_enableThreadAllocationLimit(tso) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -225,6 +246,7 @@ fn test_rts_enableThreadAllocationLimit() {
         unsafe { rts_enableThreadAllocationLimit(tso) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -239,11 +261,13 @@ fn equivalent_rts_disableThreadAllocationLimit() {
         unsafe { sys::rts_disableThreadAllocationLimit(tso) };
         todo!()
     };
+
     let actual = {
         let tso: StgPtr = todo!();
         unsafe { rts_disableThreadAllocationLimit(tso) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -256,6 +280,7 @@ fn test_rts_disableThreadAllocationLimit() {
         unsafe { rts_disableThreadAllocationLimit(tso) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -270,11 +295,13 @@ fn equivalent_listThreads() {
         let result: &_StgMutArrPtrs = unsafe { transmute(&*sys::listThreads(&raw mut cap)) };
         todo!()
     };
+
     let actual = {
         let mut cap: Capability = todo!();
         let result: &_StgMutArrPtrs = unsafe { &*listThreads(&raw mut cap) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -287,6 +314,7 @@ fn test_listThreads() {
         let result: &_StgMutArrPtrs = unsafe { &*listThreads(&raw mut cap) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -300,10 +328,12 @@ fn equivalent_forkProcess() {
         let mut entry: HsStablePtr = todo!();
         unsafe { sys::forkProcess(&raw mut entry) }
     };
+
     let actual: pid_t = {
         let mut entry: HsStablePtr = todo!();
         unsafe { forkProcess(&raw mut entry) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -315,6 +345,7 @@ fn test_forkProcess() {
         let entry: HsStablePtr = todo!();
         unsafe { forkProcess(&raw mut entry) }
     };
+
     let expected: pid_t = todo!();
     assert_eq!(expected, actual);
 }
@@ -374,10 +405,12 @@ fn equivalent_setNumCapabilities(new_: u32) -> bool {
         unsafe { sys::setNumCapabilities(new_) };
         todo!()
     };
+
     let actual = {
         unsafe { setNumCapabilities(new_) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -391,6 +424,7 @@ fn test_setNumCapabilities() {
         unsafe { setNumCapabilities(new_) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

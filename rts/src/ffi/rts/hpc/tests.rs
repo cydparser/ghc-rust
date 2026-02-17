@@ -26,12 +26,14 @@ fn equivalent_hs_hpc_module(
         unsafe { sys::hs_hpc_module(&raw mut modName, modCount, modHashNo, &raw mut tixArr) };
         todo!()
     };
+
     let actual = {
         let mut modName = modName;
         let mut tixArr = tixArr;
         unsafe { hs_hpc_module(&raw mut modName, modCount, modHashNo, &raw mut tixArr) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -48,6 +50,7 @@ fn test_hs_hpc_module() {
         unsafe { hs_hpc_module(&raw mut modName, modCount, modHashNo, &raw mut tixArr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -61,10 +64,12 @@ fn equivalent_hs_hpc_rootModule() {
         let result: &HpcModuleInfo = unsafe { transmute(&*sys::hs_hpc_rootModule()) };
         todo!()
     };
+
     let actual = {
         let result: &HpcModuleInfo = unsafe { &*hs_hpc_rootModule() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -76,6 +81,7 @@ fn test_hs_hpc_rootModule() {
         let result: &HpcModuleInfo = unsafe { &*hs_hpc_rootModule() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

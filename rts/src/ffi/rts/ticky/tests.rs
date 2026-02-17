@@ -19,10 +19,12 @@ fn equivalent_requestTickyCounterSamples() {
         unsafe { sys::requestTickyCounterSamples() };
         todo!()
     };
+
     let actual = {
         unsafe { requestTickyCounterSamples() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -34,6 +36,7 @@ fn test_requestTickyCounterSamples() {
         unsafe { requestTickyCounterSamples() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

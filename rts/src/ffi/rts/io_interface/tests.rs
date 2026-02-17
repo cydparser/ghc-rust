@@ -9,10 +9,12 @@ fn equivalent_setIOManagerControlFd(cap_no: u32, fd: c_int) -> bool {
         unsafe { sys::setIOManagerControlFd(cap_no, fd) };
         todo!()
     };
+
     let actual = {
         unsafe { setIOManagerControlFd(cap_no, fd) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -27,6 +29,7 @@ fn test_setIOManagerControlFd() {
         unsafe { setIOManagerControlFd(cap_no, fd) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -40,10 +43,12 @@ fn equivalent_setTimerManagerControlFd(fd: c_int) -> bool {
         unsafe { sys::setTimerManagerControlFd(fd) };
         todo!()
     };
+
     let actual = {
         unsafe { setTimerManagerControlFd(fd) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -57,6 +62,7 @@ fn test_setTimerManagerControlFd() {
         unsafe { setTimerManagerControlFd(fd) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -70,10 +76,12 @@ fn equivalent_setIOManagerWakeupFd(fd: c_int) -> bool {
         unsafe { sys::setIOManagerWakeupFd(fd) };
         todo!()
     };
+
     let actual = {
         unsafe { setIOManagerWakeupFd(fd) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -87,6 +95,7 @@ fn test_setIOManagerWakeupFd() {
         unsafe { setIOManagerWakeupFd(fd) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

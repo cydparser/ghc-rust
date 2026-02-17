@@ -192,17 +192,20 @@ const _: () = {
 #[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
 #[cfg(target_pointer_width = "64")]
 pub type StgInt = i64;
+
 #[cfg(target_pointer_width = "32")]
 pub type StgInt = i32;
 
 #[ffi(compiler, docs, ghc_lib, libraries, testsuite, utils)]
 #[cfg(target_pointer_width = "64")]
 pub type StgWord = u64;
+
 #[cfg(target_pointer_width = "32")]
 pub type StgWord = u32;
 
 #[cfg(target_pointer_width = "64")]
 pub(crate) type StgHalfInt = i32;
+
 #[cfg(target_pointer_width = "32")]
 pub(crate) type StgHalfInt = i16;
 

@@ -11,12 +11,14 @@ fn equivalent_registerCcList() {
         unsafe { sys::registerCcList(&raw mut cc_list) };
         todo!()
     };
+
     let actual = {
         let mut cc_list: CostCentre = todo!();
         let mut cc_list = &raw mut cc_list;
         unsafe { registerCcList(&raw mut cc_list) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -30,6 +32,7 @@ fn test_registerCcList() {
         unsafe { registerCcList(&raw mut cc_list) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -45,12 +48,14 @@ fn equivalent_registerCcsList() {
         unsafe { sys::registerCcsList(&raw mut cc_list) };
         todo!()
     };
+
     let actual = {
         let mut cc_list: CostCentreStack = todo!();
         let mut cc_list = &raw mut cc_list;
         unsafe { registerCcsList(&raw mut cc_list) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -64,6 +69,7 @@ fn test_registerCcsList() {
         unsafe { registerCcsList(&raw mut cc_list) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

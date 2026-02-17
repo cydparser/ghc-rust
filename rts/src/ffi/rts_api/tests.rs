@@ -75,11 +75,13 @@ fn equivalent_pauseTokenCapability() {
             unsafe { transmute(&*sys::pauseTokenCapability(&raw mut pauseToken)) };
         todo!()
     };
+
     let actual = {
         let mut pauseToken: PauseToken = todo!();
         let result: &Capability = unsafe { &*pauseTokenCapability(&raw mut pauseToken) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -92,6 +94,7 @@ fn test_pauseTokenCapability() {
         let result: &Capability = unsafe { &*pauseTokenCapability(&raw mut pauseToken) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -247,11 +250,13 @@ fn equivalent_getRTSStats(s: RTSStats) -> bool {
         unsafe { sys::getRTSStats(&raw mut s) };
         todo!()
     };
+
     let actual = {
         let mut s = s.clone();
         unsafe { getRTSStats(&raw mut s) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -265,6 +270,7 @@ fn test_getRTSStats() {
         unsafe { getRTSStats(&raw mut s) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -318,6 +324,7 @@ fn equivalent_hs_init_with_rtsopts(argc: c_int, argv: c_char) -> bool {
         unsafe { sys::hs_init_with_rtsopts(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     let actual = {
         let mut argc = argc;
         let mut argv = argv;
@@ -326,6 +333,7 @@ fn equivalent_hs_init_with_rtsopts(argc: c_int, argv: c_char) -> bool {
         unsafe { hs_init_with_rtsopts(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -342,6 +350,7 @@ fn test_hs_init_with_rtsopts() {
         unsafe { hs_init_with_rtsopts(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -360,6 +369,7 @@ fn equivalent_hs_init_ghc(argc: c_int, argv: c_char) -> bool {
         unsafe { sys::hs_init_ghc(&raw mut argc, &raw mut argv, rts_config) };
         todo!()
     };
+
     let actual = {
         let mut argc = argc;
         let mut argv = argv;
@@ -369,6 +379,7 @@ fn equivalent_hs_init_ghc(argc: c_int, argv: c_char) -> bool {
         unsafe { hs_init_ghc(&raw mut argc, &raw mut argv, rts_config) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -386,6 +397,7 @@ fn test_hs_init_ghc() {
         unsafe { hs_init_ghc(&raw mut argc, &raw mut argv, rts_config) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -403,6 +415,7 @@ fn equivalent_getProgArgv(argc: c_int, argv: c_char) -> bool {
         unsafe { sys::getProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     let actual = {
         let mut argc = argc;
         let mut argv = argv;
@@ -411,6 +424,7 @@ fn equivalent_getProgArgv(argc: c_int, argv: c_char) -> bool {
         unsafe { getProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -427,6 +441,7 @@ fn test_getProgArgv() {
         unsafe { getProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -442,12 +457,14 @@ fn equivalent_setProgArgv(argc: c_int, argv: c_char) -> bool {
         unsafe { sys::setProgArgv(argc, &raw mut argv) };
         todo!()
     };
+
     let actual = {
         let mut argv = argv;
         let mut argv = &raw mut argv;
         unsafe { setProgArgv(argc, &raw mut argv) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -463,6 +480,7 @@ fn test_setProgArgv() {
         unsafe { setProgArgv(argc, &raw mut argv) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -480,6 +498,7 @@ fn equivalent_getFullProgArgv(argc: c_int, argv: c_char) -> bool {
         unsafe { sys::getFullProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     let actual = {
         let mut argc = argc;
         let mut argv = argv;
@@ -488,6 +507,7 @@ fn equivalent_getFullProgArgv(argc: c_int, argv: c_char) -> bool {
         unsafe { getFullProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -504,6 +524,7 @@ fn test_getFullProgArgv() {
         unsafe { getFullProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -517,10 +538,12 @@ fn equivalent_rts_lock() {
         let result: &Capability = unsafe { transmute(&*sys::rts_lock()) };
         todo!()
     };
+
     let actual = {
         let result: &Capability = unsafe { &*rts_lock() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -532,6 +555,7 @@ fn test_rts_lock() {
         let result: &Capability = unsafe { &*rts_lock() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -546,11 +570,13 @@ fn equivalent_rts_unlock() {
         unsafe { sys::rts_unlock(&raw mut token) };
         todo!()
     };
+
     let actual = {
         let mut token: Capability = todo!();
         unsafe { rts_unlock(&raw mut token) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -563,6 +589,7 @@ fn test_rts_unlock() {
         unsafe { rts_unlock(&raw mut token) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -576,10 +603,12 @@ fn equivalent_rts_unsafeGetMyCapability() {
         let result: &Capability = unsafe { transmute(&*sys::rts_unsafeGetMyCapability()) };
         todo!()
     };
+
     let actual = {
         let result: &Capability = unsafe { &*rts_unsafeGetMyCapability() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -591,6 +620,7 @@ fn test_rts_unsafeGetMyCapability() {
         let result: &Capability = unsafe { &*rts_unsafeGetMyCapability() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -604,10 +634,12 @@ fn equivalent_rts_setInCallCapability(preferred_capability: c_int, affinity: c_i
         unsafe { sys::rts_setInCallCapability(preferred_capability, affinity) };
         todo!()
     };
+
     let actual = {
         unsafe { rts_setInCallCapability(preferred_capability, affinity) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -622,6 +654,7 @@ fn test_rts_setInCallCapability() {
         unsafe { rts_setInCallCapability(preferred_capability, affinity) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -635,10 +668,12 @@ fn equivalent_rts_pinThreadToNumaNode(node: c_int) -> bool {
         unsafe { sys::rts_pinThreadToNumaNode(node) };
         todo!()
     };
+
     let actual = {
         unsafe { rts_pinThreadToNumaNode(node) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -652,6 +687,7 @@ fn test_rts_pinThreadToNumaNode() {
         unsafe { rts_pinThreadToNumaNode(node) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -666,11 +702,13 @@ fn equivalent_rts_mkChar(c: HsChar) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkChar(&raw mut arg1, c)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkChar(&raw mut arg1, c) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -685,6 +723,7 @@ fn test_rts_mkChar() {
         let result: HaskellObj = unsafe { rts_mkChar(&raw mut arg1, c) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -699,11 +738,13 @@ fn equivalent_rts_mkInt(i: HsInt) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt(&raw mut arg1, i)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkInt(&raw mut arg1, i) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -718,6 +759,7 @@ fn test_rts_mkInt() {
         let result: HaskellObj = unsafe { rts_mkInt(&raw mut arg1, i) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -732,11 +774,13 @@ fn equivalent_rts_mkInt8(i: HsInt8) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt8(&raw mut arg1, i)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkInt8(&raw mut arg1, i) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -751,6 +795,7 @@ fn test_rts_mkInt8() {
         let result: HaskellObj = unsafe { rts_mkInt8(&raw mut arg1, i) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -765,11 +810,13 @@ fn equivalent_rts_mkInt16(i: HsInt16) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt16(&raw mut arg1, i)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkInt16(&raw mut arg1, i) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -784,6 +831,7 @@ fn test_rts_mkInt16() {
         let result: HaskellObj = unsafe { rts_mkInt16(&raw mut arg1, i) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -798,11 +846,13 @@ fn equivalent_rts_mkInt32(i: HsInt32) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt32(&raw mut arg1, i)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkInt32(&raw mut arg1, i) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -817,6 +867,7 @@ fn test_rts_mkInt32() {
         let result: HaskellObj = unsafe { rts_mkInt32(&raw mut arg1, i) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -831,11 +882,13 @@ fn equivalent_rts_mkInt64(i: HsInt64) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt64(&raw mut arg1, i)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkInt64(&raw mut arg1, i) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -850,6 +903,7 @@ fn test_rts_mkInt64() {
         let result: HaskellObj = unsafe { rts_mkInt64(&raw mut arg1, i) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -864,11 +918,13 @@ fn equivalent_rts_mkWord(w: HsWord) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord(&raw mut arg1, w)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkWord(&raw mut arg1, w) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -883,6 +939,7 @@ fn test_rts_mkWord() {
         let result: HaskellObj = unsafe { rts_mkWord(&raw mut arg1, w) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -897,11 +954,13 @@ fn equivalent_rts_mkWord8(w: HsWord8) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord8(&raw mut arg1, w)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkWord8(&raw mut arg1, w) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -916,6 +975,7 @@ fn test_rts_mkWord8() {
         let result: HaskellObj = unsafe { rts_mkWord8(&raw mut arg1, w) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -930,11 +990,13 @@ fn equivalent_rts_mkWord16(w: HsWord16) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord16(&raw mut arg1, w)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkWord16(&raw mut arg1, w) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -949,6 +1011,7 @@ fn test_rts_mkWord16() {
         let result: HaskellObj = unsafe { rts_mkWord16(&raw mut arg1, w) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -963,11 +1026,13 @@ fn equivalent_rts_mkWord32(w: HsWord32) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord32(&raw mut arg1, w)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkWord32(&raw mut arg1, w) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -982,6 +1047,7 @@ fn test_rts_mkWord32() {
         let result: HaskellObj = unsafe { rts_mkWord32(&raw mut arg1, w) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -996,11 +1062,13 @@ fn equivalent_rts_mkWord64(w: HsWord64) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord64(&raw mut arg1, w)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkWord64(&raw mut arg1, w) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -1015,6 +1083,7 @@ fn test_rts_mkWord64() {
         let result: HaskellObj = unsafe { rts_mkWord64(&raw mut arg1, w) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1030,12 +1099,14 @@ fn equivalent_rts_mkPtr() {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkPtr(&raw mut arg1, a)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let a: HsPtr = todo!();
         let result: HaskellObj = unsafe { rts_mkPtr(&raw mut arg1, a) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1049,6 +1120,7 @@ fn test_rts_mkPtr() {
         let result: HaskellObj = unsafe { rts_mkPtr(&raw mut arg1, a) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1064,12 +1136,14 @@ fn equivalent_rts_mkFunPtr() {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkFunPtr(&raw mut arg1, a)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let a: HsFunPtr = todo!();
         let result: HaskellObj = unsafe { rts_mkFunPtr(&raw mut arg1, a) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1083,6 +1157,7 @@ fn test_rts_mkFunPtr() {
         let result: HaskellObj = unsafe { rts_mkFunPtr(&raw mut arg1, a) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1097,11 +1172,13 @@ fn equivalent_rts_mkFloat(f: HsFloat) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkFloat(&raw mut arg1, f)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkFloat(&raw mut arg1, f) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -1116,6 +1193,7 @@ fn test_rts_mkFloat() {
         let result: HaskellObj = unsafe { rts_mkFloat(&raw mut arg1, f) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1130,11 +1208,13 @@ fn equivalent_rts_mkDouble(f: HsDouble) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkDouble(&raw mut arg1, f)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkDouble(&raw mut arg1, f) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -1149,6 +1229,7 @@ fn test_rts_mkDouble() {
         let result: HaskellObj = unsafe { rts_mkDouble(&raw mut arg1, f) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1164,12 +1245,14 @@ fn equivalent_rts_mkStablePtr() {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkStablePtr(&raw mut arg1, s)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let s: HsStablePtr = todo!();
         let result: HaskellObj = unsafe { rts_mkStablePtr(&raw mut arg1, s) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1183,6 +1266,7 @@ fn test_rts_mkStablePtr() {
         let result: HaskellObj = unsafe { rts_mkStablePtr(&raw mut arg1, s) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1197,11 +1281,13 @@ fn equivalent_rts_mkBool(b: HsBool) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkBool(&raw mut arg1, b)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let result: HaskellObj = unsafe { rts_mkBool(&raw mut arg1, b) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -1216,6 +1302,7 @@ fn test_rts_mkBool() {
         let result: HaskellObj = unsafe { rts_mkBool(&raw mut arg1, b) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1231,12 +1318,14 @@ fn equivalent_rts_mkString(s: c_char) -> bool {
         let result: HaskellObj = unsafe { transmute(sys::rts_mkString(&raw mut arg1, &raw mut s)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let mut s = s;
         let result: HaskellObj = unsafe { rts_mkString(&raw mut arg1, &raw mut s) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -1251,6 +1340,7 @@ fn test_rts_mkString() {
         let result: HaskellObj = unsafe { rts_mkString(&raw mut arg1, &raw mut s) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1267,6 +1357,7 @@ fn equivalent_rts_apply() {
         let result: HaskellObj = unsafe { transmute(sys::rts_apply(&raw mut arg1, arg2, arg3)) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let arg2: HaskellObj = todo!();
@@ -1274,6 +1365,7 @@ fn equivalent_rts_apply() {
         let result: HaskellObj = unsafe { rts_apply(&raw mut arg1, arg2, arg3) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1288,6 +1380,7 @@ fn test_rts_apply() {
         let result: HaskellObj = unsafe { rts_apply(&raw mut arg1, arg2, arg3) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1301,10 +1394,12 @@ fn equivalent_rts_getChar() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getChar(arg1) }
     };
+
     let actual: HsChar = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getChar(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1316,6 +1411,7 @@ fn test_rts_getChar() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getChar(arg1) }
     };
+
     let expected: HsChar = todo!();
     assert_eq!(expected, actual);
 }
@@ -1329,10 +1425,12 @@ fn equivalent_rts_getInt() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getInt(arg1) }
     };
+
     let actual: HsInt = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1344,6 +1442,7 @@ fn test_rts_getInt() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt(arg1) }
     };
+
     let expected: HsInt = todo!();
     assert_eq!(expected, actual);
 }
@@ -1357,10 +1456,12 @@ fn equivalent_rts_getInt8() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getInt8(arg1) }
     };
+
     let actual: HsInt8 = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt8(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1372,6 +1473,7 @@ fn test_rts_getInt8() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt8(arg1) }
     };
+
     let expected: HsInt8 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1385,10 +1487,12 @@ fn equivalent_rts_getInt16() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getInt16(arg1) }
     };
+
     let actual: HsInt16 = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt16(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1400,6 +1504,7 @@ fn test_rts_getInt16() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt16(arg1) }
     };
+
     let expected: HsInt16 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1413,10 +1518,12 @@ fn equivalent_rts_getInt32() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getInt32(arg1) }
     };
+
     let actual: HsInt32 = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt32(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1428,6 +1535,7 @@ fn test_rts_getInt32() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt32(arg1) }
     };
+
     let expected: HsInt32 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1441,10 +1549,12 @@ fn equivalent_rts_getInt64() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getInt64(arg1) }
     };
+
     let actual: HsInt64 = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt64(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1456,6 +1566,7 @@ fn test_rts_getInt64() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getInt64(arg1) }
     };
+
     let expected: HsInt64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1469,10 +1580,12 @@ fn equivalent_rts_getWord() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getWord(arg1) }
     };
+
     let actual: HsWord = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1484,6 +1597,7 @@ fn test_rts_getWord() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord(arg1) }
     };
+
     let expected: HsWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1497,10 +1611,12 @@ fn equivalent_rts_getWord8() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getWord8(arg1) }
     };
+
     let actual: HsWord8 = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord8(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1512,6 +1628,7 @@ fn test_rts_getWord8() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord8(arg1) }
     };
+
     let expected: HsWord8 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1525,10 +1642,12 @@ fn equivalent_rts_getWord16() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getWord16(arg1) }
     };
+
     let actual: HsWord16 = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord16(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1540,6 +1659,7 @@ fn test_rts_getWord16() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord16(arg1) }
     };
+
     let expected: HsWord16 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1553,10 +1673,12 @@ fn equivalent_rts_getWord32() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getWord32(arg1) }
     };
+
     let actual: HsWord32 = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord32(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1568,6 +1690,7 @@ fn test_rts_getWord32() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord32(arg1) }
     };
+
     let expected: HsWord32 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1581,10 +1704,12 @@ fn equivalent_rts_getWord64() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getWord64(arg1) }
     };
+
     let actual: HsWord64 = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord64(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1596,6 +1721,7 @@ fn test_rts_getWord64() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getWord64(arg1) }
     };
+
     let expected: HsWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1610,11 +1736,13 @@ fn equivalent_rts_getPtr() {
         let result: HsPtr = unsafe { sys::rts_getPtr(arg1) };
         todo!()
     };
+
     let actual = {
         let arg1: HaskellObj = todo!();
         let result: HsPtr = unsafe { rts_getPtr(arg1) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1627,6 +1755,7 @@ fn test_rts_getPtr() {
         let result: HsPtr = unsafe { rts_getPtr(arg1) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1641,11 +1770,13 @@ fn equivalent_rts_getFunPtr() {
         let result: HsFunPtr = unsafe { sys::rts_getFunPtr(arg1) };
         todo!()
     };
+
     let actual = {
         let arg1: HaskellObj = todo!();
         let result: HsFunPtr = unsafe { rts_getFunPtr(arg1) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1658,6 +1789,7 @@ fn test_rts_getFunPtr() {
         let result: HsFunPtr = unsafe { rts_getFunPtr(arg1) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1671,10 +1803,12 @@ fn equivalent_rts_getFloat() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getFloat(arg1) }
     };
+
     let actual: HsFloat = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getFloat(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1686,6 +1820,7 @@ fn test_rts_getFloat() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getFloat(arg1) }
     };
+
     let expected: HsFloat = todo!();
     assert_eq!(expected, actual);
 }
@@ -1699,10 +1834,12 @@ fn equivalent_rts_getDouble() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getDouble(arg1) }
     };
+
     let actual: HsDouble = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getDouble(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1714,6 +1851,7 @@ fn test_rts_getDouble() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getDouble(arg1) }
     };
+
     let expected: HsDouble = todo!();
     assert_eq!(expected, actual);
 }
@@ -1728,11 +1866,13 @@ fn equivalent_rts_getStablePtr() {
         let result: HsStablePtr = unsafe { sys::rts_getStablePtr(arg1) };
         todo!()
     };
+
     let actual = {
         let arg1: HaskellObj = todo!();
         let result: HsStablePtr = unsafe { rts_getStablePtr(arg1) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1745,6 +1885,7 @@ fn test_rts_getStablePtr() {
         let result: HsStablePtr = unsafe { rts_getStablePtr(arg1) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1758,10 +1899,12 @@ fn equivalent_rts_getBool() {
         let arg1: sys::HaskellObj = todo!();
         unsafe { sys::rts_getBool(arg1) }
     };
+
     let actual: HsBool = {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getBool(arg1) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1773,6 +1916,7 @@ fn test_rts_getBool() {
         let arg1: HaskellObj = todo!();
         unsafe { rts_getBool(arg1) }
     };
+
     let expected: HsBool = todo!();
     assert_eq!(expected, actual);
 }
@@ -1790,6 +1934,7 @@ fn equivalent_rts_eval() {
         unsafe { sys::rts_eval(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
@@ -1798,6 +1943,7 @@ fn equivalent_rts_eval() {
         unsafe { rts_eval(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1813,6 +1959,7 @@ fn test_rts_eval() {
         unsafe { rts_eval(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1830,6 +1977,7 @@ fn equivalent_rts_eval_(stack_size: c_uint) -> bool {
         unsafe { sys::rts_eval_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
@@ -1838,6 +1986,7 @@ fn equivalent_rts_eval_(stack_size: c_uint) -> bool {
         unsafe { rts_eval_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -1855,6 +2004,7 @@ fn test_rts_eval_() {
         unsafe { rts_eval_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1872,6 +2022,7 @@ fn equivalent_rts_evalIO() {
         unsafe { sys::rts_evalIO(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
@@ -1880,6 +2031,7 @@ fn equivalent_rts_evalIO() {
         unsafe { rts_evalIO(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1895,6 +2047,7 @@ fn test_rts_evalIO() {
         unsafe { rts_evalIO(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1912,6 +2065,7 @@ fn equivalent_rts_evalStableIOMain() {
         unsafe { sys::rts_evalStableIOMain(&raw mut arg1, s, &raw mut ret) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
@@ -1920,6 +2074,7 @@ fn equivalent_rts_evalStableIOMain() {
         unsafe { rts_evalStableIOMain(&raw mut arg1, s, &raw mut ret) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1935,6 +2090,7 @@ fn test_rts_evalStableIOMain() {
         unsafe { rts_evalStableIOMain(&raw mut arg1, s, &raw mut ret) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1952,6 +2108,7 @@ fn equivalent_rts_evalStableIO() {
         unsafe { sys::rts_evalStableIO(&raw mut arg1, s, &raw mut ret) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
@@ -1960,6 +2117,7 @@ fn equivalent_rts_evalStableIO() {
         unsafe { rts_evalStableIO(&raw mut arg1, s, &raw mut ret) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -1975,6 +2133,7 @@ fn test_rts_evalStableIO() {
         unsafe { rts_evalStableIO(&raw mut arg1, s, &raw mut ret) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -1992,6 +2151,7 @@ fn equivalent_rts_evalLazyIO() {
         unsafe { sys::rts_evalLazyIO(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
@@ -2000,6 +2160,7 @@ fn equivalent_rts_evalLazyIO() {
         unsafe { rts_evalLazyIO(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -2015,6 +2176,7 @@ fn test_rts_evalLazyIO() {
         unsafe { rts_evalLazyIO(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -2032,6 +2194,7 @@ fn equivalent_rts_evalLazyIO_(stack_size: c_uint) -> bool {
         unsafe { sys::rts_evalLazyIO_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
@@ -2040,6 +2203,7 @@ fn equivalent_rts_evalLazyIO_(stack_size: c_uint) -> bool {
         unsafe { rts_evalLazyIO_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -2057,6 +2221,7 @@ fn test_rts_evalLazyIO_() {
         unsafe { rts_evalLazyIO_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -2074,6 +2239,7 @@ fn equivalent_rts_inCall() {
         unsafe { sys::rts_inCall(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     let actual = {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
@@ -2082,6 +2248,7 @@ fn equivalent_rts_inCall() {
         unsafe { rts_inCall(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -2097,6 +2264,7 @@ fn test_rts_inCall() {
         unsafe { rts_inCall(&raw mut arg1, p, &raw mut ret) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -2112,12 +2280,14 @@ fn equivalent_rts_checkSchedStatus(site: c_char) -> bool {
         unsafe { sys::rts_checkSchedStatus(&raw mut site, &raw mut arg1) };
         todo!()
     };
+
     let actual = {
         let mut site = site;
         let mut arg1: Capability = todo!();
         unsafe { rts_checkSchedStatus(&raw mut site, &raw mut arg1) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -2132,6 +2302,7 @@ fn test_rts_checkSchedStatus() {
         unsafe { rts_checkSchedStatus(&raw mut site, &raw mut arg1) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -2145,10 +2316,12 @@ fn equivalent_rts_getSchedStatus() {
         let mut cap: sys::Capability = todo!();
         unsafe { transmute(sys::rts_getSchedStatus(&raw mut cap)) }
     };
+
     let actual: SchedulerStatus = {
         let mut cap: Capability = todo!();
         unsafe { rts_getSchedStatus(&raw mut cap) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -2160,6 +2333,7 @@ fn test_rts_getSchedStatus() {
         let cap: Capability = todo!();
         unsafe { rts_getSchedStatus(&raw mut cap) }
     };
+
     let expected: SchedulerStatus = todo!();
     assert_eq!(expected, actual);
 }
@@ -2173,10 +2347,12 @@ fn equivalent_rts_pause() {
         let result: &PauseToken = unsafe { transmute(&*sys::rts_pause()) };
         todo!()
     };
+
     let actual = {
         let result: &PauseToken = unsafe { &*rts_pause() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -2188,6 +2364,7 @@ fn test_rts_pause() {
         let result: &PauseToken = unsafe { &*rts_pause() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -2202,11 +2379,13 @@ fn equivalent_rts_resume() {
         unsafe { sys::rts_resume(&raw mut pauseToken) };
         todo!()
     };
+
     let actual = {
         let mut pauseToken: PauseToken = todo!();
         unsafe { rts_resume(&raw mut pauseToken) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -2219,6 +2398,7 @@ fn test_rts_resume() {
         unsafe { rts_resume(&raw mut pauseToken) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -2262,12 +2442,14 @@ fn equivalent_rts_listThreads() {
         unsafe { sys::rts_listThreads(cb, &raw mut user) };
         todo!()
     };
+
     let actual = {
         let cb: ListThreadsCb = todo!();
         let mut user: c_void = todo!();
         unsafe { rts_listThreads(cb, &raw mut user) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -2281,6 +2463,7 @@ fn test_rts_listThreads() {
         unsafe { rts_listThreads(cb, &raw mut user) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -2303,12 +2486,14 @@ fn equivalent_rts_listMiscRoots() {
         unsafe { sys::rts_listMiscRoots(cb, &raw mut user) };
         todo!()
     };
+
     let actual = {
         let cb: ListRootsCb = todo!();
         let mut user: c_void = todo!();
         unsafe { rts_listMiscRoots(cb, &raw mut user) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -2322,6 +2507,7 @@ fn test_rts_listMiscRoots() {
         unsafe { rts_listMiscRoots(cb, &raw mut user) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -2335,10 +2521,12 @@ fn equivalent_rts_clearMemory() {
         unsafe { sys::rts_clearMemory() };
         todo!()
     };
+
     let actual = {
         unsafe { rts_clearMemory() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -2350,6 +2538,7 @@ fn test_rts_clearMemory() {
         unsafe { rts_clearMemory() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

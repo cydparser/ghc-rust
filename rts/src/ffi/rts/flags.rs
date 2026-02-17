@@ -279,6 +279,7 @@ pub(crate) enum _IO_MANAGER_FLAG {
 impl From<_IO_MANAGER_FLAG> for sys::_IO_MANAGER_FLAG {
     fn from(v: _IO_MANAGER_FLAG) -> Self {
         use _IO_MANAGER_FLAG::*;
+
         match v {
             IO_MNGR_FLAG_AUTO => sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_AUTO,
             IO_MNGR_FLAG_SELECT => sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_SELECT,
@@ -293,6 +294,7 @@ impl From<_IO_MANAGER_FLAG> for sys::_IO_MANAGER_FLAG {
 impl From<sys::_IO_MANAGER_FLAG> for _IO_MANAGER_FLAG {
     fn from(v: sys::_IO_MANAGER_FLAG) -> Self {
         use _IO_MANAGER_FLAG::*;
+
         match v {
             sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_AUTO => IO_MNGR_FLAG_AUTO,
             sys::_IO_MANAGER_FLAG::IO_MNGR_FLAG_SELECT => IO_MNGR_FLAG_SELECT,
@@ -307,6 +309,7 @@ impl TryFrom<u32> for _IO_MANAGER_FLAG {
     type Error = ();
     fn try_from(d: u32) -> Result<_IO_MANAGER_FLAG, ()> {
         use _IO_MANAGER_FLAG::*;
+
         match d {
             0 => Ok(IO_MNGR_FLAG_AUTO),
             1 => Ok(IO_MNGR_FLAG_SELECT),
@@ -322,6 +325,7 @@ impl TryFrom<u32> for _IO_MANAGER_FLAG {
 impl Arbitrary for _IO_MANAGER_FLAG {
     fn arbitrary(g: &mut Gen) -> Self {
         use _IO_MANAGER_FLAG::*;
+
         match usize::arbitrary(g) % 5 {
             0 => IO_MNGR_FLAG_AUTO,
             1 => IO_MNGR_FLAG_SELECT,
@@ -427,6 +431,7 @@ pub(crate) enum _HPC_READ_FILE {
 impl From<_HPC_READ_FILE> for sys::_HPC_READ_FILE {
     fn from(v: _HPC_READ_FILE) -> Self {
         use _HPC_READ_FILE::*;
+
         match v {
             HPC_NO_EXPLICIT => sys::_HPC_READ_FILE::HPC_NO_EXPLICIT,
             HPC_YES_IMPLICIT => sys::_HPC_READ_FILE::HPC_YES_IMPLICIT,
@@ -439,6 +444,7 @@ impl From<_HPC_READ_FILE> for sys::_HPC_READ_FILE {
 impl From<sys::_HPC_READ_FILE> for _HPC_READ_FILE {
     fn from(v: sys::_HPC_READ_FILE) -> Self {
         use _HPC_READ_FILE::*;
+
         match v {
             sys::_HPC_READ_FILE::HPC_NO_EXPLICIT => HPC_NO_EXPLICIT,
             sys::_HPC_READ_FILE::HPC_YES_IMPLICIT => HPC_YES_IMPLICIT,
@@ -451,6 +457,7 @@ impl TryFrom<u32> for _HPC_READ_FILE {
     type Error = ();
     fn try_from(d: u32) -> Result<_HPC_READ_FILE, ()> {
         use _HPC_READ_FILE::*;
+
         match d {
             0 => Ok(HPC_NO_EXPLICIT),
             1 => Ok(HPC_YES_IMPLICIT),
@@ -464,6 +471,7 @@ impl TryFrom<u32> for _HPC_READ_FILE {
 impl Arbitrary for _HPC_READ_FILE {
     fn arbitrary(g: &mut Gen) -> Self {
         use _HPC_READ_FILE::*;
+
         match usize::arbitrary(g) % 3 {
             0 => HPC_NO_EXPLICIT,
             1 => HPC_YES_IMPLICIT,

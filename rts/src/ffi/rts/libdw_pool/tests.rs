@@ -9,10 +9,12 @@ fn equivalent_libdwPoolTake() {
         let result: &LibdwSession = unsafe { transmute(&*sys::libdwPoolTake()) };
         todo!()
     };
+
     let actual = {
         let result: &LibdwSession = unsafe { &*libdwPoolTake() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -24,6 +26,7 @@ fn test_libdwPoolTake() {
         let result: &LibdwSession = unsafe { &*libdwPoolTake() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -38,11 +41,13 @@ fn equivalent_libdwPoolRelease() {
         unsafe { sys::libdwPoolRelease(&raw mut sess) };
         todo!()
     };
+
     let actual = {
         let mut sess: LibdwSession = todo!();
         unsafe { libdwPoolRelease(&raw mut sess) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -55,6 +60,7 @@ fn test_libdwPoolRelease() {
         unsafe { libdwPoolRelease(&raw mut sess) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -68,10 +74,12 @@ fn equivalent_libdwPoolClear() {
         unsafe { sys::libdwPoolClear() };
         todo!()
     };
+
     let actual = {
         unsafe { libdwPoolClear() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -83,6 +91,7 @@ fn test_libdwPoolClear() {
         unsafe { libdwPoolClear() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

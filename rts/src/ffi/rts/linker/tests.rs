@@ -16,10 +16,12 @@ fn equivalent_initLinker() {
         unsafe { sys::initLinker() };
         todo!()
     };
+
     let actual = {
         unsafe { initLinker() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -31,6 +33,7 @@ fn test_initLinker() {
         unsafe { initLinker() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -44,10 +47,12 @@ fn equivalent_initLinker_(retain_cafs: c_int) -> bool {
         unsafe { sys::initLinker_(retain_cafs) };
         todo!()
     };
+
     let actual = {
         unsafe { initLinker_(retain_cafs) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -61,6 +66,7 @@ fn test_initLinker_() {
         unsafe { initLinker_(retain_cafs) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -75,11 +81,13 @@ fn equivalent_lookupSymbol(lbl: c_char) -> bool {
         let result: &c_void = unsafe { &*sys::lookupSymbol(&raw mut lbl) };
         todo!()
     };
+
     let actual = {
         let mut lbl = lbl;
         let result: &c_void = unsafe { &*lookupSymbol(&raw mut lbl) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -93,6 +101,7 @@ fn test_lookupSymbol() {
         let result: &c_void = unsafe { &*lookupSymbol(&raw mut lbl) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -145,10 +154,12 @@ fn equivalent_getObjectLoadStatus(path: pathchar) -> bool {
         let mut path = path;
         unsafe { transmute(sys::getObjectLoadStatus(&raw mut path)) }
     };
+
     let actual: OStatus = {
         let mut path = path;
         unsafe { getObjectLoadStatus(&raw mut path) }
     };
+
     actual == expected
 }
 
@@ -161,6 +172,7 @@ fn test_getObjectLoadStatus() {
         let mut path: pathchar = Arbitrary::arbitrary(g);
         unsafe { getObjectLoadStatus(&raw mut path) }
     };
+
     let expected: OStatus = todo!();
     assert_eq!(expected, actual);
 }
@@ -173,10 +185,12 @@ fn equivalent_unloadObj(path: pathchar) -> bool {
         let mut path = path;
         unsafe { sys::unloadObj(&raw mut path) }
     };
+
     let actual: HsInt = {
         let mut path = path;
         unsafe { unloadObj(&raw mut path) }
     };
+
     actual == expected
 }
 
@@ -189,6 +203,7 @@ fn test_unloadObj() {
         let mut path: pathchar = Arbitrary::arbitrary(g);
         unsafe { unloadObj(&raw mut path) }
     };
+
     let expected: HsInt = todo!();
     assert_eq!(expected, actual);
 }
@@ -201,10 +216,12 @@ fn equivalent_purgeObj(path: pathchar) -> bool {
         let mut path = path;
         unsafe { sys::purgeObj(&raw mut path) }
     };
+
     let actual: HsInt = {
         let mut path = path;
         unsafe { purgeObj(&raw mut path) }
     };
+
     actual == expected
 }
 
@@ -217,6 +234,7 @@ fn test_purgeObj() {
         let mut path: pathchar = Arbitrary::arbitrary(g);
         unsafe { purgeObj(&raw mut path) }
     };
+
     let expected: HsInt = todo!();
     assert_eq!(expected, actual);
 }
@@ -229,10 +247,12 @@ fn equivalent_loadObj(path: pathchar) -> bool {
         let mut path = path;
         unsafe { sys::loadObj(&raw mut path) }
     };
+
     let actual: HsInt = {
         let mut path = path;
         unsafe { loadObj(&raw mut path) }
     };
+
     actual == expected
 }
 
@@ -245,6 +265,7 @@ fn test_loadObj() {
         let mut path: pathchar = Arbitrary::arbitrary(g);
         unsafe { loadObj(&raw mut path) }
     };
+
     let expected: HsInt = todo!();
     assert_eq!(expected, actual);
 }
@@ -257,10 +278,12 @@ fn equivalent_loadArchive(path: pathchar) -> bool {
         let mut path = path;
         unsafe { sys::loadArchive(&raw mut path) }
     };
+
     let actual: HsInt = {
         let mut path = path;
         unsafe { loadArchive(&raw mut path) }
     };
+
     actual == expected
 }
 
@@ -273,6 +296,7 @@ fn test_loadArchive() {
         let mut path: pathchar = Arbitrary::arbitrary(g);
         unsafe { loadArchive(&raw mut path) }
     };
+
     let expected: HsInt = todo!();
     assert_eq!(expected, actual);
 }
@@ -307,6 +331,7 @@ fn equivalent_loadNativeObj(path: pathchar, errmsg: c_char) -> bool {
         let result: &c_void = unsafe { &*sys::loadNativeObj(&raw mut path, &raw mut errmsg) };
         todo!()
     };
+
     let actual = {
         let mut path = path;
         let mut errmsg = errmsg;
@@ -314,6 +339,7 @@ fn equivalent_loadNativeObj(path: pathchar, errmsg: c_char) -> bool {
         let result: &c_void = unsafe { &*loadNativeObj(&raw mut path, &raw mut errmsg) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -329,6 +355,7 @@ fn test_loadNativeObj() {
         let result: &c_void = unsafe { &*loadNativeObj(&raw mut path, &raw mut errmsg) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -342,10 +369,12 @@ fn equivalent_unloadNativeObj() {
         let mut handle: c_void = todo!();
         unsafe { sys::unloadNativeObj(&raw mut handle) }
     };
+
     let actual: HsInt = {
         let mut handle: c_void = todo!();
         unsafe { unloadNativeObj(&raw mut handle) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -357,6 +386,7 @@ fn test_unloadNativeObj() {
         let handle: c_void = todo!();
         unsafe { unloadNativeObj(&raw mut handle) }
     };
+
     let expected: HsInt = todo!();
     assert_eq!(expected, actual);
 }
@@ -373,6 +403,7 @@ fn equivalent_lookupSymbolInNativeObj(symbol_name: c_char) -> bool {
             unsafe { &*sys::lookupSymbolInNativeObj(&raw mut handle, &raw mut symbol_name) };
         todo!()
     };
+
     let actual = {
         let mut handle: c_void = todo!();
         let mut symbol_name = symbol_name;
@@ -380,6 +411,7 @@ fn equivalent_lookupSymbolInNativeObj(symbol_name: c_char) -> bool {
             unsafe { &*lookupSymbolInNativeObj(&raw mut handle, &raw mut symbol_name) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -395,6 +427,7 @@ fn test_lookupSymbolInNativeObj() {
             unsafe { &*lookupSymbolInNativeObj(&raw mut handle, &raw mut symbol_name) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -407,10 +440,12 @@ fn equivalent_addDLL(dll_name: pathchar) -> bool {
         let mut dll_name = dll_name;
         unsafe { &*sys::addDLL(&raw mut dll_name) }
     };
+
     let actual: &c_char = {
         let mut dll_name = dll_name;
         unsafe { &*addDLL(&raw mut dll_name) }
     };
+
     actual == expected
 }
 
@@ -423,6 +458,7 @@ fn test_addDLL() {
         let mut dll_name: pathchar = Arbitrary::arbitrary(g);
         unsafe { &*addDLL(&raw mut dll_name) }
     };
+
     let expected: &c_char = todo!();
     assert_eq!(expected, actual);
 }
@@ -437,11 +473,13 @@ fn equivalent_addLibrarySearchPath(dll_path: pathchar) -> bool {
         let result: HsPtr = unsafe { sys::addLibrarySearchPath(&raw mut dll_path) };
         todo!()
     };
+
     let actual = {
         let mut dll_path = dll_path;
         let result: HsPtr = unsafe { addLibrarySearchPath(&raw mut dll_path) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -455,6 +493,7 @@ fn test_addLibrarySearchPath() {
         let result: HsPtr = unsafe { addLibrarySearchPath(&raw mut dll_path) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -468,10 +507,12 @@ fn equivalent_removeLibrarySearchPath() {
         let dll_path_index: HsPtr = todo!();
         unsafe { sys::removeLibrarySearchPath(dll_path_index) }
     };
+
     let actual: HsBool = {
         let dll_path_index: HsPtr = todo!();
         unsafe { removeLibrarySearchPath(dll_path_index) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -483,6 +524,7 @@ fn test_removeLibrarySearchPath() {
         let dll_path_index: HsPtr = todo!();
         unsafe { removeLibrarySearchPath(dll_path_index) }
     };
+
     let expected: HsBool = todo!();
     assert_eq!(expected, actual);
 }
@@ -495,10 +537,12 @@ fn equivalent_findSystemLibrary(dll_name: pathchar) -> bool {
         let mut dll_name = dll_name;
         unsafe { &*sys::findSystemLibrary(&raw mut dll_name) }
     };
+
     let actual: &pathchar = {
         let mut dll_name = dll_name;
         unsafe { &*findSystemLibrary(&raw mut dll_name) }
     };
+
     actual == expected
 }
 
@@ -511,6 +555,7 @@ fn test_findSystemLibrary() {
         let mut dll_name: pathchar = Arbitrary::arbitrary(g);
         unsafe { &*findSystemLibrary(&raw mut dll_name) }
     };
+
     let expected: &pathchar = todo!();
     assert_eq!(expected, actual);
 }

@@ -9,10 +9,12 @@ fn equivalent_requestHeapCensus() {
         unsafe { sys::requestHeapCensus() };
         todo!()
     };
+
     let actual = {
         unsafe { requestHeapCensus() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -24,6 +26,7 @@ fn test_requestHeapCensus() {
         unsafe { requestHeapCensus() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -37,10 +40,12 @@ fn equivalent_startHeapProfTimer() {
         unsafe { sys::startHeapProfTimer() };
         todo!()
     };
+
     let actual = {
         unsafe { startHeapProfTimer() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -52,6 +57,7 @@ fn test_startHeapProfTimer() {
         unsafe { startHeapProfTimer() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -65,10 +71,12 @@ fn equivalent_stopHeapProfTimer() {
         unsafe { sys::stopHeapProfTimer() };
         todo!()
     };
+
     let actual = {
         unsafe { stopHeapProfTimer() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -80,6 +88,7 @@ fn test_stopHeapProfTimer() {
         unsafe { stopHeapProfTimer() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -93,10 +102,12 @@ fn equivalent_setUserEra(w: StgWord) -> bool {
         unsafe { sys::setUserEra(w) };
         todo!()
     };
+
     let actual = {
         unsafe { setUserEra(w) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -110,6 +121,7 @@ fn test_setUserEra() {
         unsafe { setUserEra(w) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -150,6 +162,7 @@ fn test_incrementUserEra() {
         let w: StgWord = Arbitrary::arbitrary(g);
         unsafe { incrementUserEra(w) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }

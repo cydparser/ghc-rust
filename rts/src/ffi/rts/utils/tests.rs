@@ -18,6 +18,7 @@ fn test_genericRaise() {
         let sig: c_int = Arbitrary::arbitrary(g);
         unsafe { genericRaise(sig) }
     };
+
     let expected: c_int = todo!();
     assert_eq!(expected, actual);
 }

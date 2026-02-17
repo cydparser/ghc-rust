@@ -9,10 +9,12 @@ fn equivalent_startTimer() {
         unsafe { sys::startTimer() };
         todo!()
     };
+
     let actual = {
         unsafe { startTimer() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -24,6 +26,7 @@ fn test_startTimer() {
         unsafe { startTimer() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -37,10 +40,12 @@ fn equivalent_stopTimer() {
         unsafe { sys::stopTimer() };
         todo!()
     };
+
     let actual = {
         unsafe { stopTimer() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -52,6 +57,7 @@ fn test_stopTimer() {
         unsafe { stopTimer() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

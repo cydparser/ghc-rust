@@ -3,6 +3,7 @@ use crate::ffi::hs_ffi::{
     HsChar, HsDouble, HsFloat, HsFunPtr, HsInt, HsInt8, HsInt16, HsInt32, HsInt64, HsPtr,
     HsStablePtr, HsWord8, HsWord16, HsWord32, HsWord64,
 };
+
 use crate::ffi::rts::event_log_writer::EventLogWriter;
 use crate::ffi::rts::storage::closures::{StgClosure, StgClosure_};
 use crate::ffi::rts::storage::tso::StgTSO;
@@ -32,6 +33,7 @@ pub enum SchedulerStatus {
 impl From<SchedulerStatus> for sys::SchedulerStatus {
     fn from(v: SchedulerStatus) -> Self {
         use SchedulerStatus::*;
+
         match v {
             NoStatus => sys::SchedulerStatus::NoStatus,
             Success => sys::SchedulerStatus::Success,
@@ -47,6 +49,7 @@ impl From<SchedulerStatus> for sys::SchedulerStatus {
 impl From<sys::SchedulerStatus> for SchedulerStatus {
     fn from(v: sys::SchedulerStatus) -> Self {
         use SchedulerStatus::*;
+
         match v {
             sys::SchedulerStatus::NoStatus => NoStatus,
             sys::SchedulerStatus::Success => Success,
@@ -62,6 +65,7 @@ impl TryFrom<u32> for SchedulerStatus {
     type Error = ();
     fn try_from(d: u32) -> Result<SchedulerStatus, ()> {
         use SchedulerStatus::*;
+
         match d {
             0 => Ok(NoStatus),
             1 => Ok(Success),
@@ -78,6 +82,7 @@ impl TryFrom<u32> for SchedulerStatus {
 impl Arbitrary for SchedulerStatus {
     fn arbitrary(g: &mut Gen) -> Self {
         use SchedulerStatus::*;
+
         match usize::arbitrary(g) % 6 {
             0 => NoStatus,
             1 => Success,
@@ -136,6 +141,7 @@ pub enum RtsOptsEnabledEnum {
 impl From<RtsOptsEnabledEnum> for sys::RtsOptsEnabledEnum {
     fn from(v: RtsOptsEnabledEnum) -> Self {
         use RtsOptsEnabledEnum::*;
+
         match v {
             RtsOptsNone => sys::RtsOptsEnabledEnum::RtsOptsNone,
             RtsOptsIgnore => sys::RtsOptsEnabledEnum::RtsOptsIgnore,
@@ -150,6 +156,7 @@ impl From<RtsOptsEnabledEnum> for sys::RtsOptsEnabledEnum {
 impl From<sys::RtsOptsEnabledEnum> for RtsOptsEnabledEnum {
     fn from(v: sys::RtsOptsEnabledEnum) -> Self {
         use RtsOptsEnabledEnum::*;
+
         match v {
             sys::RtsOptsEnabledEnum::RtsOptsNone => RtsOptsNone,
             sys::RtsOptsEnabledEnum::RtsOptsIgnore => RtsOptsIgnore,
@@ -164,6 +171,7 @@ impl TryFrom<u32> for RtsOptsEnabledEnum {
     type Error = ();
     fn try_from(d: u32) -> Result<RtsOptsEnabledEnum, ()> {
         use RtsOptsEnabledEnum::*;
+
         match d {
             0 => Ok(RtsOptsNone),
             1 => Ok(RtsOptsIgnore),
@@ -179,6 +187,7 @@ impl TryFrom<u32> for RtsOptsEnabledEnum {
 impl Arbitrary for RtsOptsEnabledEnum {
     fn arbitrary(g: &mut Gen) -> Self {
         use RtsOptsEnabledEnum::*;
+
         match usize::arbitrary(g) % 5 {
             0 => RtsOptsNone,
             1 => RtsOptsIgnore,

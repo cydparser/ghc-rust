@@ -56,11 +56,13 @@ fn equivalent_backtraceFree() {
         unsafe { sys::backtraceFree(&raw mut bt) };
         todo!()
     };
+
     let actual = {
         let mut bt: Backtrace = todo!();
         unsafe { backtraceFree(&raw mut bt) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -73,6 +75,7 @@ fn test_backtraceFree() {
         unsafe { backtraceFree(&raw mut bt) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -87,11 +90,13 @@ fn equivalent_libdwGetBacktrace() {
         let result: &Backtrace = unsafe { transmute(&*sys::libdwGetBacktrace(&raw mut session)) };
         todo!()
     };
+
     let actual = {
         let mut session: LibdwSession = todo!();
         let result: &Backtrace = unsafe { &*libdwGetBacktrace(&raw mut session) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -104,6 +109,7 @@ fn test_libdwGetBacktrace() {
         let result: &Backtrace = unsafe { &*libdwGetBacktrace(&raw mut session) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -119,12 +125,14 @@ fn equivalent_libdwLookupLocation() {
         let pc: StgPtr = todo!();
         unsafe { sys::libdwLookupLocation(&raw mut session, &raw mut loc, pc) }
     };
+
     let actual: c_int = {
         let mut session: LibdwSession = todo!();
         let mut loc: Location = todo!();
         let pc: StgPtr = todo!();
         unsafe { libdwLookupLocation(&raw mut session, &raw mut loc, pc) }
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -138,6 +146,7 @@ fn test_libdwLookupLocation() {
         let pc: StgPtr = todo!();
         unsafe { libdwLookupLocation(&raw mut session, &raw mut loc, pc) }
     };
+
     let expected: c_int = todo!();
     assert_eq!(expected, actual);
 }

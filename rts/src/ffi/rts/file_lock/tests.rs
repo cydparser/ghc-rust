@@ -21,6 +21,7 @@ fn test_lockFile() {
         let for_writing: c_int = Arbitrary::arbitrary(g);
         unsafe { lockFile(id, dev, ino, for_writing) }
     };
+
     let expected: c_int = todo!();
     assert_eq!(expected, actual);
 }
@@ -43,6 +44,7 @@ fn test_unlockFile() {
         let id: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { unlockFile(id) }
     };
+
     let expected: c_int = todo!();
     assert_eq!(expected, actual);
 }

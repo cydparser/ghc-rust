@@ -39,11 +39,13 @@ fn equivalent_freezeExecPage(page: ExecPage) -> bool {
         unsafe { sys::freezeExecPage(&raw mut page) };
         todo!()
     };
+
     let actual = {
         let mut page = page.clone();
         unsafe { freezeExecPage(&raw mut page) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -57,6 +59,7 @@ fn test_freezeExecPage() {
         unsafe { freezeExecPage(&raw mut page) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

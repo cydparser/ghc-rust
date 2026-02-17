@@ -9,10 +9,12 @@ fn equivalent_blockUserSignals() {
         unsafe { sys::blockUserSignals() };
         todo!()
     };
+
     let actual = {
         unsafe { blockUserSignals() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -24,6 +26,7 @@ fn test_blockUserSignals() {
         unsafe { blockUserSignals() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -37,10 +40,12 @@ fn equivalent_unblockUserSignals() {
         unsafe { sys::unblockUserSignals() };
         todo!()
     };
+
     let actual = {
         unsafe { unblockUserSignals() };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -52,6 +57,7 @@ fn test_unblockUserSignals() {
         unsafe { unblockUserSignals() };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

@@ -12,6 +12,7 @@ fn equivalent_createAdjustor(typeString: c_char) -> bool {
         let result: &c_void = unsafe { &*sys::createAdjustor(hptr, wptr, &raw mut typeString) };
         todo!()
     };
+
     let actual = {
         let hptr: StgStablePtr = todo!();
         let wptr: StgFunPtr = todo!();
@@ -19,6 +20,7 @@ fn equivalent_createAdjustor(typeString: c_char) -> bool {
         let result: &c_void = unsafe { &*createAdjustor(hptr, wptr, &raw mut typeString) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -34,6 +36,7 @@ fn test_createAdjustor() {
         let result: &c_void = unsafe { &*createAdjustor(hptr, wptr, &raw mut typeString) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -48,11 +51,13 @@ fn equivalent_freeHaskellFunctionPtr() {
         unsafe { sys::freeHaskellFunctionPtr(&raw mut ptr) };
         todo!()
     };
+
     let actual = {
         let mut ptr: c_void = todo!();
         unsafe { freeHaskellFunctionPtr(&raw mut ptr) };
         todo!()
     };
+
     assert_eq!(actual, expected);
 }
 
@@ -65,6 +70,7 @@ fn test_freeHaskellFunctionPtr() {
         unsafe { freeHaskellFunctionPtr(&raw mut ptr) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

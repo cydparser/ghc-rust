@@ -9,10 +9,12 @@ fn equivalent___hscore_get_saved_termios(fd: c_int) -> bool {
         let result: &c_void = unsafe { &*sys::__hscore_get_saved_termios(fd) };
         todo!()
     };
+
     let actual = {
         let result: &c_void = unsafe { &*__hscore_get_saved_termios(fd) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -26,6 +28,7 @@ fn test___hscore_get_saved_termios() {
         let result: &c_void = unsafe { &*__hscore_get_saved_termios(fd) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -40,11 +43,13 @@ fn equivalent___hscore_set_saved_termios(fd: c_int) -> bool {
         unsafe { sys::__hscore_set_saved_termios(fd, &raw mut ts) };
         todo!()
     };
+
     let actual = {
         let mut ts: c_void = todo!();
         unsafe { __hscore_set_saved_termios(fd, &raw mut ts) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -59,6 +64,7 @@ fn test___hscore_set_saved_termios() {
         unsafe { __hscore_set_saved_termios(fd, &raw mut ts) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }

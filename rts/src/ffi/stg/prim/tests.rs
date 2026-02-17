@@ -19,6 +19,7 @@ fn test_hs_atomic_add8() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_add8(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -42,6 +43,7 @@ fn test_hs_atomic_add16() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_add16(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -65,6 +67,7 @@ fn test_hs_atomic_add32() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_add32(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -88,6 +91,7 @@ fn test_hs_atomic_add64() {
         let val: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_add64(x, val) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -111,6 +115,7 @@ fn test_hs_atomic_sub8() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_sub8(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -134,6 +139,7 @@ fn test_hs_atomic_sub16() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_sub16(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -157,6 +163,7 @@ fn test_hs_atomic_sub32() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_sub32(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -180,6 +187,7 @@ fn test_hs_atomic_sub64() {
         let val: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_sub64(x, val) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -203,6 +211,7 @@ fn test_hs_atomic_and8() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_and8(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -226,6 +235,7 @@ fn test_hs_atomic_and16() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_and16(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -249,6 +259,7 @@ fn test_hs_atomic_and32() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_and32(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -272,6 +283,7 @@ fn test_hs_atomic_and64() {
         let val: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_and64(x, val) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -295,6 +307,7 @@ fn test_hs_atomic_nand8() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_nand8(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -318,6 +331,7 @@ fn test_hs_atomic_nand16() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_nand16(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -341,6 +355,7 @@ fn test_hs_atomic_nand32() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_nand32(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -364,6 +379,7 @@ fn test_hs_atomic_nand64() {
         let val: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_nand64(x, val) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -387,6 +403,7 @@ fn test_hs_atomic_or8() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_or8(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -410,6 +427,7 @@ fn test_hs_atomic_or16() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_or16(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -433,6 +451,7 @@ fn test_hs_atomic_or32() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_or32(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -456,6 +475,7 @@ fn test_hs_atomic_or64() {
         let val: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_or64(x, val) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -479,6 +499,7 @@ fn test_hs_atomic_xor8() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_xor8(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -502,6 +523,7 @@ fn test_hs_atomic_xor16() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_xor16(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -525,6 +547,7 @@ fn test_hs_atomic_xor32() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_xor32(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -548,6 +571,7 @@ fn test_hs_atomic_xor64() {
         let val: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_atomic_xor64(x, val) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -572,6 +596,7 @@ fn test_hs_cmpxchg8() {
         let new_: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_cmpxchg8(x, old, new_) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -596,6 +621,7 @@ fn test_hs_cmpxchg16() {
         let new_: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_cmpxchg16(x, old, new_) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -620,6 +646,7 @@ fn test_hs_cmpxchg32() {
         let new_: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_cmpxchg32(x, old, new_) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -644,6 +671,7 @@ fn test_hs_cmpxchg64() {
         let new_: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_cmpxchg64(x, old, new_) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -666,6 +694,7 @@ fn test_hs_atomicread8() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomicread8(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -688,6 +717,7 @@ fn test_hs_atomicread16() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomicread16(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -710,6 +740,7 @@ fn test_hs_atomicread32() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomicread32(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -732,6 +763,7 @@ fn test_hs_atomicread64() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_atomicread64(x) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -745,10 +777,12 @@ fn equivalent_hs_atomicwrite8(x: StgWord, val: StgWord) -> bool {
         unsafe { sys::hs_atomicwrite8(x, val) };
         todo!()
     };
+
     let actual = {
         unsafe { hs_atomicwrite8(x, val) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -763,6 +797,7 @@ fn test_hs_atomicwrite8() {
         unsafe { hs_atomicwrite8(x, val) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -776,10 +811,12 @@ fn equivalent_hs_atomicwrite16(x: StgWord, val: StgWord) -> bool {
         unsafe { sys::hs_atomicwrite16(x, val) };
         todo!()
     };
+
     let actual = {
         unsafe { hs_atomicwrite16(x, val) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -794,6 +831,7 @@ fn test_hs_atomicwrite16() {
         unsafe { hs_atomicwrite16(x, val) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -807,10 +845,12 @@ fn equivalent_hs_atomicwrite32(x: StgWord, val: StgWord) -> bool {
         unsafe { sys::hs_atomicwrite32(x, val) };
         todo!()
     };
+
     let actual = {
         unsafe { hs_atomicwrite32(x, val) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -825,6 +865,7 @@ fn test_hs_atomicwrite32() {
         unsafe { hs_atomicwrite32(x, val) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -838,10 +879,12 @@ fn equivalent_hs_atomicwrite64(x: StgWord, val: StgWord64) -> bool {
         unsafe { sys::hs_atomicwrite64(x, val) };
         todo!()
     };
+
     let actual = {
         unsafe { hs_atomicwrite64(x, val) };
         todo!()
     };
+
     actual == expected
 }
 
@@ -856,6 +899,7 @@ fn test_hs_atomicwrite64() {
         unsafe { hs_atomicwrite64(x, val) };
         todo!()
     };
+
     let expected = todo!();
     assert_eq!(expected, actual);
 }
@@ -879,6 +923,7 @@ fn test_hs_xchg8() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_xchg8(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -902,6 +947,7 @@ fn test_hs_xchg16() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_xchg16(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -925,6 +971,7 @@ fn test_hs_xchg32() {
         let val: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_xchg32(x, val) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -948,6 +995,7 @@ fn test_hs_xchg64() {
         let val: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_xchg64(x, val) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -970,6 +1018,7 @@ fn test_hs_bswap16() {
         let x: StgWord16 = Arbitrary::arbitrary(g);
         unsafe { hs_bswap16(x) }
     };
+
     let expected: StgWord16 = todo!();
     assert_eq!(expected, actual);
 }
@@ -992,6 +1041,7 @@ fn test_hs_bswap32() {
         let x: StgWord32 = Arbitrary::arbitrary(g);
         unsafe { hs_bswap32(x) }
     };
+
     let expected: StgWord32 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1014,6 +1064,7 @@ fn test_hs_bswap64() {
         let x: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_bswap64(x) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1036,6 +1087,7 @@ fn test_hs_bitrev8() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_bitrev8(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1058,6 +1110,7 @@ fn test_hs_bitrev16() {
         let x: StgWord16 = Arbitrary::arbitrary(g);
         unsafe { hs_bitrev16(x) }
     };
+
     let expected: StgWord16 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1080,6 +1133,7 @@ fn test_hs_bitrev32() {
         let x: StgWord32 = Arbitrary::arbitrary(g);
         unsafe { hs_bitrev32(x) }
     };
+
     let expected: StgWord32 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1102,6 +1156,7 @@ fn test_hs_bitrev64() {
         let x: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_bitrev64(x) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1125,6 +1180,7 @@ fn test_hs_pdep64() {
         let mask: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_pdep64(src, mask) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1148,6 +1204,7 @@ fn test_hs_pdep32() {
         let mask: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_pdep32(src, mask) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1171,6 +1228,7 @@ fn test_hs_pdep16() {
         let mask: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_pdep16(src, mask) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1194,6 +1252,7 @@ fn test_hs_pdep8() {
         let mask: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_pdep8(src, mask) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1217,6 +1276,7 @@ fn test_hs_pext64() {
         let mask: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_pext64(src, mask) }
     };
+
     let expected: StgWord64 = todo!();
     assert_eq!(expected, actual);
 }
@@ -1240,6 +1300,7 @@ fn test_hs_pext32() {
         let mask: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_pext32(src, mask) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1263,6 +1324,7 @@ fn test_hs_pext16() {
         let mask: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_pext16(src, mask) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1286,6 +1348,7 @@ fn test_hs_pext8() {
         let mask: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_pext8(src, mask) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1308,6 +1371,7 @@ fn test_hs_popcnt8() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_popcnt8(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1330,6 +1394,7 @@ fn test_hs_popcnt16() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_popcnt16(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1352,6 +1417,7 @@ fn test_hs_popcnt32() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_popcnt32(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1374,6 +1440,7 @@ fn test_hs_popcnt64() {
         let x: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_popcnt64(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1396,6 +1463,7 @@ fn test_hs_popcnt() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_popcnt(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1418,6 +1486,7 @@ fn test_hs_word2float32() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_word2float32(x) }
     };
+
     let expected: StgFloat = todo!();
     assert_eq!(expected, actual);
 }
@@ -1440,6 +1509,7 @@ fn test_hs_word2float64() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_word2float64(x) }
     };
+
     let expected: StgDouble = todo!();
     assert_eq!(expected, actual);
 }
@@ -1462,6 +1532,7 @@ fn test_hs_clz8() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_clz8(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1484,6 +1555,7 @@ fn test_hs_clz16() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_clz16(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1506,6 +1578,7 @@ fn test_hs_clz32() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_clz32(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1528,6 +1601,7 @@ fn test_hs_clz64() {
         let x: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_clz64(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1550,6 +1624,7 @@ fn test_hs_ctz8() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_ctz8(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1572,6 +1647,7 @@ fn test_hs_ctz16() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_ctz16(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1594,6 +1670,7 @@ fn test_hs_ctz32() {
         let x: StgWord = Arbitrary::arbitrary(g);
         unsafe { hs_ctz32(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1616,6 +1693,7 @@ fn test_hs_ctz64() {
         let x: StgWord64 = Arbitrary::arbitrary(g);
         unsafe { hs_ctz64(x) }
     };
+
     let expected: StgWord = todo!();
     assert_eq!(expected, actual);
 }
@@ -1639,6 +1717,7 @@ fn test_hs_mulIntMayOflo() {
         let b: W_ = Arbitrary::arbitrary(g);
         unsafe { hs_mulIntMayOflo(a, b) }
     };
+
     let expected: W_ = todo!();
     assert_eq!(expected, actual);
 }
