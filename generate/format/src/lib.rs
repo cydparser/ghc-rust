@@ -3,7 +3,7 @@
 pub fn add_blank_lines(src: &str) -> String {
     let mut padded = String::with_capacity((src.len() as f64 * 1.05) as usize);
     let mut add_newline = false;
-    let mut prev_context = Context::Unknown;
+    let mut prev_context = Context::Blank;
 
     for line in src.lines() {
         let trimmed = line.trim();
@@ -18,12 +18,10 @@ pub fn add_blank_lines(src: &str) -> String {
 
         if let Some(token) = trimmed.split_whitespace().next() {
             (add_newline, prev_context) = match token {
-                "pub" | "pub(crate)" => {
-                    if !add_newline
-                        && prev_context != Context::Macro
-                        && prev_context.permit_newline()
-                        && !trimmed.ends_with(",")
-                    {
+                "pub" | "pub(crate)"
+                    if !trimmed.starts_with("pub mod ") && !trimmed.starts_with("pub use ") =>
+                {
+                    if !add_newline && prev_context.permit_newline() && !trimmed.ends_with(",") {
                         padded.push('\n');
                     }
                     (
@@ -35,44 +33,39 @@ pub fn add_blank_lines(src: &str) -> String {
                         },
                     )
                 }
-                "const" | "mod" | "static" if trimmed.ends_with(";") => (true, Context::Unknown),
+                "const" | "static" if trimmed.ends_with(";") => (true, Context::Unknown),
                 "if" | "loop" | "match" | "return" | "while"
                     if !add_newline && prev_context.permit_newline() =>
                 {
                     padded.push('\n');
                     (false, Context::Unknown)
                 }
-                "///" => (false, Context::Comment),
-                "use" => {
-                    if !add_newline && prev_context != Context::Use && prev_context.permit_newline()
-                    {
-                        padded.push('\n');
-                    }
-
-                    (false, Context::Use)
+                "//" | "///" => (false, Context::Comment),
+                "mod" => maybe_add_newline(add_newline, prev_context, Context::Mod, &mut padded),
+                _ if trimmed.starts_with("pub mod ") => {
+                    maybe_add_newline(add_newline, prev_context, Context::Mod, &mut padded)
+                }
+                "use" => maybe_add_newline(add_newline, prev_context, Context::Use, &mut padded),
+                _ if trimmed.starts_with("pub use ") => {
+                    maybe_add_newline(add_newline, prev_context, Context::Use, &mut padded)
                 }
                 _ if trimmed == "}" || trimmed == "};" => (true, Context::Unknown),
                 _ if trimmed.starts_with("#") => {
-                    if !add_newline
-                        && prev_context != Context::Macro
-                        && prev_context.permit_newline()
-                    {
-                        padded.push('\n');
-                    }
-
-                    (false, Context::Macro)
+                    maybe_add_newline(add_newline, prev_context, Context::Macro, &mut padded)
                 }
                 _ if trimmed.ends_with("{") => (false, Context::Open),
                 _ => (false, Context::Unknown),
             };
 
             padded.push_str(line);
+            padded.push('\n');
         } else {
+            if !add_newline && prev_context != Context::Blank {
+                padded.push('\n');
+            }
             add_newline = false;
             prev_context = Context::Blank;
         };
-
-        padded.push('\n');
     }
 
     padded
@@ -84,12 +77,29 @@ enum Context {
     Blank,
     Comment,
     Macro,
+    Mod,
     Open,
     Use,
 }
 
 impl Context {
     fn permit_newline(self) -> bool {
-        self != Context::Blank && self != Context::Open && self != Context::Comment
+        !matches!(
+            self,
+            Context::Blank | Context::Comment | Context::Macro | Context::Open
+        )
     }
+}
+
+fn maybe_add_newline(
+    add_newline: bool,
+    prev_context: Context,
+    context: Context,
+    padded: &mut String,
+) -> (bool, Context) {
+    if !add_newline && prev_context != context && prev_context.permit_newline() {
+        padded.push('\n');
+    }
+
+    (false, context)
 }
