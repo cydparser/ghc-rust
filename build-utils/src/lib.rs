@@ -47,11 +47,10 @@ impl GhcDirs {
                 os => os,
             };
 
-            let arch_os_dir = file_names_starting_with(
-                &lib_dir,
-                format!("{}-{}-ghc-", std::env::consts::ARCH, os),
-            );
-            lib_dir.push(PathBuf::from(&arch_os_dir[0]));
+            let arch_os_prefix = format!("{}-{}-ghc-", std::env::consts::ARCH, os);
+
+            let arch_os_dir = find_paths(&lib_dir, &|s| s.starts_with(&arch_os_prefix), 0);
+            lib_dir.push(PathBuf::from(&arch_os_dir[0].1));
             lib_dir
         };
 
@@ -67,12 +66,15 @@ impl GhcDirs {
     }
 
     pub fn rts_bindings(&self, build_rs: bool) -> bindgen::Bindings {
-        let mut builder = bindgen_builder(self)
-            .header(self.include_dir.join("Rts.h").to_string_lossy())
-            .allowlist_file(format!(
-                "{}.*",
-                self.include_dir.as_os_str().to_string_lossy()
-            ));
+        let mut builder =
+            bindgen_builder(self).header(self.include_dir.join("Rts.h").to_string_lossy());
+
+        if cfg!(windows) {
+            builder = builder.allowlist_file(".*\\bstage1\\b.*");
+        } else {
+            builder = builder.allowlist_file(format!("{}.*", self.include_dir.to_string_lossy()));
+        }
+
         if build_rs {
             // Invalidate bindings when header files change.
             builder = builder.parse_callbacks(Box::new(bindgen::CargoCallbacks::new()));
@@ -91,19 +93,7 @@ static LIBC_TYPES: [&str; 5] = [
 ];
 
 pub fn bindgen_builder(ghc: &GhcDirs) -> bindgen::Builder {
-    let block_types: String = {
-        let mut s = String::from("\\b(");
-        let mut types = LIBC_TYPES.iter();
-        s.push_str(types.next().unwrap());
-
-        for ty in types {
-            s.push('|');
-            s.push_str(ty);
-        }
-        s.push_str(")\\b");
-        s
-    };
-    bindgen::Builder::default()
+    let mut builder = bindgen::Builder::default()
         .rust_target(bindgen::RustTarget::stable(85, 0).unwrap())
         .default_enum_style(bindgen::EnumVariation::Rust {
             non_exhaustive: false,
@@ -111,14 +101,40 @@ pub fn bindgen_builder(ghc: &GhcDirs) -> bindgen::Builder {
         .default_non_copy_union_style(bindgen::NonCopyUnionStyle::ManuallyDrop)
         .generate_cstr(true)
         .use_core()
-        .clang_arg(format!("-I{}", ghc.include_dir.display()))
-        .blocklist_type(block_types)
+        .clang_arg(format!("-I{}", ghc.include_dir.display()));
+
+    if cfg!(windows) {
+        builder = builder.clang_arg(format!(
+            "-I{}",
+            ghc.root_dir.join("inplace/mingw/include").display()
+        ));
+    } else {
+        let block_types: String = {
+            let mut s = String::from("\\b(");
+            let mut types = LIBC_TYPES.iter();
+            s.push_str(types.next().unwrap());
+
+            for ty in types {
+                s.push('|');
+                s.push_str(ty);
+            }
+            s.push_str(")\\b");
+            s
+        };
+        builder = builder.blocklist_type(block_types);
+    }
+
+    builder
 }
 
 pub fn use_libc() -> String {
+    if cfg!(windows) {
+        return String::new();
+    }
+
     let mut s = String::from("use libc::{");
 
-    let libc_types: Vec<&str> = if std::env::consts::OS == "macos" {
+    let libc_types: Vec<&str> = if cfg!(target_os = "macos") {
         LIBC_TYPES
             .into_iter()
             .filter(|s| *s != "clockid_t")
@@ -170,7 +186,11 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
         None
     };
 
-    let lib_rts = format!("libHSrts-{}_thr-ghc", RTS_VER);
+    let lib_rts = if cfg!(windows) {
+        format!("libHSrts-{}_thr.a", RTS_VER)
+    } else {
+        format!("libHSrts-{}_thr-ghc", RTS_VER)
+    };
 
     let mut libs = [
         (lib_rts.as_ref(), None),
@@ -179,42 +199,69 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
         ("libHSghc-prim-", None),
     ];
 
-    let lib_predicate: fn(&String) -> bool = if std::env::var(GHC_LIB_DIR).is_ok() {
-        |s| !s.contains("_p-ghc")
+    let lib_predicate: fn(&str) -> bool = if std::env::var(GHC_LIB_DIR).is_ok() {
+        |s| (s.starts_with("libHSrts") || s.starts_with("libHSghc")) && !s.contains("_p-ghc")
     } else {
-        |s| s.contains("-inplace-ghc") || s.starts_with("libHSrts")
+        |s| {
+            s.starts_with("libHSrts")
+                || (s.starts_with("libHSghc")
+                    && if cfg!(windows) {
+                        s.ends_with("inplace.a")
+                    } else {
+                        s.contains("-inplace-ghc")
+                    })
+        }
     };
 
-    for file_name in file_names_starting_with(&ghc.lib_dir, "libHS")
-        .into_iter()
-        .filter(lib_predicate)
-    {
+    for (path, file_name) in find_paths(
+        &ghc.lib_dir,
+        &lib_predicate,
+        if cfg!(windows) { 1 } else { 0 },
+    ) {
         if let Some((prefix, lib)) = libs
             .iter_mut()
             .find(|&&mut (prefix, _)| file_name.starts_with(prefix))
         {
             assert!(lib.is_none(), "Multiple libs start with {}", prefix);
-            *lib = Some(file_name);
+            println!(
+                "cargo::rustc-link-search={}",
+                path.parent().unwrap().display()
+            );
+            *lib = Some((path, file_name));
         };
     }
 
     for (prefix, lib) in libs {
-        let lib = lib.expect(prefix);
+        #[cfg_attr(not(target_os = "linux"), allow(unused_variables))]
+        let (path, lib) = lib.expect(prefix);
 
         // The linker on Linux doesn't accept the library names produced by GHC, so we use
         // `+verbatim`. On macOS, ld64 doesn't support verbatim.
         if cfg!(target_os = "macos") {
-            let lib = lib[3..].strip_suffix(".dylib").unwrap();
-            println!("cargo::rustc-link-lib=dylib={}", lib);
+            println!(
+                "cargo::rustc-link-lib=dylib={}",
+                lib[3..].strip_suffix(".dylib").unwrap()
+            );
+        } else if cfg!(windows) {
+            println!(
+                "cargo::rustc-link-lib=static={}",
+                lib[3..].strip_suffix(".a").unwrap()
+            );
         } else {
             println!("cargo::rustc-link-lib=dylib:+verbatim={}", lib);
         }
 
         #[cfg(target_os = "linux")]
         if let Some(ref outputs_lib_dir) = outputs_lib_dir {
-            unix::fs::symlink(ghc.lib_dir.join(&lib), outputs_lib_dir.join(&lib)).unwrap();
+            unix::fs::symlink(path, outputs_lib_dir.join(&lib)).unwrap();
         }
     }
+
+    #[cfg(windows)]
+    println!(
+        "cargo::rustc-link-search={}",
+        ghc.root_dir.join("_build/stage1/gmp").display()
+    );
 
     for lib in [
         #[cfg(target_os = "linux")]
@@ -228,19 +275,31 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
     ] {
         println!("cargo::rustc-link-lib={}", lib);
     }
+
+    #[cfg(windows)]
+    for lib in ["ole32", "rpcrt4", "shell32", "ucrt"] {
+        println!("cargo::rustc-link-lib={}", lib);
+    }
 }
 
-fn file_names_starting_with<P: AsRef<Path>, Pat: AsRef<str>>(dir: P, pat: Pat) -> Vec<String> {
-    let mut file_names = vec![];
+fn find_paths<P>(dir: &Path, predicate: &P, max_depth: usize) -> Vec<(PathBuf, String)>
+where
+    P: Fn(&str) -> bool,
+{
+    let mut paths = vec![];
 
     for entry in fs::read_dir(dir).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
         let file_name = path.file_name().unwrap().to_string_lossy();
 
-        if file_name.starts_with(pat.as_ref()) {
-            file_names.push(file_name.to_string());
+        if predicate(file_name.as_ref()) {
+            let file_name = file_name.to_string();
+            paths.push((path, file_name));
+        } else if entry.file_type().unwrap().is_dir() && max_depth > 0 {
+            paths.extend(find_paths(path.as_ref(), predicate, max_depth - 1));
         }
     }
-    file_names
+
+    paths
 }
