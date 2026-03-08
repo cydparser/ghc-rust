@@ -267,13 +267,6 @@ pub struct StgIntCharlikeClosure {
 
 /// cbindgen:no-export
 #[repr(C)]
-struct _StgStableName {
-    header: StgHeader,
-    sn: StgWord,
-}
-
-/// cbindgen:no-export
-#[repr(C)]
 #[derive(Debug)]
 pub struct _StgWeak {
     header: StgHeader,
