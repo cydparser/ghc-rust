@@ -1,19 +1,25 @@
-#![allow(clippy::new_without_default)]
-
 use std::fs;
-#[cfg(target_os = "linux")]
-use std::os::unix;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
-pub struct GhcDirs {
+pub struct GhcConfig {
     pub root_dir: PathBuf,
     pub lib_dir: PathBuf,
     pub rts_dir: PathBuf,
     pub include_dir: PathBuf,
+    pub rts_version: String,
+    pub ways: Ways,
 }
 
-const RTS_VER: &str = "1.0.3";
+#[derive(Debug, Default)]
+pub struct Ways {
+    pub threaded: bool,
+    pub debug: bool,
+    pub profiling: bool,
+    pub dynamic: bool,
+}
+
+const DEFAULT_RTS_VER: &str = "1.0.3";
 
 const GHC_LIB_DIR: &str = "GHC_LIB_DIR";
 
@@ -21,8 +27,8 @@ const GHC_LIB_DIR: &str = "GHC_LIB_DIR";
 ///   - GHC_DIR: Change the path to GHC source
 ///   - GHC_LIB_DIR: Change the path to object files and headers
 ///     E.g. GHC_LIB_DIR="/nix/store/hash-ghc-ver/lib/ghc-ver/lib"
-impl GhcDirs {
-    pub fn new() -> GhcDirs {
+impl GhcConfig {
+    pub fn new(ways: Ways) -> GhcConfig {
         let ghc_dir = std::env::var("GHC_DIR")
             .map(PathBuf::from)
             .unwrap_or_else(|_| {
@@ -49,19 +55,24 @@ impl GhcDirs {
 
             let arch_os_prefix = format!("{}-{}-ghc-", std::env::consts::ARCH, os);
 
-            let arch_os_dir = find_paths(&lib_dir, &|s| s.starts_with(&arch_os_prefix), 0);
+            let arch_os_dir =
+                find_paths(&lib_dir, &|s| s.starts_with(&arch_os_prefix), &|_| false, 0);
             lib_dir.push(PathBuf::from(&arch_os_dir[0].1));
             lib_dir
         };
 
-        let rts_dir = lib_dir.join(PathBuf::from(format!("rts-{}", RTS_VER)));
+        let rts_version = DEFAULT_RTS_VER.to_string();
+
+        let rts_dir = lib_dir.join(PathBuf::from(format!("rts-{}", rts_version)));
         let include_dir = rts_dir.join(PathBuf::from("include"));
 
-        GhcDirs {
+        GhcConfig {
             root_dir: ghc_dir.clone(),
             lib_dir,
             rts_dir,
             include_dir,
+            rts_version,
+            ways,
         }
     }
 
@@ -92,7 +103,7 @@ static LIBC_TYPES: [&str; 5] = [
     "pthread_mutex_t",
 ];
 
-pub fn bindgen_builder(ghc: &GhcDirs) -> bindgen::Builder {
+pub fn bindgen_builder(ghc: &GhcConfig) -> bindgen::Builder {
     let mut builder = bindgen::Builder::default()
         .rust_target(bindgen::RustTarget::stable(85, 0).unwrap())
         .default_enum_style(bindgen::EnumVariation::Rust {
@@ -102,6 +113,16 @@ pub fn bindgen_builder(ghc: &GhcDirs) -> bindgen::Builder {
         .generate_cstr(true)
         .use_core()
         .clang_arg(format!("-I{}", ghc.include_dir.display()));
+
+    if ghc.ways.threaded {
+        builder = builder.clang_arg("-DTHREADED_RTS");
+    }
+    if ghc.ways.debug {
+        builder = builder.clang_arg("-DDEBUG");
+    }
+    if ghc.ways.profiling {
+        builder = builder.clang_arg("-DPROFILING");
+    }
 
     if cfg!(windows) {
         builder = builder.clang_arg(format!(
@@ -152,11 +173,7 @@ pub fn use_libc() -> String {
 }
 
 /// Configure linking.
-///
-/// When `create_symlinks` is true and `cfg!(target_os = "linux")`, _libHS_ shared objects will be
-/// symlinked into _outputs/out/lib_ in order to avoid needing to set LD_LIBRARY_PATH for
-/// tests/executables.
-pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
+pub fn rustc_link(ghc: &GhcConfig) {
     dbg!(ghc);
     println!("cargo::rustc-link-arg=--verbose");
 
@@ -165,31 +182,30 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
     #[cfg(target_os = "linux")]
     println!("cargo::rustc-link-arg=-Wl,--no-pie");
 
-    #[cfg(target_os = "macos")]
-    println!("cargo::rustc-link-arg=-Wl,-rpath,{}", ghc.lib_dir.display());
+    if ghc.ways.dynamic && cfg!(target_os = "macos") {
+        println!("cargo::rustc-link-arg=-Wl,-rpath,{}", ghc.lib_dir.display());
+    }
 
     println!("cargo::rustc-link-search=native={}", ghc.lib_dir.display());
 
-    #[allow(unused_variables)]
-    let outputs_lib_dir = if create_symlinks && cfg!(target_os = "linux") {
-        let project_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+    let lib_rts = {
+        let mut ways_text = String::new();
 
-        // The test executable's RUNPATH includes outputs/out/lib (on Linux, at least).
-        let outputs_lib_dir = project_dir.join("outputs/out/lib");
-
-        if outputs_lib_dir.exists() {
-            fs::remove_dir_all(&outputs_lib_dir).unwrap();
+        if ghc.ways.threaded {
+            ways_text.push_str("_thr");
         }
-        fs::create_dir_all(&outputs_lib_dir).unwrap();
-        Some(outputs_lib_dir)
-    } else {
-        None
-    };
+        if ghc.ways.debug {
+            ways_text.push_str("_debug");
+        }
+        if ghc.ways.profiling {
+            ways_text.push_str("_p");
+        }
 
-    let lib_rts = if cfg!(windows) {
-        format!("libHSrts-{}_thr.a", RTS_VER)
-    } else {
-        format!("libHSrts-{}_thr-ghc", RTS_VER)
+        if !ghc.ways.dynamic || cfg!(windows) {
+            format!("libHSrts-{}{}.", ghc.rts_version, ways_text)
+        } else {
+            format!("libHSrts-{}{}-ghc", ghc.rts_version, ways_text)
+        }
     };
 
     let mut libs = [
@@ -199,25 +215,29 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
         ("libHSghc-prim-", None),
     ];
 
-    let lib_predicate: fn(&str) -> bool = if std::env::var(GHC_LIB_DIR).is_ok() {
-        |s| (s.starts_with("libHSrts") || s.starts_with("libHSghc")) && !s.contains("_p-ghc")
-    } else {
-        |s| {
+    let lib_predicate = {
+        let is_dist = std::env::var(GHC_LIB_DIR).is_ok();
+
+        let mut inplace_way = "-inplace".to_string();
+
+        if ghc.ways.dynamic && !cfg!(windows) {
+            inplace_way.push_str("-ghc");
+        } else {
+            if ghc.ways.profiling {
+                inplace_way.push_str("_p");
+            }
+            inplace_way.push('.');
+        }
+
+        move |s: &str| -> bool {
             s.starts_with("libHSrts")
-                || (s.starts_with("libHSghc")
-                    && if cfg!(windows) {
-                        s.ends_with("inplace.a")
-                    } else {
-                        s.contains("-inplace-ghc")
-                    })
+                || (s.starts_with("libHSghc") && (!is_dist || s.contains(&inplace_way)))
         }
     };
 
-    for (path, file_name) in find_paths(
-        &ghc.lib_dir,
-        &lib_predicate,
-        if cfg!(windows) { 1 } else { 0 },
-    ) {
+    let dir_predicate = |s: &str| s.starts_with("ghc-") || s.starts_with("rts-");
+
+    for (path, file_name) in find_paths(&ghc.lib_dir, &lib_predicate, &dir_predicate, 1) {
         if let Some((prefix, lib)) = libs
             .iter_mut()
             .find(|&&mut (prefix, _)| file_name.starts_with(prefix))
@@ -237,23 +257,26 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
 
         // The linker on Linux doesn't accept the library names produced by GHC, so we use
         // `+verbatim`. On macOS, ld64 doesn't support verbatim.
-        if cfg!(target_os = "macos") {
-            println!(
-                "cargo::rustc-link-lib=dylib={}",
-                lib[3..].strip_suffix(".dylib").unwrap()
-            );
-        } else if cfg!(windows) {
+        if cfg!(target_os = "linux") {
+            // TODO: Support static linking on Linux.
+            assert!(ghc.ways.dynamic);
+            println!("cargo::rustc-link-lib=dylib:+verbatim={}", lib);
+        } else if !ghc.ways.dynamic || cfg!(windows) {
             println!(
                 "cargo::rustc-link-lib=static={}",
                 lib[3..].strip_suffix(".a").unwrap()
             );
+        } else if cfg!(target_os = "macos") {
+            println!(
+                "cargo::rustc-link-lib=dylib={}",
+                lib[3..].strip_suffix(".dylib").unwrap()
+            );
         } else {
-            println!("cargo::rustc-link-lib=dylib:+verbatim={}", lib);
-        }
-
-        #[cfg(target_os = "linux")]
-        if let Some(ref outputs_lib_dir) = outputs_lib_dir {
-            unix::fs::symlink(path, outputs_lib_dir.join(&lib)).unwrap();
+            panic!(
+                "unable to determine linker flags for {}: {:?}",
+                std::env::consts::OS,
+                ghc.ways
+            );
         }
     }
 
@@ -282,9 +305,15 @@ pub fn rustc_link(ghc: &GhcDirs, create_symlinks: bool) {
     }
 }
 
-fn find_paths<P>(dir: &Path, predicate: &P, max_depth: usize) -> Vec<(PathBuf, String)>
+fn find_paths<P, Q>(
+    dir: &Path,
+    file_predicate: &P,
+    dir_predicate: &Q,
+    max_depth: usize,
+) -> Vec<(PathBuf, String)>
 where
     P: Fn(&str) -> bool,
+    Q: Fn(&str) -> bool,
 {
     let mut paths = vec![];
 
@@ -293,11 +322,19 @@ where
         let path = entry.path();
         let file_name = path.file_name().unwrap().to_string_lossy();
 
-        if predicate(file_name.as_ref()) {
+        if file_predicate(file_name.as_ref()) {
             let file_name = file_name.to_string();
             paths.push((path, file_name));
-        } else if entry.file_type().unwrap().is_dir() && max_depth > 0 {
-            paths.extend(find_paths(path.as_ref(), predicate, max_depth - 1));
+        } else if entry.file_type().unwrap().is_dir()
+            && max_depth > 0
+            && dir_predicate(file_name.as_ref())
+        {
+            paths.extend(find_paths(
+                path.as_ref(),
+                file_predicate,
+                dir_predicate,
+                max_depth - 1,
+            ));
         }
     }
 

@@ -1,4 +1,4 @@
-use build_utils as utils;
+use build_utils::{self as utils, Ways};
 use generate_consumers::{Consumer, Consumers};
 use proc_macro2::Span;
 use regex::Regex;
@@ -16,7 +16,12 @@ pub fn main() {
         generate_dir.join("symbols/src/lib.rs")
     };
 
-    let ghc = utils::GhcDirs::new();
+    let ghc = utils::GhcConfig::new(Ways {
+        threaded: true,
+        debug: true,
+        profiling: true,
+        dynamic: true,
+    });
 
     let buf = {
         let mut buf = vec![];

@@ -1,15 +1,20 @@
+use build_utils::{self as utils, Ways};
 use std::io::Write as _;
 use std::path::PathBuf;
 use std::{env, fs};
 
-use build_utils as utils;
-
 fn main() {
-    let ghc = utils::GhcDirs::new();
+    // TODO: Use features for ways.
+    let ghc = utils::GhcConfig::new(Ways {
+        threaded: true,
+        debug: true,
+        profiling: true,
+        dynamic: true,
+    });
 
-    utils::rustc_link(&ghc, cfg!(unix));
+    utils::rustc_link(&ghc);
 
-    let bindings = ghc.rts_bindings(false);
+    let bindings = ghc.rts_bindings(true);
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 

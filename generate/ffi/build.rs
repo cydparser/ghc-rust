@@ -1,3 +1,4 @@
+use build_utils::{self as utils, Ways};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
@@ -5,10 +6,13 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::{env, fs};
 
-use build_utils as utils;
-
 fn main() {
-    let ghc = utils::GhcDirs::new();
+    let ghc = utils::GhcConfig::new(Ways {
+        threaded: true,
+        debug: true,
+        profiling: true,
+        dynamic: true,
+    });
 
     let bindings_builder = utils::bindgen_builder(&ghc)
         .allowlist_recursively(false)

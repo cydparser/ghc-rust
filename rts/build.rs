@@ -1,9 +1,15 @@
-use build_utils as utils;
+use build_utils::{self as utils, Ways};
 
 fn main() {
     if cfg!(feature = "sys") {
-        let ghc = utils::GhcDirs::new();
+        // TODO: Use features for ways.
+        let ghc = utils::GhcConfig::new(Ways {
+            threaded: true,
+            debug: true,
+            profiling: true,
+            dynamic: false,
+        });
 
-        utils::rustc_link(&ghc, false);
+        utils::rustc_link(&ghc);
     }
 }
