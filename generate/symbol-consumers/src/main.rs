@@ -701,14 +701,20 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
                         let (main_keys, sub_keys) = {
                             let sym = String::from(&caps["sym"]);
 
-                            match subs.get(&sym) {
-                                Some(keys) => {
-                                    keys.iter().map(|(k, s)| (k.clone(), s.clone())).collect()
+                            if let Some(field) = caps.name("field") {
+                                let sym_field = format!("{}.{}", sym, field.as_str());
+
+                                (vec![sym], vec![sym_field])
+                            } else {
+                                match subs.get(&sym) {
+                                    Some(keys) => {
+                                        keys.iter().map(|(k, s)| (k.clone(), s.clone())).collect()
+                                    }
+                                    None if !(sym.starts_with('.') || sym.starts_with("->")) => {
+                                        (vec![sym], vec![])
+                                    }
+                                    _ => (vec![], vec![]),
                                 }
-                                None if !(sym.starts_with('.') || sym.starts_with("->")) => {
-                                    (vec![sym], vec![])
-                                }
-                                _ => (vec![], vec![]),
                             }
                         };
 
@@ -757,6 +763,20 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
 
     let hs_consumers = search(&syms_regex, &["-g", "*.hs", &foreign_pat]);
 
+    let hsc_consumers = {
+        let peek_poke = r"\b(peek|poke)\s+";
+
+        let regex = Regex::new(&format!(
+            r"{}(?<sym>{}),\s+(?<field>[a-zA-Z0-9_]+)",
+            peek_poke, syms_pattern
+        ))
+        .unwrap();
+
+        let pat = format!(r"{}{}", peek_poke, syms_pattern);
+
+        search(&regex, &["-g", "*.hsc", &pat])
+    };
+
     let internal_consumers = search(
         &syms_and_fields_regex,
         &[
@@ -784,7 +804,12 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
     );
 
     // Merge the HashMaps.
-    for cs in [hs_consumers, internal_consumers, doc_consumers] {
+    for cs in [
+        hs_consumers,
+        hsc_consumers,
+        internal_consumers,
+        doc_consumers,
+    ] {
         for (sym, c) in cs {
             *(sym_consumers.entry(sym).or_default()) |= c;
         }
