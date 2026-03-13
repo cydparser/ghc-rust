@@ -7,7 +7,7 @@ fn main() {
             threaded: true,
             debug: true,
             profiling: true,
-            dynamic: false,
+            dynamic: true,
         });
 
         utils::rustc_link(&ghc);
