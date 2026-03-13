@@ -565,6 +565,7 @@ fn transform_struct(
         }
     }
     if consumers.is_empty() {
+        item_struct.vis = parse_quote! { pub(crate) };
         item_struct
             .attrs
             .insert(0, parse_quote! { #[doc = " cbindgen:no-export"] });
