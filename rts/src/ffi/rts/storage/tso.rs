@@ -16,7 +16,7 @@ pub(crate) const STACK_DIRTY: u32 = 1;
 
 pub(crate) const STACK_SANE: u32 = 64;
 
-#[ffi(ghc_lib)]
+#[ffi(compiler, ghc_lib, libraries, testsuite)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgTSOProfInfo {
@@ -37,7 +37,6 @@ pub union StgTSOBlockInfo {
     pub throwto: *mut MessageThrowTo_,
     pub wakeup: *mut MessageWakeup_,
     pub fd: StgInt,
-    pub target: StgWord,
 }
 
 #[ffi(ghc_lib, testsuite)]
@@ -65,6 +64,7 @@ pub struct StgTSO_ {
     pub bq: *mut StgBlockingQueue,
     pub alloc_limit: StgInt64,
     pub tot_stack_size: StgWord32,
+    pub prof: StgTSOProfInfo,
 }
 
 pub(crate) type StgTSOPtr = *mut StgTSO_;

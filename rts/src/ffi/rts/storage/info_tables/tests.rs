@@ -3,6 +3,21 @@ use super::*;
 
 #[cfg(feature = "sys")]
 #[test]
+fn sys_StgProfInfo_layout() {
+    assert_eq!(
+        offset_of!(StgProfInfo, closure_type_off),
+        offset_of!(sys::StgProfInfo, closure_type_off)
+    );
+    assert_eq!(
+        offset_of!(StgProfInfo, closure_desc_off),
+        offset_of!(sys::StgProfInfo, closure_desc_off)
+    );
+    assert_eq!(size_of::<StgProfInfo>(), size_of::<sys::StgProfInfo>());
+    assert_eq!(align_of::<StgProfInfo>(), align_of::<sys::StgProfInfo>());
+}
+
+#[cfg(feature = "sys")]
+#[test]
 fn sys_StgLargeBitmap_layout() {
     assert_eq!(
         size_of::<StgLargeBitmap>(),
@@ -58,6 +73,11 @@ fn sys_StgSRTField_layout() {
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgInfoTable__layout() {
+    assert_eq!(size_of::<StgProfInfo>(), size_of::<sys::StgProfInfo>());
+    assert_eq!(
+        offset_of!(StgInfoTable_, prof),
+        offset_of!(sys::StgInfoTable_, prof)
+    );
     assert_eq!(
         size_of::<StgClosureInfo>(),
         size_of::<sys::StgClosureInfo>()

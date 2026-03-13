@@ -1,4 +1,5 @@
 use crate::capability::Capability;
+use crate::ffi::rts::spin_lock::SpinLock;
 use crate::ffi::rts::storage::block::bdescr;
 use crate::ffi::rts::storage::closures::{StgClosure, StgInd, StgIndStatic, StgMutVar, StgWeak};
 use crate::ffi::rts::storage::tso::StgTSO;
@@ -44,6 +45,8 @@ pub struct generation_ {
     pub collections: u32,
     pub par_collections: u32,
     pub failed_promotions: u32,
+    pub pad: [c_char; 128usize],
+    pub sync: SpinLock,
     pub mark: c_int,
     pub compact: c_int,
     pub old_blocks: *mut bdescr,
@@ -76,7 +79,7 @@ pub(crate) type ListBlocksCb = Option<unsafe extern "C" fn(user: *mut c_void, ar
 #[instrument]
 pub unsafe extern "C" fn allocate(cap: *mut Capability, n: W_) -> StgPtr {
     sys! {
-        allocate(cap as * mut sys::Capability, n)
+        allocate(cap.cast(), n)
     }
 }
 

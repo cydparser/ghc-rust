@@ -7,6 +7,7 @@ use super::*;
 fn equivalent___hscore_get_saved_termios(fd: c_int) -> bool {
     let expected = {
         let result: &c_void = unsafe { &*sys::__hscore_get_saved_termios(fd) };
+
         todo!()
     };
 

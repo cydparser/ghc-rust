@@ -113,6 +113,15 @@ fn sys_generation__layout() {
         offset_of!(sys::generation_, failed_promotions)
     );
     assert_eq!(
+        offset_of!(generation_, pad),
+        offset_of!(sys::generation_, pad)
+    );
+    assert_eq!(size_of::<SpinLock>(), size_of::<sys::SpinLock>());
+    assert_eq!(
+        offset_of!(generation_, sync),
+        offset_of!(sys::generation_, sync)
+    );
+    assert_eq!(
         offset_of!(generation_, mark),
         offset_of!(sys::generation_, mark)
     );
@@ -377,6 +386,7 @@ fn equivalent_newCAF() {
         let mut reg: sys::StgRegTable = todo!();
         let mut caf: sys::StgIndStatic = todo!();
         let result: &StgInd = unsafe { transmute(&*sys::newCAF(&raw mut reg, &raw mut caf)) };
+
         todo!()
     };
 

@@ -1,7 +1,9 @@
-use crate::ffi::rts::storage::closures::{StgHeader, StgIntCharlikeClosure};
+use crate::ffi::rts::storage::closures::{
+    StgHeader, StgIntCharlikeClosure, StgProfHeader, StgProfHeader__bindgen_ty_1,
+};
 use crate::ffi::rts::storage::info_tables::{
     StgClosureInfo, StgFunInfoExtraRev_, StgFunInfoExtraRev___bindgen_ty_1, StgFunInfoTable,
-    StgInfoTable, StgInfoTable_,
+    StgInfoTable, StgInfoTable_, StgProfInfo,
 };
 use crate::ffi::stg::types::StgFunPtr;
 use crate::prelude::*;
@@ -10,6 +12,10 @@ use crate::prelude::*;
 mod tests;
 
 const TODO_StgInfoTable: StgInfoTable = StgInfoTable_ {
+    prof: StgProfInfo {
+        closure_type_off: 0,
+        closure_desc_off: 0,
+    },
     layout: StgClosureInfo { bitmap: 0 },
     type_: 0,
     srt: 0,
@@ -107,7 +113,13 @@ pub static stg_SRT_16_info: StgInfoTable = TODO_StgInfoTable;
 #[unsafe(no_mangle)]
 pub static mut stg_INTLIKE_closure: [StgIntCharlikeClosure; 272] = [const {
     StgIntCharlikeClosure {
-        header: StgHeader { info: null() },
+        header: StgHeader {
+            info: null(),
+            prof: StgProfHeader {
+                ccs: null_mut(),
+                hp: StgProfHeader__bindgen_ty_1 { era: 0 },
+            },
+        },
         data: 0,
     }
 }; _];

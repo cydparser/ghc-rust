@@ -123,7 +123,6 @@ pub struct CapabilityPublic_ {
     r: StgRegTable,
 }
 
-#[expect(unused)]
 pub(crate) type CapabilityPublic = CapabilityPublic_;
 
 #[ffi(compiler, docs, driver, testsuite, utils)]

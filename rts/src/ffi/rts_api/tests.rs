@@ -73,6 +73,7 @@ fn equivalent_pauseTokenCapability() {
         let mut pauseToken: sys::PauseToken = todo!();
         let result: &Capability =
             unsafe { transmute(&*sys::pauseTokenCapability(&raw mut pauseToken)) };
+
         todo!()
     };
 
@@ -601,6 +602,7 @@ fn test_rts_unlock() {
 fn equivalent_rts_unsafeGetMyCapability() {
     let expected = {
         let result: &Capability = unsafe { transmute(&*sys::rts_unsafeGetMyCapability()) };
+
         todo!()
     };
 
@@ -808,6 +810,7 @@ fn equivalent_rts_mkInt16(i: HsInt16) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt16(&raw mut arg1, i)) };
+
         todo!()
     };
 
@@ -844,6 +847,7 @@ fn equivalent_rts_mkInt32(i: HsInt32) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt32(&raw mut arg1, i)) };
+
         todo!()
     };
 
@@ -880,6 +884,7 @@ fn equivalent_rts_mkInt64(i: HsInt64) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt64(&raw mut arg1, i)) };
+
         todo!()
     };
 
@@ -952,6 +957,7 @@ fn equivalent_rts_mkWord8(w: HsWord8) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord8(&raw mut arg1, w)) };
+
         todo!()
     };
 
@@ -988,6 +994,7 @@ fn equivalent_rts_mkWord16(w: HsWord16) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord16(&raw mut arg1, w)) };
+
         todo!()
     };
 
@@ -1024,6 +1031,7 @@ fn equivalent_rts_mkWord32(w: HsWord32) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord32(&raw mut arg1, w)) };
+
         todo!()
     };
 
@@ -1060,6 +1068,7 @@ fn equivalent_rts_mkWord64(w: HsWord64) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord64(&raw mut arg1, w)) };
+
         todo!()
     };
 
@@ -1134,6 +1143,7 @@ fn equivalent_rts_mkFunPtr() {
         let mut arg1: sys::Capability = todo!();
         let a: HsFunPtr = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkFunPtr(&raw mut arg1, a)) };
+
         todo!()
     };
 
@@ -1170,6 +1180,7 @@ fn equivalent_rts_mkFloat(f: HsFloat) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkFloat(&raw mut arg1, f)) };
+
         todo!()
     };
 
@@ -1206,6 +1217,7 @@ fn equivalent_rts_mkDouble(f: HsDouble) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkDouble(&raw mut arg1, f)) };
+
         todo!()
     };
 
@@ -1243,6 +1255,7 @@ fn equivalent_rts_mkStablePtr() {
         let mut arg1: sys::Capability = todo!();
         let s: HsStablePtr = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_mkStablePtr(&raw mut arg1, s)) };
+
         todo!()
     };
 
@@ -1316,6 +1329,7 @@ fn equivalent_rts_mkString(s: c_char) -> bool {
         let mut arg1: sys::Capability = todo!();
         let mut s = s;
         let result: HaskellObj = unsafe { transmute(sys::rts_mkString(&raw mut arg1, &raw mut s)) };
+
         todo!()
     };
 
@@ -1355,6 +1369,7 @@ fn equivalent_rts_apply() {
         let arg2: sys::HaskellObj = todo!();
         let arg3: sys::HaskellObj = todo!();
         let result: HaskellObj = unsafe { transmute(sys::rts_apply(&raw mut arg1, arg2, arg3)) };
+
         todo!()
     };
 

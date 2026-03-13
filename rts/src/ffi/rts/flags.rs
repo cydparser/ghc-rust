@@ -121,7 +121,10 @@ pub struct _GC_FLAGS {
 #[ffi(compiler, ghc_lib)]
 pub type GC_FLAGS = _GC_FLAGS;
 
-#[ffi(compiler)]
+#[ffi(compiler, ghc_lib)]
+pub type DEBUG_FLAGS = _DEBUG_FLAGS;
+
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
@@ -179,9 +182,6 @@ impl Arbitrary for _DEBUG_FLAGS {
         }
     }
 }
-
-#[ffi(compiler, ghc_lib)]
-pub type DEBUG_FLAGS = _DEBUG_FLAGS;
 
 /// cbindgen:no-export
 #[repr(C)]

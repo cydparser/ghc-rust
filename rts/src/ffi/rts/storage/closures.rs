@@ -9,19 +9,27 @@ mod tests;
 
 pub(crate) const TREC_CHUNK_NUM_ENTRIES: u32 = 16;
 
-#[ffi(compiler)]
+#[ffi(compiler, docs, ghc_lib)]
 #[repr(C)]
+#[derive(Debug)]
 pub struct StgProfHeader {
     pub ccs: *mut CostCentreStack,
     pub hp: StgProfHeader__bindgen_ty_1,
 }
 
-#[ffi(compiler)]
+#[ffi(compiler, docs, ghc_lib)]
 #[repr(C)]
 pub union StgProfHeader__bindgen_ty_1 {
     pub trav: StgWord,
     pub ldvw: StgWord,
     pub era: StgWord,
+}
+
+impl std::fmt::Debug for StgProfHeader__bindgen_ty_1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // SAFETY: The union fields are all of the same type.
+        write!(f, "{:?}", unsafe { self.era })
+    }
 }
 
 /// cbindgen:no-export
@@ -45,13 +53,15 @@ impl Arbitrary for StgSMPThunkHeader {
 #[derive(Debug)]
 pub struct StgHeader {
     pub info: *const StgInfoTable,
+    pub prof: StgProfHeader,
 }
 
-/// cbindgen:no-export
+#[ffi(compiler)]
 #[repr(C)]
-struct StgThunkHeader {
-    info: *const StgInfoTable,
-    smp: StgSMPThunkHeader,
+pub struct StgThunkHeader {
+    pub info: *const StgInfoTable,
+    pub prof: StgProfHeader,
+    pub smp: StgSMPThunkHeader,
 }
 
 #[ffi(compiler, docs, driver, ghc_lib, testsuite, utils)]
@@ -79,14 +89,14 @@ pub(crate) type StgThunk = StgThunk_;
 
 /// cbindgen:no-export
 #[repr(C)]
-struct StgSelector {
+pub(crate) struct StgSelector {
     header: StgThunkHeader,
     selectee: *mut StgClosure,
 }
 
 /// cbindgen:no-export
 #[repr(C)]
-struct StgPAP {
+pub(crate) struct StgPAP {
     header: StgHeader,
     arity: StgHalfWord,
     n_args: StgHalfWord,
@@ -94,19 +104,19 @@ struct StgPAP {
     payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
-/// cbindgen:no-export
+#[ffi(compiler)]
 #[repr(C)]
-struct StgAP {
-    header: StgThunkHeader,
-    arity: StgHalfWord,
-    n_args: StgHalfWord,
-    fun: *mut StgClosure,
-    payload: __IncompleteArrayField<*mut StgClosure>,
+pub struct StgAP {
+    pub header: StgThunkHeader,
+    pub arity: StgHalfWord,
+    pub n_args: StgHalfWord,
+    pub fun: *mut StgClosure,
+    pub payload: __IncompleteArrayField<*mut StgClosure>,
 }
 
 /// cbindgen:no-export
 #[repr(C)]
-struct StgAP_STACK {
+pub(crate) struct StgAP_STACK {
     header: StgThunkHeader,
     size: StgWord,
     fun: *mut StgClosure,
@@ -142,8 +152,7 @@ pub struct StgBlockingQueue_ {
     queue: *mut MessageBlackHole_,
 }
 
-#[ffi(compiler, ghc_lib, libraries, testsuite)]
-pub type StgBlockingQueue = StgBlockingQueue_;
+pub(crate) type StgBlockingQueue = StgBlockingQueue_;
 
 #[ffi(compiler, docs, ghc_lib)]
 #[repr(C)]
@@ -236,7 +245,7 @@ pub struct StgStopFrame {
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
-struct StgDeadThreadFrame {
+pub(crate) struct StgDeadThreadFrame {
     header: StgHeader,
     result: *mut StgClosure,
 }
@@ -244,7 +253,7 @@ struct StgDeadThreadFrame {
 /// cbindgen:no-export
 #[repr(C)]
 #[derive(Debug)]
-struct StgAnnFrame {
+pub(crate) struct StgAnnFrame {
     header: StgHeader,
     ann: *mut StgClosure,
 }
@@ -264,6 +273,15 @@ pub struct StgIntCharlikeClosure {
     pub header: StgHeader,
     pub data: StgWord,
 }
+
+/// cbindgen:no-export
+#[repr(C)]
+pub(crate) struct _StgStableName {
+    header: StgHeader,
+    sn: StgWord,
+}
+
+pub(crate) type StgStableName = _StgStableName;
 
 /// cbindgen:no-export
 #[repr(C)]
@@ -355,6 +373,7 @@ pub struct TRecEntry {
     tvar: *mut StgTVar,
     expected_value: *mut StgClosure,
     new_value: *mut StgClosure,
+    num_updates: StgInt,
 }
 
 /// cbindgen:no-export

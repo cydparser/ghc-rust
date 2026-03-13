@@ -24,6 +24,7 @@ fn equivalent_hs_hpc_module(
         let mut modName = modName;
         let mut tixArr = tixArr;
         unsafe { sys::hs_hpc_module(&raw mut modName, modCount, modHashNo, &raw mut tixArr) };
+
         todo!()
     };
 

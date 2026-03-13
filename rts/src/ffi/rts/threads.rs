@@ -15,15 +15,6 @@ mod tests;
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn createThread(cap: *mut Capability, stack_size: W_) -> *mut StgTSO {
-    sys! {
-        createThread(cap as * mut sys::Capability, stack_size).cast()
-    }
-}
-
-#[ffi(ghc_lib)]
-#[unsafe(no_mangle)]
-#[instrument]
 pub unsafe extern "C" fn createGenThread(
     cap: *mut Capability,
     stack_size: W_,

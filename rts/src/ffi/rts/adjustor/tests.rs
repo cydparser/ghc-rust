@@ -10,6 +10,7 @@ fn equivalent_createAdjustor(typeString: c_char) -> bool {
         let wptr: StgFunPtr = todo!();
         let mut typeString = typeString;
         let result: &c_void = unsafe { &*sys::createAdjustor(hptr, wptr, &raw mut typeString) };
+
         todo!()
     };
 
@@ -18,6 +19,7 @@ fn equivalent_createAdjustor(typeString: c_char) -> bool {
         let wptr: StgFunPtr = todo!();
         let mut typeString = typeString;
         let result: &c_void = unsafe { &*createAdjustor(hptr, wptr, &raw mut typeString) };
+
         todo!()
     };
 
@@ -34,6 +36,7 @@ fn test_createAdjustor() {
         let wptr: StgFunPtr = todo!();
         let mut typeString: c_char = Arbitrary::arbitrary(g);
         let result: &c_void = unsafe { &*createAdjustor(hptr, wptr, &raw mut typeString) };
+
         todo!()
     };
 

@@ -28,6 +28,7 @@ pub mod prof;
 pub mod profiling;
 pub mod rts_to_hs_iface;
 pub mod signals;
+pub mod spin_lock;
 pub mod stable_name;
 pub mod stable_ptr;
 pub mod static_ptr_table;
@@ -37,7 +38,6 @@ pub mod threads;
 pub mod ticky;
 pub mod time;
 pub mod timer;
-pub mod tsan_utils;
 pub mod tty;
 pub mod utils;
 
@@ -50,6 +50,8 @@ pub const IN_STG_CODE: u32 = 0;
 #[ffi(ghc_lib, libraries)]
 pub const _REENTRANT: u32 = 1;
 
+pub(crate) const ASSERTS_ENABLED: u32 = 1;
+
 #[ffi(ghc_lib)]
 pub const EXIT_INTERNAL_ERROR: u32 = 254;
 
@@ -61,7 +63,7 @@ pub(crate) const EXIT_HEAPOVERFLOW: u32 = 251;
 
 pub(crate) const EXIT_KILLED: u32 = 250;
 
-pub(crate) const DEBUG_IS_ON: u32 = 0;
+pub(crate) const DEBUG_IS_ON: u32 = 1;
 
 #[ffi(utils)]
 #[unsafe(no_mangle)]

@@ -72,7 +72,7 @@ pub type StgWord8 = u8;
 #[ffi(compiler, testsuite)]
 pub type StgInt16 = i16;
 
-#[ffi(compiler, ghc_lib, libraries, testsuite)]
+#[ffi(compiler, docs, ghc_lib, libraries, testsuite)]
 pub type StgWord16 = u16;
 
 #[ffi(compiler, testsuite)]
@@ -189,7 +189,7 @@ const _: () = {
 
 // TODO(rust): The `cfg` attributes are only needed for cbingen---these should be isize/usize.
 
-#[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
+#[ffi(compiler, ghc_lib, testsuite, utils)]
 #[cfg(target_pointer_width = "64")]
 pub type StgInt = i64;
 
@@ -217,13 +217,13 @@ pub type StgHalfWord = u32;
 #[ffi(compiler, ghc_lib, testsuite, utils)]
 pub type StgAddr = *mut c_void;
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, ghc_lib, testsuite, utils)]
 pub type StgChar = StgWord32;
 
 #[ffi(ghc_lib, testsuite)]
 pub type StgBool = c_int;
 
-#[ffi(compiler, testsuite)]
+#[ffi(compiler, ghc_lib, testsuite, utils)]
 pub type StgFloat = f32;
 
 #[ffi(compiler, ghc_lib, testsuite)]

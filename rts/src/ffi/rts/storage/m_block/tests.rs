@@ -1,3 +1,4 @@
+#[cfg(feature = "sys")]
 use super::*;
 
 #[cfg(feature = "sys")]

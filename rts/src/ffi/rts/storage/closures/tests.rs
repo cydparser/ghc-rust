@@ -51,6 +51,11 @@ fn sys_StgHeader_layout() {
         offset_of!(StgHeader, info),
         offset_of!(sys::StgHeader, info)
     );
+    assert_eq!(size_of::<StgProfHeader>(), size_of::<sys::StgProfHeader>());
+    assert_eq!(
+        offset_of!(StgHeader, prof),
+        offset_of!(sys::StgHeader, prof)
+    );
     assert_eq!(size_of::<StgHeader>(), size_of::<sys::StgHeader>());
     assert_eq!(align_of::<StgHeader>(), align_of::<sys::StgHeader>());
 }
@@ -65,6 +70,11 @@ fn sys_StgThunkHeader_layout() {
     assert_eq!(
         offset_of!(StgThunkHeader, info),
         offset_of!(sys::StgThunkHeader, info)
+    );
+    assert_eq!(size_of::<StgProfHeader>(), size_of::<sys::StgProfHeader>());
+    assert_eq!(
+        offset_of!(StgThunkHeader, prof),
+        offset_of!(sys::StgThunkHeader, prof)
     );
     assert_eq!(
         size_of::<StgSMPThunkHeader>(),

@@ -126,6 +126,11 @@ fn sys_StgTSO__layout() {
         offset_of!(StgTSO_, tot_stack_size),
         offset_of!(sys::StgTSO_, tot_stack_size)
     );
+    assert_eq!(
+        size_of::<StgTSOProfInfo>(),
+        size_of::<sys::StgTSOProfInfo>()
+    );
+    assert_eq!(offset_of!(StgTSO_, prof), offset_of!(sys::StgTSO_, prof));
     assert_eq!(size_of::<StgTSO_>(), size_of::<sys::StgTSO_>());
     assert_eq!(align_of::<StgTSO_>(), align_of::<sys::StgTSO_>());
 }

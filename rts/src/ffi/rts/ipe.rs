@@ -5,22 +5,22 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-#[ffi(testsuite)]
+#[ffi(compiler, ghc_lib)]
+pub type InfoProv = InfoProv_;
+
+#[ffi(ghc_lib)]
 #[repr(C)]
 #[derive(Debug)]
 pub struct InfoProv_ {
-    pub(crate) table_name: *const c_char,
-    pub(crate) closure_desc: u32,
-    pub(crate) ty_desc: *const c_char,
-    pub(crate) label: *const c_char,
-    pub(crate) unit_id: *const c_char,
-    pub(crate) module: *const c_char,
-    pub(crate) src_file: *const c_char,
-    pub(crate) src_span: *const c_char,
+    pub table_name: *const c_char,
+    pub closure_desc: u32,
+    pub ty_desc: *const c_char,
+    pub label: *const c_char,
+    pub unit_id: *const c_char,
+    pub module: *const c_char,
+    pub src_file: *const c_char,
+    pub src_span: *const c_char,
 }
-
-#[ffi(compiler, ghc_lib)]
-pub type InfoProv = InfoProv_;
 
 /// cbindgen:no-export
 #[repr(C)]
@@ -63,7 +63,7 @@ impl Arbitrary for IpeBufferEntry {
     }
 }
 
-#[ffi(compiler, libraries, testsuite)]
+#[ffi(compiler, libraries)]
 #[repr(C)]
 pub struct IpeBufferListNode_ {
     pub next: *mut IpeBufferListNode_,

@@ -24,6 +24,7 @@ fn equivalent_createGenThread(stack_size: W_) -> bool {
         let mut closure: StgClosure = todo!();
         let result: &StgTSO =
             unsafe { &*createGenThread(&raw mut cap, stack_size, &raw mut closure) };
+
         todo!()
     };
 
@@ -41,6 +42,7 @@ fn test_createGenThread() {
         let closure: StgClosure = todo!();
         let result: &StgTSO =
             unsafe { &*createGenThread(&raw mut cap, stack_size, &raw mut closure) };
+
         todo!()
     };
 
@@ -56,12 +58,14 @@ fn equivalent_suspendThread(interruptible: bool) -> bool {
     let expected = {
         let mut arg1: sys::StgRegTable = todo!();
         let result: &c_void = unsafe { &*sys::suspendThread(&raw mut arg1, interruptible) };
+
         todo!()
     };
 
     let actual = {
         let mut arg1: StgRegTable = todo!();
         let result: &c_void = unsafe { &*suspendThread(&raw mut arg1, interruptible) };
+
         todo!()
     };
 
@@ -77,6 +81,7 @@ fn test_suspendThread() {
         let arg1: StgRegTable = todo!();
         let interruptible: bool = Arbitrary::arbitrary(g);
         let result: &c_void = unsafe { &*suspendThread(&raw mut arg1, interruptible) };
+
         todo!()
     };
 
@@ -92,6 +97,7 @@ fn equivalent_resumeThread() {
     let expected = {
         let mut arg1: c_void = todo!();
         let result: &StgRegTable = unsafe { transmute(&*sys::resumeThread(&raw mut arg1)) };
+
         todo!()
     };
 
@@ -293,6 +299,7 @@ fn equivalent_listThreads() {
     let expected = {
         let mut cap: sys::Capability = todo!();
         let result: &_StgMutArrPtrs = unsafe { transmute(&*sys::listThreads(&raw mut cap)) };
+
         todo!()
     };
 

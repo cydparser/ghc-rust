@@ -329,6 +329,7 @@ fn equivalent_loadNativeObj(path: pathchar, errmsg: c_char) -> bool {
         let mut errmsg = errmsg;
         let mut errmsg = &raw mut errmsg;
         let result: &c_void = unsafe { &*sys::loadNativeObj(&raw mut path, &raw mut errmsg) };
+
         todo!()
     };
 
@@ -337,6 +338,7 @@ fn equivalent_loadNativeObj(path: pathchar, errmsg: c_char) -> bool {
         let mut errmsg = errmsg;
         let mut errmsg = &raw mut errmsg;
         let result: &c_void = unsafe { &*loadNativeObj(&raw mut path, &raw mut errmsg) };
+
         todo!()
     };
 
@@ -353,6 +355,7 @@ fn test_loadNativeObj() {
         let mut errmsg: c_char = Arbitrary::arbitrary(g);
         let mut errmsg = &raw mut errmsg;
         let result: &c_void = unsafe { &*loadNativeObj(&raw mut path, &raw mut errmsg) };
+
         todo!()
     };
 
@@ -401,6 +404,7 @@ fn equivalent_lookupSymbolInNativeObj(symbol_name: c_char) -> bool {
         let mut symbol_name = symbol_name;
         let result: &c_void =
             unsafe { &*sys::lookupSymbolInNativeObj(&raw mut handle, &raw mut symbol_name) };
+
         todo!()
     };
 
@@ -409,6 +413,7 @@ fn equivalent_lookupSymbolInNativeObj(symbol_name: c_char) -> bool {
         let mut symbol_name = symbol_name;
         let result: &c_void =
             unsafe { &*lookupSymbolInNativeObj(&raw mut handle, &raw mut symbol_name) };
+
         todo!()
     };
 
@@ -425,6 +430,7 @@ fn test_lookupSymbolInNativeObj() {
         let mut symbol_name: c_char = Arbitrary::arbitrary(g);
         let result: &c_void =
             unsafe { &*lookupSymbolInNativeObj(&raw mut handle, &raw mut symbol_name) };
+
         todo!()
     };
 

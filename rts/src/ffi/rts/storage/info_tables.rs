@@ -23,12 +23,12 @@ pub(crate) const _IND: u32 = 128;
 
 pub(crate) const _FRM: u32 = 256;
 
-/// cbindgen:no-export
+#[ffi(compiler, ghc_lib)]
 #[repr(C)]
 #[cfg_attr(test, derive(Clone))]
 pub struct StgProfInfo {
-    closure_type_off: StgInt,
-    closure_desc_off: StgInt,
+    pub closure_type_off: StgInt,
+    pub closure_desc_off: StgInt,
 }
 
 #[cfg(test)]
@@ -77,6 +77,7 @@ pub type StgInfoTable = StgInfoTable_;
 #[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub struct StgInfoTable_ {
+    pub prof: StgProfInfo,
     pub layout: StgClosureInfo,
     pub type_: StgHalfWord,
     pub srt: StgSRTField,

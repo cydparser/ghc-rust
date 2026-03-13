@@ -88,6 +88,7 @@ fn equivalent_libdwGetBacktrace() {
     let expected = {
         let mut session: sys::LibdwSession = todo!();
         let result: &Backtrace = unsafe { transmute(&*sys::libdwGetBacktrace(&raw mut session)) };
+
         todo!()
     };
 
