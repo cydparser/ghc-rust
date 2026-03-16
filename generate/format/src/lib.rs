@@ -11,44 +11,48 @@ pub fn add_blank_lines(src: &str) -> String {
         if add_newline
             && !trimmed.ends_with('}')
             && !trimmed.ends_with("};")
+            && !trimmed.starts_with("use ")
             && !trimmed.contains(" => ")
         {
             padded.push('\n');
         }
 
-        if let Some(token) = trimmed.split_whitespace().next() {
+        let sans_vis = trimmed
+            .starts_with("pub")
+            .then(|| {
+                trimmed
+                    .strip_prefix("pub ")
+                    .or_else(|| trimmed.strip_prefix("pub(crate) "))
+            })
+            .flatten()
+            .unwrap_or(trimmed);
+
+        if let Some(token) = sans_vis.split_whitespace().next() {
             (add_newline, prev_context) = match token {
-                "pub" | "pub(crate)"
-                    if !trimmed.starts_with("pub mod ") && !trimmed.starts_with("pub use ") =>
-                {
-                    if !add_newline && prev_context.permit_newline() && !trimmed.ends_with(",") {
+                _ if sans_vis.ends_with(',') => (false, Context::Unknown),
+                "const" | "enum" | "static" | "struct" | "type" => {
+                    if !add_newline && prev_context.permit_newline() {
                         padded.push('\n');
                     }
-                    (
-                        trimmed.ends_with(";"),
-                        if trimmed.ends_with("{") {
-                            Context::Open
-                        } else {
-                            Context::Unknown
-                        },
-                    )
+                    (sans_vis.ends_with(";"), Context::Unknown)
                 }
-                "const" | "static" if trimmed.ends_with(";") => (true, Context::Unknown),
                 "if" | "loop" | "match" | "return" | "while"
                     if !add_newline && prev_context.permit_newline() =>
                 {
                     padded.push('\n');
                     (false, Context::Unknown)
                 }
-                "//" | "///" => (false, Context::Comment),
-                "mod" => maybe_add_newline(add_newline, prev_context, Context::Mod, &mut padded),
-                _ if trimmed.starts_with("pub mod ") => {
-                    maybe_add_newline(add_newline, prev_context, Context::Mod, &mut padded)
+                "//" | "///" => {
+                    maybe_add_newline(add_newline, prev_context, Context::Comment, &mut padded)
+                }
+                "mod" => {
+                    if sans_vis.ends_with(';') {
+                        (true, Context::Mod)
+                    } else {
+                        (false, Context::Open)
+                    }
                 }
                 "use" => maybe_add_newline(add_newline, prev_context, Context::Use, &mut padded),
-                _ if trimmed.starts_with("pub use ") => {
-                    maybe_add_newline(add_newline, prev_context, Context::Use, &mut padded)
-                }
                 _ if trimmed == "}" || trimmed == "};" => (true, Context::Unknown),
                 _ if trimmed.starts_with("#") => {
                     maybe_add_newline(add_newline, prev_context, Context::Macro, &mut padded)
