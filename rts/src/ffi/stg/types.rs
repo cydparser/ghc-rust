@@ -187,21 +187,11 @@ const _: () = {
     }
 };
 
-// TODO(rust): The `cfg` attributes are only needed for cbingen---these should be isize/usize.
-
 #[ffi(compiler, ghc_lib, testsuite, utils)]
-#[cfg(target_pointer_width = "64")]
-pub type StgInt = i64;
-
-#[cfg(target_pointer_width = "32")]
-pub type StgInt = i32;
+pub type StgInt = isize;
 
 #[ffi(compiler, docs, ghc_lib, libraries, testsuite, utils)]
-#[cfg(target_pointer_width = "64")]
-pub type StgWord = u64;
-
-#[cfg(target_pointer_width = "32")]
-pub type StgWord = u32;
+pub type StgWord = usize;
 
 #[cfg(target_pointer_width = "64")]
 pub(crate) type StgHalfInt = i32;
