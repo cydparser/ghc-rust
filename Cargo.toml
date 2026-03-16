@@ -5,6 +5,7 @@ members = [
   "generate/ffi",
   "generate/format",
   "generate/headers",
+  "generate/refactor",
   "generate/symbol-consumers",
   "generate/symbols",
   "macros",
@@ -28,6 +29,7 @@ bindgen = "0.72.0"
 build-utils = { path = "build-utils" }
 cbindgen = { version = "0.29.2", default-features = false }
 generate-consumers = { path = "generate/consumers" }
+generate-ffi = { path = "generate/ffi" }
 generate-format = { path = "generate/format" }
 generate-symbols = { path = "generate/symbols" }
 libc = "0.2.171"
@@ -35,6 +37,6 @@ prettyplease = "0.2.29"
 proc-macro2 = "1.0.93"
 quote = "1.0.38"
 regex = "1.12.2"
-syn = { version = "2.0.98", features = ["extra-traits", "visit"] }
 stringcase = "0.4.0"
+syn = { version = "2.0.98", features = ["extra-traits", "visit", "visit-mut"] }
 tracing = "0.1.41"

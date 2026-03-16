@@ -1,0 +1,16 @@
+[package]
+name = "generate-refactor"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "reorganize"
+
+[dependencies]
+generate-format.workspace = true
+prettyplease.workspace = true
+proc-macro2.workspace = true
+stringcase.workspace = true
+syn.workspace = true
