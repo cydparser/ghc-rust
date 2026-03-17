@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 use syn::{Ident, Item};
 
+mod used_idents;
+pub use used_idents::*;
+
 pub fn args_rs() -> Result<Vec<PathBuf>, String> {
     let (rs, non_rs): (Vec<_>, Vec<_>) = std::env::args().partition(|arg| arg.ends_with(".rs"));
 

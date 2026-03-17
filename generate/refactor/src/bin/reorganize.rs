@@ -1,4 +1,4 @@
-use generate_refactor::{args_rs, format, item_ident};
+use generate_refactor::{UsedIdents, args_rs, format, item_ident};
 use proc_macro2::Span;
 use quote::format_ident;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -6,7 +6,7 @@ use std::error::Error;
 use std::path::{self, Path, PathBuf};
 use std::{fs, iter};
 use syn::{Attribute, Token, UseTree};
-use syn::{Ident, Item, ItemUse, Visibility, parse_quote, punctuated::Punctuated};
+use syn::{Ident, Item, ItemUse, Visibility, parse_quote, punctuated::Punctuated, visit};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + 'static>>;
 
@@ -63,6 +63,7 @@ struct FileContext {
     module_name: HeaderModuleName,
     module_path: &'static ModulePath,
     extern_imports: HashMap<&'static ModulePath, Vec<Ident>>,
+    used_idents: UsedIdents,
 }
 
 impl FileContext {
@@ -78,6 +79,7 @@ impl FileContext {
                 Box::leak(Box::new(ModulePath::from_filepath(mod_filepath)))
             },
             extern_imports: HashMap::new(),
+            used_idents: UsedIdents::default(),
         })
     }
 }
@@ -295,6 +297,7 @@ impl Context {
                 module_name: HeaderModuleName(String::new()),
                 module_path: &EMPTY_MODULE_PATH,
                 extern_imports: HashMap::new(),
+                used_idents: UsedIdents::default(),
             },
             header_modules,
             generated_headers: BTreeSet::new(),
@@ -614,6 +617,8 @@ impl Transformed {
                 self.test_items.push(test_item);
             }
         }
+
+        visit::visit_item(&mut context.file_context.used_idents, &item);
 
         self.items.push(item)
     }
