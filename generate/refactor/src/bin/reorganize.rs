@@ -1,5 +1,6 @@
 use generate_refactor::{args_rs, format, item_ident};
 use proc_macro2::Span;
+use quote::format_ident;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::error::Error;
 use std::path::{self, Path, PathBuf};
@@ -26,13 +27,21 @@ fn main() -> Result<()> {
 
         context.file_context = FileContext::new(path.as_path())?;
 
-        let syn_file = {
+        let (syn_file, test_file) = {
             let syn_file = parse_syn_file(&path)?;
 
             transform(&mut context, false, syn_file)?
         };
 
-        fs::write(path, format(syn_file).as_bytes())?;
+        fs::write(&path, format(syn_file).as_bytes())?;
+
+        if let Some(test_file) = test_file {
+            let mod_dir = path.with_extension("");
+            fs::create_dir_all(&mod_dir)?;
+            let test_path = mod_dir.join("tests.rs");
+
+            fs::write(test_path, format(test_file).as_bytes())?;
+        }
     }
 
     transform_ffi(&rts_src_dir, context)?;
@@ -377,15 +386,15 @@ impl FfiItem {
 
     fn into_items(self, item: Item) -> Result<Vec<Item>> {
         match (item, self) {
-            (Item::Const(mut item), FfiItem::Const(ffi, impls)) => {
+            (Item::Const(mut item), FfiItem::Const(ffi, items)) => {
                 item.vis = ffi.vis;
                 item.attrs = ffi.attrs;
-                Ok(iter::once(Item::Const(item)).chain(impls).collect())
+                Ok(iter::once(Item::Const(item)).chain(items).collect())
             }
-            (Item::Enum(mut item), FfiItem::Enum(ffi, impls)) => {
+            (Item::Enum(mut item), FfiItem::Enum(ffi, items)) => {
                 item.vis = ffi.vis;
                 item.attrs = ffi.attrs;
-                Ok(iter::once(Item::Enum(item)).chain(impls).collect())
+                Ok(iter::once(Item::Enum(item)).chain(items).collect())
             }
             (Item::Fn(mut item), FfiItem::Fn { attrs, vis, .. }) => {
                 item.vis = vis;
@@ -397,20 +406,20 @@ impl FfiItem {
                 item.attrs = ffi.attrs;
                 Ok(vec![Item::Static(item)])
             }
-            (Item::Struct(mut item), FfiItem::Struct(ffi, impls)) => {
+            (Item::Struct(mut item), FfiItem::Struct(ffi, items)) => {
                 item.vis = ffi.vis;
                 item.attrs = ffi.attrs;
-                Ok(iter::once(Item::Struct(item)).chain(impls).collect())
+                Ok(iter::once(Item::Struct(item)).chain(items).collect())
             }
             (Item::Type(mut item), FfiItem::Type(ffi)) => {
                 item.vis = ffi.vis;
                 item.attrs = ffi.attrs;
                 Ok(vec![Item::Type(item)])
             }
-            (Item::Union(mut item), FfiItem::Union(ffi, impls)) => {
+            (Item::Union(mut item), FfiItem::Union(ffi, items)) => {
                 item.vis = ffi.vis;
                 item.attrs = ffi.attrs;
-                Ok(iter::once(Item::Union(item)).chain(impls).collect())
+                Ok(iter::once(Item::Union(item)).chain(items).collect())
             }
             (item, ffi_item) => Err(format!("unable to compute items: {:?}", (item, ffi_item)))?,
         }
@@ -559,7 +568,62 @@ struct Transformed {
     test_items: Vec<Item>,
 }
 
-fn transform(context: &mut Context, in_header: bool, syn_file: syn::File) -> Result<syn::File> {
+impl Transformed {
+    fn add_items<I>(&mut self, context: &mut Context, items: I)
+    where
+        I: IntoIterator<Item = syn::Item>,
+    {
+        for item in items {
+            self.add_item(context, item);
+        }
+    }
+
+    fn add_item(&mut self, context: &mut Context, item: Item) {
+        // This is brittle, but the reorganize binary will only run once.
+        let possible_test_idents: Vec<Ident> = match &item {
+            Item::Const(item_const) => vec![format_ident!("sys_{}_eq", item_const.ident)],
+            Item::Enum(item_enum) => {
+                let ident = &item_enum.ident;
+                vec![
+                    format_ident!("sys_{}_discriminants", ident),
+                    format_ident!("sys_{}_layout", ident),
+                ]
+            }
+            Item::Fn(item_fn) => {
+                let ident = &item_fn.sig.ident;
+                vec![
+                    format_ident!("test_{}", ident),
+                    format_ident!("equivalent_{}", ident),
+                ]
+            }
+            Item::Static(item_static) => {
+                vec![format_ident!("sys_{}_layout", item_static.ident)]
+            }
+            Item::Struct(item_struct) => {
+                vec![format_ident!("sys_{}_layout", item_struct.ident)]
+            }
+            Item::Type(item_type) => vec![format_ident!("sys_{}_layout", item_type.ident)],
+            Item::Union(item_union) => {
+                vec![format_ident!("sys_{}_layout", item_union.ident)]
+            }
+            _ => vec![],
+        };
+
+        for test_ident in possible_test_idents {
+            if let Some(test_item) = context.test_items.remove(&test_ident) {
+                self.test_items.push(test_item);
+            }
+        }
+
+        self.items.push(item)
+    }
+}
+
+fn transform(
+    context: &mut Context,
+    in_header: bool,
+    syn_file: syn::File,
+) -> Result<(syn::File, Option<syn::File>)> {
     let mut transformed = Transformed {
         imports: vec![parse_quote! {
             use crate::prelude::*;
@@ -580,7 +644,23 @@ fn transform(context: &mut Context, in_header: bool, syn_file: syn::File) -> Res
         .map(|(module_path, idents)| module_path.to_item_use(idents))
         .collect();
 
-    Ok(syn::File {
+    let test_file = (!transformed.test_items.is_empty()).then(|| syn::File {
+        shebang: None,
+        attrs: vec![],
+        items: [Item::Use(parse_quote! { use super::*; })]
+            .into_iter()
+            .chain(transformed.test_items)
+            .collect(),
+    });
+
+    let tests_mod = test_file.is_some().then(|| {
+        Item::Mod(parse_quote! {
+            #[cfg(test)]
+            mod tests;
+        })
+    });
+
+    let file = syn::File {
         shebang: None,
         attrs: vec![],
         items: transformed
@@ -588,9 +668,12 @@ fn transform(context: &mut Context, in_header: bool, syn_file: syn::File) -> Res
             .into_iter()
             .chain(extern_imports)
             .map(Item::Use)
+            .chain(tests_mod)
             .chain(transformed.items)
             .collect(),
-    })
+    };
+
+    Ok((file, test_file))
 }
 
 fn transform_item(
@@ -630,13 +713,11 @@ fn transform_const(
 ) -> Result<()> {
     if let Some((key, ffi_item)) = context.ffi_items.remove(&item.ident) {
         context.add_reexport(key, item.ident.clone());
-        transformed
-            .items
-            .extend(ffi_item.into_items(Item::Const(item))?);
+        transformed.add_items(context, ffi_item.into_items(Item::Const(item))?);
     } else {
         item.vis = context.visibility(in_header, &item.ident);
         remove_data_attributes(&mut item.attrs);
-        transformed.items.push(Item::Const(item));
+        transformed.add_item(context, Item::Const(item));
     }
 
     Ok(())
@@ -654,9 +735,7 @@ fn transform_enum(
         for variant in item.variants.iter_mut() {
             set_field_visibility(ffi_item.is_public(), in_header, &mut variant.fields);
         }
-        transformed
-            .items
-            .extend(ffi_item.into_items(Item::Enum(item))?);
+        transformed.add_items(context, ffi_item.into_items(Item::Enum(item))?);
     } else {
         item.vis = context.visibility(in_header, &item.ident);
 
@@ -664,7 +743,7 @@ fn transform_enum(
             set_field_visibility(false, in_header, &mut variant.fields);
         }
         remove_data_attributes(&mut item.attrs);
-        transformed.items.push(Item::Enum(item));
+        transformed.add_item(context, Item::Enum(item));
     }
 
     Ok(())
@@ -680,14 +759,12 @@ fn transform_fn(
 
     if let Some((key, ffi_item)) = context.ffi_items.remove(&ident) {
         context.add_reexport(key, ident);
-        transformed
-            .items
-            .extend(ffi_item.into_items(Item::Fn(item))?);
+        transformed.add_items(context, ffi_item.into_items(Item::Fn(item))?);
     } else {
         item.vis = context.visibility(in_header, &item.sig.ident);
         item.sig.abi = None;
         remove_attributes(&mut item.attrs, &[]);
-        transformed.items.push(Item::Fn(item));
+        transformed.add_item(context, Item::Fn(item));
     }
 
     Ok(())
@@ -719,7 +796,7 @@ fn transform_foreign_mod(
     });
 
     if !item_foreign_mod.items.is_empty() {
-        transformed.items.push(Item::ForeignMod(item_foreign_mod));
+        transformed.add_item(context, Item::ForeignMod(item_foreign_mod));
     }
 
     Ok(())
@@ -807,7 +884,7 @@ fn transform_mod(
                 }
                 remove_attributes(&mut item_mod.attrs, &["c2rust"]);
                 context.generated_headers.insert(item_mod.ident.clone());
-                transformed.items.push(syn::Item::Mod(item_mod));
+                transformed.add_item(context, syn::Item::Mod(item_mod));
                 return Ok(());
             }
 
@@ -843,13 +920,11 @@ fn transform_static(
 ) -> Result<()> {
     if let Some((key, ffi_item)) = context.ffi_items.remove(&item.ident) {
         context.add_reexport(key, item.ident.clone());
-        transformed
-            .items
-            .extend(ffi_item.into_items(Item::Static(item))?);
+        transformed.add_items(context, ffi_item.into_items(Item::Static(item))?);
     } else {
         item.vis = context.visibility(in_header, &item.ident);
         remove_attributes(&mut item.attrs, &[]);
-        transformed.items.push(Item::Static(item));
+        transformed.add_item(context, Item::Static(item));
     }
 
     Ok(())
@@ -864,15 +939,12 @@ fn transform_struct(
     if let Some((key, ffi_item)) = context.ffi_items.remove(&item.ident) {
         context.add_reexport(key, item.ident.clone());
         set_field_visibility(ffi_item.is_public(), in_header, &mut item.fields);
-        // TODO: Check for necessary tests in aux items as well
-        transformed
-            .items
-            .extend(ffi_item.into_items(Item::Struct(item))?);
+        transformed.add_items(context, ffi_item.into_items(Item::Struct(item))?);
     } else {
         item.vis = context.visibility(in_header, &item.ident);
         set_field_visibility(false, in_header, &mut item.fields);
         remove_data_attributes(&mut item.attrs);
-        transformed.items.push(Item::Struct(item));
+        transformed.add_item(context, Item::Struct(item));
     }
 
     Ok(())
@@ -886,13 +958,11 @@ fn transform_type(
 ) -> Result<()> {
     if let Some((key, ffi_item)) = context.ffi_items.remove(&item.ident) {
         context.add_reexport(key, item.ident.clone());
-        transformed
-            .items
-            .extend(ffi_item.into_items(Item::Type(item))?);
+        transformed.add_items(context, ffi_item.into_items(Item::Type(item))?);
     } else {
         item.vis = context.visibility(in_header, &item.ident);
         remove_data_attributes(&mut item.attrs);
-        transformed.items.push(Item::Type(item));
+        transformed.add_item(context, Item::Type(item));
     }
 
     Ok(())
@@ -907,14 +977,12 @@ fn transform_union(
     if let Some((key, ffi_item)) = context.ffi_items.remove(&item.ident) {
         context.add_reexport(key, item.ident.clone());
         set_named_field_visibility(ffi_item.is_public(), in_header, &mut item.fields);
-        transformed
-            .items
-            .extend(ffi_item.into_items(Item::Union(item))?);
+        transformed.add_items(context, ffi_item.into_items(Item::Union(item))?);
     } else {
         item.vis = context.visibility(in_header, &item.ident);
         set_named_field_visibility(false, in_header, &mut item.fields);
         remove_data_attributes(&mut item.attrs);
-        transformed.items.push(Item::Union(item));
+        transformed.add_item(context, Item::Union(item));
     }
 
     Ok(())
@@ -962,7 +1030,7 @@ fn transform_use(
         } else if context.generated_headers.contains(ident) {
             item.tree = UseTree::Path(use_path);
             item.vis = Visibility::Inherited;
-            transformed.items.push(syn::Item::Use(item));
+            transformed.add_item(context, syn::Item::Use(item));
         }
     }
 

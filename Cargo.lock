@@ -187,6 +187,7 @@ dependencies = [
  "generate-format",
  "prettyplease",
  "proc-macro2",
+ "quote",
  "stringcase",
  "syn",
 ]
