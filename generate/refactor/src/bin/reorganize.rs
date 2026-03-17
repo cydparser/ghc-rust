@@ -296,6 +296,14 @@ impl Context {
         })
     }
 
+    fn visibility(&self, in_header: bool, ident: &Ident) -> Visibility {
+        if in_header || self.extern_ident_modules.contains_key(ident) {
+            parse_quote! { pub(crate) }
+        } else {
+            Visibility::Inherited
+        }
+    }
+
     fn add_reexport(&mut self, key: &'static Path, ident: Ident) {
         let module_idents = self.reexports.entry(key).or_default();
         module_idents
@@ -626,7 +634,7 @@ fn transform_const(
             .items
             .extend(ffi_item.into_items(Item::Const(item))?);
     } else {
-        item.vis = visibility(in_header);
+        item.vis = context.visibility(in_header, &item.ident);
         remove_data_attributes(&mut item.attrs);
         transformed.items.push(Item::Const(item));
     }
@@ -650,7 +658,7 @@ fn transform_enum(
             .items
             .extend(ffi_item.into_items(Item::Enum(item))?);
     } else {
-        item.vis = visibility(in_header);
+        item.vis = context.visibility(in_header, &item.ident);
 
         for variant in item.variants.iter_mut() {
             set_field_visibility(false, in_header, &mut variant.fields);
@@ -676,7 +684,7 @@ fn transform_fn(
             .items
             .extend(ffi_item.into_items(Item::Fn(item))?);
     } else {
-        item.vis = visibility(in_header);
+        item.vis = context.visibility(in_header, &item.sig.ident);
         item.sig.abi = None;
         remove_attributes(&mut item.attrs, &[]);
         transformed.items.push(Item::Fn(item));
@@ -839,7 +847,7 @@ fn transform_static(
             .items
             .extend(ffi_item.into_items(Item::Static(item))?);
     } else {
-        item.vis = visibility(in_header);
+        item.vis = context.visibility(in_header, &item.ident);
         remove_attributes(&mut item.attrs, &[]);
         transformed.items.push(Item::Static(item));
     }
@@ -861,7 +869,7 @@ fn transform_struct(
             .items
             .extend(ffi_item.into_items(Item::Struct(item))?);
     } else {
-        item.vis = visibility(in_header);
+        item.vis = context.visibility(in_header, &item.ident);
         set_field_visibility(false, in_header, &mut item.fields);
         remove_data_attributes(&mut item.attrs);
         transformed.items.push(Item::Struct(item));
@@ -882,7 +890,7 @@ fn transform_type(
             .items
             .extend(ffi_item.into_items(Item::Type(item))?);
     } else {
-        item.vis = visibility(in_header);
+        item.vis = context.visibility(in_header, &item.ident);
         remove_data_attributes(&mut item.attrs);
         transformed.items.push(Item::Type(item));
     }
@@ -903,7 +911,7 @@ fn transform_union(
             .items
             .extend(ffi_item.into_items(Item::Union(item))?);
     } else {
-        item.vis = visibility(in_header);
+        item.vis = context.visibility(in_header, &item.ident);
         set_named_field_visibility(false, in_header, &mut item.fields);
         remove_data_attributes(&mut item.attrs);
         transformed.items.push(Item::Union(item));
@@ -959,14 +967,6 @@ fn transform_use(
     }
 
     Ok(())
-}
-
-fn visibility(in_header: bool) -> Visibility {
-    if in_header {
-        parse_quote! { pub(crate) }
-    } else {
-        Visibility::Inherited
-    }
 }
 
 fn set_field_visibility(public_ffi: bool, in_header: bool, fields: &mut syn::Fields) {
