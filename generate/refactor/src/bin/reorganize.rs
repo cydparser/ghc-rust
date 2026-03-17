@@ -640,13 +640,18 @@ fn transform(
     for item in syn_file.items {
         transform_item(context, in_header, &mut transformed, item)?;
     }
-    // TODO: Visit items to determine which Idents need to be imported.
+
+    let used_idents = &context.file_context.used_idents;
 
     let extern_imports: Vec<syn::ItemUse> = context
         .file_context
         .extern_imports
         .drain()
-        .map(|(module_path, idents)| module_path.to_item_use(idents))
+        .filter_map(|(module_path, mut idents)| {
+            idents.retain(|ident| used_idents.contains(ident));
+
+            (!idents.is_empty()).then(|| module_path.to_item_use(idents))
+        })
         .collect();
 
     let test_file = (!transformed.test_items.is_empty()).then(|| syn::File {
@@ -665,13 +670,16 @@ fn transform(
         })
     });
 
+    let imports = transformed
+        .imports
+        .into_iter()
+        .filter_map(|item_use| used_idents.filter_used(item_use))
+        .chain(extern_imports);
+
     let file = syn::File {
         shebang: None,
         attrs: vec![],
-        items: transformed
-            .imports
-            .into_iter()
-            .chain(extern_imports)
+        items: imports
             .map(Item::Use)
             .chain(tests_mod)
             .chain(transformed.items)
