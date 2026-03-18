@@ -17,15 +17,15 @@ pub fn args_rs() -> Result<Vec<PathBuf>, String> {
     }
 }
 
-pub fn item_ident(item: &Item) -> Option<Ident> {
+pub fn item_ident(item: &Item) -> Option<&Ident> {
     match item {
-        Item::Const(item_const) => Some(item_const.ident.clone()),
-        Item::Enum(item_enum) => Some(item_enum.ident.clone()),
-        Item::Fn(item_fn) => Some(item_fn.sig.ident.clone()),
-        Item::Static(item_static) => Some(item_static.ident.clone()),
-        Item::Struct(item_struct) => Some(item_struct.ident.clone()),
-        Item::Type(item_type) => Some(item_type.ident.clone()),
-        Item::Union(item_union) => Some(item_union.ident.clone()),
+        Item::Const(item_const) => Some(&item_const.ident),
+        Item::Enum(item_enum) => Some(&item_enum.ident),
+        Item::Fn(item_fn) => Some(&item_fn.sig.ident),
+        Item::Static(item_static) => Some(&item_static.ident),
+        Item::Struct(item_struct) => Some(&item_struct.ident),
+        Item::Type(item_type) => Some(&item_type.ident),
+        Item::Union(item_union) => Some(&item_union.ident),
         _ => None,
     }
 }

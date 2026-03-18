@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::error::Error;
 use std::path::{self, Path, PathBuf};
 use std::{fs, iter};
-use syn::{Attribute, Token, UseTree};
+use syn::{Attribute, Token, Type, UseTree};
 use syn::{Ident, Item, ItemUse, Visibility, parse_quote, punctuated::Punctuated, visit};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + 'static>>;
@@ -107,7 +107,7 @@ impl Context {
 
                 for item in syn_file.items {
                     if let Some(ident) = item_ident(&item) {
-                        ident_modules.insert(ident, module_path);
+                        ident_modules.insert(ident.clone(), module_path);
                     } else {
                         match item {
                             Item::ForeignMod(item_foreign_mod) => {
@@ -122,7 +122,7 @@ impl Context {
                                     item_mod.content.into_iter().flat_map(|(_, items)| items)
                                 {
                                     if let Some(ident) = item_ident(&mitem) {
-                                        ident_modules.insert(ident, module_path);
+                                        ident_modules.insert(ident.clone(), module_path);
                                     }
                                 }
                             }
@@ -180,7 +180,7 @@ impl Context {
             if path.file_name().unwrap() == "tests.rs" {
                 for item in parse_syn_file(path)?.items {
                     if let Some(ident) = item_ident(&item) {
-                        test_items.insert(ident, item);
+                        test_items.insert(ident.clone(), item);
                     }
                 }
             } else {
@@ -1089,64 +1089,126 @@ fn remove_data_attributes(attrs: &mut Vec<Attribute>) {
     remove_attributes(attrs, &["derive", "repr"]);
 }
 
-fn transform_ffi(
-    rts_src_dir: &Path,
-    Context {
-        reexports,
-        test_items,
-        ..
-    }: Context,
-) -> Result<()> {
-    for (relpath, imports) in reexports {
+fn transform_ffi(rts_src_dir: &Path, context: Context) -> Result<()> {
+    let Context { ffi_items, .. } = context;
+
+    for (relpath, crate_imports) in context.reexports {
         let path = rts_src_dir.join(relpath);
-        let mut syn_file = parse_syn_file(path.as_path())?;
-        let mut items = Vec::with_capacity(syn_file.items.len());
 
-        for (module_path, idents) in imports {
-            items.push(syn::Item::Use(module_path.to_item_use(idents)));
-        }
+        type OnlyImports = bool;
 
-        for item in syn_file.items {
-            match item {
-                Item::Const(item_const) => todo!(),
-                Item::Enum(item_enum) => todo!(),
-                Item::Fn(item_fn) => todo!(),
-                Item::Impl(item_impl) => todo!(),
-                Item::Macro(item_macro) => todo!(),
-                Item::Mod(item_mod) => todo!(),
-                Item::Static(item_static) => todo!(),
-                Item::Struct(item_struct) => todo!(),
-                Item::Trait(item_trait) => todo!(),
-                Item::TraitAlias(item_trait_alias) => todo!(),
-                Item::Type(item_type) => todo!(),
-                Item::Union(item_union) => todo!(),
-                Item::Use(item_use) => todo!(),
-                item => items.push(item),
+        fn filter_items<I, F>(items: I, f: F) -> (OnlyImports, Vec<Item>)
+        where
+            I: IntoIterator<Item = syn::Item>,
+            F: Fn(&Item) -> bool,
+        {
+            let mut used_idents = UsedIdents::default();
+            let mut imports = Vec::with_capacity(8);
+            let iter = items.into_iter();
+            let mut other_items = Vec::with_capacity(iter.size_hint().0);
+
+            for item in iter {
+                match item {
+                    Item::Use(item_use) => imports.push(item_use),
+                    item => {
+                        if f(&item) {
+                            visit::visit_item(&mut used_idents, &item);
+                            other_items.push(item);
+                        }
+                    }
+                }
             }
+
+            (
+                other_items.is_empty(),
+                imports
+                    .into_iter()
+                    .filter_map(|item_use| used_idents.filter_used(item_use))
+                    .map(Item::Use)
+                    .chain(other_items)
+                    .collect(),
+            )
         }
+
+        let has_tests = {
+            let mut test_path: PathBuf = path.with_extension("");
+            test_path.push("tests.rs");
+            let test_path = &test_path;
+
+            if test_path.exists() {
+                let mut syn_file = parse_syn_file(test_path)?;
+
+                let (only_imports, items) = filter_items(syn_file.items, |item| {
+                    item_ident(item).is_none_or(|ident| context.test_items.contains_key(ident))
+                });
+
+                if only_imports {
+                    fs::remove_file(test_path)?;
+                    false
+                } else {
+                    syn_file.items = items;
+                    fs::write(test_path, format(syn_file).as_bytes())?;
+                    true
+                }
+            } else {
+                false
+            }
+        };
+
+        let imports = {
+            let mut imports = Vec::with_capacity(crate_imports.len());
+
+            for (module_path, idents) in crate_imports {
+                imports.push(syn::Item::Use({
+                    let mut item_use = module_path.to_item_use(idents);
+                    item_use.vis = Visibility::Public(Default::default());
+
+                    item_use
+                }));
+            }
+            imports
+        };
+
+        let mut syn_file = parse_syn_file(path.as_path())?;
+
+        let (_, items) = filter_items(imports.into_iter().chain(syn_file.items), |item| {
+            if let Some(ident) = item_ident(item) {
+                ffi_items.contains_key(ident)
+            } else {
+                match &item {
+                    Item::ForeignMod(_) => true,
+                    Item::Impl(item_impl) => {
+                        // Check both A and B in `impl Trait<A> for B`.
+                        if let Type::Path(type_path) = &*item_impl.self_ty
+                            && let Some(ident) = type_path.path.get_ident()
+                            && ffi_items.contains_key(ident)
+                        {
+                            true
+                        } else {
+                            if let Some((_, trait_path, _)) = &item_impl.trait_
+                                && let Some(ps) = trait_path.segments.last()
+                                && let syn::PathArguments::AngleBracketed(args) = &ps.arguments
+                                && let Some(ident) = args.args.iter().find_map(|arg| match arg {
+                                    syn::GenericArgument::Type(Type::Path(type_path)) => {
+                                        type_path.path.get_ident()
+                                    }
+                                    _ => None,
+                                })
+                            {
+                                ffi_items.contains_key(ident)
+                            } else {
+                                false
+                            }
+                        }
+                    }
+                    Item::Mod(item_mod) => has_tests || item_mod.ident != "tests",
+                    _ => panic!("unexpected item variant: {item:?}"),
+                }
+            }
+        });
+
         syn_file.items = items;
         fs::write(path.as_path(), format(syn_file).as_bytes())?;
-
-        let test_path: PathBuf = {
-            let mut test_path = path.with_extension("");
-            test_path.push("tests.rs");
-            test_path
-        };
-        drop(path);
-
-        if !test_path.exists() {
-            continue;
-        }
-        let mut syn_file = parse_syn_file(test_path.as_path())?;
-        let mut items = Vec::with_capacity(syn_file.items.len());
-
-        for item in syn_file.items {
-            if item_ident(&item).is_none_or(|ident| test_items.contains_key(&ident)) {
-                items.push(item);
-            }
-        }
-        syn_file.items = items;
-        fs::write(test_path.as_path(), format(syn_file).as_bytes())?;
     }
 
     Ok(())

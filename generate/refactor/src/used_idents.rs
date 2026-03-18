@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 use std::mem;
-use syn::{Ident, UseTree, visit};
+use syn::{Ident, UseTree, Visibility, visit};
 
 /// Collects `Ident`s that might need to be imported.
 #[derive(Default)]
-pub struct UsedIdents(HashSet<Ident>);
+pub struct UsedIdents(pub HashSet<Ident>);
 
 impl UsedIdents {
     pub fn contains(&self, ident: &Ident) -> bool {
@@ -12,7 +12,11 @@ impl UsedIdents {
     }
 
     pub fn filter_used(&self, mut item_use: syn::ItemUse) -> Option<syn::ItemUse> {
-        self.keep_use_tree(&mut item_use.tree).then_some(item_use)
+        if item_use.vis != Visibility::Inherited {
+            Some(item_use)
+        } else {
+            self.keep_use_tree(&mut item_use.tree).then_some(item_use)
+        }
     }
 
     fn keep_use_tree(&self, mut use_tree: &mut UseTree) -> bool {
