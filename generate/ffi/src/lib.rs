@@ -356,6 +356,18 @@ pub fn attr_ffi(consumers: Consumers) -> syn::Attribute {
     parse_quote! { #[ffi(#cs)] }
 }
 
+pub fn export_attrs(consumers: Consumers) -> Vec<syn::Attribute> {
+    let mut attrs = Vec::with_capacity(3);
+
+    if !consumers.is_empty() {
+        attrs.push(attr_ffi(consumers));
+    }
+
+    attrs.extend([parse_quote! { #[unsafe(no_mangle)] }]);
+
+    attrs
+}
+
 pub fn parse_token_stream<S>(s: S) -> TokenStream
 where
     S: AsRef<str> + std::fmt::Display,

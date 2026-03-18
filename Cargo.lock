@@ -184,6 +184,7 @@ dependencies = [
 name = "generate-refactor"
 version = "0.0.0"
 dependencies = [
+ "generate-ffi",
  "generate-format",
  "prettyplease",
  "proc-macro2",

@@ -9,6 +9,7 @@ license.workspace = true
 name = "reorganize"
 
 [dependencies]
+generate-ffi.workspace = true
 generate-format.workspace = true
 prettyplease.workspace = true
 proc-macro2.workspace = true

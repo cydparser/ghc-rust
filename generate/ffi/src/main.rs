@@ -8,8 +8,10 @@ use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
-use generate_consumers::{Consumer, Consumers};
-use generate_ffi::{Symbols, attr_ffi, enums, fields, parse_token_stream, prefix_with_sys};
+use generate_consumers::Consumer;
+use generate_ffi::{
+    Symbols, attr_ffi, enums, export_attrs, fields, parse_token_stream, prefix_with_sys,
+};
 
 fn main() {
     let src_dir = PathBuf::from(String::from(env!("OUT_DIR")));
@@ -487,18 +489,6 @@ fn transform_static(
                 None
             },
         )));
-}
-
-fn export_attrs(consumers: Consumers) -> Vec<syn::Attribute> {
-    let mut attrs = Vec::with_capacity(3);
-
-    if !consumers.is_empty() {
-        attrs.push(attr_ffi(consumers));
-    }
-
-    attrs.extend([parse_quote! { #[unsafe(no_mangle)] }]);
-
-    attrs
 }
 
 fn new_pat_ident(ident: &Ident) -> syn::PatIdent {

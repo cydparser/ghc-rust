@@ -1,3 +1,4 @@
+use generate_ffi::{self as ffi, Symbols};
 use generate_refactor::{UsedIdents, args_rs, format, item_ident};
 use proc_macro2::Span;
 use quote::format_ident;
@@ -51,6 +52,7 @@ fn main() -> Result<()> {
 
 struct Context {
     file_context: FileContext,
+    symbols: Symbols,
     generated_headers: BTreeSet<Ident>,
     header_modules: HashMap<HeaderModuleName, ModulePath>,
     extern_ident_modules: HashMap<Ident, &'static ModulePath>,
@@ -299,6 +301,7 @@ impl Context {
                 extern_imports: HashMap::new(),
                 used_idents: UsedIdents::default(),
             },
+            symbols: Symbols::new(),
             header_modules,
             generated_headers: BTreeSet::new(),
             extern_ident_modules,
@@ -768,15 +771,36 @@ fn transform_fn(
     transformed: &mut Transformed,
     mut item: syn::ItemFn,
 ) -> Result<()> {
-    let ident = item.sig.ident.clone();
+    let ident = &item.sig.ident;
 
-    if let Some((key, ffi_item)) = context.ffi_items.remove(&ident) {
-        context.add_reexport(key, ident);
+    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
+        context.add_reexport(key, ident.clone());
         transformed.add_items(context, ffi_item.into_items(Item::Fn(item))?);
     } else {
-        item.vis = context.visibility(in_header, &item.sig.ident);
-        item.sig.abi = None;
         remove_attributes(&mut item.attrs, &[]);
+        let consumers = context.symbols.consumers(ident);
+
+        if consumers.is_empty() {
+            item.vis = context.visibility(in_header, ident);
+            item.sig.abi = None;
+        } else {
+            // Some Windows-only functions need to be exposed and tested.
+            item.vis = Visibility::Public(Default::default());
+            item.sig.abi = Some(syn::Abi {
+                extern_token: Default::default(),
+                name: Some(syn::LitStr::new("C", Span::call_site())),
+            });
+            let mut attrs = ffi::export_attrs(consumers);
+            attrs.extend(item.attrs);
+            attrs.push(parse_quote! { #[instrument] });
+            item.attrs = attrs;
+
+            if let Some(tests) = ffi::generate_tests(&context.symbols, &item.sig) {
+                transformed
+                    .test_items
+                    .extend(tests.into_iter().map(Item::Fn));
+            }
+        }
         transformed.add_item(context, Item::Fn(item));
     }
 
