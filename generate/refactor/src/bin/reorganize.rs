@@ -2,7 +2,7 @@ use generate_ffi::{self as ffi, Symbols};
 use generate_refactor::{UsedIdents, args_rs, format, item_ident};
 use proc_macro2::Span;
 use quote::format_ident;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::error::Error;
 use std::path::{self, Path, PathBuf};
 use std::{fs, iter};
@@ -47,7 +47,13 @@ fn main() -> Result<()> {
         }
     }
 
-    transform_ffi(&rts_src_dir, context)?;
+    transform_ffi(
+        &rts_src_dir,
+        context.ffi_items,
+        context.test_items,
+        context.reexports,
+    )?;
+    create_generated_modules(rts_src_dir.as_path(), context.generated_headers)?;
 
     Ok(())
 }
@@ -55,7 +61,7 @@ fn main() -> Result<()> {
 struct Context {
     file_context: FileContext,
     symbols: Symbols,
-    generated_headers: BTreeSet<Ident>,
+    generated_headers: HashMap<Ident, BTreeMap<Ident, Item>>,
     header_modules: HashMap<HeaderModuleName, ModulePath>,
     extern_ident_modules: HashMap<Ident, &'static ModulePath>,
     ffi_items: HashMap<Ident, (&'static Path, FfiItem)>,
@@ -309,7 +315,7 @@ impl Context {
             },
             symbols: Symbols::new(),
             header_modules,
-            generated_headers: BTreeSet::new(),
+            generated_headers: HashMap::new(),
             extern_ident_modules,
             ffi_items,
             test_items,
@@ -887,7 +893,8 @@ fn transform_mod(
     transformed: &mut Transformed,
     mut item_mod: syn::ItemMod,
 ) -> Result<()> {
-    let mod_name = HeaderModuleName::try_from(&item_mod.ident);
+    let mod_ident = &item_mod.ident;
+    let mod_name = HeaderModuleName::try_from(mod_ident);
 
     if mod_name
         .iter()
@@ -922,46 +929,52 @@ fn transform_mod(
         // Ignore any headers external to GHC.
         if let [_, relpath] = *filepath.split("/ghc/").collect::<Vec<_>>() {
             if relpath.starts_with("_build/") {
-                // The header was generated and will need to be manually transpiled.
                 item_mod.vis = Visibility::Inherited;
 
-                if let Some((_, items)) = &mut item_mod.content {
-                    items.retain_mut(|item| {
-                        match item {
+                if let Some((_, items)) = item_mod.content.take() {
+                    let generated_items = context
+                        .generated_headers
+                        .entry(mod_ident.clone())
+                        .or_default();
+
+                    for mut item in items {
+                        let ident = match &mut item {
                             Item::Const(i) => {
                                 internal_api(&mut i.vis, &mut i.attrs);
+                                &i.ident
                             }
                             Item::Enum(i) => {
                                 internal_api(&mut i.vis, &mut i.attrs);
+                                &i.ident
                             }
                             Item::Fn(i) => {
                                 i.sig.abi = None;
                                 internal_api(&mut i.vis, &mut i.attrs);
+                                &i.sig.ident
                             }
                             Item::Static(i) => {
                                 internal_api(&mut i.vis, &mut i.attrs);
+                                &i.ident
                             }
                             Item::Struct(i) => {
                                 internal_api(&mut i.vis, &mut i.attrs);
+                                &i.ident
                             }
-                            Item::Trait(i) => {
-                                internal_api(&mut i.vis, &mut i.attrs);
-                            }
-                            Item::Use(_) => return false,
                             Item::Type(i) => {
                                 internal_api(&mut i.vis, &mut i.attrs);
+                                &i.ident
                             }
                             Item::Union(i) => {
                                 internal_api(&mut i.vis, &mut i.attrs);
+                                &i.ident
                             }
-                            _ => (),
-                        }
-                        true
-                    });
+                            _ => continue,
+                        };
+
+                        generated_items.insert(ident.clone(), item);
+                    }
                 }
-                remove_attributes(&mut item_mod.attrs, &["c2rust"]);
-                context.generated_headers.insert(item_mod.ident.clone());
-                transformed.add_item(context, syn::Item::Mod(item_mod));
+
                 return Ok(());
             }
 
@@ -1105,8 +1118,12 @@ fn transform_use(
                 tree: module_path.to_use_tree(use_group),
                 semi_token: Default::default(),
             })
-        } else if context.generated_headers.contains(ident) {
-            item.tree = UseTree::Path(use_path);
+        } else if context.generated_headers.contains_key(ident) {
+            item.tree = UseTree::Path(syn::UsePath {
+                ident: Ident::new("crate", Span::call_site()),
+                colon2_token: Default::default(),
+                tree: Box::new(UseTree::Path(use_path)),
+            });
             item.vis = Visibility::Inherited;
             transformed.add_item(context, syn::Item::Use(item));
         }
@@ -1159,10 +1176,14 @@ fn internal_api(vis: &mut Visibility, attrs: &mut Vec<Attribute>) {
     remove_attributes(attrs, &[]);
 }
 
-fn transform_ffi(rts_src_dir: &Path, context: Context) -> Result<()> {
-    let Context { ffi_items, .. } = context;
-
-    for (relpath, crate_imports) in context.reexports {
+fn transform_ffi(
+    rts_src_dir: &Path,
+    ffi_items: HashMap<Ident, (&'static Path, FfiItem)>,
+    test_items: HashMap<Ident, Item>,
+    reexports: HashMap<&'static Path, BTreeMap<&'static ModulePath, Vec<Ident>>>,
+) -> Result<()> {
+    for (relpath, crate_imports) in reexports {
+        eprintln!("  * Adjusting FFI {relpath:?}");
         let path = rts_src_dir.join(relpath);
 
         type OnlyImports = bool;
@@ -1209,7 +1230,7 @@ fn transform_ffi(rts_src_dir: &Path, context: Context) -> Result<()> {
                 let mut syn_file = parse_syn_file(test_path)?;
 
                 let (only_imports, items) = filter_items(syn_file.items, |item| {
-                    item_ident(item).is_none_or(|ident| context.test_items.contains_key(ident))
+                    item_ident(item).is_none_or(|ident| test_items.contains_key(ident))
                 });
 
                 if only_imports {
@@ -1281,6 +1302,35 @@ fn transform_ffi(rts_src_dir: &Path, context: Context) -> Result<()> {
         fs::write(path.as_path(), format(syn_file).as_bytes())?;
     }
 
+    Ok(())
+}
+
+fn create_generated_modules(
+    dir: &Path,
+    generated_headers: HashMap<Ident, BTreeMap<Ident, Item>>,
+) -> Result<()> {
+    for (mod_ident, generated_items) in generated_headers {
+        let path = {
+            let mut file_name = mod_ident.to_string();
+
+            if file_name.ends_with("_h") {
+                file_name.truncate(file_name.len() - 2);
+            }
+            file_name.push_str(".rs");
+
+            dir.join(file_name)
+        };
+
+        eprintln!("  * Moving generated header to {path:?}");
+
+        let syn_file = syn::File {
+            shebang: None,
+            attrs: vec![],
+            items: generated_items.into_values().collect(),
+        };
+
+        fs::write(path.as_path(), format(syn_file).as_bytes())?;
+    }
     Ok(())
 }
 
