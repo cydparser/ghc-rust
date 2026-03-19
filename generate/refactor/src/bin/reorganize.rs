@@ -6,8 +6,10 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::error::Error;
 use std::path::{self, Path, PathBuf};
 use std::{fs, iter};
-use syn::{Attribute, Token, Type, UseTree};
-use syn::{Ident, Item, ItemUse, Visibility, parse_quote, punctuated::Punctuated, visit};
+use syn::{
+    Attribute, ForeignItem, Ident, Item, ItemUse, Token, Type, UseTree, Visibility, parse_quote,
+    punctuated::Punctuated, visit,
+};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + 'static>>;
 
@@ -826,7 +828,34 @@ fn transform_foreign_mod(
     transformed: &mut Transformed,
     mut item_foreign_mod: syn::ItemForeignMod,
 ) -> Result<()> {
-    item_foreign_mod.items.retain(|fitem| {
+    fn update_extern_imports(context: &mut Context, ident: &Ident) {
+        if let Some(&module_path) = context.extern_ident_modules.get(ident) {
+            context
+                .file_context
+                .extern_imports
+                .entry(module_path)
+                .or_default()
+                .push(ident.clone());
+        }
+    }
+
+    item_foreign_mod.items.retain_mut(|fitem| {
+        match fitem {
+            ForeignItem::Fn(i) => {
+                update_extern_imports(context, &i.sig.ident);
+                internal_api(&mut i.vis, &mut i.attrs);
+            }
+            ForeignItem::Static(i) => {
+                update_extern_imports(context, &i.ident);
+                internal_api(&mut i.vis, &mut i.attrs);
+            }
+            ForeignItem::Type(i) => {
+                update_extern_imports(context, &i.ident);
+                internal_api(&mut i.vis, &mut i.attrs);
+            }
+            _ => return false,
+        }
+
         if let Some(ident) = foreign_item_ident(fitem) {
             if let Some(&module_path) = context.extern_ident_modules.get(&ident) {
                 context
@@ -895,41 +924,35 @@ fn transform_mod(
             if relpath.starts_with("_build/") {
                 // The header was generated and will need to be manually transpiled.
                 item_mod.vis = Visibility::Inherited;
-                if let Some((_, mut items)) = item_mod.content.take() {
+
+                if let Some((_, items)) = &mut item_mod.content {
                     items.retain_mut(|item| {
                         match item {
-                            Item::Const(item) => {
-                                item.vis = Visibility::Inherited;
-                                remove_attributes(&mut item.attrs, &[]);
+                            Item::Const(i) => {
+                                internal_api(&mut i.vis, &mut i.attrs);
                             }
-                            Item::Enum(item) => {
-                                item.vis = Visibility::Inherited;
-                                remove_attributes(&mut item.attrs, &[]);
+                            Item::Enum(i) => {
+                                internal_api(&mut i.vis, &mut i.attrs);
                             }
-                            Item::Fn(item) => {
-                                item.vis = Visibility::Inherited;
-                                remove_attributes(&mut item.attrs, &[]);
+                            Item::Fn(i) => {
+                                i.sig.abi = None;
+                                internal_api(&mut i.vis, &mut i.attrs);
                             }
-                            Item::Static(item) => {
-                                item.vis = Visibility::Inherited;
-                                remove_attributes(&mut item.attrs, &[]);
+                            Item::Static(i) => {
+                                internal_api(&mut i.vis, &mut i.attrs);
                             }
-                            Item::Struct(item) => {
-                                item.vis = Visibility::Inherited;
-                                remove_attributes(&mut item.attrs, &[]);
+                            Item::Struct(i) => {
+                                internal_api(&mut i.vis, &mut i.attrs);
                             }
-                            Item::Trait(item) => {
-                                item.vis = Visibility::Inherited;
-                                remove_attributes(&mut item.attrs, &[]);
+                            Item::Trait(i) => {
+                                internal_api(&mut i.vis, &mut i.attrs);
                             }
                             Item::Use(_) => return false,
-                            Item::Type(item) => {
-                                item.vis = Visibility::Inherited;
-                                remove_attributes(&mut item.attrs, &[]);
+                            Item::Type(i) => {
+                                internal_api(&mut i.vis, &mut i.attrs);
                             }
-                            Item::Union(item) => {
-                                item.vis = Visibility::Inherited;
-                                remove_attributes(&mut item.attrs, &[]);
+                            Item::Union(i) => {
+                                internal_api(&mut i.vis, &mut i.attrs);
                             }
                             _ => (),
                         }
@@ -1129,6 +1152,11 @@ fn remove_data_attributes(attrs: &mut Vec<Attribute>) {
     // Remove 'derive(Copy, Clone)': these will be placed only where desired.
     // Remove 'repr(C)': let Rust optimize.
     remove_attributes(attrs, &["derive", "repr"]);
+}
+
+fn internal_api(vis: &mut Visibility, attrs: &mut Vec<Attribute>) {
+    *vis = parse_quote! { pub(crate) };
+    remove_attributes(attrs, &[]);
 }
 
 fn transform_ffi(rts_src_dir: &Path, context: Context) -> Result<()> {
