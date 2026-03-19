@@ -119,12 +119,16 @@ impl Context {
                                     }
                                 }
                             }
-                            Item::Mod(item_mod) if module_name.should_inline(&item_mod.ident) => {
-                                for mitem in
-                                    item_mod.content.into_iter().flat_map(|(_, items)| items)
+                            Item::Mod(item_mod) => {
+                                if let Ok(mod_name) = HeaderModuleName::try_from(&item_mod.ident)
+                                    && module_name.should_inline(&mod_name)
                                 {
-                                    if let Some(ident) = item_ident(&mitem) {
-                                        ident_modules.insert(ident.clone(), module_path);
+                                    for mitem in
+                                        item_mod.content.into_iter().flat_map(|(_, items)| items)
+                                    {
+                                        if let Some(ident) = item_ident(&mitem) {
+                                            ident_modules.insert(ident.clone(), module_path);
+                                        }
                                     }
                                 }
                             }
@@ -435,19 +439,25 @@ impl FfiItem {
 #[derive(Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
 struct HeaderModuleName(String);
 
-impl From<&Ident> for HeaderModuleName {
-    fn from(mod_ident: &Ident) -> Self {
-        HeaderModuleName::from(mod_ident.to_string())
+impl TryFrom<&Ident> for HeaderModuleName {
+    type Error = &'static str;
+
+    fn try_from(mod_ident: &Ident) -> std::result::Result<Self, Self::Error> {
+        HeaderModuleName::try_from(mod_ident.to_string())
     }
 }
 
-impl From<String> for HeaderModuleName {
-    fn from(mut mod_name: String) -> Self {
-        debug_assert!(mod_name.ends_with("_h"));
-        mod_name.truncate(mod_name.len() - 2); // Strip "_h" suffix.
-        mod_name.make_ascii_lowercase();
+impl TryFrom<String> for HeaderModuleName {
+    type Error = &'static str;
 
-        HeaderModuleName(mod_name)
+    fn try_from(mut mod_name: String) -> std::result::Result<Self, Self::Error> {
+        if mod_name.ends_with("_h") {
+            mod_name.make_ascii_lowercase();
+
+            Ok(HeaderModuleName(mod_name))
+        } else {
+            Err("must end with _h")
+        }
     }
 }
 
@@ -475,18 +485,19 @@ impl TryFrom<&Path> for HeaderModuleName {
         let mut mod_name = String::with_capacity(20);
 
         match (is_ffi, name.as_str()) {
-            (true, "Messages") => mod_name.push_str("rts_Messages"),
-            (true, "NonMoving") => mod_name.push_str("rts_NonMoving"),
-            (true, "Ticky") => mod_name.push_str("rts_Ticky"),
-            (true, "Types") => mod_name.push_str("stg_Types"),
-            (false, "ForeignExports") => mod_name.push_str("rts_ForeignExports"),
-            (false, "StableName") => mod_name.push_str("rts_StableName"),
-            (false, "StablePtr") => mod_name.push_str("rts_StablePtr"),
-            (false, "Threads") => mod_name.push_str("rts_Threads"),
-            (false, "Timer") => mod_name.push_str("rts_Timer"),
-            (false, "GC") => mod_name.push_str("sm_GC"),
+            (true, "Messages") => mod_name.push_str("rts_Messages_h"),
+            (true, "NonMoving") => mod_name.push_str("rts_NonMoving_h"),
+            (true, "Ticky") => mod_name.push_str("rts_Ticky_h"),
+            (true, "Types") => mod_name.push_str("stg_Types_h"),
+            (false, "ForeignExports") => mod_name.push_str("rts_ForeignExports_h"),
+            (false, "StableName") => mod_name.push_str("rts_StableName_h"),
+            (false, "StablePtr") => mod_name.push_str("rts_StablePtr_h"),
+            (false, "Threads") => mod_name.push_str("rts_Threads_h"),
+            (false, "Timer") => mod_name.push_str("rts_Timer_h"),
+            (false, "GC") => mod_name.push_str("sm_GC_h"),
             _ => {
                 mod_name.push_str(name.as_ref());
+                mod_name.push_str("_h");
             }
         };
         mod_name.make_ascii_lowercase();
@@ -496,13 +507,16 @@ impl TryFrom<&Path> for HeaderModuleName {
 }
 
 impl HeaderModuleName {
-    fn should_inline(&self, mod_ident: &Ident) -> bool {
-        let other = HeaderModuleName::from(mod_ident);
+    fn should_inline(&self, other: &HeaderModuleName) -> bool {
+        *self.0 == other.0 || {
+            other.0.contains("internal") && {
+                let prefix = self.0.strip_suffix("_h").unwrap();
 
-        *self == other || {
-            let prefix = other.0;
-
-            self.0 == format!("{prefix}internal_h") || self.0 == format!("{prefix}internals_h")
+                other
+                    .0
+                    .strip_prefix(prefix)
+                    .is_some_and(|suffix| suffix == "internal_h" || suffix == "internals_h")
+            }
         }
     }
 }
@@ -844,9 +858,12 @@ fn transform_mod(
     transformed: &mut Transformed,
     mut item_mod: syn::ItemMod,
 ) -> Result<()> {
-    let module_name = &context.file_context.module_name;
+    let mod_name = HeaderModuleName::try_from(&item_mod.ident);
 
-    if module_name.should_inline(&item_mod.ident) {
+    if mod_name
+        .iter()
+        .any(|mod_name| context.file_context.module_name.should_inline(mod_name))
+    {
         for item in item_mod.content.map_or(vec![], |(_, items)| items) {
             transform_item(context, true, transformed, item)?;
         }
@@ -925,24 +942,22 @@ fn transform_mod(
                 return Ok(());
             }
 
-            let relpath = relpath
-                .strip_prefix("rts/")
-                .ok_or_else(|| format!("expected a file in rts/: {filepath}"))?;
+            if let Some(relpath) = relpath.strip_prefix("rts/") {
+                let (is_ffi, relpath) = match relpath.strip_prefix("include/") {
+                    Some(relpath) => (true, relpath),
+                    None => (false, relpath),
+                };
 
-            let (is_ffi, relpath) = match relpath.strip_prefix("include/") {
-                Some(relpath) => (true, relpath),
-                None => (false, relpath),
-            };
+                let mut module_path = ModulePath::from_filepath(relpath);
 
-            let mut module_path = ModulePath::from_filepath(relpath);
+                if is_ffi {
+                    module_path.0.insert(0, "ffi".to_string());
+                }
 
-            if is_ffi {
-                module_path.0.insert(0, "ffi".to_string());
+                if let Ok(mod_name) = mod_name {
+                    context.header_modules.insert(mod_name, module_path);
+                }
             }
-
-            context
-                .header_modules
-                .insert(HeaderModuleName::from(&item_mod.ident), module_path);
         }
     }
 
@@ -1036,7 +1051,10 @@ fn transform_use(
     {
         let ident = &use_path.ident;
 
-        if let Some(module_path) = context.header_modules.get(&HeaderModuleName::from(ident)) {
+        if let Some(module_path) = HeaderModuleName::try_from(ident)
+            .ok()
+            .and_then(|mod_name| context.header_modules.get(&mod_name))
+        {
             let mut use_tree = *use_path.tree;
             let use_group = loop {
                 match use_tree {
