@@ -215,20 +215,6 @@ fn sys_RtsConfig_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_defaultRtsConfig_layout() {
-    // TODO(rust): defaultRtsConfig
-    // assert_eq!(
-    //     size_of_val(&defaultRtsConfig),
-    //     size_of_val(&sys::defaultRtsConfig)
-    // );
-    // assert_eq!(
-    //     align_of_val(&defaultRtsConfig),
-    //     align_of_val(&sys::defaultRtsConfig)
-    // );
-}
-
-#[cfg(feature = "sys")]
-#[test]
 fn sys_GCDetails_layout() {
     assert_eq!(size_of::<GCDetails>(), size_of::<sys::GCDetails>());
     assert_eq!(align_of::<GCDetails>(), align_of::<sys::GCDetails>());
