@@ -1316,6 +1316,7 @@ fn create_generated_modules(
             if file_name.ends_with("_h") {
                 file_name.truncate(file_name.len() - 2);
             }
+            let mut file_name = stringcase::snake_case(file_name.as_str());
             file_name.push_str(".rs");
 
             dir.join(file_name)
