@@ -185,13 +185,12 @@ fn as_args<'a, 'b, Args: IntoIterator<Item = &'a syn::FnArg>>(
         };
         let syn::Pat::Ident(syn::PatIdent {
             by_ref: None,
-            mutability: None,
             ident,
             subpat: None,
             ..
         }) = pat_type.pat.as_ref()
         else {
-            panic!("Expected only syn::Pat::Ident: {arg:#?}");
+            panic!("expected inner syn::Pat::Ident in {arg:?}");
         };
         args.push(Arg {
             ident,
