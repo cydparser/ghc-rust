@@ -10,7 +10,7 @@ pub mod fields;
 
 mod tests;
 
-pub use crate::tests::generate_tests;
+pub mod fns;
 
 pub struct Symbols {
     internal_module: bool,
