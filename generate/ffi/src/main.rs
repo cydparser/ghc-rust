@@ -5,12 +5,14 @@ use std::{
 
 use proc_macro2 as proc2;
 use proc_macro2::{Span, TokenStream};
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::{Ident, Item, Type, Visibility, parse_quote, punctuated::Punctuated, token};
 
 use generate_consumers::Consumer;
+use generate_ffi::tests::{test_layout, test_layout_of_val};
 use generate_ffi::{
-    Symbols, attr_ffi, enums, export_attrs, fields, parse_token_stream, prefix_with_sys,
+    Symbols, attr_ffi, consts, enums, export_attrs, fields, fns, parse_token_stream,
+    prefix_with_sys,
 };
 
 fn main() {
@@ -204,19 +206,10 @@ fn transform_const(
         item_const.vis = parse_quote! { pub(crate) };
     } else {
         item_const.attrs.insert(0, attr_ffi(consumers));
-
-        let test_eq = format_ident!("sys_{}_eq", ident);
-
-        transformed.tests_file.items.extend([
-            Item::Fn(parse_quote! {
-                #[cfg(feature = "sys")]
-                #[test]
-                fn #test_eq() {
-                    assert_eq!(#ident, sys::#ident);
-                }
-            }),
-            Item::Fn(fn_test_layout_of_val(&ident, true, true, None)),
-        ]);
+        transformed
+            .tests_file
+            .items
+            .extend(consts::tests(&ident).into_iter().map(Item::Fn));
     };
     transformed.main_file.items.push(Item::Const(item_const));
 }
@@ -233,7 +226,7 @@ fn transform_enum(symbols: &Symbols, mut item_enum: syn::ItemEnum, transformed: 
         item_enum.attrs.insert(0, attr_ffi(consumers));
 
         transformed.tests_file.items.extend([
-            Item::Fn(fn_test_layout(symbols, &ident)),
+            Item::Fn(test_layout(symbols, &ident)),
             Item::Fn(enums::test_discriminants(&ident, variants)),
         ]);
     }
@@ -424,10 +417,10 @@ fn transform_ffn(symbols: &Symbols, ffn: syn::ForeignItemFn, transformed: &mut T
         }
     }));
 
-    if let Some(tests) = generate_ffi::generate_tests(symbols, sig) {
-        for test in tests {
-            tests_file.items.push(syn::Item::Fn(test));
-        }
+    if let Some(tests) = fns::tests(symbols, sig) {
+        tests_file
+            .items
+            .extend(tests.into_iter().map(syn::Item::Fn));
     }
 }
 
@@ -474,20 +467,12 @@ fn transform_static(
         #vis static #mutability #ident: #ty = #rhs;
     }));
 
-    let mutable = mutability != syn::StaticMutability::None;
-
     transformed
         .tests_file
         .items
-        .push(Item::Fn(fn_test_layout_of_val(
+        .push(Item::Fn(test_layout_of_val(
             &ident,
-            !mutable,
-            false,
-            if mutable {
-                Some(parse_quote!(#[expect(static_mut_refs)]))
-            } else {
-                None
-            },
+            mutability != syn::StaticMutability::None,
         )));
 }
 
@@ -609,7 +594,7 @@ fn transform_type(symbols: &Symbols, mut item_type: syn::ItemType, transformed: 
         transformed
             .tests_file
             .items
-            .push(Item::Fn(fn_test_layout(symbols, &item_type.ident)));
+            .push(Item::Fn(test_layout(symbols, &item_type.ident)));
     }
     transformed.main_file.items.push(Item::Type(item_type));
 }
@@ -659,7 +644,7 @@ fn transform_union(
 
     tests_file
         .items
-        .push(Item::Fn(fn_test_layout(symbols, &ident)));
+        .push(Item::Fn(test_layout(symbols, &ident)));
 }
 
 fn impl_arbitrary_struct(ident: &Ident, fields: &syn::Fields) -> syn::ItemImpl {
@@ -749,91 +734,4 @@ fn arbitrary_data_constructor(ident: &Ident, fields: &syn::Fields) -> syn::Expr 
         }
         syn::Fields::Unit => parse_quote!(#ident),
     }
-}
-
-fn type_path(ident: &Ident) -> Type {
-    Type::Path(syn::TypePath {
-        qself: None,
-        path: syn::Path {
-            leading_colon: None,
-            segments: iter::once(syn::PathSegment {
-                ident: ident.clone(),
-                arguments: syn::PathArguments::default(),
-            })
-            .collect(),
-        },
-    })
-}
-
-fn fn_test_layout(symbols: &Symbols, ident: &Ident) -> syn::ItemFn {
-    fn_test_layout_of(symbols, ident, &type_path(ident))
-}
-
-fn fn_test_layout_of(symbols: &Symbols, ident: &Ident, ty: &Type) -> syn::ItemFn {
-    let fn_ident = format_ident!("sys_{}_layout", ident);
-    let asserts = assert_layout_of(symbols, ty);
-
-    parse_quote! {
-        #[cfg(feature = "sys")]
-        #[test]
-        fn #fn_ident() {
-            #(#asserts)*
-        }
-    }
-}
-
-fn assert_layout_of(symbols: &Symbols, ty: &Type) -> Vec<syn::Stmt> {
-    let sys_ty = prefix_with_sys(symbols, ty);
-
-    let block: syn::Block = parse_quote! {
-        {
-            assert_eq!(size_of::<#ty>(), size_of::<#sys_ty>());
-            assert_eq!(align_of::<#ty>(), align_of::<#sys_ty>());
-        }
-    };
-
-    block.stmts
-}
-
-fn fn_test_layout_of_val(
-    ident: &Ident,
-    safe: bool,
-    sys_safe: bool,
-    attr: Option<syn::Attribute>,
-) -> syn::ItemFn {
-    let fn_ident = format_ident!("sys_{}_layout", ident);
-
-    let asserts = assert_layout_of_val(ident, safe, sys_safe);
-
-    parse_quote! {
-        #[cfg(feature = "sys")]
-        #[test]
-        #attr
-        fn #fn_ident() {
-            #(#asserts)*
-        }
-    }
-}
-
-fn assert_layout_of_val(ident: &Ident, safe: bool, sys_safe: bool) -> Vec<syn::Stmt> {
-    let val = if safe {
-        quote!(&#ident)
-    } else {
-        quote!(unsafe { &#ident })
-    };
-
-    let sys_val = if sys_safe {
-        quote!(&sys::#ident)
-    } else {
-        quote!(unsafe { &sys::#ident })
-    };
-
-    let block: syn::Block = parse_quote! {
-        {
-            assert_eq!(size_of_val(#val), size_of_val(#sys_val));
-            assert_eq!(align_of_val(#val), align_of_val(#sys_val));
-        }
-    };
-
-    block.stmts
 }

@@ -1,3 +1,4 @@
+pub use generate_consumers::Consumer;
 use generate_consumers::Consumers;
 use generate_symbols as symbols;
 use proc_macro2::{Span, TokenStream};
@@ -5,9 +6,11 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use syn::{Ident, Type, TypePath, parse_quote};
 
+pub mod consts;
 pub mod enums;
 pub mod fields;
 pub mod fns;
+pub mod tests;
 
 pub struct Symbols {
     internal_module: bool,

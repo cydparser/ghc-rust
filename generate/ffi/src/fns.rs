@@ -5,7 +5,7 @@ use std::iter;
 use syn::Token;
 use syn::{Ident, Type, parse_quote, punctuated::Punctuated, token};
 
-pub fn generate_tests(
+pub fn tests(
     symbols: &Symbols,
     sig: &syn::Signature,
 ) -> Option<impl IntoIterator<Item = syn::ItemFn>> {
