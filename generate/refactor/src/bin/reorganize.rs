@@ -67,7 +67,7 @@ fn main() -> Result<()> {
 struct Context {
     file_context: FileContext,
     symbols: Symbols,
-    generated_headers: HashMap<Ident, BTreeMap<Ident, Item>>,
+    generated_headers: HashMap<Ident, (String, BTreeMap<Ident, Item>)>,
     header_modules: HashMap<HeaderModuleName, ModulePath>,
     extern_ident_modules: HashMap<Ident, &'static ModulePath>,
     ffi_items: HashMap<Ident, (&'static Path, FfiItem)>,
@@ -990,10 +990,18 @@ fn transform_mod(
                 item_mod.vis = Visibility::Inherited;
 
                 if let Some((_, items)) = item_mod.content.take() {
-                    let generated_items = context
+                    let (_, generated_items) = context
                         .generated_headers
                         .entry(mod_ident.clone())
-                        .or_default();
+                        .or_insert_with(|| {
+                            let mut mod_name = mod_ident.to_string();
+
+                            if mod_name.ends_with("_h") {
+                                mod_name.truncate(mod_name.len() - 2);
+                            }
+                            mod_name = stringcase::snake_case(mod_name.as_str());
+                            (mod_name, BTreeMap::new())
+                        });
 
                     for mut item in items {
                         let ident = match &mut item {
@@ -1241,9 +1249,9 @@ fn transform_use(
                 tree: module_path.to_use_tree(use_group),
                 semi_token: Default::default(),
             })
-        } else if context.generated_headers.contains_key(ident) {
+        } else if let Some((mod_name, _)) = context.generated_headers.get(ident) {
             item.tree = UseTree::Path(syn::UsePath {
-                ident: Ident::new("crate", Span::call_site()),
+                ident: Ident::new(mod_name, Span::call_site()),
                 colon2_token: Default::default(),
                 tree: Box::new(UseTree::Path(use_path)),
             });
@@ -1430,18 +1438,11 @@ fn transform_ffi(
 
 fn create_generated_modules(
     dir: &Path,
-    generated_headers: HashMap<Ident, BTreeMap<Ident, Item>>,
+    generated_headers: HashMap<Ident, (String, BTreeMap<Ident, Item>)>,
 ) -> Result<()> {
-    for (mod_ident, generated_items) in generated_headers {
+    for (_, (mod_name, generated_items)) in generated_headers {
         let path = {
-            let mut file_name = mod_ident.to_string();
-
-            if file_name.ends_with("_h") {
-                file_name.truncate(file_name.len() - 2);
-            }
-            let mut file_name = stringcase::snake_case(file_name.as_str());
-            file_name.push_str(".rs");
-
+            let file_name = format!("{mod_name}.rs");
             dir.join(file_name)
         };
 
