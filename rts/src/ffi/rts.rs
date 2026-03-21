@@ -33,7 +33,6 @@ pub mod stable_name;
 pub mod stable_ptr;
 pub mod static_ptr_table;
 pub mod storage;
-pub mod task;
 pub mod threads;
 pub mod ticky;
 pub mod time;
