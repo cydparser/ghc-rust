@@ -8,13 +8,16 @@ pub fn add_blank_lines(src: &str) -> String {
     for line in src.lines() {
         let trimmed = line.trim();
 
-        if add_newline
-            && !trimmed.ends_with('}')
-            && !trimmed.ends_with("};")
-            && !trimmed.starts_with("use ")
-            && !trimmed.contains(" => ")
-        {
-            padded.push('\n');
+        if add_newline {
+            if !trimmed.ends_with('}')
+                && !trimmed.ends_with("};")
+                && !trimmed.starts_with("use ")
+                && !trimmed.contains(" => ")
+            {
+                padded.push('\n');
+            } else {
+                add_newline = false;
+            }
         }
 
         let sans_vis = trimmed
@@ -36,10 +39,16 @@ pub fn add_blank_lines(src: &str) -> String {
                     }
                     (sans_vis.ends_with(";"), Context::Unknown)
                 }
-                "if" | "loop" | "match" | "return" | "while"
-                    if !add_newline && prev_context.permit_newline() =>
-                {
-                    padded.push('\n');
+                "if" | "fn" | "loop" | "match" | "while" => {
+                    if !add_newline && prev_context.permit_newline() {
+                        padded.push('\n');
+                    }
+                    (false, Context::Open)
+                }
+                "return" => {
+                    if !add_newline && prev_context.permit_newline() {
+                        padded.push('\n');
+                    }
                     (false, Context::Unknown)
                 }
                 "//" | "///" => {
