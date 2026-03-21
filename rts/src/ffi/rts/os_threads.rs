@@ -8,7 +8,8 @@ mod tests;
 // TODO(rust): Use Rust's cross-platform, safe threading API.
 
 #[ffi(compiler, testsuite)]
-pub type Condition = TODO_;
+#[repr(C)]
+pub struct Condition;
 
 #[ffi(testsuite)]
 pub type Mutex = TODO_;
