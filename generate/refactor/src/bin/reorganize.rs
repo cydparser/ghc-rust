@@ -23,6 +23,8 @@ fn main() -> Result<()> {
 
     let paths = args_rs()?;
 
+    eprintln!("  * Parsing...");
+
     let syn_files = {
         let mut syn_files = Vec::with_capacity(paths.len());
 
@@ -196,6 +198,8 @@ impl Context {
             Ok((prev_data_ident, None))
         };
 
+        eprintln!("  * Collecting FFI items...");
+
         for_each_rs_file(ffi_dir.as_path(), &mut |path| {
             if path.file_name().unwrap() == "tests.rs" {
                 for item in parse_syn_file(path)?.items {
@@ -299,7 +303,7 @@ impl Context {
                     prev_data_ident = data_ident;
                     insert_result.iter().for_each(|(path, ffi_item)| {
                         eprintln!(
-                            "ident {} already present in {}",
+                            "    * ident {} already present in {}",
                             ffi_item.ident(),
                             path.display()
                         );
