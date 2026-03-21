@@ -331,6 +331,28 @@ impl Context {
         }
     }
 
+    fn adjust_vis_attrs<F>(
+        &self,
+        in_header: bool,
+        ident: &Ident,
+        vis: &mut Visibility,
+        attrs: &mut Vec<Attribute>,
+        mut when_public: F,
+    ) where
+        F: FnMut(&mut Vec<Attribute>),
+    {
+        let consumers = self.symbols.consumers(ident);
+        remove_data_attributes(attrs);
+
+        if consumers.is_empty() {
+            *vis = self.visibility(in_header, ident);
+        } else {
+            *vis = Visibility::Public(Default::default());
+            attrs.insert(0, ffi::attr_ffi(consumers));
+            when_public(attrs);
+        }
+    }
+
     fn add_reexport(&mut self, key: &'static Path, ident: Ident) {
         let module_idents = self.reexports.entry(key).or_default();
         module_idents
@@ -433,6 +455,10 @@ impl FfiItem {
                 item.vis = ffi.vis;
                 item.attrs = ffi.attrs;
                 Ok(vec![Item::Type(item)])
+            }
+            (Item::Type(_), FfiItem::Enum(ffi, items)) => {
+                // Use the binden enum instead of c2rust's type.
+                Ok(iter::once(Item::Enum(ffi)).chain(items).collect())
             }
             (Item::Union(mut item), FfiItem::Union(ffi, items)) => {
                 item.vis = ffi.vis;
@@ -747,15 +773,26 @@ fn transform_const(
     context: &mut Context,
     in_header: bool,
     transformed: &mut Transformed,
-    mut item: syn::ItemConst,
+    mut item_const: syn::ItemConst,
 ) -> Result<()> {
-    if let Some((key, ffi_item)) = context.ffi_items.remove(&item.ident) {
-        context.add_reexport(key, item.ident.clone());
-        transformed.add_items(context, ffi_item.into_items(Item::Const(item))?);
+    let ident = &item_const.ident;
+
+    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
+        context.add_reexport(key, ident.clone());
+        transformed.add_items(context, ffi_item.into_items(Item::Const(item_const))?);
     } else {
-        item.vis = context.visibility(in_header, &item.ident);
-        remove_data_attributes(&mut item.attrs);
-        transformed.add_item(context, Item::Const(item));
+        context.adjust_vis_attrs(
+            in_header,
+            ident,
+            &mut item_const.vis,
+            &mut item_const.attrs,
+            |_| {
+                transformed
+                    .test_items
+                    .extend(ffi::consts::tests(ident).map(Item::Fn))
+            },
+        );
+        transformed.add_item(context, Item::Const(item_const));
     }
 
     Ok(())
@@ -765,23 +802,38 @@ fn transform_enum(
     context: &mut Context,
     in_header: bool,
     transformed: &mut Transformed,
-    mut item: syn::ItemEnum,
+    mut item_enum: syn::ItemEnum,
 ) -> Result<()> {
-    if let Some((key, ffi_item)) = context.ffi_items.remove(&item.ident) {
-        context.add_reexport(key, item.ident.clone());
+    let ident = &item_enum.ident;
+    // c2rust does not appear to emit enums.
+    eprintln!("    * Encountered an enum {}", item_enum.ident);
 
-        for variant in item.variants.iter_mut() {
+    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
+        context.add_reexport(key, ident.clone());
+
+        for variant in item_enum.variants.iter_mut() {
             set_field_visibility(ffi_item.is_public(), in_header, &mut variant.fields);
         }
-        transformed.add_items(context, ffi_item.into_items(Item::Enum(item))?);
+        transformed.add_items(context, ffi_item.into_items(Item::Enum(item_enum))?);
     } else {
-        item.vis = context.visibility(in_header, &item.ident);
+        context.adjust_vis_attrs(
+            in_header,
+            ident,
+            &mut item_enum.vis,
+            &mut item_enum.attrs,
+            |_| {
+                transformed.test_items.extend([
+                    Item::Fn(ffi::tests::test_layout(&context.symbols, ident)),
+                    Item::Fn(ffi::enums::test_discriminants(ident, &item_enum.variants)),
+                ]);
+            },
+        );
+        let public_ffi = item_enum.vis == Visibility::Public(Default::default());
 
-        for variant in item.variants.iter_mut() {
-            set_field_visibility(false, in_header, &mut variant.fields);
+        for variant in item_enum.variants.iter_mut() {
+            set_field_visibility(public_ffi, in_header, &mut variant.fields);
         }
-        remove_data_attributes(&mut item.attrs);
-        transformed.add_item(context, Item::Enum(item));
+        transformed.add_item(context, Item::Enum(item_enum));
     }
 
     Ok(())
@@ -791,39 +843,39 @@ fn transform_fn(
     context: &mut Context,
     in_header: bool,
     transformed: &mut Transformed,
-    mut item: syn::ItemFn,
+    mut item_fn: syn::ItemFn,
 ) -> Result<()> {
-    let ident = &item.sig.ident;
+    let ident = &item_fn.sig.ident;
 
     if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
         context.add_reexport(key, ident.clone());
-        transformed.add_items(context, ffi_item.into_items(Item::Fn(item))?);
+        transformed.add_items(context, ffi_item.into_items(Item::Fn(item_fn))?);
     } else {
-        remove_attributes(&mut item.attrs, &[]);
+        remove_attributes(&mut item_fn.attrs, &[]);
         let consumers = context.symbols.consumers(ident);
 
         if consumers.is_empty() {
-            item.vis = context.visibility(in_header, ident);
-            item.sig.abi = None;
+            item_fn.vis = context.visibility(in_header, ident);
+            item_fn.sig.abi = None;
         } else {
             // Some Windows-only functions need to be exposed and tested.
-            item.vis = Visibility::Public(Default::default());
-            item.sig.abi = Some(syn::Abi {
+            item_fn.vis = Visibility::Public(Default::default());
+            item_fn.sig.abi = Some(syn::Abi {
                 extern_token: Default::default(),
                 name: Some(syn::LitStr::new("C", Span::call_site())),
             });
             let mut attrs = ffi::export_attrs(consumers);
-            attrs.extend(item.attrs);
+            attrs.extend(item_fn.attrs);
             attrs.push(parse_quote! { #[instrument] });
-            item.attrs = attrs;
+            item_fn.attrs = attrs;
 
-            if let Some(tests) = ffi::generate_tests(&context.symbols, &item.sig) {
+            if let Some(tests) = ffi::fns::tests(&context.symbols, &item_fn.sig) {
                 transformed
                     .test_items
                     .extend(tests.into_iter().map(Item::Fn));
             }
         }
-        transformed.add_item(context, Item::Fn(item));
+        transformed.add_item(context, Item::Fn(item_fn));
     }
 
     Ok(())
@@ -1004,15 +1056,30 @@ fn transform_static(
     context: &mut Context,
     in_header: bool,
     transformed: &mut Transformed,
-    mut item: syn::ItemStatic,
+    mut item_static: syn::ItemStatic,
 ) -> Result<()> {
-    if let Some((key, ffi_item)) = context.ffi_items.remove(&item.ident) {
-        context.add_reexport(key, item.ident.clone());
-        transformed.add_items(context, ffi_item.into_items(Item::Static(item))?);
+    let ident = &item_static.ident;
+
+    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
+        context.add_reexport(key, ident.clone());
+        transformed.add_items(context, ffi_item.into_items(Item::Static(item_static))?);
     } else {
-        item.vis = context.visibility(in_header, &item.ident);
-        remove_attributes(&mut item.attrs, &[]);
-        transformed.add_item(context, Item::Static(item));
+        context.adjust_vis_attrs(
+            in_header,
+            ident,
+            &mut item_static.vis,
+            &mut item_static.attrs,
+            |attrs| {
+                attrs.extend([parse_quote! { #[unsafe(no_mangle)] }]);
+                transformed
+                    .test_items
+                    .push(Item::Fn(ffi::tests::test_layout_of_val(
+                        ident,
+                        item_static.mutability != syn::StaticMutability::None,
+                    )));
+            },
+        );
+        transformed.add_item(context, Item::Static(item_static));
     }
 
     Ok(())
@@ -1022,17 +1089,41 @@ fn transform_struct(
     context: &mut Context,
     in_header: bool,
     transformed: &mut Transformed,
-    mut item: syn::ItemStruct,
+    mut item_struct: syn::ItemStruct,
 ) -> Result<()> {
-    if let Some((key, ffi_item)) = context.ffi_items.remove(&item.ident) {
-        context.add_reexport(key, item.ident.clone());
-        set_field_visibility(ffi_item.is_public(), in_header, &mut item.fields);
-        transformed.add_items(context, ffi_item.into_items(Item::Struct(item))?);
+    let ident = &item_struct.ident;
+
+    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
+        context.add_reexport(key, ident.clone());
+        set_field_visibility(ffi_item.is_public(), in_header, &mut item_struct.fields);
+        transformed.add_items(context, ffi_item.into_items(Item::Struct(item_struct))?);
     } else {
-        item.vis = context.visibility(in_header, &item.ident);
-        set_field_visibility(false, in_header, &mut item.fields);
-        remove_data_attributes(&mut item.attrs);
-        transformed.add_item(context, Item::Struct(item));
+        remove_data_attributes(&mut item_struct.attrs);
+        let consumers = context.symbols.consumers(ident);
+
+        set_field_visibility(
+            !(consumers.is_empty() || consumers == ffi::Consumer::Testsuite),
+            in_header,
+            &mut item_struct.fields,
+        );
+
+        if consumers.is_empty() {
+            item_struct.vis = context.visibility(in_header, ident);
+            item_struct
+                .attrs
+                .insert(0, parse_quote! { #[doc = " cbindgen:no-export"] });
+        } else {
+            item_struct.attrs.insert(0, ffi::attr_ffi(consumers));
+
+            transformed
+                .test_items
+                .push(Item::Fn(ffi::fields::test_layout(
+                    &context.symbols,
+                    ident,
+                    &item_struct.fields,
+                )));
+        }
+        transformed.add_item(context, Item::Struct(item_struct));
     }
 
     Ok(())
@@ -1042,15 +1133,26 @@ fn transform_type(
     context: &mut Context,
     in_header: bool,
     transformed: &mut Transformed,
-    mut item: syn::ItemType,
+    mut item_type: syn::ItemType,
 ) -> Result<()> {
-    if let Some((key, ffi_item)) = context.ffi_items.remove(&item.ident) {
-        context.add_reexport(key, item.ident.clone());
-        transformed.add_items(context, ffi_item.into_items(Item::Type(item))?);
+    let ident = &item_type.ident;
+
+    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
+        context.add_reexport(key, ident.clone());
+        transformed.add_items(context, ffi_item.into_items(Item::Type(item_type))?);
     } else {
-        item.vis = context.visibility(in_header, &item.ident);
-        remove_data_attributes(&mut item.attrs);
-        transformed.add_item(context, Item::Type(item));
+        context.adjust_vis_attrs(
+            in_header,
+            ident,
+            &mut item_type.vis,
+            &mut item_type.attrs,
+            |_| {
+                transformed
+                    .test_items
+                    .push(Item::Fn(ffi::tests::test_layout(&context.symbols, ident)));
+            },
+        );
+        transformed.add_item(context, Item::Type(item_type));
     }
 
     Ok(())
@@ -1060,17 +1162,32 @@ fn transform_union(
     context: &mut Context,
     in_header: bool,
     transformed: &mut Transformed,
-    mut item: syn::ItemUnion,
+    mut item_union: syn::ItemUnion,
 ) -> Result<()> {
-    if let Some((key, ffi_item)) = context.ffi_items.remove(&item.ident) {
-        context.add_reexport(key, item.ident.clone());
-        set_named_field_visibility(ffi_item.is_public(), in_header, &mut item.fields);
-        transformed.add_items(context, ffi_item.into_items(Item::Union(item))?);
+    let ident = &item_union.ident;
+
+    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
+        context.add_reexport(key, ident.clone());
+        set_named_field_visibility(ffi_item.is_public(), in_header, &mut item_union.fields);
+        transformed.add_items(context, ffi_item.into_items(Item::Union(item_union))?);
     } else {
-        item.vis = context.visibility(in_header, &item.ident);
-        set_named_field_visibility(false, in_header, &mut item.fields);
-        remove_data_attributes(&mut item.attrs);
-        transformed.add_item(context, Item::Union(item));
+        context.adjust_vis_attrs(
+            in_header,
+            ident,
+            &mut item_union.vis,
+            &mut item_union.attrs,
+            |_| {
+                transformed
+                    .test_items
+                    .push(Item::Fn(ffi::tests::test_layout(&context.symbols, ident)));
+            },
+        );
+        set_named_field_visibility(
+            item_union.vis == Visibility::Public(Default::default()),
+            in_header,
+            &mut item_union.fields,
+        );
+        transformed.add_item(context, Item::Union(item_union));
     }
 
     Ok(())
@@ -1266,7 +1383,7 @@ fn transform_ffi(
             if let Some(ident) = item_ident(item) {
                 ffi_items.contains_key(ident)
             } else {
-                match &item {
+                match item {
                     Item::ForeignMod(_) => true,
                     Item::Impl(item_impl) => {
                         // Check both A and B in `impl Trait<A> for B`.
