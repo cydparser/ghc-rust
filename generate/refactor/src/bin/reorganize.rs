@@ -23,18 +23,24 @@ fn main() -> Result<()> {
 
     let paths = args_rs()?;
 
-    let mut context = Context::new(&paths, &rts_src_dir)?;
+    let syn_files = {
+        let mut syn_files = Vec::with_capacity(paths.len());
 
-    for path in paths {
+        for path in paths {
+            let syn_file = parse_syn_file(&path)?;
+            syn_files.push((path, syn_file))
+        }
+        syn_files
+    };
+
+    let mut context = Context::new(&syn_files, &rts_src_dir)?;
+
+    for (path, syn_file) in syn_files {
         eprintln!("  * Transforming {path:?}");
 
         context.file_context = FileContext::new(path.as_path())?;
 
-        let (syn_file, test_file) = {
-            let syn_file = parse_syn_file(&path)?;
-
-            transform(&mut context, false, syn_file)?
-        };
+        let (syn_file, test_file) = { transform(&mut context, false, syn_file)? };
 
         fs::write(&path, format(syn_file).as_bytes())?;
 
@@ -95,7 +101,7 @@ impl FileContext {
 }
 
 impl Context {
-    fn new(paths: &[PathBuf], rts_src_dir: &Path) -> Result<Context> {
+    fn new(syn_files: &[(PathBuf, syn::File)], rts_src_dir: &Path) -> Result<Context> {
         let ffi_dir = rts_src_dir.join("ffi");
         let mut ffi_items: HashMap<Ident, (&'static Path, FfiItem)> = HashMap::with_capacity(1028);
         let mut test_items: HashMap<Ident, Item> = HashMap::with_capacity(1028);
@@ -106,22 +112,22 @@ impl Context {
             let mut ident_modules: HashMap<Ident, &'static ModulePath> =
                 HashMap::with_capacity(1028);
 
-            for path in paths {
+            eprintln!("  * Resolving extern idents...");
+
+            for (path, syn_file) in syn_files {
                 let FileContext {
                     module_name,
                     module_path,
                     ..
                 } = FileContext::new(path)?;
 
-                let syn_file = parse_syn_file(path)?;
-
-                for item in syn_file.items {
+                for item in &syn_file.items {
                     if let Some(ident) = item_ident(&item) {
                         ident_modules.insert(ident.clone(), module_path);
                     } else {
                         match item {
                             Item::ForeignMod(item_foreign_mod) => {
-                                for fitem in item_foreign_mod.items {
+                                for fitem in &item_foreign_mod.items {
                                     if let Some(ident) = foreign_item_ident(&fitem) {
                                         extern_idents.insert(ident);
                                     }
@@ -132,9 +138,9 @@ impl Context {
                                     && module_name.should_inline(&mod_name)
                                 {
                                     for mitem in
-                                        item_mod.content.into_iter().flat_map(|(_, items)| items)
+                                        item_mod.content.iter().flat_map(|(_, items)| items)
                                     {
-                                        if let Some(ident) = item_ident(&mitem) {
+                                        if let Some(ident) = item_ident(mitem) {
                                             ident_modules.insert(ident.clone(), module_path);
                                         }
                                     }
