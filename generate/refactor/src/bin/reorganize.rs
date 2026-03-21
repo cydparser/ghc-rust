@@ -5,7 +5,7 @@ use quote::format_ident;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::error::Error;
 use std::path::{self, Path, PathBuf};
-use std::{fs, iter};
+use std::{fs, iter, mem};
 use syn::{
     Attribute, ForeignItem, Ident, Item, ItemUse, Token, Type, UseTree, Visibility, parse_quote,
     punctuated::Punctuated, visit,
@@ -55,13 +55,14 @@ fn main() -> Result<()> {
         }
     }
 
+    create_generated_modules(rts_src_dir.as_path(), &mut context)?;
+
     transform_ffi(
         &rts_src_dir,
         context.ffi_items,
         context.test_items,
         context.reexports,
     )?;
-    create_generated_modules(rts_src_dir.as_path(), context.generated_headers)?;
 
     Ok(())
 }
@@ -124,13 +125,13 @@ impl Context {
                 } = FileContext::new(path)?;
 
                 for item in &syn_file.items {
-                    if let Some(ident) = item_ident(&item) {
+                    if let Some(ident) = item_ident(item) {
                         ident_modules.insert(ident.clone(), module_path);
                     } else {
                         match item {
                             Item::ForeignMod(item_foreign_mod) => {
                                 for fitem in &item_foreign_mod.items {
-                                    if let Some(ident) = foreign_item_ident(&fitem) {
+                                    if let Some(ident) = foreign_item_ident(fitem) {
                                         extern_idents.insert(ident);
                                     }
                                 }
@@ -1440,11 +1441,8 @@ fn transform_ffi(
     Ok(())
 }
 
-fn create_generated_modules(
-    dir: &Path,
-    generated_headers: HashMap<Ident, (String, BTreeMap<Ident, Item>)>,
-) -> Result<()> {
-    for (_, (mod_name, generated_items)) in generated_headers {
+fn create_generated_modules(dir: &Path, context: &mut Context) -> Result<()> {
+    for (_, (mod_name, generated_items)) in mem::take(&mut context.generated_headers) {
         let path = {
             let file_name = format!("{mod_name}.rs");
             dir.join(file_name)
@@ -1452,10 +1450,17 @@ fn create_generated_modules(
 
         eprintln!("  * Moving generated header to {path:?}");
 
-        let syn_file = syn::File {
-            shebang: None,
-            attrs: vec![],
-            items: generated_items.into_values().collect(),
+        // Discard tests: these modules are not portable and will be altered/removed.
+        let (syn_file, _test_file) = {
+            transform(
+                context,
+                true,
+                syn::File {
+                    shebang: None,
+                    attrs: vec![],
+                    items: generated_items.into_values().collect(),
+                },
+            )?
         };
 
         fs::write(path.as_path(), format(syn_file).as_bytes())?;
