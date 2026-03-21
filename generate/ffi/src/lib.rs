@@ -319,7 +319,7 @@ pub fn prefix_with_sys(symbols: &Symbols, ty: &Type) -> Type {
                     }
                 };
             };
-            if symbols.is_std_type(ty) {
+            if type_path.path.leading_colon.is_some() || symbols.is_std_type(ty) {
                 ty.clone()
             } else {
                 parse_quote! { sys::#type_path }
