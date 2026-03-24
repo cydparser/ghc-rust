@@ -76,6 +76,7 @@ pub fn add_blank_lines(src: &str) -> String {
             "}" | ")" | "]" if last_char == ';' => (false, Context::Close),
             _ if first_char == '/' => newline_unless_same(prev_context, Context::Comment),
             _ if first_char == '#' => newline_unless_same(prev_context, Context::Macro),
+            _ if trimmed.starts_with("assert_") => (false, Context::Other),
             _ => match trimmed {
                 "}" | "};" | ")" | ");" | "]" | "];" => (false, Context::Close),
                 _ if last_char == ',' => (false, Context::Comma),
