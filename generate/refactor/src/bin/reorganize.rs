@@ -1293,12 +1293,16 @@ fn transform_use(
             })
         } else if let Some((mod_name, _)) = context.generated_headers.get(ident) {
             item.tree = UseTree::Path(syn::UsePath {
-                ident: Ident::new(mod_name, Span::call_site()),
+                ident: Ident::new("crate", Span::call_site()),
                 colon2_token: Default::default(),
-                tree: Box::new(UseTree::Path(use_path)),
+                tree: Box::new(UseTree::Path(syn::UsePath {
+                    ident: Ident::new(mod_name, Span::call_site()),
+                    colon2_token: Default::default(),
+                    tree: use_path.tree,
+                })),
             });
             item.vis = Visibility::Inherited;
-            transformed.add_item(context, syn::Item::Use(item));
+            transformed.imports.push(item);
         }
     }
 
