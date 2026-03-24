@@ -1442,41 +1442,61 @@ fn transform_ffi(
 
         let mut syn_file = parse_syn_file(path.as_path())?;
 
-        let (_, items) = filter_items(imports.into_iter().chain(syn_file.items), |item| {
-            if let Some(ident) = item_ident(item) {
-                !moved_items.contains(ident)
-            } else {
-                match item {
-                    Item::ForeignMod(_) => true,
-                    Item::Impl(item_impl) => {
-                        // Check both A and B in `impl Trait<A> for B`.
-                        if let Type::Path(type_path) = &*item_impl.self_ty
-                            && let Some(ident) = type_path.path.get_ident()
-                            && !moved_items.contains(ident)
-                        {
-                            true
-                        } else {
-                            if let Some((_, trait_path, _)) = &item_impl.trait_
-                                && let Some(ps) = trait_path.segments.last()
-                                && let syn::PathArguments::AngleBracketed(args) = &ps.arguments
-                                && let Some(ident) = args.args.iter().find_map(|arg| match arg {
-                                    syn::GenericArgument::Type(Type::Path(type_path)) => {
-                                        type_path.path.get_ident()
-                                    }
-                                    _ => None,
-                                })
+        let (only_imports, mut items) =
+            filter_items(imports.into_iter().chain(syn_file.items), |item| {
+                if let Some(ident) = item_ident(item) {
+                    !moved_items.contains(ident)
+                } else {
+                    match item {
+                        Item::ForeignMod(_) => true,
+                        Item::Impl(item_impl) => {
+                            // Check both A and B in `impl Trait<A> for B`.
+                            if let Type::Path(type_path) = &*item_impl.self_ty
+                                && let Some(ident) = type_path.path.get_ident()
+                                && !moved_items.contains(ident)
                             {
-                                !moved_items.contains(ident)
+                                true
                             } else {
-                                false
+                                if let Some((_, trait_path, _)) = &item_impl.trait_
+                                    && let Some(ps) = trait_path.segments.last()
+                                    && let syn::PathArguments::AngleBracketed(args) = &ps.arguments
+                                    && let Some(ident) =
+                                        args.args.iter().find_map(|arg| match arg {
+                                            syn::GenericArgument::Type(Type::Path(type_path)) => {
+                                                type_path.path.get_ident()
+                                            }
+                                            _ => None,
+                                        })
+                                {
+                                    !moved_items.contains(ident)
+                                } else {
+                                    false
+                                }
                             }
                         }
+                        Item::Mod(item_mod) => has_tests || item_mod.ident != "tests",
+                        _ => panic!("unexpected item variant: {item:?}"),
                     }
-                    Item::Mod(item_mod) => has_tests || item_mod.ident != "tests",
-                    _ => panic!("unexpected item variant: {item:?}"),
                 }
-            }
-        });
+            });
+
+        if only_imports {
+            // Remove `use crate::prelude::*;`
+            items.retain(|item| {
+                if let Item::Use(syn::ItemUse {
+                    tree: syn::UseTree::Path(use_path),
+                    ..
+                }) = item
+                    && use_path.ident == "crate"
+                    && let syn::UseTree::Path(syn::UsePath { ident, .. }) = use_path.tree.as_ref()
+                    && ident == "prelude"
+                {
+                    false
+                } else {
+                    true
+                }
+            })
+        }
 
         syn_file.items = items;
         fs::write(path.as_path(), format(syn_file).as_bytes())?;
