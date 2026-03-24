@@ -2,117 +2,238 @@
 /// adds vertical space in a useful way.
 pub fn add_blank_lines(src: &str) -> String {
     let mut padded = String::with_capacity((src.len() as f64 * 1.05) as usize);
-    let mut add_newline = false;
     let mut prev_context = Context::Blank;
+
+    fn open_unless(p: bool) -> (bool, Context) {
+        (true, if p { Context::Other } else { Context::Open })
+    }
+
+    fn newline_unless_same(prev_context: Context, context: Context) -> (bool, Context) {
+        (prev_context != context, context)
+    }
 
     for line in src.lines() {
         let trimmed = line.trim();
 
-        if add_newline {
-            if !trimmed.ends_with('}')
-                && !trimmed.ends_with("};")
-                && !trimmed.starts_with("use ")
-                && !trimmed.contains(" => ")
-            {
+        if trimmed.is_empty() {
+            // Preserve at most one blank line.
+            if prev_context.permit_newline() {
                 padded.push('\n');
-            } else {
-                add_newline = false;
             }
+            prev_context = Context::Blank;
+
+            continue;
         }
 
-        let sans_vis = trimmed
-            .starts_with("pub")
-            .then(|| {
-                trimmed
-                    .strip_prefix("pub ")
-                    .or_else(|| trimmed.strip_prefix("pub(crate) "))
-            })
-            .flatten()
-            .unwrap_or(trimmed);
+        let sans_vis = {
+            trimmed
+                .strip_prefix("pub")
+                .and_then(|s| {
+                    s.split_once(' ').and_then(|(pre, rest)| {
+                        (pre.is_empty() || pre.starts_with('(')).then(|| rest.trim())
+                    })
+                })
+                .unwrap_or(trimmed)
+        };
 
-        if let Some(token) = sans_vis.split_whitespace().next() {
-            (add_newline, prev_context) = match token {
-                _ if sans_vis.ends_with(',') => (false, Context::Unknown),
-                "const" | "enum" | "static" | "struct" | "type" => {
-                    if !add_newline && prev_context.permit_newline() {
-                        padded.push('\n');
-                    }
-                    (sans_vis.ends_with(";"), Context::Unknown)
-                }
-                "if" | "fn" | "loop" | "match" | "while" => {
-                    if !add_newline && prev_context.permit_newline() {
-                        padded.push('\n');
-                    }
-                    (false, Context::Open)
-                }
-                "return" => {
-                    if !add_newline && prev_context.permit_newline() {
-                        padded.push('\n');
-                    }
-                    (false, Context::Unknown)
-                }
-                "//" | "///" => {
-                    maybe_add_newline(add_newline, prev_context, Context::Comment, &mut padded)
-                }
-                "mod" => {
-                    if sans_vis.ends_with(';') {
-                        (true, Context::Mod)
-                    } else {
-                        (false, Context::Open)
-                    }
-                }
-                "use" => maybe_add_newline(add_newline, prev_context, Context::Use, &mut padded),
-                _ if trimmed == "}" || trimmed == "};" => (true, Context::Unknown),
-                _ if trimmed.starts_with("#") => {
-                    maybe_add_newline(add_newline, prev_context, Context::Macro, &mut padded)
-                }
-                _ if trimmed.ends_with("{") => (false, Context::Open),
-                _ => (false, Context::Unknown),
-            };
+        let first_char = trimmed.chars().next().unwrap();
+        let last_char = trimmed.chars().last().unwrap();
 
-            padded.push_str(line);
-            padded.push('\n');
-        } else {
-            if !add_newline && prev_context != Context::Blank {
-                padded.push('\n');
+        let is_open = || matches!(last_char, '{' | '(' | '[' | '<');
+
+        let (add_newline, context) = match sans_vis.split_whitespace().next().unwrap() {
+            "const" | "static" | "type" => open_unless(last_char == ';'),
+            "struct" => open_unless(matches!(last_char, ';' | '}')),
+            "enum" | "extern" | "fn" | "if" | "impl" | "loop" | "match" | "trait" | "while" => {
+                open_unless(last_char == '}')
             }
-            add_newline = false;
-            prev_context = Context::Blank;
+            "let" if prev_context != Context::Let => (true, Context::Let),
+            "let" => {
+                let is_open = is_open();
+                (is_open, if is_open { Context::Open } else { Context::Let })
+            }
+            "unsafe" => {
+                let is_open = !(last_char == '}' || trimmed.ends_with("};"));
+                (
+                    is_open,
+                    if is_open {
+                        Context::Open
+                    } else {
+                        Context::Other
+                    },
+                )
+            }
+            "return" => (true, Context::Other),
+            "mod" => newline_unless_same(prev_context, Context::Mod),
+            "as" | "use" => (
+                false,
+                if last_char == ';' {
+                    Context::Other
+                } else {
+                    Context::Open
+                },
+            ),
+            "}" | ")" | "]" if last_char == ';' => (false, Context::Close),
+            _ if first_char == '/' => newline_unless_same(prev_context, Context::Comment),
+            _ if first_char == '#' => newline_unless_same(prev_context, Context::Macro),
+            _ => match trimmed {
+                "}" | "};" | ")" | ");" | "]" | "];" => (false, Context::Close),
+                _ if last_char == ',' => (false, Context::Comma),
+                _ if first_char == '.' || trimmed.contains("=>") => (false, Context::Other),
+                _ if is_open() => (true, Context::Open),
+                _ => (matches!(prev_context, Context::Close), Context::Other),
+            },
+        };
+
+        if add_newline && prev_context.permit_newline() {
+            padded.push('\n');
+        }
+
+        padded.push_str(line);
+        padded.push('\n');
+
+        prev_context = if context != Context::Open && is_open() {
+            Context::Open
+        } else {
+            context
         };
     }
 
     padded
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Context {
-    Unknown,
     Blank,
+    Close,
+    Comma,
     Comment,
+    Let,
     Macro,
     Mod,
     Open,
-    Use,
+    Other,
 }
 
 impl Context {
     fn permit_newline(self) -> bool {
         !matches!(
             self,
-            Context::Blank | Context::Comment | Context::Macro | Context::Open
+            Context::Blank | Context::Comma | Context::Comment | Context::Macro | Context::Open
         )
     }
 }
 
-fn maybe_add_newline(
-    add_newline: bool,
-    prev_context: Context,
-    context: Context,
-    padded: &mut String,
-) -> (bool, Context) {
-    if !add_newline && prev_context != context && prev_context.permit_newline() {
-        padded.push('\n');
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add_blank_lines() {
+        let initial = "\
+use foo::{
+    bar,
+};
+pub use crate::*;
+#[cfg(tests)]
+mod tests;
+type Foo = ();
+struct S {
+    s: (),
+}
+enum Void {}
+const C: () = ();
+static S: [(); 1] = [
+    (),
+];
+pub unsafe extern \"C\" fn f() {
+    use f;
+    fn local() {
+    }
+    if true {
+    }
+    let a = ();
+    let b = ();
+    let c = [
+        (),
+    ];
+    match c {
+        [] => {
+            if false {
+            }
+        }
+        _ => (),
+    }
+    f();
+    g()
+        .h();
+    j(
+        1,
+        2,
+    );
+    return ();
+}\n";
+
+        assert_eq!(
+            add_blank_lines(initial),
+            "\
+use foo::{
+    bar,
+};
+pub use crate::*;
+
+#[cfg(tests)]
+mod tests;
+
+type Foo = ();
+
+struct S {
+    s: (),
+}
+
+enum Void {}
+
+const C: () = ();
+
+static S: [(); 1] = [
+    (),
+];
+
+pub unsafe extern \"C\" fn f() {
+    use f;
+
+    fn local() {
     }
 
-    (false, context)
+    if true {
+    }
+
+    let a = ();
+    let b = ();
+
+    let c = [
+        (),
+    ];
+
+    match c {
+        [] => {
+            if false {
+            }
+        }
+        _ => (),
+    }
+
+    f();
+    g()
+        .h();
+
+    j(
+        1,
+        2,
+    );
+
+    return ();
+}\n"
+        );
+    }
 }
