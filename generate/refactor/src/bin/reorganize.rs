@@ -57,12 +57,7 @@ fn main() -> Result<()> {
 
     create_generated_modules(rts_src_dir.as_path(), &mut context)?;
 
-    transform_ffi(
-        &rts_src_dir,
-        context.ffi_items,
-        context.test_items,
-        context.reexports,
-    )?;
+    transform_ffi(&rts_src_dir, context.moved_items, context.reexports)?;
 
     Ok(())
 }
@@ -75,6 +70,7 @@ struct Context {
     extern_ident_modules: HashMap<Ident, &'static ModulePath>,
     ffi_items: HashMap<Ident, (&'static Path, FfiItem)>,
     test_items: HashMap<Ident, Item>,
+    moved_items: HashSet<Ident>,
     reexports: HashMap<&'static Path, BTreeMap<&'static ModulePath, Vec<Ident>>>,
 }
 
@@ -174,7 +170,8 @@ impl Context {
                 .get_mut(ident)
                 .ok_or_else(|| format!("push_aux_item missing item: {ident}"))?;
 
-            ffi_item.push_aux_item(item)
+            ffi_item.aux_items.push(item);
+            Ok(())
         };
 
         let is_anon_data = |ident: &Ident| -> bool {
@@ -225,27 +222,40 @@ impl Context {
                         Option<Ident>,
                         Option<(&'static Path, FfiItem)>,
                     ) = match item {
-                        Item::Const(item) => (
+                        Item::Const(syn::ItemConst {
+                            attrs, vis, ident, ..
+                        }) => (
                             None,
                             ffi_items.insert(
-                                item.ident.clone(),
-                                (relpath, FfiItem::Const(item, vec![])),
+                                ident.clone(),
+                                (relpath, FfiItem::new(ItemVariant::Const, ident, attrs, vis)),
                             ),
                         ),
-                        Item::Enum(item) => {
-                            let ident = item.ident.clone();
-                            (
-                                Some(ident.clone()),
-                                ffi_items.insert(ident, (relpath, FfiItem::Enum(item, vec![]))),
-                            )
-                        }
+                        Item::Enum(i) => (
+                            Some(i.ident.clone()),
+                            ffi_items.insert(
+                                i.ident.clone(),
+                                (
+                                    relpath,
+                                    FfiItem::new(
+                                        ItemVariant::Enum(Box::new(i.clone())),
+                                        i.ident,
+                                        i.attrs,
+                                        i.vis,
+                                    ),
+                                ),
+                            ),
+                        ),
                         Item::Fn(syn::ItemFn {
                             attrs, vis, sig, ..
                         }) => (
                             None,
                             ffi_items.insert(
                                 sig.ident.clone(),
-                                (relpath, FfiItem::Fn { attrs, vis, sig }),
+                                (
+                                    relpath,
+                                    FfiItem::new(ItemVariant::Fn, sig.ident, attrs, vis),
+                                ),
                             ),
                         ),
                         Item::Impl(item) => {
@@ -254,47 +264,70 @@ impl Context {
                             }
                             (prev_data_ident, None)
                         }
-                        Item::Static(item) => (
+                        Item::Static(syn::ItemStatic {
+                            attrs, vis, ident, ..
+                        }) => (
                             None,
-                            ffi_items.insert(item.ident.clone(), (relpath, FfiItem::Static(item))),
+                            ffi_items.insert(
+                                ident.clone(),
+                                (
+                                    relpath,
+                                    FfiItem::new(ItemVariant::Static, ident, attrs, vis),
+                                ),
+                            ),
                         ),
-                        Item::Struct(item) => {
-                            let ident = item.ident.clone();
+                        Item::Struct(i) => {
+                            let ident = i.ident.clone();
 
                             if is_anon_data(&ident) {
-                                anon_data(
-                                    &mut ffi_items,
-                                    &ident,
-                                    prev_data_ident,
-                                    Item::Struct(item),
-                                )?
+                                anon_data(&mut ffi_items, &ident, prev_data_ident, Item::Struct(i))?
                             } else {
                                 (
                                     Some(ident.clone()),
-                                    ffi_items
-                                        .insert(ident, (relpath, FfiItem::Struct(item, vec![]))),
+                                    ffi_items.insert(
+                                        ident.clone(),
+                                        (
+                                            relpath,
+                                            FfiItem::new(
+                                                ItemVariant::Struct,
+                                                i.ident,
+                                                i.attrs,
+                                                i.vis,
+                                            ),
+                                        ),
+                                    ),
                                 )
                             }
                         }
-                        Item::Type(item) => (
+                        Item::Type(syn::ItemType {
+                            attrs, vis, ident, ..
+                        }) => (
                             prev_data_ident,
-                            ffi_items.insert(item.ident.clone(), (relpath, FfiItem::Type(item))),
+                            ffi_items.insert(
+                                ident.clone(),
+                                (relpath, FfiItem::new(ItemVariant::Type, ident, attrs, vis)),
+                            ),
                         ),
-                        Item::Union(item) => {
-                            let ident = item.ident.clone();
+                        Item::Union(i) => {
+                            let ident = i.ident.clone();
 
                             if is_anon_data(&ident) {
-                                anon_data(
-                                    &mut ffi_items,
-                                    &ident,
-                                    prev_data_ident,
-                                    Item::Union(item),
-                                )?
+                                anon_data(&mut ffi_items, &ident, prev_data_ident, Item::Union(i))?
                             } else {
                                 (
                                     Some(ident.clone()),
-                                    ffi_items
-                                        .insert(ident, (relpath, FfiItem::Union(item, vec![]))),
+                                    ffi_items.insert(
+                                        ident.clone(),
+                                        (
+                                            relpath,
+                                            FfiItem::new(
+                                                ItemVariant::Union,
+                                                i.ident,
+                                                i.attrs,
+                                                i.vis,
+                                            ),
+                                        ),
+                                    ),
                                 )
                             }
                         }
@@ -330,8 +363,25 @@ impl Context {
             extern_ident_modules,
             ffi_items,
             test_items,
+            moved_items: HashSet::new(),
             reexports: HashMap::new(),
         })
+    }
+
+    fn move_ffi_item(&mut self, ident: &Ident) -> Option<FfiItem> {
+        if let Some((path, ffi_item)) = self
+            .ffi_items
+            .get(ident)
+            // Cloning because there may be multiple implementations (e.g. one for each arch.).
+            .map(|(path, ffi_item)| (*path, ffi_item.clone()))
+        {
+            self.add_reexport(path, ident.clone());
+            self.moved_items.insert(ident.clone());
+
+            Some(ffi_item)
+        } else {
+            None
+        }
     }
 
     fn visibility(&self, in_header: bool, ident: &Ident) -> Visibility {
@@ -373,61 +423,43 @@ impl Context {
     }
 }
 
-#[derive(Debug)]
-enum FfiItem {
-    Const(syn::ItemConst, Vec<syn::Item>),
-    Enum(syn::ItemEnum, Vec<syn::Item>),
-    Fn {
-        attrs: Vec<Attribute>,
-        vis: Visibility,
-        sig: syn::Signature,
-    },
-    Static(syn::ItemStatic),
-    Struct(syn::ItemStruct, Vec<syn::Item>),
-    Type(syn::ItemType),
-    Union(syn::ItemUnion, Vec<syn::Item>),
+#[derive(Clone, Debug)]
+struct FfiItem {
+    variant: ItemVariant,
+    ident: Ident,
+    attrs: Vec<Attribute>,
+    vis: Visibility,
+    aux_items: Vec<Item>,
+}
+
+#[derive(Clone, Debug)]
+enum ItemVariant {
+    Const,
+    Enum(Box<syn::ItemEnum>),
+    Fn,
+    Static,
+    Struct,
+    Type,
+    Union,
 }
 
 impl FfiItem {
-    fn push_aux_item(&mut self, item: Item) -> Result<()> {
-        let items = match self {
-            FfiItem::Const(_, items) => Ok(items),
-            FfiItem::Enum(_, items) => Ok(items),
-            FfiItem::Fn { sig, .. } => Err(format!("no items for {}", sig.ident)),
-            FfiItem::Static(item) => Err(format!("no items for {}", item.ident)),
-            FfiItem::Struct(_, items) => Ok(items),
-            FfiItem::Type(item) => Err(format!("no items for {}", item.ident)),
-            FfiItem::Union(_, items) => Ok(items),
-        }?;
-        items.push(item);
-
-        Ok(())
-    }
-
-    fn ident(&self) -> &Ident {
-        match self {
-            FfiItem::Const(item, _) => &item.ident,
-            FfiItem::Enum(item, _) => &item.ident,
-            FfiItem::Fn { sig, .. } => &sig.ident,
-            FfiItem::Static(item) => &item.ident,
-            FfiItem::Struct(item, _) => &item.ident,
-            FfiItem::Type(item) => &item.ident,
-            FfiItem::Union(item, _) => &item.ident,
+    fn new(variant: ItemVariant, ident: Ident, attrs: Vec<Attribute>, vis: Visibility) -> FfiItem {
+        FfiItem {
+            variant,
+            ident,
+            attrs,
+            vis,
+            aux_items: vec![],
         }
     }
 
-    fn is_public(&self) -> bool {
-        let attrs = match self {
-            FfiItem::Const(item, _) => &item.attrs,
-            FfiItem::Enum(item, _) => &item.attrs,
-            FfiItem::Fn { attrs, .. } => attrs,
-            FfiItem::Static(item) => &item.attrs,
-            FfiItem::Struct(item, _) => &item.attrs,
-            FfiItem::Type(item) => &item.attrs,
-            FfiItem::Union(item, _) => &item.attrs,
-        };
+    fn ident(&self) -> &Ident {
+        &self.ident
+    }
 
-        attrs.iter().any(|attr| {
+    fn is_public(&self) -> bool {
+        self.attrs.iter().any(|attr| {
             attr.path()
                 .segments
                 .first()
@@ -435,49 +467,61 @@ impl FfiItem {
         })
     }
 
-    fn into_items(self, item: Item) -> Result<Vec<Item>> {
-        match (item, self) {
-            (Item::Const(mut item), FfiItem::Const(ffi, items)) => {
-                item.vis = ffi.vis;
-                item.attrs = ffi.attrs;
-                Ok(iter::once(Item::Const(item)).chain(items).collect())
+    fn into_items(self, mut item: Item) -> Result<Vec<Item>> {
+        match (&mut item, self.variant) {
+            (Item::Const(i), ItemVariant::Const) => {
+                i.vis = self.vis;
+                i.attrs = self.attrs;
             }
-            (Item::Enum(mut item), FfiItem::Enum(ffi, items)) => {
-                item.vis = ffi.vis;
-                item.attrs = ffi.attrs;
-                Ok(iter::once(Item::Enum(item)).chain(items).collect())
+            (Item::Enum(i), ItemVariant::Enum(_)) => {
+                i.vis = self.vis;
+                i.attrs = self.attrs;
             }
-            (Item::Fn(mut item), FfiItem::Fn { attrs, vis, .. }) => {
-                item.vis = vis;
-                item.attrs = attrs;
-                Ok(vec![Item::Fn(item)])
+            (Item::Fn(i), ItemVariant::Fn) => {
+                i.vis = self.vis;
+                i.attrs = self.attrs;
             }
-            (Item::Static(mut item), FfiItem::Static(ffi)) => {
-                item.vis = ffi.vis;
-                item.attrs = ffi.attrs;
-                Ok(vec![Item::Static(item)])
+            (Item::Static(i), ItemVariant::Static) => {
+                i.vis = self.vis;
+                i.attrs = self.attrs;
             }
-            (Item::Struct(mut item), FfiItem::Struct(ffi, items)) => {
-                item.vis = ffi.vis;
-                item.attrs = ffi.attrs;
-                Ok(iter::once(Item::Struct(item)).chain(items).collect())
+            (Item::Struct(i), ItemVariant::Struct) => {
+                i.vis = self.vis;
+                i.attrs = self.attrs;
             }
-            (Item::Type(mut item), FfiItem::Type(ffi)) => {
-                item.vis = ffi.vis;
-                item.attrs = ffi.attrs;
-                Ok(vec![Item::Type(item)])
+            (Item::Type(i), ItemVariant::Type) => {
+                i.vis = self.vis;
+                i.attrs = self.attrs;
             }
-            (Item::Type(_), FfiItem::Enum(ffi, items)) => {
+            (Item::Type(_), ItemVariant::Enum(item_enum)) => {
                 // Use the binden enum instead of c2rust's type.
-                Ok(iter::once(Item::Enum(ffi)).chain(items).collect())
+                item = Item::Enum(*item_enum);
             }
-            (Item::Union(mut item), FfiItem::Union(ffi, items)) => {
-                item.vis = ffi.vis;
-                item.attrs = ffi.attrs;
-                Ok(iter::once(Item::Union(item)).chain(items).collect())
+            (Item::Type(i), _) => {
+                i.vis = self.vis;
+
+                if let Some(attr) = self.attrs.into_iter().find(|attr| {
+                    attr.path()
+                        .segments
+                        .first()
+                        .is_some_and(|s| s.ident == "ffi")
+                }) {
+                    i.attrs.insert(0, attr);
+                }
             }
-            (item, ffi_item) => Err(format!("unable to compute items: {:?}", (item, ffi_item)))?,
+            (Item::Union(i), ItemVariant::Union) => {
+                i.vis = self.vis;
+                i.attrs = self.attrs;
+            }
+            (item, variant) => {
+                Err(format!(
+                    "unexpected item variants in into_items: {:?}",
+                    (variant, item)
+                ))?;
+            }
         }
+
+        Ok(iter::once(item).chain(self.aux_items).collect())
     }
 }
 
@@ -675,8 +719,9 @@ impl Transformed {
         };
 
         for test_ident in possible_test_idents {
-            if let Some(test_item) = context.test_items.remove(&test_ident) {
-                self.test_items.push(test_item);
+            if let Some(test_item) = context.test_items.get(&test_ident) {
+                context.moved_items.insert(test_ident);
+                self.test_items.push(test_item.clone());
             }
         }
 
@@ -788,8 +833,7 @@ fn transform_const(
 ) -> Result<()> {
     let ident = &item_const.ident;
 
-    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
-        context.add_reexport(key, ident.clone());
+    if let Some(ffi_item) = context.move_ffi_item(ident) {
         transformed.add_items(context, ffi_item.into_items(Item::Const(item_const))?);
     } else {
         context.adjust_vis_attrs(
@@ -819,9 +863,7 @@ fn transform_enum(
     // c2rust does not appear to emit enums.
     eprintln!("    * Encountered an enum {}", item_enum.ident);
 
-    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
-        context.add_reexport(key, ident.clone());
-
+    if let Some(ffi_item) = context.move_ffi_item(ident) {
         for variant in item_enum.variants.iter_mut() {
             set_field_visibility(ffi_item.is_public(), in_header, &mut variant.fields);
         }
@@ -858,8 +900,7 @@ fn transform_fn(
 ) -> Result<()> {
     let ident = &item_fn.sig.ident;
 
-    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
-        context.add_reexport(key, ident.clone());
+    if let Some(ffi_item) = context.move_ffi_item(ident) {
         transformed.add_items(context, ffi_item.into_items(Item::Fn(item_fn))?);
     } else {
         remove_attributes(&mut item_fn.attrs, &[]);
@@ -1079,8 +1120,7 @@ fn transform_static(
 ) -> Result<()> {
     let ident = &item_static.ident;
 
-    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
-        context.add_reexport(key, ident.clone());
+    if let Some(ffi_item) = context.move_ffi_item(ident) {
         transformed.add_items(context, ffi_item.into_items(Item::Static(item_static))?);
     } else {
         context.adjust_vis_attrs(
@@ -1112,8 +1152,7 @@ fn transform_struct(
 ) -> Result<()> {
     let ident = &item_struct.ident;
 
-    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
-        context.add_reexport(key, ident.clone());
+    if let Some(ffi_item) = context.move_ffi_item(ident) {
         set_field_visibility(ffi_item.is_public(), in_header, &mut item_struct.fields);
         transformed.add_items(context, ffi_item.into_items(Item::Struct(item_struct))?);
     } else {
@@ -1156,8 +1195,7 @@ fn transform_type(
 ) -> Result<()> {
     let ident = &item_type.ident;
 
-    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
-        context.add_reexport(key, ident.clone());
+    if let Some(ffi_item) = context.move_ffi_item(ident) {
         transformed.add_items(context, ffi_item.into_items(Item::Type(item_type))?);
     } else {
         context.adjust_vis_attrs(
@@ -1185,8 +1223,7 @@ fn transform_union(
 ) -> Result<()> {
     let ident = &item_union.ident;
 
-    if let Some((key, ffi_item)) = context.ffi_items.remove(ident) {
-        context.add_reexport(key, ident.clone());
+    if let Some(ffi_item) = context.move_ffi_item(ident) {
         set_named_field_visibility(ffi_item.is_public(), in_header, &mut item_union.fields);
         transformed.add_items(context, ffi_item.into_items(Item::Union(item_union))?);
     } else {
@@ -1314,8 +1351,7 @@ fn internal_api(vis: &mut Visibility, attrs: &mut Vec<Attribute>) {
 
 fn transform_ffi(
     rts_src_dir: &Path,
-    ffi_items: HashMap<Ident, (&'static Path, FfiItem)>,
-    test_items: HashMap<Ident, Item>,
+    moved_items: HashSet<Ident>,
     reexports: HashMap<&'static Path, BTreeMap<&'static ModulePath, Vec<Ident>>>,
 ) -> Result<()> {
     for (relpath, crate_imports) in reexports {
@@ -1366,7 +1402,7 @@ fn transform_ffi(
                 let mut syn_file = parse_syn_file(test_path)?;
 
                 let (only_imports, items) = filter_items(syn_file.items, |item| {
-                    item_ident(item).is_none_or(|ident| test_items.contains_key(ident))
+                    item_ident(item).is_none_or(|ident| !moved_items.contains(ident))
                 });
 
                 if only_imports {
@@ -1400,7 +1436,7 @@ fn transform_ffi(
 
         let (_, items) = filter_items(imports.into_iter().chain(syn_file.items), |item| {
             if let Some(ident) = item_ident(item) {
-                ffi_items.contains_key(ident)
+                !moved_items.contains(ident)
             } else {
                 match item {
                     Item::ForeignMod(_) => true,
@@ -1408,7 +1444,7 @@ fn transform_ffi(
                         // Check both A and B in `impl Trait<A> for B`.
                         if let Type::Path(type_path) = &*item_impl.self_ty
                             && let Some(ident) = type_path.path.get_ident()
-                            && ffi_items.contains_key(ident)
+                            && !moved_items.contains(ident)
                         {
                             true
                         } else {
@@ -1422,7 +1458,7 @@ fn transform_ffi(
                                     _ => None,
                                 })
                             {
-                                ffi_items.contains_key(ident)
+                                !moved_items.contains(ident)
                             } else {
                                 false
                             }
