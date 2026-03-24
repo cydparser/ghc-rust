@@ -1,4 +1,4 @@
-use std::io::{Read, Seek, SeekFrom, Write};
+use std::io::{Read, Seek, Write};
 use std::path::PathBuf;
 use std::{fs, io};
 
@@ -15,7 +15,8 @@ fn main() -> io::Result<()> {
 
         let mut src = String::new();
         file.read_to_string(&mut src)?;
-        file.seek(SeekFrom::Start(0))?;
+        file.rewind()?;
+        file.set_len(0)?;
 
         let src = generate_format::add_blank_lines(src.as_ref());
         file.write_all(src.as_bytes())?;
