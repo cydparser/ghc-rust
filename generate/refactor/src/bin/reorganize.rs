@@ -497,7 +497,11 @@ impl FfiItem {
                 // Use the binden enum instead of c2rust's type.
                 item = Item::Enum(*item_enum);
             }
-            (Item::Type(i), _) => {
+            (Item::Type(i), variant) => {
+                eprintln!(
+                    "    * c2rust and bindgen use different item kinds for {}: bindgen = {:?}",
+                    &i.ident, variant
+                );
                 i.vis = self.vis;
 
                 if let Some(attr) = self.attrs.into_iter().find(|attr| {
