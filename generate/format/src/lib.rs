@@ -55,7 +55,7 @@ pub fn add_blank_lines(src: &str) -> String {
             "unsafe" => {
                 let is_open = !(last_char == '}' || trimmed.ends_with("};"));
                 (
-                    is_open,
+                    is_open || trimmed.starts_with("unsafe fn"),
                     if is_open {
                         Context::Open
                     } else {
@@ -73,17 +73,21 @@ pub fn add_blank_lines(src: &str) -> String {
                     Context::Open
                 },
             ),
-            "}" | ")" | "]" if last_char == ';' => (false, Context::Close),
             _ if first_char == '/' => newline_unless_same(prev_context, Context::Comment),
             _ if first_char == '#' => newline_unless_same(prev_context, Context::Macro),
             _ if trimmed.starts_with("assert_") => (false, Context::Other),
-            _ => match trimmed {
-                "}" | "};" | ")" | ");" | "]" | "];" => (false, Context::Close),
-                _ if last_char == ',' => (false, Context::Comma),
-                _ if first_char == '.' || trimmed.contains("=>") => (false, Context::Other),
-                _ if is_open() => (true, Context::Open),
-                _ => (matches!(prev_context, Context::Close), Context::Other),
-            },
+            _ if last_char == ',' => (false, Context::Comma),
+            _ if matches!(first_char, '}' | ')' | ']' | '>') => (
+                false,
+                if last_char == ';' || trimmed.len() == 1 {
+                    Context::Close
+                } else {
+                    Context::Other
+                },
+            ),
+            _ if first_char == '.' || trimmed.contains("=>") => (false, Context::Other),
+            _ if is_open() => (true, Context::Open),
+            _ => (matches!(prev_context, Context::Close), Context::Other),
         };
 
         if add_newline && prev_context.permit_newline() {
@@ -152,6 +156,9 @@ pub unsafe extern \"C\" fn f() {
     fn local() {
     }
     if true {
+        while false {
+        }
+    } else {
     }
     let a = ();
     let b = ();
@@ -165,6 +172,10 @@ pub unsafe extern \"C\" fn f() {
         }
         _ => (),
     }
+    let mut d = ();
+    e(
+        (),
+    );
     f();
     g()
         .h();
@@ -207,6 +218,9 @@ pub unsafe extern \"C\" fn f() {
     }
 
     if true {
+        while false {
+        }
+    } else {
     }
 
     let a = ();
@@ -223,6 +237,12 @@ pub unsafe extern \"C\" fn f() {
         }
         _ => (),
     }
+
+    let mut d = ();
+
+    e(
+        (),
+    );
 
     f();
     g()
