@@ -19,8 +19,8 @@ pub fn add_blank_lines(src: &str) -> String {
             // Preserve at most one blank line.
             if prev_context.permit_newline() {
                 padded.push('\n');
+                prev_context = Context::Blank;
             }
-            prev_context = Context::Blank;
 
             continue;
         }
