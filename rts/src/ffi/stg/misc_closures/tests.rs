@@ -105,7 +105,6 @@ fn equivalent_stg_ctoi_t() {
         let result: StgFunPtr = unsafe { stg_ctoi_t() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -254,20 +253,6 @@ fn sys_stg_SRT_16_info_layout() {
 
 #[cfg(feature = "sys")]
 #[test]
-#[expect(static_mut_refs)]
-fn sys_stg_INTLIKE_closure_layout() {
-    assert_eq!(
-        size_of_val(unsafe { &stg_INTLIKE_closure }),
-        size_of_val(unsafe { &sys::stg_INTLIKE_closure })
-    );
-    assert_eq!(
-        align_of_val(unsafe { &stg_INTLIKE_closure }),
-        align_of_val(unsafe { &sys::stg_INTLIKE_closure })
-    );
-}
-
-#[cfg(feature = "sys")]
-#[test]
 fn sys_stg_unpack_cstring_info_layout() {
     assert_eq!(
         size_of_val(&stg_unpack_cstring_info),
@@ -319,7 +304,6 @@ fn equivalent_stg_ap_n_fast() {
         let result: StgFunPtr = unsafe { stg_ap_n_fast() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -350,7 +334,6 @@ fn equivalent_stg_ap_p_fast() {
         let result: StgFunPtr = unsafe { stg_ap_p_fast() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -381,7 +364,6 @@ fn equivalent_stg_ap_pp_fast() {
         let result: StgFunPtr = unsafe { stg_ap_pp_fast() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -412,7 +394,6 @@ fn equivalent_stg_ap_ppp_fast() {
         let result: StgFunPtr = unsafe { stg_ap_ppp_fast() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -443,7 +424,6 @@ fn equivalent_stg_gc_noregs() {
         let result: StgFunPtr = unsafe { stg_gc_noregs() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -513,7 +493,6 @@ fn equivalent___stg_gc_enter_1() {
         let result: StgFunPtr = unsafe { __stg_gc_enter_1() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -544,7 +523,6 @@ fn equivalent_stg_gc_unpt_r1() {
         let result: StgFunPtr = unsafe { stg_gc_unpt_r1() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -575,7 +553,6 @@ fn equivalent_stg_gc_unbx_r1() {
         let result: StgFunPtr = unsafe { stg_gc_unbx_r1() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -606,7 +583,6 @@ fn equivalent_stg_gc_f1() {
         let result: StgFunPtr = unsafe { stg_gc_f1() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -637,7 +613,6 @@ fn equivalent_stg_gc_d1() {
         let result: StgFunPtr = unsafe { stg_gc_d1() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -668,7 +643,6 @@ fn equivalent_stg_gc_l1() {
         let result: StgFunPtr = unsafe { stg_gc_l1() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -699,7 +673,6 @@ fn equivalent_stg_gc_pp() {
         let result: StgFunPtr = unsafe { stg_gc_pp() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -730,7 +703,6 @@ fn equivalent_stg_gc_ppp() {
         let result: StgFunPtr = unsafe { stg_gc_ppp() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -761,7 +733,6 @@ fn equivalent_stg_gc_pppp() {
         let result: StgFunPtr = unsafe { stg_gc_pppp() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -792,7 +763,6 @@ fn equivalent___stg_gc_fun() {
         let result: StgFunPtr = unsafe { __stg_gc_fun() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -836,7 +806,6 @@ fn equivalent_StgReturn() {
         let result: StgFunPtr = unsafe { StgReturn() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -867,7 +836,6 @@ fn equivalent_stg_paniczh() {
         let result: StgFunPtr = unsafe { stg_paniczh() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -898,7 +866,6 @@ fn equivalent_stg_absentErrorzh() {
         let result: StgFunPtr = unsafe { stg_absentErrorzh() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -929,7 +896,6 @@ fn equivalent_stg_getThreadAllocationCounterzh() {
         let result: StgFunPtr = unsafe { stg_getThreadAllocationCounterzh() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 
@@ -960,7 +926,6 @@ fn equivalent_stg_getOtherThreadAllocationCounterzh() {
         let result: StgFunPtr = unsafe { stg_getOtherThreadAllocationCounterzh() };
         todo!()
     };
-
     assert_eq!(actual, expected);
 }
 

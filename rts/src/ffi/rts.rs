@@ -1,5 +1,11 @@
-use crate::ffi::rts::storage::tso::StgTSO;
+pub use crate::posix::signals::stg_sig_install;
 use crate::prelude::*;
+pub use crate::rts_messages::_assertFail;
+pub use crate::rts_startup::stg_exit;
+pub use crate::rts_utils::{
+    reportHeapOverflow, reportStackOverflow, rts_isDebugged, rts_isDynamic, rts_isProfiled,
+    rts_isThreaded, rts_isTracing,
+};
 
 pub mod adjustor;
 pub mod block_signals;
@@ -63,93 +69,3 @@ pub(crate) const EXIT_HEAPOVERFLOW: u32 = 251;
 pub(crate) const EXIT_KILLED: u32 = 250;
 
 pub(crate) const DEBUG_IS_ON: u32 = 1;
-
-#[ffi(utils)]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -> ! {
-    before_exit("_assertFail");
-    sys! {
-        _assertFail(filename, linenum)
-    }
-}
-
-#[ffi(compiler, ghc_lib)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn reportStackOverflow(tso: *mut StgTSO) {
-    sys! {
-        reportStackOverflow(tso as * mut sys::StgTSO)
-    }
-}
-
-#[ffi(compiler, ghc_lib)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn reportHeapOverflow() {
-    sys! {
-        reportHeapOverflow()
-    }
-}
-
-#[ffi(ghc_lib, utils)]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn stg_exit(n: c_int) -> ! {
-    before_exit("stg_exit");
-    sys! {
-        stg_exit(n)
-    }
-}
-
-#[ffi(ghc_lib, libraries)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn stg_sig_install(arg1: c_int, arg2: c_int, arg3: *mut c_void) -> c_int {
-    sys! {
-        stg_sig_install(arg1, arg2, arg3)
-    }
-}
-
-#[ffi(compiler)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn rts_isProfiled() -> c_int {
-    sys! {
-        rts_isProfiled()
-    }
-}
-
-#[ffi(compiler)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn rts_isDynamic() -> c_int {
-    sys! {
-        rts_isDynamic()
-    }
-}
-
-#[ffi(compiler, ghc_lib)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn rts_isThreaded() -> c_int {
-    sys! {
-        rts_isThreaded()
-    }
-}
-
-#[ffi(compiler)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn rts_isDebugged() -> c_int {
-    sys! {
-        rts_isDebugged()
-    }
-}
-
-#[ffi(compiler)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn rts_isTracing() -> c_int {
-    sys! {
-        rts_isTracing()
-    }
-}

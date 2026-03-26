@@ -307,6 +307,7 @@ impl From<sys::_IO_MANAGER_FLAG> for _IO_MANAGER_FLAG {
 
 impl TryFrom<u32> for _IO_MANAGER_FLAG {
     type Error = ();
+
     fn try_from(d: u32) -> Result<_IO_MANAGER_FLAG, ()> {
         use _IO_MANAGER_FLAG::*;
 
@@ -455,6 +456,7 @@ impl From<sys::_HPC_READ_FILE> for _HPC_READ_FILE {
 
 impl TryFrom<u32> for _HPC_READ_FILE {
     type Error = ();
+
     fn try_from(d: u32) -> Result<_HPC_READ_FILE, ()> {
         use _HPC_READ_FILE::*;
 

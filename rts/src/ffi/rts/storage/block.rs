@@ -1,7 +1,7 @@
 use crate::ffi::rts::storage::gc::generation_;
-use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 use crate::prelude::*;
+pub use crate::sm::block_alloc::{allocAlignedGroupOnNode, allocGroup_lock, freeGroup_lock};
 
 #[cfg(test)]
 mod tests;
@@ -99,30 +99,3 @@ pub union bdescr___bindgen_ty_2 {
 
 #[ffi(testsuite)]
 pub type bdescr = bdescr_;
-
-#[ffi(testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn allocAlignedGroupOnNode(node: u32, n: W_) -> *mut bdescr {
-    sys! {
-        allocAlignedGroupOnNode(node, n).cast()
-    }
-}
-
-#[ffi(testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn allocGroup_lock(n: W_) -> *mut bdescr {
-    sys! {
-        allocGroup_lock(n).cast()
-    }
-}
-
-#[ffi(testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn freeGroup_lock(p: *mut bdescr) {
-    sys! {
-        freeGroup_lock(p as * mut sys::bdescr)
-    }
-}

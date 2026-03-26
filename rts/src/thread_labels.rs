@@ -1,0 +1,39 @@
+use crate::alloc_array::allocateArrBytes;
+use crate::capability::recordClosureMutated;
+use crate::ffi::rts::prof::ccs::CostCentreStack;
+use crate::ffi::rts::storage::closures::StgArrBytes;
+use crate::ffi::rts::types::{StgClosure, StgTSO};
+use crate::ffi::rts_api::Capability;
+use crate::ffi::stg::types::StgWord;
+use crate::prelude::*;
+use crate::trace::traceThreadLabel;
+
+unsafe fn setThreadLabel(mut cap: *mut Capability, mut tso: *mut StgTSO, mut label: *mut c_char) {
+    let mut len = strlen(label) as c_int;
+    let mut arr = allocateArrBytes(cap, len as StgWord, (*cap).r.rCCCS as *mut CostCentreStack);
+
+    if (arr == null_mut::<c_void>() as *mut StgArrBytes) as c_int as c_long != 0 {
+        return;
+    }
+
+    memcpy(
+        &raw mut (*arr).payload as *mut c_void,
+        label as *const c_void,
+        len as size_t,
+    );
+
+    labelThread(cap, tso, arr);
+}
+
+unsafe fn labelThread(mut cap: *mut Capability, mut tso: *mut StgTSO, mut label: *mut StgArrBytes) {
+    !(*tso).label.is_null();
+    recordClosureMutated(cap, tso as *mut StgClosure);
+    (*tso).label = label;
+
+    traceThreadLabel(
+        cap,
+        tso,
+        &raw mut (*label).payload as *mut StgWord as *mut c_char,
+        (*label).bytes as size_t,
+    );
+}

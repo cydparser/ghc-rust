@@ -1,9 +1,16 @@
-use crate::ffi::rts::storage::closures::StgClosure;
 use crate::ffi::stg::types::{
-    StgChar, StgDouble, StgFloat, StgInt, StgInt8, StgInt16, StgInt32, StgInt64, StgPtr, StgWord,
-    StgWord8, StgWord16, StgWord32, StgWord64,
+    StgChar, StgDouble, StgFloat, StgInt, StgInt8, StgInt16, StgInt32, StgInt64, StgWord, StgWord8,
+    StgWord16, StgWord32, StgWord64,
+};
+pub use crate::hs_ffi::{
+    HsFunPtr, HsStablePtr, hs_free_fun_ptr, hs_free_stable_ptr, hs_free_stable_ptr_unsafe,
+    hs_lock_stable_ptr_table, hs_lock_stable_tables, hs_perform_gc, hs_thread_done,
+    hs_unlock_stable_ptr_table, hs_unlock_stable_tables,
 };
 use crate::prelude::*;
+pub use crate::rts_api::{hs_try_putmvar, hs_try_putmvar_with_value};
+pub use crate::rts_startup::{hs_exit, hs_exit_nowait, hs_init};
+pub use crate::static_ptr_table::{hs_spt_key_count, hs_spt_keys, hs_spt_lookup};
 
 #[cfg(test)]
 mod tests;
@@ -95,166 +102,3 @@ pub type HsBool = StgInt;
 
 #[ffi(compiler, ghc_lib, testsuite)]
 pub type HsPtr = *mut c_void;
-
-#[ffi(docs, testsuite)]
-pub type HsFunPtr = Option<unsafe extern "C" fn()>;
-
-#[ffi(docs, ghc_lib, testsuite)]
-pub type HsStablePtr = *mut c_void;
-
-#[ffi(docs, libraries, testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_init(argc: *mut c_int, argv: *mut *mut *mut c_char) {
-    sys! {
-        hs_init(argc, argv)
-    }
-}
-
-#[ffi(docs, ghc_lib, libraries, testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_exit() {
-    sys! {
-        hs_exit()
-    }
-}
-
-#[ffi(docs)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_exit_nowait() {
-    sys! {
-        hs_exit_nowait()
-    }
-}
-
-#[ffi(docs, testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_thread_done() {
-    sys! {
-        hs_thread_done()
-    }
-}
-
-#[ffi(testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_perform_gc() {
-    sys! {
-        hs_perform_gc()
-    }
-}
-
-#[ffi(docs)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_lock_stable_ptr_table() {
-    sys! {
-        hs_lock_stable_ptr_table()
-    }
-}
-
-#[ffi(docs)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_lock_stable_tables() {
-    sys! {
-        hs_lock_stable_tables()
-    }
-}
-
-#[ffi(docs)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_unlock_stable_ptr_table() {
-    sys! {
-        hs_unlock_stable_ptr_table()
-    }
-}
-
-#[ffi(docs)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_unlock_stable_tables() {
-    sys! {
-        hs_unlock_stable_tables()
-    }
-}
-
-#[ffi(docs)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_free_stable_ptr_unsafe(sp: HsStablePtr) {
-    sys! {
-        hs_free_stable_ptr_unsafe(sp)
-    }
-}
-
-#[ffi(docs, ghc_lib)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_free_stable_ptr(sp: HsStablePtr) {
-    sys! {
-        hs_free_stable_ptr(sp)
-    }
-}
-
-#[ffi(docs)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_free_fun_ptr(fp: HsFunPtr) {
-    sys! {
-        hs_free_fun_ptr(fp)
-    }
-}
-
-#[ffi(ghc_lib)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_spt_lookup(key: *mut StgWord64) -> StgPtr {
-    sys! {
-        hs_spt_lookup(key)
-    }
-}
-
-#[ffi(ghc_lib)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_spt_keys(keys: *mut StgPtr, szKeys: c_int) -> c_int {
-    sys! {
-        hs_spt_keys(keys, szKeys)
-    }
-}
-
-#[ffi(ghc_lib)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_spt_key_count() -> c_int {
-    sys! {
-        hs_spt_key_count()
-    }
-}
-
-#[ffi(docs, testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_try_putmvar(capability: c_int, sp: HsStablePtr) {
-    sys! {
-        hs_try_putmvar(capability, sp)
-    }
-}
-
-#[ffi(docs)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn hs_try_putmvar_with_value(
-    capability: c_int,
-    sp: HsStablePtr,
-    value: *mut StgClosure,
-) {
-    sys! {
-        hs_try_putmvar_with_value(capability, sp, value as * mut sys::StgClosure)
-    }
-}

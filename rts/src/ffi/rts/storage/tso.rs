@@ -4,10 +4,9 @@ use crate::ffi::rts::storage::closures::{
     MessageBlackHole_, MessageThrowTo_, MessageWakeup_, StgArrBytes, StgBlockingQueue, StgClosure,
     StgHeader, StgTRecHeader_,
 };
-use crate::ffi::stg::types::{
-    StgInt, StgInt64, StgPtr, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
-};
+use crate::ffi::stg::types::{StgInt, StgInt64, StgPtr, StgWord8, StgWord16, StgWord32, StgWord64};
 use crate::prelude::*;
+pub use crate::task::InCall_;
 
 #[cfg(test)]
 mod tests;
@@ -82,20 +81,3 @@ pub struct StgStack_ {
 
 #[ffi(ghc_lib, testsuite)]
 pub type StgStack = StgStack_;
-
-/// cbindgen:no-export
-#[repr(C)]
-#[derive(Debug)]
-#[cfg_attr(test, derive(Clone))]
-pub struct InCall_ {
-    _address: u8,
-}
-
-#[cfg(test)]
-impl Arbitrary for InCall_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        InCall_ {
-            _address: Arbitrary::arbitrary(g),
-        }
-    }
-}

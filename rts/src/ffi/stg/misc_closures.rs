@@ -1,6 +1,4 @@
-use crate::ffi::rts::storage::closures::{
-    StgHeader, StgIntCharlikeClosure, StgProfHeader, StgProfHeader__bindgen_ty_1,
-};
+pub use crate::builtin_closures::stg_INTLIKE_closure;
 use crate::ffi::rts::storage::info_tables::{
     StgClosureInfo, StgFunInfoExtraRev_, StgFunInfoExtraRev___bindgen_ty_1, StgFunInfoTable,
     StgInfoTable, StgInfoTable_, StgProfInfo,
@@ -108,21 +106,6 @@ pub static stg_SRT_1_info: StgInfoTable = TODO_StgInfoTable;
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 pub static stg_SRT_16_info: StgInfoTable = TODO_StgInfoTable;
-
-#[ffi(compiler)]
-#[unsafe(no_mangle)]
-pub static mut stg_INTLIKE_closure: [StgIntCharlikeClosure; 272] = [const {
-    StgIntCharlikeClosure {
-        header: StgHeader {
-            info: null(),
-            prof: StgProfHeader {
-                ccs: null_mut(),
-                hp: StgProfHeader__bindgen_ty_1 { era: 0 },
-            },
-        },
-        data: 0,
-    }
-}; _];
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]

@@ -1,20 +1,6 @@
-use crate::capability::Capability;
+pub use crate::eventlog::event_log::{endEventLogging, flushEventLog, startEventLogging};
+pub use crate::eventlog::event_log_writer::EventLogWriter;
 use crate::prelude::*;
-
-#[cfg(test)]
-mod tests;
-
-#[ffi(testsuite)]
-#[repr(C)]
-#[derive(Debug)]
-pub struct EventLogWriter {
-    pub(crate) initEventLogWriter: Option<unsafe extern "C" fn()>,
-
-    pub(crate) writeEventLog:
-        Option<unsafe extern "C" fn(eventlog: *mut c_void, eventlog_size: usize) -> bool>,
-    pub(crate) flushEventLog: Option<unsafe extern "C" fn()>,
-    pub(crate) stopEventLogWriter: Option<unsafe extern "C" fn()>,
-}
 
 #[repr(u32)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
@@ -52,6 +38,7 @@ impl From<sys::EventLogStatus> for EventLogStatus {
 
 impl TryFrom<u32> for EventLogStatus {
     type Error = ();
+
     fn try_from(d: u32) -> Result<EventLogStatus, ()> {
         use EventLogStatus::*;
 
@@ -74,32 +61,5 @@ impl Arbitrary for EventLogStatus {
             1 => EVENTLOG_NOT_CONFIGURED,
             2.. => EVENTLOG_RUNNING,
         }
-    }
-}
-
-#[ffi(testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn startEventLogging(writer: *const EventLogWriter) -> bool {
-    sys! {
-        startEventLogging(writer as * const sys::EventLogWriter)
-    }
-}
-
-#[ffi(testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn endEventLogging() {
-    sys! {
-        endEventLogging()
-    }
-}
-
-#[ffi(ghc_lib, testsuite)]
-#[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn flushEventLog(cap: *mut *mut Capability) {
-    sys! {
-        flushEventLog(cap as * mut * mut sys::Capability)
     }
 }

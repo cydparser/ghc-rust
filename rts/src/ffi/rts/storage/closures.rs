@@ -426,6 +426,7 @@ impl From<sys::TRecState> for TRecState {
 
 impl TryFrom<u32> for TRecState {
     type Error = ();
+
     fn try_from(d: u32) -> Result<TRecState, ()> {
         use TRecState::*;
 
