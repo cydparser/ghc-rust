@@ -286,7 +286,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
     Sp = (*(*(*cap).r.rCurrentTSO).stackobj).sp as *mut c_void;
     SpLim = tso_SpLim((*cap).r.rCurrentTSO as *mut StgTSO) as *mut c_void;
     (*cap).r.rCCCS = (*(*cap).r.rCurrentTSO).prof.cccs as *mut CostCentreStack_;
-    ::core::intrinsics::atomic_store_relaxed(&raw mut (*cap).r.rHpLim, 1 as c_int as P_);
+    (&raw mut (*cap).r.rHpLim).store(1 as c_int as P_, Ordering::Relaxed);
 
     if (*(*cap).r.rCurrentTSO).flags & TSO_STOP_AFTER_RETURN as StgWord32 != 0 {
         let mut r#type: StgHalfWord = 0;

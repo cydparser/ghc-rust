@@ -27,7 +27,7 @@ unsafe fn handle_tick(mut unused: c_int) {
     handleProfTick();
 
     if RtsFlags.ConcFlags.ctxtSwitchTicks > 0 as c_int
-        && ::core::intrinsics::atomic_load_seqcst(&raw mut timer_disabled) == 0 as StgWord
+        && (&raw mut timer_disabled).load(Ordering::SeqCst) == 0 as StgWord
     {
         ticks_to_ctxt_switch -= 1;
 
@@ -89,7 +89,7 @@ unsafe fn initTimer() {
         );
     }
 
-    ::core::intrinsics::atomic_store_seqcst(&raw mut timer_disabled, 1 as c_int as StgWord);
+    (&raw mut timer_disabled).store(1 as c_int as StgWord, Ordering::SeqCst);
 }
 
 #[ffi(libraries)]
@@ -99,7 +99,7 @@ pub unsafe extern "C" fn startTimer() {
     let fresh5 = &raw mut timer_disabled;
     let fresh6 = 1 as c_int as StgWord;
 
-    if ::core::intrinsics::atomic_xsub_seqcst(fresh5, fresh6) - fresh6 == 0 as StgWord {
+    if (fresh5).xsub(fresh6, Ordering::SeqCst) - fresh6 == 0 as StgWord {
         if RtsFlags.MiscFlags.tickInterval != 0 as Time {
             startTicker();
         }
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn stopTimer() {
     let fresh7 = &raw mut timer_disabled;
     let fresh8 = 1 as c_int as StgWord;
 
-    if ::core::intrinsics::atomic_xadd_seqcst(fresh7, fresh8) + fresh8 == 1 as StgWord {
+    if (fresh7).xadd(fresh8, Ordering::SeqCst) + fresh8 == 1 as StgWord {
         if RtsFlags.MiscFlags.tickInterval != 0 as Time {
             stopTicker();
         }

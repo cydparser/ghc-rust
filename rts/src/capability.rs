@@ -168,13 +168,13 @@ pub(crate) unsafe fn recordClosureMutated(mut cap: *mut Capability, mut p: *mut 
 
 #[inline]
 pub(crate) unsafe fn stopCapability(mut cap: *mut Capability) {
-    ::core::intrinsics::atomic_store_relaxed(&raw mut (*cap).r.rHpLim, null_mut::<StgWord>());
+    (&raw mut (*cap).r.rHpLim).store(null_mut::<StgWord>(), Ordering::Relaxed);
 }
 
 #[inline]
 pub(crate) unsafe fn interruptCapability(mut cap: *mut Capability) {
     stopCapability(cap);
-    ::core::intrinsics::atomic_store_relaxed(&raw mut (*cap).interrupt, 1 as c_int);
+    (&raw mut (*cap).interrupt).store(1 as c_int, Ordering::Relaxed);
 }
 
 #[inline]
@@ -183,7 +183,7 @@ pub(crate) unsafe fn contextSwitchCapability(mut cap: *mut Capability, mut immed
         stopCapability(cap);
     }
 
-    ::core::intrinsics::atomic_store_relaxed(&raw mut (*cap).context_switch, 1 as c_int);
+    (&raw mut (*cap).context_switch).store(1 as c_int, Ordering::Relaxed);
 }
 
 extern "C" {

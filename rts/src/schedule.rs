@@ -116,25 +116,24 @@ pub(crate) const ACTIVITY_MAYBE_NO: RecentActivity = 1;
 
 #[inline]
 pub(crate) unsafe fn setSchedState(mut ss: SchedState) {
-    ::core::intrinsics::atomic_store_seqcst(&raw mut sched_state, ss as StgWord);
+    (&raw mut sched_state).store(ss as StgWord, Ordering::SeqCst);
 }
 
 #[inline]
 pub(crate) unsafe fn getSchedState() -> SchedState {
-    return ::core::intrinsics::atomic_load_seqcst(&raw mut sched_state) as SchedState;
+    return (&raw mut sched_state).load(Ordering::SeqCst) as SchedState;
 }
 
 #[inline]
 pub(crate) unsafe fn setRecentActivity(mut new_value: RecentActivity) -> RecentActivity {
-    let mut old: StgWord =
-        ::core::intrinsics::atomic_xchg_seqcst(&raw mut recent_activity, new_value as StgWord);
+    let mut old: StgWord = (&raw mut recent_activity).xchg(new_value as StgWord, Ordering::SeqCst);
 
     return old as RecentActivity;
 }
 
 #[inline]
 pub(crate) unsafe fn getRecentActivity() -> RecentActivity {
-    return ::core::intrinsics::atomic_load_relaxed(&raw mut recent_activity) as RecentActivity;
+    return (&raw mut recent_activity).load(Ordering::Relaxed) as RecentActivity;
 }
 
 #[inline]
@@ -558,10 +557,10 @@ unsafe fn schedulePostRunThread(mut cap: *mut Capability, mut t: *mut StgTSO) {
 }
 
 unsafe fn scheduleHandleHeapOverflow(mut cap: *mut Capability, mut t: *mut StgTSO) -> bool {
-    if ::core::intrinsics::atomic_load_relaxed(&raw mut (*cap).r.rHpLim).is_null()
-        || ::core::intrinsics::atomic_load_relaxed(&raw mut (*cap).context_switch) != 0
+    if (&raw mut (*cap).r.rHpLim).load(Ordering::Relaxed).is_null()
+        || (&raw mut (*cap).context_switch).load(Ordering::Relaxed) != 0
     {
-        ::core::intrinsics::atomic_store_relaxed(&raw mut (*cap).context_switch, 0 as c_int);
+        (&raw mut (*cap).context_switch).store(0 as c_int, Ordering::Relaxed);
         appendToRunQueue(cap, t);
     } else {
         pushOnRunQueue(cap, t);
@@ -624,8 +623,8 @@ unsafe fn scheduleHandleYield(
         return r#true != 0;
     }
 
-    if ::core::intrinsics::atomic_load_relaxed(&raw mut (*cap).context_switch) != 0 as c_int {
-        ::core::intrinsics::atomic_store_relaxed(&raw mut (*cap).context_switch, 0 as c_int);
+    if (&raw mut (*cap).context_switch).load(Ordering::Relaxed) != 0 as c_int {
+        (&raw mut (*cap).context_switch).store(0 as c_int, Ordering::Relaxed);
         appendToRunQueue(cap, t);
     } else {
         pushOnRunQueue(cap, t);

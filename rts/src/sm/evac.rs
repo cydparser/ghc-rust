@@ -234,12 +234,12 @@ unsafe fn evacuate_large(mut p: StgPtr) {
     ws = (&raw mut (*(&raw mut the_gc_thread as *mut gc_thread)).gens as *mut gen_workspace)
         .offset(new_gen_no as isize) as *mut gen_workspace;
     new_gen = generations.offset(new_gen_no as isize) as *mut generation;
-    ::core::intrinsics::atomic_or_acqrel(&raw mut (*bd).flags, BF_EVACUATED as StgWord16);
+    (&raw mut (*bd).flags).or(BF_EVACUATED as StgWord16, Ordering::AcqRel);
 
     if (RtsFlags.GcFlags.useNonmoving as c_int != 0 && new_gen == oldest_gen) as c_int as c_long
         != 0
     {
-        ::core::intrinsics::atomic_or_acqrel(&raw mut (*bd).flags, BF_NONMOVING as StgWord16);
+        (&raw mut (*bd).flags).or(BF_NONMOVING as StgWord16, Ordering::AcqRel);
 
         if major_gc as c_int != 0 && !deadlock_detect_gc {
             markQueuePushClosureGC(
@@ -360,7 +360,7 @@ unsafe fn evacuate_compact(mut p: StgPtr) {
     if (RtsFlags.GcFlags.useNonmoving as c_int != 0 && new_gen == oldest_gen) as c_int as c_long
         != 0
     {
-        ::core::intrinsics::atomic_or_relaxed(&raw mut (*bd).flags, BF_NONMOVING as StgWord16);
+        (&raw mut (*bd).flags).or(BF_NONMOVING as StgWord16, Ordering::Relaxed);
 
         if major_gc as c_int != 0 && !deadlock_detect_gc {
             markQueuePushClosureGC(
