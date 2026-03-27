@@ -5,9 +5,6 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
-[[bin]]
-name = "reorganize"
-
 [dependencies]
 generate-ffi.workspace = true
 generate-format.workspace = true
