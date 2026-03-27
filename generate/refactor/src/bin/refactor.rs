@@ -2,8 +2,7 @@ use std::{fs, iter, mem};
 
 use proc_macro2::Span;
 use syn::visit_mut::{self, VisitMut};
-use syn::{Expr, Path, PathSegment, TypePath};
-use syn::{Ident, punctuated::Punctuated};
+use syn::{Expr, Ident, Lit, Path, PathSegment, TypePath, punctuated::Punctuated};
 
 use generate_refactor::{args_rs, format, has_ffi_attr};
 
@@ -22,21 +21,32 @@ fn main() {
 
 pub struct Refactor {
     is_ffi: bool,
+    preserve_lit_num_casts: bool,
 }
 
 impl Refactor {
     fn new() -> Refactor {
-        Refactor { is_ffi: false }
+        Refactor {
+            is_ffi: false,
+            preserve_lit_num_casts: false,
+        }
     }
 
-    fn ffi_scope<F>(&mut self, is_ffi: bool, mut f: F)
+    fn with_state<T: Copy, F>(&mut self, field: fn(&mut Self) -> &mut T, value: T, mut f: F)
     where
         F: FnMut(&mut Refactor),
     {
-        let init_is_ffi = self.is_ffi;
-        self.is_ffi = is_ffi;
+        let init = *field(self);
+        *field(self) = value;
         f(self);
-        self.is_ffi = init_is_ffi;
+        *field(self) = init;
+    }
+
+    fn ffi_scope<F>(&mut self, is_ffi: bool, f: F)
+    where
+        F: FnMut(&mut Refactor),
+    {
+        self.with_state(|s| &mut s.is_ffi, is_ffi, f);
     }
 }
 
@@ -44,6 +54,22 @@ impl VisitMut for Refactor {
     fn visit_expr_mut(&mut self, expr: &mut Expr) {
         if let Some(replace) = match expr {
             Expr::Call(expr_call) => replace_atomic_operations(expr_call),
+            Expr::Cast(expr_cast) => replace_lit_casts(self.preserve_lit_num_casts, expr_cast),
+            Expr::MethodCall(expr_mcall) => {
+                let method = expr_mcall.method.to_string();
+
+                if method.starts_with("wrapping_") {
+                    self.with_state(
+                        |s| &mut s.preserve_lit_num_casts,
+                        true,
+                        |s| {
+                            visit_mut::visit_expr_mut(s, expr);
+                        },
+                    );
+                    return;
+                }
+                None
+            }
             _ => None,
         } {
             *expr = replace;
@@ -68,8 +94,8 @@ impl VisitMut for Refactor {
             attrs.is_some_and(|attrs| has_ffi_attr(attrs.as_slice()))
         };
 
-        self.ffi_scope(is_ffi, |refactor| {
-            visit_mut::visit_item_mut(refactor, item);
+        self.ffi_scope(is_ffi, |s| {
+            visit_mut::visit_item_mut(s, item);
         });
     }
 
@@ -79,8 +105,8 @@ impl VisitMut for Refactor {
             .as_ref()
             .is_some_and(|abi| abi.name.as_ref().is_some_and(|name| name.value() == "C"));
 
-        self.ffi_scope(is_ffi, |refactor| {
-            visit_mut::visit_type_bare_fn_mut(refactor, type_bare_fn);
+        self.ffi_scope(is_ffi, |s| {
+            visit_mut::visit_type_bare_fn_mut(s, type_bare_fn);
         });
     }
 
@@ -183,6 +209,18 @@ fn replace_atomic_operations(expr_call: &mut syn::ExprCall) -> Option<Expr> {
         paren_token: Default::default(),
         args: method_args,
     }))
+}
+
+fn replace_lit_casts(preserve_lit_num_casts: bool, expr_cast: &mut syn::ExprCast) -> Option<Expr> {
+    let Expr::Lit(lit) = expr_cast.expr.as_ref() else {
+        return None;
+    };
+
+    match lit.lit {
+        Lit::Int(_) if preserve_lit_num_casts => None,
+        Lit::Bool(_) | Lit::Byte(_) | Lit::Float(_) | Lit::Int(_) => Some(Expr::Lit(lit.clone())),
+        _ => None,
+    }
 }
 
 // Replace C types in non-FFI items with idiomatic Rust types.
