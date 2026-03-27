@@ -1,5 +1,5 @@
 use generate_ffi::{self as ffi, Symbols};
-use generate_refactor::{UsedIdents, args_rs, format, item_ident};
+use generate_refactor::{UsedIdents, args_rs, format, has_ffi_attr, item_ident};
 use proc_macro2::Span;
 use quote::format_ident;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -459,12 +459,7 @@ impl FfiItem {
     }
 
     fn is_public(&self) -> bool {
-        self.attrs.iter().any(|attr| {
-            attr.path()
-                .segments
-                .first()
-                .is_some_and(|s| s.ident == "ffi")
-        })
+        has_ffi_attr(&self.attrs)
     }
 
     fn into_items(self, mut item: Item) -> Result<Vec<Item>> {

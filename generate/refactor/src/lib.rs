@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use syn::{Ident, Item};
+use syn::{Attribute, Ident, Item};
 
 mod used_idents;
 pub use used_idents::*;
@@ -28,6 +28,15 @@ pub fn item_ident(item: &Item) -> Option<&Ident> {
         Item::Union(item_union) => Some(&item_union.ident),
         _ => None,
     }
+}
+
+pub fn has_ffi_attr(attrs: &[Attribute]) -> bool {
+    attrs.iter().any(|attr| {
+        attr.path()
+            .segments
+            .first()
+            .is_some_and(|s| s.ident == "ffi")
+    })
 }
 
 pub fn format(syn_file: syn::File) -> String {
