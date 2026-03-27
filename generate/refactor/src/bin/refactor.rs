@@ -225,16 +225,14 @@ fn replace_c_types(is_ffi: bool, type_path: &mut TypePath) {
 
     let some_type = |ty: Ty| {
         Some(match (ty, is_ffi) {
-            (I8, false) => "i8",
-            (I8, true) => "c_char",
+            (I8, _) => "i8",
             (I16, false) => "i16",
             (I16, true) => "c_short",
             (I32, false) => "i32",
             (I32, true) => "c_int",
             (I64, false) => "i64",
             (I64, true) => "c_long",
-            (U8, false) => "u8",
-            (U8, true) => "c_uchar",
+            (U8, _) => "u8",
             (U16, false) => "u16",
             (U16, true) => "c_ushort",
             (U32, false) => "u32",
