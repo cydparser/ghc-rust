@@ -42,7 +42,12 @@ impl Refactor {
 
 impl VisitMut for Refactor {
     fn visit_expr_mut(&mut self, expr: &mut Expr) {
-        replace_atomic_operations(expr);
+        if let Some(replace) = match expr {
+            Expr::Call(expr_call) => replace_atomic_operations(expr_call),
+            _ => None,
+        } {
+            *expr = replace;
+        }
 
         visit_mut::visit_expr_mut(self, expr);
     }
@@ -88,42 +93,32 @@ impl VisitMut for Refactor {
 
 /// Replaces old intrinsic atomic operations with newer atomic types.
 ///
-/// E.g. this function will replace `::core::intrinsics::atomic_store_relaxed(&raw mut x, 0)`
-/// with `(&raw mut x).store(0, Ordering::Relaxed)`.
-fn replace_atomic_operations(expr: &mut Expr) {
-    // This can be replaced after try_block are stable.
-    fn atomic_name_args(expr: &mut Expr) -> Option<(String, impl Iterator<Item = Expr>)> {
-        match expr {
-            Expr::Call(syn::ExprCall { func, args, .. }) => match func.as_ref() {
-                Expr::Path(syn::ExprPath { path, .. })
-                    if path.leading_colon.is_some() && path.segments.len() == 3 =>
-                {
-                    let mut segments = path.segments.iter();
+/// E.g. this function will replace ::core::intrinsics::atomic_store_relaxed
+/// with Symbol’s function definition is void: &raw.
+fn replace_atomic_operations(expr_call: &mut syn::ExprCall) -> Option<Expr> {
+    let (name, mut args) = match expr_call.func.as_ref() {
+        Expr::Path(syn::ExprPath { path, .. })
+            if path.leading_colon.is_some() && path.segments.len() == 3 =>
+        {
+            let mut segments = path.segments.iter();
 
-                    segments.next().filter(|ps| ps.ident == "core")?;
-                    segments.next().filter(|ps| ps.ident == "intrinsics")?;
-                    segments.next().and_then(|ps| {
-                        let name = ps.ident.to_string();
+            segments.next().filter(|ps| ps.ident == "core")?;
+            segments.next().filter(|ps| ps.ident == "intrinsics")?;
+            segments.next().and_then(|ps| {
+                let name = ps.ident.to_string();
 
-                        name.starts_with("atomic_").then(|| {
-                            (
-                                name,
-                                mem::take(args)
-                                    .into_pairs()
-                                    .map(syn::punctuated::Pair::into_value),
-                            )
-                        })
-                    })
-                }
-                _ => None,
-            },
-            _ => None,
+                name.starts_with("atomic_").then(|| {
+                    (
+                        name,
+                        mem::take(&mut expr_call.args)
+                            .into_pairs()
+                            .map(syn::punctuated::Pair::into_value),
+                    )
+                })
+            })
         }
-    }
-
-    let Some((name, mut args)) = atomic_name_args(expr) else {
-        return;
-    };
+        _ => None,
+    }?;
 
     fn ordering_expr(order: &str) -> Expr {
         let order = match order {
@@ -176,10 +171,10 @@ fn replace_atomic_operations(expr: &mut Expr) {
 
             method
         }
-        _ => panic!("unexpected atomic function: {name} {expr:?}"),
+        _ => panic!("unexpected atomic function: {name} {expr_call:?}"),
     };
 
-    *expr = Expr::MethodCall(syn::ExprMethodCall {
+    Some(Expr::MethodCall(syn::ExprMethodCall {
         attrs: vec![],
         receiver,
         dot_token: Default::default(),
@@ -187,7 +182,7 @@ fn replace_atomic_operations(expr: &mut Expr) {
         turbofish: None,
         paren_token: Default::default(),
         args: method_args,
-    });
+    }))
 }
 
 // Replace C types in non-FFI items with idiomatic Rust types.
