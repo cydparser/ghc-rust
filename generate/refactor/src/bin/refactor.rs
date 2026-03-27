@@ -261,7 +261,8 @@ fn replace_c_types(is_ffi: bool, type_path: &mut TypePath) {
         "c_double" if !is_ffi => Some("f64"),
         "c_float" if !is_ffi => Some("f32"),
 
-        "c_char" => some_type(I8),
+        // c_char is used almost exclusively with C strings.
+        // "c_char" => some_type(I8),
         "c_schar" => some_type(I8),
         "c_short" => some_type(I16),
         "c_int" => some_type(I32),
