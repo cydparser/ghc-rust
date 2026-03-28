@@ -15,6 +15,10 @@ generate-includes:
 regenerate *args:
     scripts/regenerate {{ args }}
 
+refactor *args:
+    cargo run -p generate-refactor --bin refactor -- {{ args }}
+    rustfmt {{ args }}
+
 test: test-sys && test-rts
 
 test-sys:
