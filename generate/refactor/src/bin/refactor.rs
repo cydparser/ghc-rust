@@ -55,6 +55,10 @@ impl VisitMut for Refactor {
         if let Some(replace) = match expr {
             Expr::Call(expr_call) => replace_atomic_operations(expr_call),
             Expr::Cast(expr_cast) => replace_lit_casts(self.preserve_lit_num_casts, expr_cast),
+            Expr::Paren(expr_paren) if matches!(expr_paren.expr.as_ref(), Expr::Lit(_)) => {
+                // Replace `(lit)` with `lit`. The group was probably needed for a cast that was removed.
+                Some((*expr_paren.expr).clone())
+            }
             Expr::MethodCall(expr_mcall) => {
                 let method = expr_mcall.method.to_string();
 
