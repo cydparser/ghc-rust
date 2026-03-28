@@ -2,7 +2,10 @@ use std::{fs, iter, mem};
 
 use proc_macro2::Span;
 use syn::visit_mut::{self, VisitMut};
-use syn::{Expr, Ident, Lit, Path, PathSegment, TypePath, punctuated::Punctuated};
+use syn::{
+    Expr, ExprBinary, ExprLit, ExprPath, Ident, Lit, Path, PathSegment, TypePath,
+    punctuated::Punctuated,
+};
 
 use generate_refactor::{args_rs, format, has_ffi_attr};
 
@@ -53,6 +56,7 @@ impl Refactor {
 impl VisitMut for Refactor {
     fn visit_expr_mut(&mut self, expr: &mut Expr) {
         if let Some(replace) = match expr {
+            Expr::Binary(binary) => replace_c_bool_ne_0(binary),
             Expr::Call(expr_call) => replace_atomic_operations(expr_call),
             Expr::Cast(expr_cast) => replace_lit_casts(self.preserve_lit_num_casts, expr_cast),
             Expr::Paren(expr_paren) if matches!(expr_paren.expr.as_ref(), Expr::Lit(_)) => {
@@ -74,6 +78,7 @@ impl VisitMut for Refactor {
                 }
                 None
             }
+            Expr::Path(expr_path) => replace_c_bool(expr_path),
             _ => None,
         } {
             *expr = replace;
@@ -212,6 +217,41 @@ fn replace_atomic_operations(expr_call: &mut syn::ExprCall) -> Option<Expr> {
         turbofish: None,
         paren_token: Default::default(),
         args: method_args,
+    }))
+}
+
+/// Replace:
+/// - `r#false != 0` with `false`
+/// - `r#true != 0` with `true`
+fn replace_c_bool_ne_0(binary: &mut ExprBinary) -> Option<Expr> {
+    match (binary.left.as_ref(), &binary.op, binary.right.as_ref()) {
+        (
+            Expr::Path(expr_path),
+            syn::BinOp::Ne(_),
+            Expr::Lit(ExprLit {
+                lit: Lit::Int(lit_int),
+                ..
+            }),
+        ) if lit_int.base10_digits() == "0" => replace_c_bool(expr_path),
+        _ => None,
+    }
+}
+
+/// Replace:
+/// - `r#false` with `false`
+/// - `r#true` with `true`
+fn replace_c_bool(expr_path: &ExprPath) -> Option<Expr> {
+    let ident = expr_path.path.get_ident()?;
+
+    let value = match ident.to_string().as_str() {
+        "r#true" => Some(true),
+        "r#false" => Some(false),
+        _ => None,
+    }?;
+
+    Some(Expr::Lit(ExprLit {
+        attrs: vec![],
+        lit: Lit::Bool(syn::LitBool::new(value, Span::call_site())),
     }))
 }
 
