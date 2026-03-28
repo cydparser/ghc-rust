@@ -3,8 +3,8 @@ use std::{fs, iter, mem};
 use proc_macro2::Span;
 use syn::visit_mut::{self, VisitMut};
 use syn::{
-    Expr, ExprBinary, ExprLit, ExprPath, Ident, Lit, Path, PathSegment, TypePath,
-    punctuated::Punctuated,
+    Expr, ExprBinary, ExprCast, ExprLit, ExprPath, Ident, Lit, Path, PathArguments, PathSegment,
+    Type, TypePath, TypePtr, punctuated::Punctuated,
 };
 
 use generate_refactor::{args_rs, format, has_ffi_attr};
@@ -58,7 +58,8 @@ impl VisitMut for Refactor {
         if let Some(replace) = match expr {
             Expr::Binary(binary) => replace_c_bool_ne_0(binary),
             Expr::Call(expr_call) => replace_atomic_operations(expr_call),
-            Expr::Cast(expr_cast) => replace_lit_casts(self.preserve_lit_num_casts, expr_cast),
+            Expr::Cast(expr_cast) => replace_lit_casts(self.preserve_lit_num_casts, expr_cast)
+                .or_else(|| replace_null_as_mut_ptr(expr_cast)),
             Expr::Paren(expr_paren) if matches!(expr_paren.expr.as_ref(), Expr::Lit(_)) => {
                 // Replace `(lit)` with `lit`. The group was probably needed for a cast that was removed.
                 Some((*expr_paren.expr).clone())
@@ -255,7 +256,7 @@ fn replace_c_bool(expr_path: &ExprPath) -> Option<Expr> {
     }))
 }
 
-fn replace_lit_casts(preserve_lit_num_casts: bool, expr_cast: &mut syn::ExprCast) -> Option<Expr> {
+fn replace_lit_casts(preserve_lit_num_casts: bool, expr_cast: &mut ExprCast) -> Option<Expr> {
     let Expr::Lit(lit) = expr_cast.expr.as_ref() else {
         return None;
     };
@@ -267,7 +268,39 @@ fn replace_lit_casts(preserve_lit_num_casts: bool, expr_cast: &mut syn::ExprCast
     }
 }
 
-// Replace C types in non-FFI items with idiomatic Rust types.
+/// Replace `null::<T>() as *mut T` with `null_mut()`.
+fn replace_null_as_mut_ptr(expr_cast: &mut ExprCast) -> Option<Expr> {
+    match (expr_cast.expr.as_ref(), expr_cast.ty.as_ref()) {
+        (
+            Expr::Path(expr_path),
+            Type::Ptr(TypePtr {
+                mutability: Some(_),
+                ..
+            }),
+        ) if expr_path
+            .path
+            .segments
+            .last()
+            .is_some_and(|ps| ps.ident == "null") =>
+        {
+            Some(Expr::Path(ExprPath {
+                attrs: vec![],
+                qself: None,
+                path: Path {
+                    leading_colon: None,
+                    segments: iter::once(PathSegment {
+                        ident: Ident::new("null", Span::call_site()),
+                        arguments: PathArguments::None,
+                    })
+                    .collect(),
+                },
+            }))
+        }
+        _ => None,
+    }
+}
+
+/// Replace C types in non-FFI items with idiomatic Rust types.
 fn replace_c_types(is_ffi: bool, type_path: &mut TypePath) {
     let Some(name) = type_path
         .path
