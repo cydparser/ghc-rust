@@ -187,10 +187,10 @@ impl Arbitrary for _DEBUG_FLAGS {
 #[repr(C)]
 #[derive(Debug)]
 pub struct _COST_CENTRE_FLAGS {
-    doCostCentres: u32,
-    profilerTicks: c_int,
-    msecsPerTick: c_int,
-    outputFileNameStem: *const c_char,
+    pub(crate) doCostCentres: u32,
+    pub(crate) profilerTicks: c_int,
+    pub(crate) msecsPerTick: c_int,
+    pub(crate) outputFileNameStem: *const c_char,
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -199,23 +199,23 @@ pub type COST_CENTRE_FLAGS = _COST_CENTRE_FLAGS;
 /// cbindgen:no-export
 #[repr(C)]
 pub struct _PROFILING_FLAGS {
-    doHeapProfile: u32,
-    heapProfileInterval: Time,
-    heapProfileIntervalTicks: u32,
-    startHeapProfileAtStartup: bool,
-    startTimeProfileAtStartup: bool,
-    incrementUserEra: bool,
-    showCCSOnException: bool,
-    maxRetainerSetSize: u32,
-    ccsLength: u32,
-    modSelector: *const c_char,
-    descrSelector: *const c_char,
-    typeSelector: *const c_char,
-    ccSelector: *const c_char,
-    ccsSelector: *const c_char,
-    retainerSelector: *const c_char,
-    eraSelector: StgWord,
-    bioSelector: *const c_char,
+    pub(crate) doHeapProfile: u32,
+    pub(crate) heapProfileInterval: Time,
+    pub(crate) heapProfileIntervalTicks: u32,
+    pub(crate) startHeapProfileAtStartup: bool,
+    pub(crate) startTimeProfileAtStartup: bool,
+    pub(crate) incrementUserEra: bool,
+    pub(crate) showCCSOnException: bool,
+    pub(crate) maxRetainerSetSize: u32,
+    pub(crate) ccsLength: u32,
+    pub(crate) modSelector: *const c_char,
+    pub(crate) descrSelector: *const c_char,
+    pub(crate) typeSelector: *const c_char,
+    pub(crate) ccSelector: *const c_char,
+    pub(crate) ccsSelector: *const c_char,
+    pub(crate) retainerSelector: *const c_char,
+    pub(crate) eraSelector: StgWord,
+    pub(crate) bioSelector: *const c_char,
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -224,19 +224,19 @@ pub type PROFILING_FLAGS = _PROFILING_FLAGS;
 /// cbindgen:no-export
 #[repr(C)]
 pub struct _TRACE_FLAGS {
-    tracing: c_int,
-    timestamp: bool,
-    scheduler: bool,
-    gc: bool,
-    nonmoving_gc: bool,
-    sparks_sampled: bool,
-    sparks_full: bool,
-    ticky: bool,
-    user: bool,
-    eventlogFlushTime: Time,
-    eventlogFlushTicks: c_int,
-    trace_output: *mut c_char,
-    nullWriter: bool,
+    pub(crate) tracing: c_int,
+    pub(crate) timestamp: bool,
+    pub(crate) scheduler: bool,
+    pub(crate) gc: bool,
+    pub(crate) nonmoving_gc: bool,
+    pub(crate) sparks_sampled: bool,
+    pub(crate) sparks_full: bool,
+    pub(crate) ticky: bool,
+    pub(crate) user: bool,
+    pub(crate) eventlogFlushTime: Time,
+    pub(crate) eventlogFlushTicks: c_int,
+    pub(crate) trace_output: *mut c_char,
+    pub(crate) nullWriter: bool,
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -246,8 +246,8 @@ pub type TRACE_FLAGS = _TRACE_FLAGS;
 #[repr(C)]
 #[cfg_attr(test, derive(Clone))]
 pub struct _CONCURRENT_FLAGS {
-    ctxtSwitchTime: Time,
-    ctxtSwitchTicks: c_int,
+    pub(crate) ctxtSwitchTime: Time,
+    pub(crate) ctxtSwitchTicks: c_int,
 }
 
 #[cfg(test)]
@@ -341,19 +341,19 @@ impl Arbitrary for _IO_MANAGER_FLAG {
 #[repr(C)]
 #[cfg_attr(test, derive(Clone))]
 pub struct _MISC_FLAGS {
-    tickInterval: Time,
-    install_signal_handlers: bool,
-    install_seh_handlers: bool,
-    generate_dump_file: bool,
-    generate_stack_trace: bool,
-    machineReadable: bool,
-    disableDelayedOsMemoryReturn: bool,
-    internalCounters: bool,
-    linkerAlwaysPic: bool,
-    linkerOptimistic: bool,
-    linkerMemBase: StgWord,
-    ioManager: IO_MANAGER_FLAG,
-    numIoWorkerThreads: u32,
+    pub(crate) tickInterval: Time,
+    pub(crate) install_signal_handlers: bool,
+    pub(crate) install_seh_handlers: bool,
+    pub(crate) generate_dump_file: bool,
+    pub(crate) generate_stack_trace: bool,
+    pub(crate) machineReadable: bool,
+    pub(crate) disableDelayedOsMemoryReturn: bool,
+    pub(crate) internalCounters: bool,
+    pub(crate) linkerAlwaysPic: bool,
+    pub(crate) linkerOptimistic: bool,
+    pub(crate) linkerMemBase: StgWord,
+    pub(crate) ioManager: IO_MANAGER_FLAG,
+    pub(crate) numIoWorkerThreads: u32,
 }
 
 #[cfg(test)]
