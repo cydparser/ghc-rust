@@ -13,7 +13,7 @@ fn sys_OSThreadProc_layout() {
 fn test_createOSThread() {
     let g = &mut Gen::new(100);
 
-    let actual: c_int = {
+    let actual: i32 = {
         let tid: OSThreadId = todo!();
         let mut name: c_char = Arbitrary::arbitrary(g);
         let startProc: OSThreadProc = todo!();
@@ -21,7 +21,7 @@ fn test_createOSThread() {
         unsafe { createOSThread(&raw mut tid, &raw mut name, startProc, &raw mut param) }
     };
 
-    let expected: c_int = todo!();
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -30,15 +30,16 @@ fn test_createOSThread() {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_createOSThread(name: c_char) -> bool {
-    let expected: c_int = {
+    let expected: i32 = {
         let mut tid: sys::OSThreadId = todo!();
         let mut name = name;
         let startProc: OSThreadProc = todo!();
         let mut param: c_void = todo!();
+
         unsafe { sys::createOSThread(&raw mut tid, &raw mut name, startProc, &raw mut param) }
     };
 
-    let actual: c_int = {
+    let actual: i32 = {
         let mut tid: OSThreadId = todo!();
         let mut name = name;
         let startProc: OSThreadProc = todo!();
@@ -53,12 +54,12 @@ fn equivalent_createOSThread(name: c_char) -> bool {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn test_forkOS_createThread() {
-    let actual: c_int = {
+    let actual: i32 = {
         let entry: HsStablePtr = todo!();
         unsafe { forkOS_createThread(entry) }
     };
 
-    let expected: c_int = todo!();
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -67,12 +68,12 @@ fn test_forkOS_createThread() {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_forkOS_createThread() {
-    let expected: c_int = {
+    let expected: i32 = {
         let entry: HsStablePtr = todo!();
         unsafe { sys::forkOS_createThread(entry) }
     };
 
-    let actual: c_int = {
+    let actual: i32 = {
         let entry: HsStablePtr = todo!();
         unsafe { forkOS_createThread(entry) }
     };

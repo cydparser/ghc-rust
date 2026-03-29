@@ -15,7 +15,7 @@ pub type HsFunPtr = Option<unsafe extern "C" fn() -> ()>;
 #[ffi(docs, ghc_lib, testsuite)]
 pub type HsStablePtr = *mut c_void;
 
-unsafe fn hs_set_argv(mut argc: c_int, mut argv: *mut *mut c_char) {
+unsafe fn hs_set_argv(mut argc: i32, mut argv: *mut *mut c_char) {
     setProgArgv(argc, argv);
 }
 

@@ -84,7 +84,7 @@ fn test_initLinker_() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let retain_cafs: c_int = Arbitrary::arbitrary(g);
+        let retain_cafs: i32 = Arbitrary::arbitrary(g);
         unsafe { initLinker_(retain_cafs) };
         todo!()
     };
@@ -97,7 +97,7 @@ fn test_initLinker_() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_initLinker_(retain_cafs: c_int) -> bool {
+fn equivalent_initLinker_(retain_cafs: i32) -> bool {
     let expected = {
         unsafe { sys::initLinker_(retain_cafs) };
         todo!()

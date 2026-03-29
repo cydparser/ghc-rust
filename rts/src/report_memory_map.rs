@@ -2,7 +2,7 @@ use crate::ffi::rts::messages::debugBelch;
 use crate::prelude::*;
 
 unsafe fn reportMemoryMap() {
-    debugBelch(b"\nMemory map:\n\0" as *const u8 as *const c_char);
+    debugBelch(c"\nMemory map:\n".as_ptr());
 
     loop {
         let mut vmsize: mach_vm_size_t = 0;
@@ -35,10 +35,10 @@ unsafe fn reportMemoryMap() {
 
         if kr == KERN_SUCCESS {
             debugBelch(
-                b"%p-%p %8zuK %c%c%c/%c%c%c\n\0" as *const u8 as *const c_char,
+                c"%p-%p %8zuK %c%c%c/%c%c%c\n".as_ptr(),
                 address as *mut c_void,
                 address.wrapping_add(vmsize as mach_vm_address_t) as *mut c_void,
-                vmsize as size_t >> 10 as c_int,
+                vmsize as usize >> 10,
                 if info.protection & VM_PROT_READ != 0 {
                     'r' as i32
                 } else {
@@ -71,7 +71,7 @@ unsafe fn reportMemoryMap() {
                 },
             );
 
-            address = (address as uint64_t).wrapping_add(vmsize as uint64_t) as mach_vm_address_t
+            address = (address as u64).wrapping_add(vmsize as u64) as mach_vm_address_t
                 as mach_vm_address_t;
         } else {
             if kr == KERN_INVALID_ADDRESS {
@@ -79,10 +79,9 @@ unsafe fn reportMemoryMap() {
             }
 
             debugBelch(
-                b"  Error: %s\n\0" as *const u8 as *const c_char,
+                c"  Error: %s\n".as_ptr(),
                 mach_error_string(kr as mach_error_t),
             );
-
             break;
         }
     }

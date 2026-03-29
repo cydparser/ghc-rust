@@ -29,23 +29,23 @@ unsafe fn updateAdjacentFrames(
     mut cap: *mut Capability,
     mut tso: *mut StgTSO,
     mut upd: *mut StgUpdateFrame,
-    mut count: uint32_t,
+    mut count: u32,
     mut next: *mut stack_gap,
 ) -> *mut stack_gap {
     let mut updatee = null_mut::<StgClosure>();
     let mut gap = null_mut::<stack_gap>();
-    let mut i: uint32_t = 0;
+    let mut i: u32 = 0;
     updatee = (*upd).updatee;
     count = count.wrapping_sub(1);
     upd = upd.offset(-1);
     gap = upd as *mut stack_gap;
     i = count;
 
-    while i > 0 as uint32_t {
+    while i > 0 {
         if (*upd).updatee != updatee
             && *(&raw const closure_flags as *const StgWord16)
                 .offset((*get_itbl(UNTAG_CONST_CLOSURE((*upd).updatee))).r#type as isize)
-                as c_int
+                as i32
                 & _IND
                 == 0
         {
@@ -70,11 +70,10 @@ unsafe fn updateAdjacentFrames(
 
 unsafe fn stackSqueeze(mut cap: *mut Capability, mut tso: *mut StgTSO, mut bottom: StgPtr) {
     let mut frame = null_mut::<StgWord>();
-    let mut adjacent_update_frames: uint32_t = 0;
+    let mut adjacent_update_frames: u32 = 0;
     let mut gap = null_mut::<stack_gap>();
     frame = (*(*tso).stackobj).sp;
-    adjacent_update_frames = 0 as uint32_t;
-
+    adjacent_update_frames = 0;
     gap = frame.offset(
         -((size_of::<StgUpdateFrame>() as usize)
             .wrapping_add(size_of::<W_>() as usize)
@@ -85,9 +84,8 @@ unsafe fn stackSqueeze(mut cap: *mut Capability, mut tso: *mut StgTSO, mut botto
     while frame <= bottom {
         match (*get_ret_itbl(frame as *mut StgClosure)).i.r#type {
             33 => {
-                adjacent_update_frames > 0 as uint32_t;
+                adjacent_update_frames > 0;
                 adjacent_update_frames = adjacent_update_frames.wrapping_add(1);
-
                 frame = frame.offset(
                     (size_of::<StgUpdateFrame>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
@@ -96,7 +94,7 @@ unsafe fn stackSqueeze(mut cap: *mut Capability, mut tso: *mut StgTSO, mut botto
                 );
             }
             _ => {
-                if adjacent_update_frames > 1 as uint32_t {
+                if adjacent_update_frames > 1 {
                     gap = updateAdjacentFrames(
                         cap,
                         tso,
@@ -112,13 +110,13 @@ unsafe fn stackSqueeze(mut cap: *mut Capability, mut tso: *mut StgTSO, mut botto
                     );
                 }
 
-                adjacent_update_frames = 0 as uint32_t;
+                adjacent_update_frames = 0;
                 frame = frame.offset(stack_frame_sizeW(frame as *mut StgClosure) as isize);
             }
         }
     }
 
-    if adjacent_update_frames > 1 as uint32_t {
+    if adjacent_update_frames > 1 {
         gap = updateAdjacentFrames(
             cap,
             tso,
@@ -137,7 +135,7 @@ unsafe fn stackSqueeze(mut cap: *mut Capability, mut tso: *mut StgTSO, mut botto
     let mut gap_start = null_mut::<StgWord8>();
     let mut next_gap_start = null_mut::<StgWord8>();
     let mut gap_end = null_mut::<StgWord8>();
-    let mut chunk_size: uint32_t = 0;
+    let mut chunk_size: u32 = 0;
     next_gap_start = (gap as *mut StgWord8).offset(size_of::<StgUpdateFrame>() as usize as isize);
     sp = next_gap_start;
 
@@ -145,16 +143,16 @@ unsafe fn stackSqueeze(mut cap: *mut Capability, mut tso: *mut StgTSO, mut botto
         gap_start = next_gap_start;
         gap_end =
             gap_start.offset(-((*gap).gap_size.wrapping_mul(size_of::<W_>() as StgWord) as isize));
+
         gap = (*gap).next_gap;
         next_gap_start =
             (gap as *mut StgWord8).offset(size_of::<StgUpdateFrame>() as usize as isize);
-        chunk_size = gap_end.offset_from(next_gap_start) as c_long as uint32_t;
+        chunk_size = gap_end.offset_from(next_gap_start) as i64 as u32;
         sp = sp.offset(-(chunk_size as isize));
-
         memmove(
             sp as *mut c_void,
             next_gap_start as *const c_void,
-            chunk_size as size_t,
+            chunk_size as usize,
         );
     }
 
@@ -169,14 +167,14 @@ unsafe fn threadPaused(mut cap: *mut Capability, mut tso: *mut StgTSO) {
     let mut frame_info = null::<StgInfoTable>();
     let mut bh = null_mut::<StgClosure>();
     let mut stack_end = null_mut::<StgWord>();
-    let mut words_to_squeeze: uint32_t = 0 as uint32_t;
-    let mut weight: uint32_t = 0 as uint32_t;
-    let mut weight_pending: uint32_t = 0 as uint32_t;
-    let mut prev_was_update_frame = r#false != 0;
+    let mut words_to_squeeze: u32 = 0;
+    let mut weight: u32 = 0;
+    let mut weight_pending: u32 = 0;
+    let mut prev_was_update_frame = false;
     let mut heuristic_says_squeeze: StgWord = 0;
     maybePerformBlockedException(cap, tso);
 
-    if (*tso).what_next as c_int == ThreadKilled {
+    if (*tso).what_next as i32 == ThreadKilled {
         return;
     }
 
@@ -196,16 +194,16 @@ unsafe fn threadPaused(mut cap: *mut Capability, mut tso: *mut StgTSO) {
                         as *const StgInfoTable
                 {
                     if prev_was_update_frame {
-                        words_to_squeeze = (words_to_squeeze as c_ulong).wrapping_add(
+                        words_to_squeeze = (words_to_squeeze as u64).wrapping_add(
                             (size_of::<StgUpdateFrame>() as usize)
                                 .wrapping_add(size_of::<W_>() as usize)
                                 .wrapping_sub(1 as usize)
                                 .wrapping_div(size_of::<W_>() as usize)
-                                as c_ulong,
-                        ) as uint32_t as uint32_t;
+                                as u64,
+                        ) as u32 as u32;
 
                         weight = weight.wrapping_add(weight_pending);
-                        weight_pending = 0 as uint32_t;
+                        weight_pending = 0;
                     }
 
                     break;
@@ -222,11 +220,10 @@ unsafe fn threadPaused(mut cap: *mut Capability, mut tso: *mut StgTSO) {
                         && (*(bh as *mut StgInd)).indirectee != tso as *mut StgClosure
                         || bh_info == &raw const stg_WHITEHOLE_info
                     {
-                        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.squeeze as c_long != 0 {
+                        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.squeeze as i64 != 0 {
                             trace_(
-                                b"suspending duplicate work: %ld words of stack\0" as *const u8
-                                    as *const c_char as *mut c_char,
-                                (frame as StgPtr).offset_from((*(*tso).stackobj).sp) as c_long,
+                                c"suspending duplicate work: %ld words of stack".as_ptr(),
+                                (frame as StgPtr).offset_from((*(*tso).stackobj).sp) as i64,
                             );
                         }
 
@@ -239,13 +236,12 @@ unsafe fn threadPaused(mut cap: *mut Capability, mut tso: *mut StgTSO) {
                                     .wrapping_div(size_of::<W_>() as usize)
                                     as isize,
                             )
-                            .offset(-(2 as c_int as isize));
-                        *(*(*tso).stackobj).sp.offset(1 as c_int as isize) = bh as StgWord;
-                        *(*(*tso).stackobj).sp.offset(0 as c_int as isize) =
+                            .offset(-2);
+                        *(*(*tso).stackobj).sp.offset(1) = bh as StgWord;
+                        *(*(*tso).stackobj).sp.offset(0) =
                             &raw const stg_enter_info as W_ as StgWord;
-                        frame =
-                            (*(*tso).stackobj).sp.offset(2 as c_int as isize) as *mut StgClosure;
-                        prev_was_update_frame = r#false != 0;
+                        frame = (*(*tso).stackobj).sp.offset(2) as *mut StgClosure;
+                        prev_was_update_frame = false;
                     } else {
                         if !(frame_info == &raw const stg_bh_upd_frame_info) {
                             let ref mut fresh5 = (*(bh as *mut StgInd)).indirectee;
@@ -254,23 +250,22 @@ unsafe fn threadPaused(mut cap: *mut Capability, mut tso: *mut StgTSO) {
                         }
 
                         recordClosureMutated(cap, bh);
-                        frame = (frame as *mut StgUpdateFrame).offset(1 as c_int as isize)
-                            as *mut StgClosure;
+                        frame = (frame as *mut StgUpdateFrame).offset(1) as *mut StgClosure;
 
                         if prev_was_update_frame {
-                            words_to_squeeze = (words_to_squeeze as c_ulong).wrapping_add(
+                            words_to_squeeze = (words_to_squeeze as u64).wrapping_add(
                                 (size_of::<StgUpdateFrame>() as usize)
                                     .wrapping_add(size_of::<W_>() as usize)
                                     .wrapping_sub(1 as usize)
                                     .wrapping_div(size_of::<W_>() as usize)
-                                    as c_ulong,
-                            ) as uint32_t
-                                as uint32_t;
+                                    as u64,
+                            ) as u32 as u32;
+
                             weight = weight.wrapping_add(weight_pending);
-                            weight_pending = 0 as uint32_t;
+                            weight_pending = 0;
                         }
 
-                        prev_was_update_frame = r#true != 0;
+                        prev_was_update_frame = true;
                     }
                 }
             }
@@ -278,32 +273,31 @@ unsafe fn threadPaused(mut cap: *mut Capability, mut tso: *mut StgTSO) {
                 break;
             }
             _ => {
-                let mut frame_size: uint32_t = stack_frame_sizeW(frame) as uint32_t;
+                let mut frame_size: u32 = stack_frame_sizeW(frame) as u32;
                 weight_pending = weight_pending.wrapping_add(frame_size);
                 frame = (frame as StgPtr).offset(frame_size as isize) as *mut StgClosure;
-                prev_was_update_frame = r#false != 0;
+                prev_was_update_frame = false;
             }
         }
     }
 
-    heuristic_says_squeeze = (weight <= 8 as uint32_t && words_to_squeeze > 0 as uint32_t
-        || weight < words_to_squeeze) as c_int as StgWord;
+    heuristic_says_squeeze =
+        (weight <= 8 && words_to_squeeze > 0 || weight < words_to_squeeze) as i32 as StgWord;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.squeeze as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.squeeze as i64 != 0 {
         trace_(
-            b"words_to_squeeze: %d, weight: %d, squeeze: %s\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"words_to_squeeze: %d, weight: %d, squeeze: %s".as_ptr(),
             words_to_squeeze,
             weight,
             if heuristic_says_squeeze != 0 {
-                b"YES\0" as *const u8 as *const c_char
+                c"YES".as_ptr()
             } else {
-                b"NO\0" as *const u8 as *const c_char
+                c"NO".as_ptr()
             },
         );
     }
 
-    if RtsFlags.GcFlags.squeezeUpdFrames as c_int == r#true && heuristic_says_squeeze != 0 {
+    if RtsFlags.GcFlags.squeezeUpdFrames as i32 == true && heuristic_says_squeeze != 0 {
         stackSqueeze(cap, tso, frame as StgPtr);
         (*tso).flags |= TSO_SQUEEZED as StgWord32;
     } else {

@@ -15,22 +15,22 @@ use crate::trace::{DEBUG_RTS, TRACE_nonmoving_gc, trace_, traceNonmovingHeapCens
 /// cbindgen:no-export
 pub(crate) struct NonmovingAllocCensus {
     pub(crate) collected_live_words: bool,
-    pub(crate) n_active_segs: uint32_t,
-    pub(crate) n_filled_segs: uint32_t,
-    pub(crate) n_live_blocks: uint32_t,
-    pub(crate) n_live_words: uint32_t,
+    pub(crate) n_active_segs: u32,
+    pub(crate) n_filled_segs: u32,
+    pub(crate) n_live_blocks: u32,
+    pub(crate) n_live_words: u32,
 }
 
 unsafe fn nonmovingAllocatorCensus_(
-    mut alloc_idx: uint32_t,
+    mut alloc_idx: u32,
     mut collect_live_words: bool,
 ) -> NonmovingAllocCensus {
     let mut census = NonmovingAllocCensus {
         collected_live_words: collect_live_words,
-        n_active_segs: 0 as uint32_t,
-        n_filled_segs: 0 as uint32_t,
-        n_live_blocks: 0 as uint32_t,
-        n_live_words: 0 as uint32_t,
+        n_active_segs: 0,
+        n_filled_segs: 0,
+        n_live_blocks: 0,
+        n_live_words: 0,
     };
 
     let mut alloc: *mut NonmovingAllocator =
@@ -41,11 +41,10 @@ unsafe fn nonmovingAllocatorCensus_(
     while !seg.is_null() {
         let mut n = nonmovingSegmentBlockCount(seg);
         census.n_filled_segs = census.n_filled_segs.wrapping_add(1);
-        census.n_live_blocks =
-            (census.n_live_blocks as c_uint).wrapping_add(n) as uint32_t as uint32_t;
+        census.n_live_blocks = (census.n_live_blocks as u32).wrapping_add(n) as u32 as u32;
 
         if collect_live_words {
-            let mut i = 0 as c_uint;
+            let mut i = 0;
 
             while i < n {
                 let mut c =
@@ -64,11 +63,11 @@ unsafe fn nonmovingAllocatorCensus_(
         census.n_active_segs = census.n_active_segs.wrapping_add(1);
 
         let mut n_0 = nonmovingSegmentBlockCount(seg_0);
-        let mut i_0 = 0 as c_uint;
+        let mut i_0 = 0;
 
         while i_0 < n_0 {
-            if nonmovingGetMark(seg_0, i_0 as nonmoving_block_idx) as c_int
-                == nonmovingMarkEpoch as c_int
+            if nonmovingGetMark(seg_0, i_0 as nonmoving_block_idx) as i32
+                == nonmovingMarkEpoch as i32
             {
                 let mut c_0 =
                     nonmovingSegmentGetBlock(seg_0, i_0 as nonmoving_block_idx) as *mut StgClosure;
@@ -86,13 +85,13 @@ unsafe fn nonmovingAllocatorCensus_(
         seg_0 = (*seg_0).link;
     }
 
-    let mut cap_n = 0 as c_uint;
+    let mut cap_n = 0;
 
     while cap_n < getNumCapabilities() {
-        let mut cap = getCapability(cap_n as uint32_t);
+        let mut cap = getCapability(cap_n as u32);
         let mut seg_1 = *(*cap).current_segments.offset(alloc_idx as isize);
         let mut n_1 = nonmovingSegmentBlockCount(seg_1);
-        let mut i_1 = 0 as c_uint;
+        let mut i_1 = 0;
 
         while i_1 < n_1 {
             if nonmovingGetMark(seg_1, i_1 as nonmoving_block_idx) != 0 {
@@ -115,32 +114,30 @@ unsafe fn nonmovingAllocatorCensus_(
     return census;
 }
 
-unsafe fn nonmovingAllocatorCensusWithWords(mut alloc_idx: uint32_t) -> NonmovingAllocCensus {
-    return nonmovingAllocatorCensus_(alloc_idx, r#true != 0);
+unsafe fn nonmovingAllocatorCensusWithWords(mut alloc_idx: u32) -> NonmovingAllocCensus {
+    return nonmovingAllocatorCensus_(alloc_idx, true);
 }
 
-unsafe fn nonmovingAllocatorCensus(mut alloc_idx: uint32_t) -> NonmovingAllocCensus {
-    return nonmovingAllocatorCensus_(alloc_idx, r#false != 0);
+unsafe fn nonmovingAllocatorCensus(mut alloc_idx: u32) -> NonmovingAllocCensus {
+    return nonmovingAllocatorCensus_(alloc_idx, false);
 }
 
-unsafe fn print_alloc_census(mut i: c_int, mut census: NonmovingAllocCensus) {
-    let mut blk_size: uint32_t = ((1 as c_int) << i + NONMOVING_ALLOCA0) as uint32_t;
-    let mut sz_min = (1 as c_int) << i + NONMOVING_ALLOCA0 - 1 as c_int;
-    let mut sz_max = (1 as c_int) << i + NONMOVING_ALLOCA0;
+unsafe fn print_alloc_census(mut i: i32, mut census: NonmovingAllocCensus) {
+    let mut blk_size: u32 = (1 << i + NONMOVING_ALLOCA0) as u32;
+    let mut sz_min = 1 << i + NONMOVING_ALLOCA0 - 1;
+    let mut sz_max = 1 << i + NONMOVING_ALLOCA0;
 
     if census.collected_live_words {
-        let mut occupancy =
-            100.0f64 * census.n_live_words as c_double * size_of::<W_>() as c_double
-                / census.n_live_blocks.wrapping_mul(blk_size) as c_double;
-        if census.n_live_blocks == 0 as uint32_t {
-            occupancy = 100 as c_int as c_double;
+        let mut occupancy = 100.0f64 * census.n_live_words as f64 * size_of::<W_>() as f64
+            / census.n_live_blocks.wrapping_mul(blk_size) as f64;
+        if census.n_live_blocks == 0 {
+            occupancy = 100;
         }
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as i64 != 0 {
             trace_(
-                b"Allocator %d (%d bytes - %d bytes): %u active segs, %u filled segs, %u live blocks, %u live words (%2.1f%% occupancy)\0"
-                    as *const u8 as *const c_char
-                    as *mut c_char,
+                c"Allocator %d (%d bytes - %d bytes): %u active segs, %u filled segs, %u live blocks, %u live words (%2.1f%% occupancy)"
+                    .as_ptr(),
                 i,
                 sz_min,
                 sz_max,
@@ -151,10 +148,10 @@ unsafe fn print_alloc_census(mut i: c_int, mut census: NonmovingAllocCensus) {
                 occupancy,
             );
         }
-    } else if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as c_long != 0 {
+    } else if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as i64 != 0 {
         trace_(
-            b"Allocator %d (%d bytes - %d bytes): %u active segs, %u filled segs, %u live blocks\0"
-                as *const u8 as *const c_char as *mut c_char,
+            c"Allocator %d (%d bytes - %d bytes): %u active segs, %u filled segs, %u live blocks"
+                .as_ptr(),
             i,
             sz_min,
             sz_max,
@@ -170,10 +167,10 @@ unsafe fn nonmovingPrintAllocatorCensus(mut collect_live_words: bool) {
         return;
     }
 
-    let mut i = 0 as c_int;
+    let mut i = 0;
 
-    while i < nonmoving_alloca_cnt as c_int {
-        let mut census = nonmovingAllocatorCensus_(i as uint32_t, collect_live_words);
+    while i < nonmoving_alloca_cnt as i32 {
+        let mut census = nonmovingAllocatorCensus_(i as u32, collect_live_words);
         print_alloc_census(i, census);
         i += 1;
     }
@@ -184,13 +181,12 @@ unsafe fn nonmovingTraceAllocatorCensus() {
         return;
     }
 
-    let mut i = 0 as c_int;
+    let mut i = 0;
 
-    while i < nonmoving_alloca_cnt as c_int {
-        let census = nonmovingAllocatorCensus(i as uint32_t) as NonmovingAllocCensus;
-        let blk_size: uint32_t =
-            (*nonmovingHeap.allocators.offset(i as isize)).block_size as uint32_t;
-        traceNonmovingHeapCensus(blk_size as uint16_t, &raw const census);
+    while i < nonmoving_alloca_cnt as i32 {
+        let census = nonmovingAllocatorCensus(i as u32) as NonmovingAllocCensus;
+        let blk_size: u32 = (*nonmovingHeap.allocators.offset(i as isize)).block_size as u32;
+        traceNonmovingHeapCensus(blk_size as u16, &raw const census);
         i += 1;
     }
 }

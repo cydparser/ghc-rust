@@ -46,12 +46,12 @@ impl Arbitrary for InCall_ {
 pub(crate) struct Task_ {
     pub(crate) cap: *mut Capability_,
     pub(crate) incall: *mut InCall_,
-    pub(crate) n_spare_incalls: uint32_t,
+    pub(crate) n_spare_incalls: u32,
     pub(crate) spare_incalls: *mut InCall_,
     pub(crate) worker: bool,
     pub(crate) stopped: bool,
     pub(crate) running_finalizers: bool,
-    pub(crate) preferred_capability: c_int,
+    pub(crate) preferred_capability: i32,
     pub(crate) next: *mut Task_,
     pub(crate) all_next: *mut Task_,
     pub(crate) all_prev: *mut Task_,
@@ -70,7 +70,7 @@ pub(crate) unsafe fn isBoundTask(mut task: *mut Task) -> bool {
 
 #[inline]
 pub(crate) unsafe fn isWorker(mut task: *mut Task) -> bool {
-    return (*task).worker as c_int != 0 && (*(*task).incall).prev_stack.is_null();
+    return (*task).worker as i32 != 0 && (*(*task).incall).prev_stack.is_null();
 }
 
 #[inline]
@@ -85,37 +85,37 @@ pub(crate) unsafe fn setMyTask(mut task: *mut Task) {
 
 #[inline]
 pub(crate) unsafe fn serialisableTaskId(mut task: *mut Task) -> TaskId {
-    return task as uintptr_t as TaskId;
+    return task as usize as TaskId;
 }
 
-static mut all_tasks: *mut Task = null::<Task>() as *mut Task;
+static mut all_tasks: *mut Task = null_mut::<Task>();
 
-static mut taskCount: uint32_t = 0;
+static mut taskCount: u32 = 0;
 
-static mut workerCount: uint32_t = 0;
+static mut workerCount: u32 = 0;
 
-static mut currentWorkerCount: uint32_t = 0;
+static mut currentWorkerCount: u32 = 0;
 
-static mut peakWorkerCount: uint32_t = 0;
+static mut peakWorkerCount: u32 = 0;
 
-static mut tasksInitialized: c_int = 0 as c_int;
+static mut tasksInitialized: i32 = 0;
 
-static mut my_task: *mut Task = null::<Task>() as *mut Task;
+static mut my_task: *mut Task = null_mut::<Task>();
 
 unsafe fn initTaskManager() {
     if tasksInitialized == 0 {
-        taskCount = 0 as uint32_t;
-        workerCount = 0 as uint32_t;
-        currentWorkerCount = 0 as uint32_t;
-        peakWorkerCount = 0 as uint32_t;
-        tasksInitialized = 1 as c_int;
+        taskCount = 0;
+        workerCount = 0;
+        currentWorkerCount = 0;
+        peakWorkerCount = 0;
+        tasksInitialized = 1;
     }
 }
 
-unsafe fn freeTaskManager() -> uint32_t {
+unsafe fn freeTaskManager() -> u32 {
     let mut task = null_mut::<Task>();
     let mut next = null_mut::<Task>();
-    let mut tasksRunning: uint32_t = 0 as uint32_t;
+    let mut tasksRunning: u32 = 0;
     task = all_tasks;
 
     while !task.is_null() {
@@ -130,16 +130,15 @@ unsafe fn freeTaskManager() -> uint32_t {
         task = next;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
         trace_(
-            b"freeing task manager, %d tasks still running\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"freeing task manager, %d tasks still running".as_ptr(),
             tasksRunning,
         );
     }
 
     all_tasks = null_mut::<Task>();
-    tasksInitialized = 0 as c_int;
+    tasksInitialized = 0;
 
     return tasksRunning;
 }
@@ -151,7 +150,7 @@ unsafe fn getMyTask() -> *mut Task {
     if !task.is_null() {
         return task;
     } else {
-        task = newTask(r#false != 0);
+        task = newTask(false);
         setMyTask(task);
 
         return task;
@@ -167,16 +166,13 @@ unsafe fn freeMyTask() {
     }
 
     if !(*task).stopped {
-        errorBelch(
-            b"freeMyTask() called, but the Task is not stopped; ignoring\0" as *const u8
-                as *const c_char,
-        );
+        errorBelch(c"freeMyTask() called, but the Task is not stopped; ignoring".as_ptr());
 
         return;
     }
 
     if (*task).worker {
-        errorBelch(b"freeMyTask() called on a worker; ignoring\0" as *const u8 as *const c_char);
+        errorBelch(c"freeMyTask() called on a worker; ignoring".as_ptr());
         return;
     }
 
@@ -221,21 +217,21 @@ unsafe fn newTask(mut worker: bool) -> *mut Task {
     let mut task = null_mut::<Task>();
 
     task = stgMallocBytes(
-        (size_of::<Task>() as size_t)
-            .wrapping_add(63 as size_t)
-            .wrapping_div(64 as size_t)
-            .wrapping_mul(64 as size_t),
-        b"newTask\0" as *const u8 as *const c_char as *mut c_char,
+        (size_of::<Task>() as usize)
+            .wrapping_add(63 as usize)
+            .wrapping_div(64 as usize)
+            .wrapping_mul(64 as usize),
+        c"newTask".as_ptr(),
     ) as *mut Task;
 
     (*task).cap = null_mut::<Capability_>();
     (*task).worker = worker;
-    (*task).stopped = r#true != 0;
-    (*task).running_finalizers = r#false != 0;
-    (*task).n_spare_incalls = 0 as uint32_t;
+    (*task).stopped = true;
+    (*task).running_finalizers = false;
+    (*task).n_spare_incalls = 0;
     (*task).spare_incalls = null_mut::<InCall_>();
     (*task).incall = null_mut::<InCall_>();
-    (*task).preferred_capability = -(1 as c_int);
+    (*task).preferred_capability = -1;
     (*task).next = null_mut::<Task_>();
     (*task).all_prev = null_mut::<Task_>();
     (*task).all_next = all_tasks as *mut Task_;
@@ -247,11 +243,8 @@ unsafe fn newTask(mut worker: bool) -> *mut Task {
     all_tasks = task;
     taskCount = taskCount.wrapping_add(1);
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-        trace_(
-            b"new task (taskCount: %d)\0" as *const u8 as *const c_char as *mut c_char,
-            taskCount,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+        trace_(c"new task (taskCount: %d)".as_ptr(), taskCount);
     }
 
     if worker {
@@ -266,7 +259,7 @@ unsafe fn newTask(mut worker: bool) -> *mut Task {
     return task;
 }
 
-const MAX_SPARE_INCALLS: c_int = 8 as c_int;
+const MAX_SPARE_INCALLS: i32 = 8;
 
 unsafe fn newInCall(mut task: *mut Task) {
     let mut incall = null_mut::<InCall>();
@@ -276,10 +269,7 @@ unsafe fn newInCall(mut task: *mut Task) {
         (*task).spare_incalls = (*incall).next;
         (*task).n_spare_incalls = (*task).n_spare_incalls.wrapping_sub(1);
     } else {
-        incall = stgMallocBytes(
-            size_of::<InCall>() as size_t,
-            b"newInCall\0" as *const u8 as *const c_char as *mut c_char,
-        ) as *mut InCall;
+        incall = stgMallocBytes(size_of::<InCall>() as usize, c"newInCall".as_ptr()) as *mut InCall;
     }
 
     (*incall).tso = null_mut::<StgTSO>();
@@ -300,7 +290,7 @@ unsafe fn endInCall(mut task: *mut Task) {
     (*incall).tso = null_mut::<StgTSO>();
     (*task).incall = (*(*task).incall).prev_stack;
 
-    if (*task).n_spare_incalls >= MAX_SPARE_INCALLS as uint32_t {
+    if (*task).n_spare_incalls >= MAX_SPARE_INCALLS as u32 {
         stgFree(incall as *mut c_void);
     } else {
         (*incall).next = (*task).spare_incalls;
@@ -313,16 +303,13 @@ unsafe fn newBoundTask() -> *mut Task {
     let mut task = null_mut::<Task>();
 
     if tasksInitialized == 0 {
-        errorBelch(
-            b"newBoundTask: RTS is not initialised; call hs_init() first\0" as *const u8
-                as *const c_char,
-        );
+        errorBelch(c"newBoundTask: RTS is not initialised; call hs_init() first".as_ptr());
 
         stg_exit(EXIT_FAILURE);
     }
 
     task = getMyTask();
-    (*task).stopped = r#false != 0;
+    (*task).stopped = false;
     newInCall(task);
 
     return task;
@@ -333,11 +320,11 @@ unsafe fn exitMyTask() {
     endInCall(task);
 
     if (*task).incall.is_null() {
-        (*task).stopped = r#true != 0;
+        (*task).stopped = true;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-        trace_(b"task exiting\0" as *const u8 as *const c_char as *mut c_char);
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+        trace_(c"task exiting".as_ptr());
     }
 }
 
@@ -350,11 +337,8 @@ unsafe fn discardTasksExcept(mut keep: *mut Task) {
         next = (*task).all_next as *mut Task;
 
         if task != keep {
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-                trace_(
-                    b"discarding task %zu\0" as *const u8 as *const c_char as *mut c_char,
-                    task as size_t,
-                );
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+                trace_(c"discarding task %zu".as_ptr(), task as usize);
             }
 
             freeTask(task);
@@ -371,10 +355,7 @@ unsafe fn discardTasksExcept(mut keep: *mut Task) {
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn rts_setInCallCapability(
-    mut preferred_capability: c_int,
-    mut affinity: c_int,
-) {
+pub unsafe extern "C" fn rts_setInCallCapability(mut preferred_capability: i32, mut affinity: i32) {
     let mut task = getMyTask();
     (*task).preferred_capability = preferred_capability;
 }
@@ -382,4 +363,4 @@ pub unsafe extern "C" fn rts_setInCallCapability(
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn rts_pinThreadToNumaNode(mut node: c_int) {}
+pub unsafe extern "C" fn rts_pinThreadToNumaNode(mut node: i32) {}

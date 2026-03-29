@@ -30,119 +30,119 @@ mod tests;
 
 /// cbindgen:no-export
 pub(crate) struct ProfilerTotals {
-    pub(crate) total_alloc: uint64_t,
-    pub(crate) total_prof_ticks: c_uint,
+    pub(crate) total_alloc: u64,
+    pub(crate) total_prof_ticks: u32,
 }
 
-static mut prof_arena: *mut Arena = null::<Arena>() as *mut Arena;
+static mut prof_arena: *mut Arena = null_mut::<Arena>();
 
-static mut CC_ID: c_uint = 1 as c_uint;
+static mut CC_ID: u32 = 1;
 
-static mut CCS_ID: c_uint = 1 as c_uint;
+static mut CCS_ID: u32 = 1;
 
-static mut DUMPED_CC_ID: c_uint = 0 as c_uint;
+static mut DUMPED_CC_ID: u32 = 0;
 
-static mut prof_filename: *mut c_char = null::<c_char>() as *mut c_char;
+static mut prof_filename: *mut c_char = null_mut::<c_char>();
 
-static mut prof_file: *mut FILE = null::<FILE>() as *mut FILE;
+static mut prof_file: *mut FILE = null_mut::<FILE>();
 
-static mut CC_LIST: *mut CostCentre = null::<CostCentre>() as *mut CostCentre;
+static mut CC_LIST: *mut CostCentre = null_mut::<CostCentre>();
 
-static mut CCS_LIST: *mut CostCentreStack = null::<CostCentreStack>() as *mut CostCentreStack;
+static mut CCS_LIST: *mut CostCentreStack = null_mut::<CostCentreStack>();
 
 static mut CC_MAIN: [CostCentre; 1] = [CostCentre_ {
-    ccID: 0 as StgInt,
-    label: b"MAIN\0" as *const u8 as *const c_char as *mut c_char,
-    module: b"MAIN\0" as *const u8 as *const c_char as *mut c_char,
-    srcloc: b"<built-in>\0" as *const u8 as *const c_char as *mut c_char,
-    mem_alloc: 0 as StgWord64,
-    time_ticks: 0 as StgWord,
-    is_caf: 0 as StgBool,
-    link: null::<CostCentre_>() as *mut CostCentre_,
+    ccID: 0,
+    label: c"MAIN".as_ptr(),
+    module: c"MAIN".as_ptr(),
+    srcloc: c"<built-in>".as_ptr(),
+    mem_alloc: 0,
+    time_ticks: 0,
+    is_caf: 0,
+    link: null_mut::<CostCentre_>(),
 }];
 
 static mut CC_SYSTEM: [CostCentre; 1] = [CostCentre_ {
-    ccID: 0 as StgInt,
-    label: b"SYSTEM\0" as *const u8 as *const c_char as *mut c_char,
-    module: b"SYSTEM\0" as *const u8 as *const c_char as *mut c_char,
-    srcloc: b"<built-in>\0" as *const u8 as *const c_char as *mut c_char,
-    mem_alloc: 0 as StgWord64,
-    time_ticks: 0 as StgWord,
-    is_caf: 0 as StgBool,
-    link: null::<CostCentre_>() as *mut CostCentre_,
+    ccID: 0,
+    label: c"SYSTEM".as_ptr(),
+    module: c"SYSTEM".as_ptr(),
+    srcloc: c"<built-in>".as_ptr(),
+    mem_alloc: 0,
+    time_ticks: 0,
+    is_caf: 0,
+    link: null_mut::<CostCentre_>(),
 }];
 
 static mut CC_GC: [CostCentre; 1] = [CostCentre_ {
-    ccID: 0 as StgInt,
-    label: b"GC\0" as *const u8 as *const c_char as *mut c_char,
-    module: b"GC\0" as *const u8 as *const c_char as *mut c_char,
-    srcloc: b"<built-in>\0" as *const u8 as *const c_char as *mut c_char,
-    mem_alloc: 0 as StgWord64,
-    time_ticks: 0 as StgWord,
-    is_caf: 0 as StgBool,
-    link: null::<CostCentre_>() as *mut CostCentre_,
+    ccID: 0,
+    label: c"GC".as_ptr(),
+    module: c"GC".as_ptr(),
+    srcloc: c"<built-in>".as_ptr(),
+    mem_alloc: 0,
+    time_ticks: 0,
+    is_caf: 0,
+    link: null_mut::<CostCentre_>(),
 }];
 
 static mut CC_OVERHEAD: [CostCentre; 1] = [CostCentre_ {
-    ccID: 0 as StgInt,
-    label: b"OVERHEAD_of\0" as *const u8 as *const c_char as *mut c_char,
-    module: b"PROFILING\0" as *const u8 as *const c_char as *mut c_char,
-    srcloc: b"<built-in>\0" as *const u8 as *const c_char as *mut c_char,
-    mem_alloc: 0 as StgWord64,
-    time_ticks: 0 as StgWord,
-    is_caf: 0 as StgBool,
-    link: null::<CostCentre_>() as *mut CostCentre_,
+    ccID: 0,
+    label: c"OVERHEAD_of".as_ptr(),
+    module: c"PROFILING".as_ptr(),
+    srcloc: c"<built-in>".as_ptr(),
+    mem_alloc: 0,
+    time_ticks: 0,
+    is_caf: 0,
+    link: null_mut::<CostCentre_>(),
 }];
 
 static mut CC_DONT_CARE: [CostCentre; 1] = [CostCentre_ {
-    ccID: 0 as StgInt,
-    label: b"DONT_CARE\0" as *const u8 as *const c_char as *mut c_char,
-    module: b"MAIN\0" as *const u8 as *const c_char as *mut c_char,
-    srcloc: b"<built-in>\0" as *const u8 as *const c_char as *mut c_char,
-    mem_alloc: 0 as StgWord64,
-    time_ticks: 0 as StgWord,
-    is_caf: 0 as StgBool,
-    link: null::<CostCentre_>() as *mut CostCentre_,
+    ccID: 0,
+    label: c"DONT_CARE".as_ptr(),
+    module: c"MAIN".as_ptr(),
+    srcloc: c"<built-in>".as_ptr(),
+    mem_alloc: 0,
+    time_ticks: 0,
+    is_caf: 0,
+    link: null_mut::<CostCentre_>(),
 }];
 
 static mut CC_PINNED: [CostCentre; 1] = [CostCentre_ {
-    ccID: 0 as StgInt,
-    label: b"PINNED\0" as *const u8 as *const c_char as *mut c_char,
-    module: b"SYSTEM\0" as *const u8 as *const c_char as *mut c_char,
-    srcloc: b"<built-in>\0" as *const u8 as *const c_char as *mut c_char,
-    mem_alloc: 0 as StgWord64,
-    time_ticks: 0 as StgWord,
-    is_caf: 0 as StgBool,
-    link: null::<CostCentre_>() as *mut CostCentre_,
+    ccID: 0,
+    label: c"PINNED".as_ptr(),
+    module: c"SYSTEM".as_ptr(),
+    srcloc: c"<built-in>".as_ptr(),
+    mem_alloc: 0,
+    time_ticks: 0,
+    is_caf: 0,
+    link: null_mut::<CostCentre_>(),
 }];
 
 static mut CC_IDLE: [CostCentre; 1] = [CostCentre_ {
-    ccID: 0 as StgInt,
-    label: b"IDLE\0" as *const u8 as *const c_char as *mut c_char,
-    module: b"IDLE\0" as *const u8 as *const c_char as *mut c_char,
-    srcloc: b"<built-in>\0" as *const u8 as *const c_char as *mut c_char,
-    mem_alloc: 0 as StgWord64,
-    time_ticks: 0 as StgWord,
-    is_caf: 0 as StgBool,
-    link: null::<CostCentre_>() as *mut CostCentre_,
+    ccID: 0,
+    label: c"IDLE".as_ptr(),
+    module: c"IDLE".as_ptr(),
+    srcloc: c"<built-in>".as_ptr(),
+    mem_alloc: 0,
+    time_ticks: 0,
+    is_caf: 0,
+    link: null_mut::<CostCentre_>(),
 }];
 
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 pub static mut CCS_MAIN: [CostCentreStack; 1] = unsafe {
     [CostCentreStack_ {
-        ccsID: 0 as StgInt,
+        ccsID: 0,
         cc: &raw const CC_MAIN as *mut CostCentre,
-        prevStack: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        indexTable: null::<IndexTable_>() as *mut IndexTable_,
-        root: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        depth: 0 as StgWord,
-        scc_count: 0 as StgWord64,
-        selected: 0 as StgWord,
-        time_ticks: 0 as StgWord,
-        mem_alloc: 0 as StgWord64,
-        inherited_alloc: 0 as StgWord64,
-        inherited_ticks: 0 as StgWord,
+        prevStack: null_mut::<CostCentreStack_>(),
+        indexTable: null_mut::<IndexTable_>(),
+        root: null_mut::<CostCentreStack_>(),
+        depth: 0,
+        scc_count: 0,
+        selected: 0,
+        time_ticks: 0,
+        mem_alloc: 0,
+        inherited_alloc: 0,
+        inherited_ticks: 0,
     }]
 };
 
@@ -150,52 +150,52 @@ pub static mut CCS_MAIN: [CostCentreStack; 1] = unsafe {
 #[unsafe(no_mangle)]
 pub static mut CCS_SYSTEM: [CostCentreStack; 1] = unsafe {
     [CostCentreStack_ {
-        ccsID: 0 as StgInt,
+        ccsID: 0,
         cc: &raw const CC_SYSTEM as *mut CostCentre,
-        prevStack: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        indexTable: null::<IndexTable_>() as *mut IndexTable_,
-        root: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        depth: 0 as StgWord,
-        scc_count: 0 as StgWord64,
-        selected: 0 as StgWord,
-        time_ticks: 0 as StgWord,
-        mem_alloc: 0 as StgWord64,
-        inherited_alloc: 0 as StgWord64,
-        inherited_ticks: 0 as StgWord,
+        prevStack: null_mut::<CostCentreStack_>(),
+        indexTable: null_mut::<IndexTable_>(),
+        root: null_mut::<CostCentreStack_>(),
+        depth: 0,
+        scc_count: 0,
+        selected: 0,
+        time_ticks: 0,
+        mem_alloc: 0,
+        inherited_alloc: 0,
+        inherited_ticks: 0,
     }]
 };
 
 static mut CCS_GC: [CostCentreStack; 1] = unsafe {
     [CostCentreStack_ {
-        ccsID: 0 as StgInt,
+        ccsID: 0,
         cc: &raw const CC_GC as *mut CostCentre,
-        prevStack: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        indexTable: null::<IndexTable_>() as *mut IndexTable_,
-        root: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        depth: 0 as StgWord,
-        scc_count: 0 as StgWord64,
-        selected: 0 as StgWord,
-        time_ticks: 0 as StgWord,
-        mem_alloc: 0 as StgWord64,
-        inherited_alloc: 0 as StgWord64,
-        inherited_ticks: 0 as StgWord,
+        prevStack: null_mut::<CostCentreStack_>(),
+        indexTable: null_mut::<IndexTable_>(),
+        root: null_mut::<CostCentreStack_>(),
+        depth: 0,
+        scc_count: 0,
+        selected: 0,
+        time_ticks: 0,
+        mem_alloc: 0,
+        inherited_alloc: 0,
+        inherited_ticks: 0,
     }]
 };
 
 static mut CCS_OVERHEAD: [CostCentreStack; 1] = unsafe {
     [CostCentreStack_ {
-        ccsID: 0 as StgInt,
+        ccsID: 0,
         cc: &raw const CC_OVERHEAD as *mut CostCentre,
-        prevStack: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        indexTable: null::<IndexTable_>() as *mut IndexTable_,
-        root: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        depth: 0 as StgWord,
-        scc_count: 0 as StgWord64,
-        selected: 0 as StgWord,
-        time_ticks: 0 as StgWord,
-        mem_alloc: 0 as StgWord64,
-        inherited_alloc: 0 as StgWord64,
-        inherited_ticks: 0 as StgWord,
+        prevStack: null_mut::<CostCentreStack_>(),
+        indexTable: null_mut::<IndexTable_>(),
+        root: null_mut::<CostCentreStack_>(),
+        depth: 0,
+        scc_count: 0,
+        selected: 0,
+        time_ticks: 0,
+        mem_alloc: 0,
+        inherited_alloc: 0,
+        inherited_ticks: 0,
     }]
 };
 
@@ -203,52 +203,52 @@ static mut CCS_OVERHEAD: [CostCentreStack; 1] = unsafe {
 #[unsafe(no_mangle)]
 pub static mut CCS_DONT_CARE: [CostCentreStack; 1] = unsafe {
     [CostCentreStack_ {
-        ccsID: 0 as StgInt,
+        ccsID: 0,
         cc: &raw const CC_DONT_CARE as *mut CostCentre,
-        prevStack: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        indexTable: null::<IndexTable_>() as *mut IndexTable_,
-        root: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        depth: 0 as StgWord,
-        scc_count: 0 as StgWord64,
-        selected: 0 as StgWord,
-        time_ticks: 0 as StgWord,
-        mem_alloc: 0 as StgWord64,
-        inherited_alloc: 0 as StgWord64,
-        inherited_ticks: 0 as StgWord,
+        prevStack: null_mut::<CostCentreStack_>(),
+        indexTable: null_mut::<IndexTable_>(),
+        root: null_mut::<CostCentreStack_>(),
+        depth: 0,
+        scc_count: 0,
+        selected: 0,
+        time_ticks: 0,
+        mem_alloc: 0,
+        inherited_alloc: 0,
+        inherited_ticks: 0,
     }]
 };
 
 static mut CCS_PINNED: [CostCentreStack; 1] = unsafe {
     [CostCentreStack_ {
-        ccsID: 0 as StgInt,
+        ccsID: 0,
         cc: &raw const CC_PINNED as *mut CostCentre,
-        prevStack: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        indexTable: null::<IndexTable_>() as *mut IndexTable_,
-        root: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        depth: 0 as StgWord,
-        scc_count: 0 as StgWord64,
-        selected: 0 as StgWord,
-        time_ticks: 0 as StgWord,
-        mem_alloc: 0 as StgWord64,
-        inherited_alloc: 0 as StgWord64,
-        inherited_ticks: 0 as StgWord,
+        prevStack: null_mut::<CostCentreStack_>(),
+        indexTable: null_mut::<IndexTable_>(),
+        root: null_mut::<CostCentreStack_>(),
+        depth: 0,
+        scc_count: 0,
+        selected: 0,
+        time_ticks: 0,
+        mem_alloc: 0,
+        inherited_alloc: 0,
+        inherited_ticks: 0,
     }]
 };
 
 static mut CCS_IDLE: [CostCentreStack; 1] = unsafe {
     [CostCentreStack_ {
-        ccsID: 0 as StgInt,
+        ccsID: 0,
         cc: &raw const CC_IDLE as *mut CostCentre,
-        prevStack: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        indexTable: null::<IndexTable_>() as *mut IndexTable_,
-        root: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        depth: 0 as StgWord,
-        scc_count: 0 as StgWord64,
-        selected: 0 as StgWord,
-        time_ticks: 0 as StgWord,
-        mem_alloc: 0 as StgWord64,
-        inherited_alloc: 0 as StgWord64,
-        inherited_ticks: 0 as StgWord,
+        prevStack: null_mut::<CostCentreStack_>(),
+        indexTable: null_mut::<IndexTable_>(),
+        root: null_mut::<CostCentreStack_>(),
+        depth: 0,
+        scc_count: 0,
+        selected: 0,
+        time_ticks: 0,
+        mem_alloc: 0,
+        inherited_alloc: 0,
+        inherited_ticks: 0,
     }]
 };
 
@@ -272,7 +272,7 @@ unsafe fn dumpCostCentresToEventLog() {
             DUMPED_CC_ID as StgInt
         } else {
             (*cc).ccID
-        }) as c_uint;
+        }) as u32;
 
         cc = next;
     }
@@ -341,17 +341,15 @@ pub unsafe extern "C" fn mkCostCentre(
     mut module: *mut c_char,
     mut srcloc: *mut c_char,
 ) -> *mut CostCentre {
-    let mut cc = stgMallocBytes(
-        size_of::<CostCentre>() as size_t,
-        b"mkCostCentre\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut CostCentre;
+    let mut cc = stgMallocBytes(size_of::<CostCentre>() as usize, c"mkCostCentre".as_ptr())
+        as *mut CostCentre;
 
     (*cc).label = label;
     (*cc).module = module;
     (*cc).srcloc = srcloc;
-    (*cc).is_caf = 0 as c_int as StgBool;
-    (*cc).mem_alloc = 0 as StgWord64;
-    (*cc).time_ticks = 0 as StgWord;
+    (*cc).is_caf = 0;
+    (*cc).mem_alloc = 0;
+    (*cc).time_ticks = 0;
     (*cc).link = null_mut::<CostCentre_>();
 
     return cc;
@@ -364,36 +362,29 @@ unsafe fn initProfilingLogFile() {
         stem = RtsFlags.CcFlags.outputFileNameStem;
     } else {
         let mut prog =
-            arenaAlloc(prof_arena, strlen(prog_name).wrapping_add(1 as size_t)) as *mut c_char;
+            arenaAlloc(prof_arena, strlen(prog_name).wrapping_add(1 as usize)) as *mut c_char;
         strcpy(prog, prog_name);
         stem = prog;
     }
 
-    if RtsFlags.CcFlags.doCostCentres == 0 as uint32_t && !doingRetainerProfiling() {
+    if RtsFlags.CcFlags.doCostCentres == 0 && !doingRetainerProfiling() {
         prof_filename = null_mut::<c_char>();
         prof_file = null_mut::<FILE>();
     } else {
         prof_filename =
-            arenaAlloc(prof_arena, strlen(stem).wrapping_add(6 as size_t)) as *mut c_char;
-
-        sprintf(
-            prof_filename,
-            b"%s.prof\0" as *const u8 as *const c_char,
-            stem,
-        );
-
-        prof_file = __rts_fopen(prof_filename, b"w+\0" as *const u8 as *const c_char);
+            arenaAlloc(prof_arena, strlen(stem).wrapping_add(6 as usize)) as *mut c_char;
+        sprintf(prof_filename, c"%s.prof".as_ptr(), stem);
+        prof_file = __rts_fopen(prof_filename, c"w+".as_ptr());
 
         if prof_file.is_null() {
             debugBelch(
-                b"Can't open profiling report file %s\n\0" as *const u8 as *const c_char,
+                c"Can't open profiling report file %s\n".as_ptr(),
                 prof_filename,
             );
-
-            RtsFlags.CcFlags.doCostCentres = 0 as uint32_t;
+            RtsFlags.CcFlags.doCostCentres = 0;
 
             if doingRetainerProfiling() {
-                RtsFlags.ProfFlags.doHeapProfile = 0 as uint32_t;
+                RtsFlags.ProfFlags.doHeapProfile = 0;
             }
         }
     };
@@ -483,7 +474,7 @@ unsafe fn enterFunCurShorter(
     mut ccsfn: *mut CostCentreStack,
     mut n: StgWord,
 ) -> *mut CostCentreStack {
-    if n == 0 as StgWord {
+    if n == 0 {
         return enterFunEqualStacks(ccsapp, ccsapp, ccsfn);
     } else {
         return pushCostCentre(
@@ -520,11 +511,11 @@ pub unsafe extern "C" fn enterFunCCS(mut reg: *mut StgRegTable, mut ccsfn: *mut 
     }
 
     if (*ccsapp).depth > (*ccsfn).depth {
-        let mut i: uint32_t = 0;
-        let mut n: uint32_t = 0;
+        let mut i: u32 = 0;
+        let mut n: u32 = 0;
         let mut tmp = ccsapp;
-        n = (*ccsapp).depth.wrapping_sub((*ccsfn).depth) as uint32_t;
-        i = 0 as uint32_t;
+        n = (*ccsapp).depth.wrapping_sub((*ccsfn).depth) as u32;
+        i = 0;
 
         while i < n {
             tmp = (*tmp).prevStack as *mut CostCentreStack;
@@ -539,6 +530,7 @@ pub unsafe extern "C" fn enterFunCCS(mut reg: *mut StgRegTable, mut ccsfn: *mut 
         (*reg).rCCCS =
             enterFunCurShorter(ccsapp, ccsfn, (*ccsfn).depth.wrapping_sub((*ccsapp).depth))
                 as *mut CostCentreStack_;
+
         return;
     }
 
@@ -548,14 +540,14 @@ pub unsafe extern "C" fn enterFunCCS(mut reg: *mut StgRegTable, mut ccsfn: *mut 
 unsafe fn ccsSetSelected(mut ccs: *mut CostCentreStack) {
     if !RtsFlags.ProfFlags.modSelector.is_null() {
         if !strMatchesSelector((*(*ccs).cc).module, RtsFlags.ProfFlags.modSelector) {
-            (*ccs).selected = 0 as StgWord;
+            (*ccs).selected = 0;
             return;
         }
     }
 
     if !RtsFlags.ProfFlags.ccSelector.is_null() {
         if !strMatchesSelector((*(*ccs).cc).label, RtsFlags.ProfFlags.ccSelector) {
-            (*ccs).selected = 0 as StgWord;
+            (*ccs).selected = 0;
             return;
         }
     }
@@ -573,12 +565,12 @@ unsafe fn ccsSetSelected(mut ccs: *mut CostCentreStack) {
         }
 
         if c.is_null() {
-            (*ccs).selected = 0 as StgWord;
+            (*ccs).selected = 0;
             return;
         }
     }
 
-    (*ccs).selected = 1 as StgWord;
+    (*ccs).selected = 1;
 }
 
 unsafe fn appendCCS(
@@ -633,12 +625,9 @@ pub unsafe extern "C" fn pushCostCentre(
                 let mut new_ccs = null_mut::<CostCentreStack>();
                 new_ccs = temp_ccs;
 
-                (*ccs).indexTable = addToIndexTable(
-                    (*ccs).indexTable as *mut IndexTable,
-                    new_ccs,
-                    cc,
-                    r#true != 0,
-                ) as *mut IndexTable_;
+                (*ccs).indexTable =
+                    addToIndexTable((*ccs).indexTable as *mut IndexTable, new_ccs, cc, true)
+                        as *mut IndexTable_;
 
                 ret = new_ccs;
             } else {
@@ -670,8 +659,7 @@ unsafe fn actualPush(
     mut cc: *mut CostCentre,
 ) -> *mut CostCentreStack {
     let mut new_ccs = null_mut::<CostCentreStack>();
-    new_ccs =
-        arenaAlloc(prof_arena, size_of::<CostCentreStack>() as size_t) as *mut CostCentreStack;
+    new_ccs = arenaAlloc(prof_arena, size_of::<CostCentreStack>() as usize) as *mut CostCentreStack;
 
     return actualPush_(ccs, cc, new_ccs);
 }
@@ -689,19 +677,15 @@ unsafe fn actualPush_(
     (*new_ccs).root = (*ccs).root;
     (*new_ccs).depth = (*ccs).depth.wrapping_add(1 as StgWord);
     (*new_ccs).indexTable = null_mut::<IndexTable_>();
-    (*new_ccs).scc_count = 0 as StgWord64;
-    (*new_ccs).time_ticks = 0 as StgWord;
-    (*new_ccs).mem_alloc = 0 as StgWord64;
-    (*new_ccs).inherited_ticks = 0 as StgWord;
-    (*new_ccs).inherited_alloc = 0 as StgWord64;
+    (*new_ccs).scc_count = 0;
+    (*new_ccs).time_ticks = 0;
+    (*new_ccs).mem_alloc = 0;
+    (*new_ccs).inherited_ticks = 0;
+    (*new_ccs).inherited_alloc = 0;
     ccsSetSelected(new_ccs);
 
-    (*ccs).indexTable = addToIndexTable(
-        (*ccs).indexTable as *mut IndexTable,
-        new_ccs,
-        cc,
-        r#false != 0,
-    ) as *mut IndexTable_;
+    (*ccs).indexTable = addToIndexTable((*ccs).indexTable as *mut IndexTable, new_ccs, cc, false)
+        as *mut IndexTable_;
 
     return new_ccs;
 }
@@ -725,7 +709,7 @@ unsafe fn addToIndexTable(
     mut back_edge: bool,
 ) -> *mut IndexTable {
     let mut new_it = null_mut::<IndexTable>();
-    new_it = arenaAlloc(prof_arena, size_of::<IndexTable>() as size_t) as *mut IndexTable;
+    new_it = arenaAlloc(prof_arena, size_of::<IndexTable>() as usize) as *mut IndexTable;
     (*new_it).cc = cc;
     (*new_it).ccs = new_ccs;
     (*new_it).next = it as *mut IndexTable_;
@@ -735,7 +719,7 @@ unsafe fn addToIndexTable(
 }
 
 unsafe fn ignoreCC(mut cc: *const CostCentre) -> bool {
-    return RtsFlags.CcFlags.doCostCentres < COST_CENTRES_ALL as uint32_t
+    return RtsFlags.CcFlags.doCostCentres < COST_CENTRES_ALL as u32
         && (cc == &raw mut CC_OVERHEAD as *mut CostCentre as *const CostCentre
             || cc == &raw mut CC_DONT_CARE as *mut CostCentre as *const CostCentre
             || cc == &raw mut CC_GC as *mut CostCentre as *const CostCentre
@@ -744,7 +728,7 @@ unsafe fn ignoreCC(mut cc: *const CostCentre) -> bool {
 }
 
 unsafe fn ignoreCCS(mut ccs: *const CostCentreStack) -> bool {
-    return RtsFlags.CcFlags.doCostCentres < COST_CENTRES_ALL as uint32_t
+    return RtsFlags.CcFlags.doCostCentres < COST_CENTRES_ALL as u32
         && (ccs == &raw mut CCS_OVERHEAD as *mut CostCentreStack as *const CostCentreStack
             || ccs == &raw mut CCS_DONT_CARE as *mut CostCentreStack as *const CostCentreStack
             || ccs == &raw mut CCS_GC as *mut CostCentreStack as *const CostCentreStack
@@ -755,7 +739,7 @@ unsafe fn ignoreCCS(mut ccs: *const CostCentreStack) -> bool {
 unsafe fn reportCCSProfiling() {
     stopProfTimer();
 
-    if RtsFlags.CcFlags.doCostCentres == 0 as uint32_t {
+    if RtsFlags.CcFlags.doCostCentres == 0 {
         return;
     }
 
@@ -766,7 +750,7 @@ unsafe fn reportCCSProfiling() {
     let mut stack = pruneCCSTree(&raw mut CCS_MAIN as *mut CostCentreStack);
     sortCCSTree(stack);
 
-    if RtsFlags.CcFlags.doCostCentres == COST_CENTRES_JSON as uint32_t {
+    if RtsFlags.CcFlags.doCostCentres == COST_CENTRES_JSON as u32 {
         writeCCSReportJson(prof_file, stack, totals);
     } else {
         writeCCSReport(prof_file, stack, totals);
@@ -775,12 +759,9 @@ unsafe fn reportCCSProfiling() {
 
 unsafe fn countTickss_(mut ccs: *const CostCentreStack, mut totals: *mut ProfilerTotals) {
     if !ignoreCCS(ccs) {
-        (*totals).total_alloc = (*totals)
-            .total_alloc
-            .wrapping_add((*ccs).mem_alloc as uint64_t);
-        (*totals).total_prof_ticks = ((*totals).total_prof_ticks as StgWord)
-            .wrapping_add((*ccs).time_ticks) as c_uint
-            as c_uint;
+        (*totals).total_alloc = (*totals).total_alloc.wrapping_add((*ccs).mem_alloc as u64);
+        (*totals).total_prof_ticks =
+            ((*totals).total_prof_ticks as StgWord).wrapping_add((*ccs).time_ticks) as u32 as u32;
     }
 
     let mut i = (*ccs).indexTable as *mut IndexTable;
@@ -796,8 +777,8 @@ unsafe fn countTickss_(mut ccs: *const CostCentreStack, mut totals: *mut Profile
 
 unsafe fn countTickss(mut ccs: *const CostCentreStack) -> ProfilerTotals {
     let mut totals = ProfilerTotals {
-        total_alloc: 0 as uint64_t,
-        total_prof_ticks: 0 as c_uint,
+        total_alloc: 0,
+        total_prof_ticks: 0,
     };
 
     countTickss_(ccs, &raw mut totals);
@@ -867,7 +848,7 @@ unsafe fn pruneCCSTree(mut ccs: *mut CostCentreStack) -> *mut CostCentreStack {
         i = (*i).next as *mut IndexTable;
     }
 
-    if RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_ALL as uint32_t
+    if RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_ALL as u32
         || !(*ccs).indexTable.is_null()
         || ((*ccs).scc_count != 0 || (*ccs).time_ticks != 0 || (*ccs).mem_alloc != 0)
     {
@@ -891,7 +872,7 @@ unsafe fn insertIndexTableInSortedList(
         let mut cursor_label = (*(*(*cursor).ccs).cc).label;
 
         if tbl_ticks > cursor_ticks
-            || tbl_ticks == cursor_ticks && strcmp(tbl_label, cursor_label) < 0 as c_int
+            || tbl_ticks == cursor_ticks && strcmp(tbl_label, cursor_label) < 0
         {
             if prev.is_null() {
                 (*tbl).next = sortedList as *mut IndexTable_;
@@ -944,12 +925,12 @@ unsafe fn sortCCSTree(mut ccs: *mut CostCentreStack) {
 }
 
 unsafe fn fprintCCS(mut f: *mut FILE, mut ccs: *mut CostCentreStack) {
-    fprintf(f, b"<\0" as *const u8 as *const c_char);
+    fprintf(f, c"<".as_ptr());
 
     while !ccs.is_null() && ccs != &raw mut CCS_MAIN as *mut CostCentreStack {
         fprintf(
             f,
-            b"%s.%s\0" as *const u8 as *const c_char,
+            c"%s.%s".as_ptr(),
             (*(*ccs).cc).module,
             (*(*ccs).cc).label,
         );
@@ -957,25 +938,23 @@ unsafe fn fprintCCS(mut f: *mut FILE, mut ccs: *mut CostCentreStack) {
         if !(*ccs).prevStack.is_null()
             && (*ccs).prevStack != &raw mut CCS_MAIN as *mut CostCentreStack
         {
-            fprintf(f, b",\0" as *const u8 as *const c_char);
+            fprintf(f, c",".as_ptr());
         }
 
         ccs = (*ccs).prevStack as *mut CostCentreStack;
     }
 
-    fprintf(f, b">\0" as *const u8 as *const c_char);
+    fprintf(f, c">".as_ptr());
 }
 
 unsafe fn fprintCallStack(mut ccs: *mut CostCentreStack) -> bool {
     let mut prev = null_mut::<CostCentreStack>();
-
     fprintf(
         __stderrp,
-        b"%s.%s\0" as *const u8 as *const c_char,
+        c"%s.%s".as_ptr(),
         (*(*ccs).cc).module,
         (*(*ccs).cc).label,
     );
-
     prev = (*ccs).prevStack as *mut CostCentreStack;
 
     while !prev.is_null() && prev != &raw mut CCS_MAIN as *mut CostCentreStack {
@@ -983,7 +962,7 @@ unsafe fn fprintCallStack(mut ccs: *mut CostCentreStack) -> bool {
 
         fprintf(
             __stderrp,
-            b",\n  called from %s.%s\0" as *const u8 as *const c_char,
+            c",\n  called from %s.%s".as_ptr(),
             (*(*ccs).cc).module,
             (*(*ccs).cc).label,
         );
@@ -991,13 +970,9 @@ unsafe fn fprintCallStack(mut ccs: *mut CostCentreStack) -> bool {
         prev = (*ccs).prevStack as *mut CostCentreStack;
     }
 
-    fprintf(__stderrp, b"\n\0" as *const u8 as *const c_char);
+    fprintf(__stderrp, c"\n".as_ptr());
 
-    return strncmp(
-        (*(*ccs).cc).label,
-        b"CAF\0" as *const u8 as *const c_char,
-        3 as size_t,
-    ) == 0;
+    return strncmp((*(*ccs).cc).label, c"CAF".as_ptr(), 3) == 0;
 }
 
 unsafe fn fprintCCS_stderr(
@@ -1009,15 +984,15 @@ unsafe fn fprintCCS_stderr(
     let mut frame = null_mut::<StgWord>();
     let mut stack = null_mut::<StgStack>();
     let mut prev_ccs = null_mut::<CostCentreStack>();
-    let mut depth: uint32_t = 0 as uint32_t;
-    let MAX_DEPTH: uint32_t = 10 as uint32_t;
+    let mut depth: u32 = 0;
+    let MAX_DEPTH: u32 = 10;
     let mut desc = null::<c_char>();
     let mut info = null::<StgInfoTable>();
     info = get_itbl(UNTAG_CONST_CLOSURE(exception));
 
     match (*info).r#type {
         1 | 2 | 3 | 4 | 5 | 6 | 7 => {
-            desc = (itbl_to_con_itbl(info).offset(1 as c_int as isize) as StgWord)
+            desc = (itbl_to_con_itbl(info).offset(1 as i32 as isize) as StgWord)
                 .wrapping_add((*itbl_to_con_itbl(info)).con_desc as StgWord)
                 as *const c_char;
         }
@@ -1029,8 +1004,7 @@ unsafe fn fprintCCS_stderr(
 
     fprintf(
         __stderrp,
-        b"*** Exception (reporting due to +RTS -xc): (%s), stack trace: \n  \0" as *const u8
-            as *const c_char,
+        c"*** Exception (reporting due to +RTS -xc): (%s), stack trace: \n  ".as_ptr(),
         desc,
     );
 
@@ -1039,11 +1013,10 @@ unsafe fn fprintCCS_stderr(
     frame = (*stack).sp;
     prev_ccs = ccs;
 
-    while is_caf as c_int != 0 && depth < MAX_DEPTH {
+    while is_caf as i32 != 0 && depth < MAX_DEPTH {
         match (*get_itbl(frame as *mut StgClosure)).r#type {
             33 => {
                 ccs = (*(frame as *mut StgUpdateFrame)).header.prof.ccs;
-
                 frame = frame.offset(
                     (size_of::<StgUpdateFrame>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
@@ -1057,12 +1030,7 @@ unsafe fn fprintCCS_stderr(
 
                 if !(ccs == prev_ccs) {
                     prev_ccs = ccs;
-
-                    fprintf(
-                        __stderrp,
-                        b"  --> evaluated by: \0" as *const u8 as *const c_char,
-                    );
-
+                    fprintf(__stderrp, c"  --> evaluated by: ".as_ptr());
                     is_caf = fprintCallStack(ccs);
                 }
             }

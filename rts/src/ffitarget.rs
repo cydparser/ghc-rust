@@ -10,4 +10,4 @@ pub(crate) const FFI_SYSV: ffi_abi = 1;
 
 pub(crate) const FFI_WIN64: ffi_abi = 2;
 
-pub(crate) type ffi_abi = c_uint;
+pub(crate) type ffi_abi = u32;

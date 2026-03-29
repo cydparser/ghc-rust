@@ -37,7 +37,7 @@ fn test_setTimerManagerControlFd() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let fd: c_int = Arbitrary::arbitrary(g);
+        let fd: i32 = Arbitrary::arbitrary(g);
         unsafe { setTimerManagerControlFd(fd) };
         todo!()
     };
@@ -50,7 +50,7 @@ fn test_setTimerManagerControlFd() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_setTimerManagerControlFd(fd: c_int) -> bool {
+fn equivalent_setTimerManagerControlFd(fd: i32) -> bool {
     let expected = {
         unsafe { sys::setTimerManagerControlFd(fd) };
         todo!()
@@ -71,7 +71,7 @@ fn test_setIOManagerWakeupFd() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let fd: c_int = Arbitrary::arbitrary(g);
+        let fd: i32 = Arbitrary::arbitrary(g);
         unsafe { setIOManagerWakeupFd(fd) };
         todo!()
     };
@@ -84,7 +84,7 @@ fn test_setIOManagerWakeupFd() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_setIOManagerWakeupFd(fd: c_int) -> bool {
+fn equivalent_setIOManagerWakeupFd(fd: i32) -> bool {
     let expected = {
         unsafe { sys::setIOManagerWakeupFd(fd) };
         todo!()
@@ -164,14 +164,14 @@ fn equivalent_unblockUserSignals() {
 fn test_stg_sig_install() {
     let g = &mut Gen::new(100);
 
-    let actual: c_int = {
-        let arg1: c_int = Arbitrary::arbitrary(g);
-        let arg2: c_int = Arbitrary::arbitrary(g);
+    let actual: i32 = {
+        let arg1: i32 = Arbitrary::arbitrary(g);
+        let arg2: i32 = Arbitrary::arbitrary(g);
         let arg3: c_void = todo!();
         unsafe { stg_sig_install(arg1, arg2, &raw mut arg3) }
     };
 
-    let expected: c_int = todo!();
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -179,13 +179,13 @@ fn test_stg_sig_install() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_stg_sig_install(arg1: c_int, arg2: c_int) -> bool {
-    let expected: c_int = {
+fn equivalent_stg_sig_install(arg1: i32, arg2: i32) -> bool {
+    let expected: i32 = {
         let mut arg3: c_void = todo!();
         unsafe { sys::stg_sig_install(arg1, arg2, &raw mut arg3) }
     };
 
-    let actual: c_int = {
+    let actual: i32 = {
         let mut arg3: c_void = todo!();
         unsafe { stg_sig_install(arg1, arg2, &raw mut arg3) }
     };

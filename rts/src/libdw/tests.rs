@@ -118,14 +118,14 @@ fn equivalent_libdwGetBacktrace() {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn test_libdwLookupLocation() {
-    let actual: c_int = {
+    let actual: i32 = {
         let session: LibdwSession = todo!();
         let loc: Location = todo!();
         let pc: StgPtr = todo!();
         unsafe { libdwLookupLocation(&raw mut session, &raw mut loc, pc) }
     };
 
-    let expected: c_int = todo!();
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -134,14 +134,14 @@ fn test_libdwLookupLocation() {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_libdwLookupLocation() {
-    let expected: c_int = {
+    let expected: i32 = {
         let mut session: sys::LibdwSession = todo!();
         let mut loc: sys::Location = todo!();
         let pc: StgPtr = todo!();
         unsafe { sys::libdwLookupLocation(&raw mut session, &raw mut loc, pc) }
     };
 
-    let actual: c_int = {
+    let actual: i32 = {
         let mut session: LibdwSession = todo!();
         let mut loc: Location = todo!();
         let pc: StgPtr = todo!();

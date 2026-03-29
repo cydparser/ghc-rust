@@ -8,10 +8,9 @@ use crate::rts_utils::stgMallocBytes;
 #[cfg(test)]
 mod tests;
 
-static mut pending: *mut ForeignExportsList =
-    null::<ForeignExportsList>() as *mut ForeignExportsList;
+static mut pending: *mut ForeignExportsList = null_mut::<ForeignExportsList>();
 
-static mut loading_obj: *mut ObjectCode = null::<ObjectCode>() as *mut ObjectCode;
+static mut loading_obj: *mut ObjectCode = null_mut::<ObjectCode>();
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
@@ -38,11 +37,11 @@ unsafe fn processForeignExports() {
 
         if !(*cur).oc.is_null() {
             (*cur).stable_ptrs = stgMallocBytes(
-                (size_of::<*mut StgStablePtr>() as size_t).wrapping_mul((*cur).n_entries as size_t),
-                b"foreignExportStablePtr\0" as *const u8 as *const c_char as *mut c_char,
+                (size_of::<*mut StgStablePtr>() as usize).wrapping_mul((*cur).n_entries as usize),
+                c"foreignExportStablePtr".as_ptr(),
             ) as *mut *mut StgStablePtr;
 
-            let mut i = 0 as c_int;
+            let mut i = 0;
 
             while i < (*cur).n_entries {
                 let mut sptr =
@@ -60,10 +59,11 @@ unsafe fn processForeignExports() {
             (*cur).next = (*(*cur).oc).foreign_exports;
             (*(*cur).oc).foreign_exports = cur;
         } else {
-            let mut i_0 = 0 as c_int;
+            let mut i_0 = 0;
 
             while i_0 < (*cur).n_entries {
                 getStablePtr(*(&raw mut (*cur).exports as *mut StgPtr).offset(i_0 as isize));
+
                 i_0 += 1;
             }
         }

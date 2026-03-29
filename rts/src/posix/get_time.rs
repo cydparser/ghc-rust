@@ -11,15 +11,16 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-static mut timer_scaling_factor_numer: uint64_t = 0 as uint64_t;
+static mut timer_scaling_factor_numer: u64 = 0;
 
-static mut timer_scaling_factor_denom: uint64_t = 0 as uint64_t;
+static mut timer_scaling_factor_denom: u64 = 0;
 
 unsafe fn initializeTimer() {
     let mut info = mach_timebase_info { numer: 0, denom: 0 };
+
     mach_timebase_info(&raw mut info);
-    timer_scaling_factor_numer = info.numer as uint64_t;
-    timer_scaling_factor_denom = info.denom as uint64_t;
+    timer_scaling_factor_numer = info.numer as u64;
+    timer_scaling_factor_denom = info.denom as u64;
 }
 
 unsafe fn getClockTime(mut clock: clockid_t) -> Time {
@@ -27,13 +28,12 @@ unsafe fn getClockTime(mut clock: clockid_t) -> Time {
         tv_sec: 0,
         tv_nsec: 0,
     };
-
     let mut res = clock_gettime(clock, &raw mut ts);
 
-    if res == 0 as c_int {
+    if res == 0 {
         return ts.tv_sec as Time * TIME_RESOLUTION as Time + ts.tv_nsec as Time;
     } else {
-        sysErrorBelch(b"clock_gettime\0" as *const u8 as *const c_char);
+        sysErrorBelch(c"clock_gettime".as_ptr());
         stg_exit(EXIT_FAILURE);
     };
 }
@@ -67,24 +67,24 @@ unsafe fn getCurrentThreadCPUTime() -> Time {
 
     if kern_err == KERN_SUCCESS {
         return info.user_time.seconds as Time * TIME_RESOLUTION as Time
-            + info.user_time.microseconds as Time * 1000 as Time;
+            + info.user_time.microseconds as Time * 1000;
     } else {
-        sysErrorBelch(b"getThreadCPUTime\0" as *const u8 as *const c_char);
+        sysErrorBelch(c"getThreadCPUTime".as_ptr());
         stg_exit(EXIT_FAILURE);
     };
 }
 
 unsafe fn getProcessCPUTime() -> Time {
-    static mut checked_sysconf: c_int = 0 as c_int;
+    static mut checked_sysconf: i32 = 0;
 
-    static mut sysconf_result: c_int = 0 as c_int;
+    static mut sysconf_result: i32 = 0;
 
     if checked_sysconf == 0 {
-        sysconf_result = sysconf(_SC_CPUTIME) as c_int;
-        checked_sysconf = 1 as c_int;
+        sysconf_result = sysconf(_SC_CPUTIME) as i32;
+        checked_sysconf = 1;
     }
 
-    if sysconf_result != -(1 as c_int) {
+    if sysconf_result != -1 {
         return getClockTime(_CLOCK_PROCESS_CPUTIME_ID);
     }
 
@@ -116,7 +116,7 @@ unsafe fn getProcessCPUTime() -> Time {
     getrusage(RUSAGE_SELF, &raw mut t);
 
     return (t.ru_utime.tv_sec + t.ru_stime.tv_sec) as Time * TIME_RESOLUTION as Time
-        + (t.ru_utime.tv_usec + t.ru_stime.tv_usec) as Time * 1000 as Time;
+        + (t.ru_utime.tv_usec + t.ru_stime.tv_usec) as Time * 1000;
 }
 
 #[ffi(ghc_lib)]
@@ -143,10 +143,9 @@ unsafe fn getUnixEpochTime(mut sec: *mut StgWord64, mut nsec: *mut StgWord32) {
         tv_sec: 0,
         tv_usec: 0,
     };
-
     gettimeofday(&raw mut tv, NULL as *mut timezone as *mut c_void);
     *sec = tv.tv_sec as StgWord64;
-    *nsec = (tv.tv_usec * 1000 as __darwin_suseconds_t) as StgWord32;
+    *nsec = (tv.tv_usec * 1000) as StgWord32;
 }
 
 unsafe fn getPageFaults() -> W_ {

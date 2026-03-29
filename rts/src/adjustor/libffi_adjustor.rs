@@ -25,12 +25,12 @@ unsafe fn ffi_alloc_prep_closure(
     mut user_data: *mut c_void,
     mut code: *mut *mut c_void,
 ) -> ffi_status {
-    *pclosure = ffi_closure_alloc(size_of::<ffi_closure>() as size_t, code) as *mut ffi_closure;
+    *pclosure = ffi_closure_alloc(size_of::<ffi_closure>() as usize, code) as *mut ffi_closure;
 
     return ffi_prep_closure_loc(*pclosure, cif, fun, user_data, *code);
 }
 
-static mut allocatedExecs: *mut HashTable = null::<HashTable>() as *mut HashTable;
+static mut allocatedExecs: *mut HashTable = null_mut::<HashTable>();
 
 unsafe fn initAdjustors() {
     allocatedExecs = allocHashTable();
@@ -62,11 +62,8 @@ unsafe fn allocate_adjustor(
         exec_ret as *mut *mut c_void,
     );
 
-    if r as c_uint != FFI_OK as c_int as c_uint {
-        barf(
-            b"ffi_alloc_prep_closure failed: %d\0" as *const u8 as *const c_char,
-            r as c_uint,
-        );
+    if r as u32 != FFI_OK as i32 as u32 {
+        barf(c"ffi_alloc_prep_closure failed: %d".as_ptr(), r as u32);
     }
 
     if !(*exec_ret).is_null() {
@@ -81,7 +78,7 @@ unsafe fn exec_to_writable(mut exec: AdjustorExecutable) -> AdjustorWritable {
     writ = lookupHashTable(allocatedExecs, exec as StgWord) as AdjustorWritable;
 
     if writ.is_null() {
-        barf(b"exec_to_writable: not found\0" as *const u8 as *const c_char);
+        barf(c"exec_to_writable: not found".as_ptr());
     }
 
     return writ;
@@ -109,7 +106,7 @@ pub unsafe extern "C" fn freeHaskellFunctionPtr(mut ptr: *mut c_void) {
 }
 
 unsafe fn char_to_ffi_type(mut c: c_char) -> *mut ffi_type {
-    match c as c_int {
+    match c as i32 {
         118 => return &raw mut ffi_type_void,
         102 => return &raw mut ffi_type_float,
         100 => return &raw mut ffi_type_double,
@@ -123,10 +120,7 @@ unsafe fn char_to_ffi_type(mut c: c_char) -> *mut ffi_type {
         98 => return &raw mut ffi_type_uint8,
         112 => return &raw mut ffi_type_pointer,
         _ => {
-            barf(
-                b"char_to_ffi_type: unknown type '%c'\0" as *const u8 as *const c_char,
-                c as c_int,
-            );
+            barf(c"char_to_ffi_type: unknown type '%c'".as_ptr(), c as i32);
         }
     };
 }
@@ -141,46 +135,35 @@ pub unsafe extern "C" fn createAdjustor(
 ) -> *mut c_void {
     let mut cif = null_mut::<ffi_cif>();
     let mut arg_types = null_mut::<*mut ffi_type>();
-    let mut n_args: uint32_t = 0;
-    let mut i: uint32_t = 0;
+    let mut n_args: u32 = 0;
+    let mut i: u32 = 0;
     let mut result_type = null_mut::<ffi_type>();
     let mut cl = null_mut::<ffi_closure>();
-    let mut r: c_int = 0;
+    let mut r: i32 = 0;
     let mut code = null_mut::<c_void>();
-    n_args = strlen(typeString).wrapping_sub(1 as size_t) as uint32_t;
-
-    cif = stgMallocBytes(
-        size_of::<ffi_cif>() as size_t,
-        b"createAdjustor\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut ffi_cif;
+    n_args = strlen(typeString).wrapping_sub(1 as usize) as u32;
+    cif = stgMallocBytes(size_of::<ffi_cif>() as usize, c"createAdjustor".as_ptr()) as *mut ffi_cif;
 
     arg_types = stgMallocBytes(
-        (n_args as size_t).wrapping_mul(size_of::<*mut ffi_type>() as size_t),
-        b"createAdjustor\0" as *const u8 as *const c_char as *mut c_char,
+        (n_args as usize).wrapping_mul(size_of::<*mut ffi_type>() as usize),
+        c"createAdjustor".as_ptr(),
     ) as *mut *mut ffi_type;
 
-    result_type = char_to_ffi_type(*typeString.offset(0 as c_int as isize));
-    i = 0 as uint32_t;
+    result_type = char_to_ffi_type(*typeString.offset(0));
+    i = 0;
 
     while i < n_args {
         let ref mut fresh5 = *arg_types.offset(i as isize);
-        *fresh5 = char_to_ffi_type(*typeString.offset(i.wrapping_add(1 as uint32_t) as isize));
+
+        *fresh5 = char_to_ffi_type(*typeString.offset(i.wrapping_add(1 as u32) as isize));
+
         i = i.wrapping_add(1);
     }
 
-    r = ffi_prep_cif(
-        cif,
-        FFI_DEFAULT_ABI,
-        n_args as c_uint,
-        result_type,
-        arg_types,
-    ) as c_int;
+    r = ffi_prep_cif(cif, FFI_DEFAULT_ABI, n_args as u32, result_type, arg_types) as i32;
 
-    if r != FFI_OK as c_int {
-        barf(
-            b"ffi_prep_cif failed: %d\0" as *const u8 as *const c_char,
-            r,
-        );
+    if r != FFI_OK as i32 {
+        barf(c"ffi_prep_cif failed: %d".as_ptr(), r);
     }
 
     cl = allocate_adjustor(
@@ -191,7 +174,7 @@ pub unsafe extern "C" fn createAdjustor(
     ) as *mut ffi_closure;
 
     if cl.is_null() {
-        barf(b"createAdjustor: failed to allocate memory\0" as *const u8 as *const c_char);
+        barf(c"createAdjustor: failed to allocate memory".as_ptr());
     }
 
     return code;

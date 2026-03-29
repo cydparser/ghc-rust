@@ -35,7 +35,7 @@ mod tests;
 #[unsafe(no_mangle)]
 pub static mut RtsFlags: RTS_FLAGS = _RTS_FLAGS {
     GcFlags: _GC_FLAGS {
-        statsFile: null::<FILE>() as *mut FILE,
+        statsFile: null_mut::<FILE>(),
         giveStats: 0,
         maxStkSize: 0,
         initialStkSize: 0,
@@ -150,12 +150,12 @@ pub static mut RtsFlags: RTS_FLAGS = _RTS_FLAGS {
         user: false,
         eventlogFlushTime: 0,
         eventlogFlushTicks: 0,
-        trace_output: null::<c_char>() as *mut c_char,
+        trace_output: null_mut::<c_char>(),
         nullWriter: false,
     },
     TickyFlags: _TICKY_FLAGS {
         showTickyStats: false,
-        tickyFile: null::<FILE>() as *mut FILE,
+        tickyFile: null_mut::<FILE>(),
     },
     ParFlags: _PAR_FLAGS {
         nCapabilities: 0,
@@ -175,21 +175,21 @@ pub static mut RtsFlags: RTS_FLAGS = _RTS_FLAGS {
     },
 };
 
-static mut prog_argc: c_int = 0 as c_int;
+static mut prog_argc: i32 = 0;
 
-static mut prog_argv: *mut *mut c_char = null::<*mut c_char>() as *mut *mut c_char;
+static mut prog_argv: *mut *mut c_char = null_mut::<*mut c_char>();
 
-static mut full_prog_argc: c_int = 0 as c_int;
+static mut full_prog_argc: i32 = 0;
 
-static mut full_prog_argv: *mut *mut c_char = null::<*mut c_char>() as *mut *mut c_char;
+static mut full_prog_argv: *mut *mut c_char = null_mut::<*mut c_char>();
 
-static mut prog_name: *mut c_char = null::<c_char>() as *mut c_char;
+static mut prog_name: *mut c_char = null_mut::<c_char>();
 
-static mut rts_argc: c_int = 0 as c_int;
+static mut rts_argc: i32 = 0;
 
-static mut rts_argv: *mut *mut c_char = null::<*mut c_char>() as *mut *mut c_char;
+static mut rts_argv: *mut *mut c_char = null_mut::<*mut c_char>();
 
-static mut rts_argv_size: c_int = 0 as c_int;
+static mut rts_argv_size: i32 = 0;
 
 static mut rtsConfig: RtsConfig = RtsConfig {
     rts_opts_enabled: RtsOptsNone,
@@ -213,10 +213,10 @@ static mut rtsConfig: RtsConfig = RtsConfig {
 pub static mut defaultRtsConfig: RtsConfig = unsafe {
     RtsConfig {
         rts_opts_enabled: RtsOptsSafeOnly,
-        rts_opts_suggestions: r#true as HsBool,
+        rts_opts_suggestions: true,
         rts_opts: null::<c_char>(),
-        rts_hs_main: r#false as HsBool,
-        keep_cafs: r#false as HsBool,
+        rts_hs_main: false,
+        keep_cafs: false,
         eventlog_writer: &raw const FileEventLogWriter,
         defaultsHook: Some(FlagDefaultsHook as unsafe extern "C" fn() -> ()),
         onExitHook: Some(OnExitHook as unsafe extern "C" fn() -> ()),
@@ -224,385 +224,317 @@ pub static mut defaultRtsConfig: RtsConfig = unsafe {
         outOfHeapHook: Some(OutOfHeapHook as unsafe extern "C" fn(W_, W_) -> ()),
         mallocFailHook: Some(MallocFailHook as unsafe extern "C" fn(W_, *const c_char) -> ()),
         gcDoneHook: None,
-        longGCSync: Some(LongGCSync as unsafe extern "C" fn(uint32_t, Time) -> ()),
+        longGCSync: Some(LongGCSync as unsafe extern "C" fn(c_uint, Time) -> ()),
         longGCSyncEnd: Some(LongGCSyncEnd as unsafe extern "C" fn(Time) -> ()),
     }
 };
 
-const RTS: c_int = 1 as c_int;
+const RTS: i32 = 1;
 
-const PGM: c_int = 0 as c_int;
+const PGM: i32 = 0;
 
 unsafe fn initRtsFlagsDefaults() {
     let mut maxStkSize: StgWord64 = (8 as StgWord64)
         .wrapping_mul(getPhysicalMemorySize())
         .wrapping_div(10 as StgWord64);
 
-    if maxStkSize == 0 as StgWord64 {
-        maxStkSize = (8 as c_int * 1024 as c_int * 1024 as c_int) as StgWord64;
+    if maxStkSize == 0 {
+        maxStkSize = (8 * 1024 * 1024) as StgWord64;
     } else if maxStkSize > (UINT32_MAX as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord64
     {
         maxStkSize = (UINT32_MAX as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord64;
     }
 
     RtsFlags.GcFlags.statsFile = null_mut::<FILE>();
-    RtsFlags.GcFlags.giveStats = NO_GC_STATS as uint32_t;
-    RtsFlags.GcFlags.maxStkSize = maxStkSize.wrapping_div(size_of::<W_>() as StgWord64) as uint32_t;
-    RtsFlags.GcFlags.initialStkSize =
-        (1024 as usize).wrapping_div(size_of::<W_>() as usize) as uint32_t;
+    RtsFlags.GcFlags.giveStats = NO_GC_STATS as u32;
+    RtsFlags.GcFlags.maxStkSize = maxStkSize.wrapping_div(size_of::<W_>() as StgWord64) as u32;
+    RtsFlags.GcFlags.initialStkSize = (1024 as usize).wrapping_div(size_of::<W_>() as usize) as u32;
     RtsFlags.GcFlags.stkChunkSize =
-        ((32 as c_int * 1024 as c_int) as usize).wrapping_div(size_of::<W_>() as usize) as uint32_t;
+        ((32 as i32 * 1024 as i32) as usize).wrapping_div(size_of::<W_>() as usize) as u32;
     RtsFlags.GcFlags.stkChunkBufferSize =
-        ((1 as c_int * 1024 as c_int) as usize).wrapping_div(size_of::<W_>() as usize) as uint32_t;
-    RtsFlags.GcFlags.minAllocAreaSize = ((4 as c_int * 1024 as c_int * 1024 as c_int) as c_ulong)
-        .wrapping_div(BLOCK_SIZE) as uint32_t;
-    RtsFlags.GcFlags.largeAllocLim = 0 as uint32_t;
-    RtsFlags.GcFlags.nurseryChunkSize = 0 as uint32_t;
+        ((1 as i32 * 1024 as i32) as usize).wrapping_div(size_of::<W_>() as usize) as u32;
+    RtsFlags.GcFlags.minAllocAreaSize =
+        ((4 as i32 * 1024 as i32 * 1024 as i32) as u64).wrapping_div(BLOCK_SIZE) as u32;
+    RtsFlags.GcFlags.largeAllocLim = 0;
+    RtsFlags.GcFlags.nurseryChunkSize = 0;
     RtsFlags.GcFlags.minOldGenSize =
-        ((1024 as c_int * 1024 as c_int) as c_ulong).wrapping_div(BLOCK_SIZE) as uint32_t;
-    RtsFlags.GcFlags.maxHeapSize = 0 as uint32_t;
-    RtsFlags.GcFlags.heapLimitGrace = (1024 as c_int * 1024 as c_int) as StgWord;
-    RtsFlags.GcFlags.heapSizeSuggestion = 0 as uint32_t;
-    RtsFlags.GcFlags.heapSizeSuggestionAuto = r#false != 0;
-    RtsFlags.GcFlags.pcFreeHeap = 3 as c_int as c_double;
-    RtsFlags.GcFlags.oldGenFactor = 2 as c_int as c_double;
-    RtsFlags.GcFlags.returnDecayFactor = 4 as c_int as c_double;
-    RtsFlags.GcFlags.useNonmoving = r#false != 0;
-    RtsFlags.GcFlags.nonmovingDenseAllocatorCount = 16 as uint16_t;
-    RtsFlags.GcFlags.generations = 2 as uint32_t;
-    RtsFlags.GcFlags.squeezeUpdFrames = r#true != 0;
-    RtsFlags.GcFlags.compact = r#false != 0;
+        ((1024 as i32 * 1024 as i32) as u64).wrapping_div(BLOCK_SIZE) as u32;
+    RtsFlags.GcFlags.maxHeapSize = 0;
+    RtsFlags.GcFlags.heapLimitGrace = (1024 * 1024) as StgWord;
+    RtsFlags.GcFlags.heapSizeSuggestion = 0;
+    RtsFlags.GcFlags.heapSizeSuggestionAuto = false;
+    RtsFlags.GcFlags.pcFreeHeap = 3;
+    RtsFlags.GcFlags.oldGenFactor = 2;
+    RtsFlags.GcFlags.returnDecayFactor = 4;
+    RtsFlags.GcFlags.useNonmoving = false;
+    RtsFlags.GcFlags.nonmovingDenseAllocatorCount = 16;
+    RtsFlags.GcFlags.generations = 2;
+    RtsFlags.GcFlags.squeezeUpdFrames = true;
+    RtsFlags.GcFlags.compact = false;
     RtsFlags.GcFlags.compactThreshold = 30.0f64;
-    RtsFlags.GcFlags.sweep = r#false != 0;
-    RtsFlags.GcFlags.idleGCDelayTime = 300000 as c_int as Time * 1000 as Time;
-    RtsFlags.GcFlags.interIdleGCWait = 0 as Time;
-    RtsFlags.GcFlags.doIdleGC = r#false != 0;
-    RtsFlags.GcFlags.heapBase = 0 as StgWord;
+    RtsFlags.GcFlags.sweep = false;
+    RtsFlags.GcFlags.idleGCDelayTime = 300000 * 1000;
+    RtsFlags.GcFlags.interIdleGCWait = 0;
+    RtsFlags.GcFlags.doIdleGC = false;
+    RtsFlags.GcFlags.heapBase = 0;
     RtsFlags.GcFlags.allocLimitGrace =
-        ((100 as c_int * 1024 as c_int) as c_ulong).wrapping_div(BLOCK_SIZE) as StgWord;
-    RtsFlags.GcFlags.numa = r#false != 0;
-    RtsFlags.GcFlags.numaMask = 1 as StgWord;
-    RtsFlags.GcFlags.ringBell = r#false != 0;
-    RtsFlags.GcFlags.longGCSync = 0 as Time;
-    RtsFlags.GcFlags.addressSpaceSize = (1 as c_int as StgWord64) << 40 as c_int;
-    RtsFlags.DebugFlags.scheduler = r#false != 0;
-    RtsFlags.DebugFlags.interpreter = r#false != 0;
-    RtsFlags.DebugFlags.weak = r#false != 0;
-    RtsFlags.DebugFlags.gccafs = r#false != 0;
-    RtsFlags.DebugFlags.gc = r#false != 0;
-    RtsFlags.DebugFlags.nonmoving_gc = r#false != 0;
-    RtsFlags.DebugFlags.block_alloc = r#false != 0;
-    RtsFlags.DebugFlags.sanity = r#false != 0;
-    RtsFlags.DebugFlags.zero_on_gc = r#false != 0;
-    RtsFlags.DebugFlags.stable = r#false != 0;
-    RtsFlags.DebugFlags.stm = r#false != 0;
-    RtsFlags.DebugFlags.prof = r#false != 0;
-    RtsFlags.DebugFlags.apply = r#false != 0;
-    RtsFlags.DebugFlags.linker = r#false != 0;
-    RtsFlags.DebugFlags.linker_verbose = r#false != 0;
-    RtsFlags.DebugFlags.squeeze = r#false != 0;
-    RtsFlags.DebugFlags.hpc = r#false != 0;
-    RtsFlags.DebugFlags.sparks = r#false != 0;
-    RtsFlags.DebugFlags.numa = r#false != 0;
-    RtsFlags.DebugFlags.compact = r#false != 0;
-    RtsFlags.DebugFlags.continuation = r#false != 0;
-    RtsFlags.ProfFlags.doHeapProfile = r#false as uint32_t;
-    RtsFlags.ProfFlags.heapProfileInterval = 100000 as c_int as Time * 1000 as Time;
-    RtsFlags.ProfFlags.startHeapProfileAtStartup = r#true != 0;
-    RtsFlags.ProfFlags.startTimeProfileAtStartup = r#true != 0;
-    RtsFlags.ProfFlags.incrementUserEra = r#false != 0;
+        ((100 as i32 * 1024 as i32) as u64).wrapping_div(BLOCK_SIZE) as StgWord;
+    RtsFlags.GcFlags.numa = false;
+    RtsFlags.GcFlags.numaMask = 1;
+    RtsFlags.GcFlags.ringBell = false;
+    RtsFlags.GcFlags.longGCSync = 0;
+    RtsFlags.GcFlags.addressSpaceSize = 1 << 40;
+    RtsFlags.DebugFlags.scheduler = false;
+    RtsFlags.DebugFlags.interpreter = false;
+    RtsFlags.DebugFlags.weak = false;
+    RtsFlags.DebugFlags.gccafs = false;
+    RtsFlags.DebugFlags.gc = false;
+    RtsFlags.DebugFlags.nonmoving_gc = false;
+    RtsFlags.DebugFlags.block_alloc = false;
+    RtsFlags.DebugFlags.sanity = false;
+    RtsFlags.DebugFlags.zero_on_gc = false;
+    RtsFlags.DebugFlags.stable = false;
+    RtsFlags.DebugFlags.stm = false;
+    RtsFlags.DebugFlags.prof = false;
+    RtsFlags.DebugFlags.apply = false;
+    RtsFlags.DebugFlags.linker = false;
+    RtsFlags.DebugFlags.linker_verbose = false;
+    RtsFlags.DebugFlags.squeeze = false;
+    RtsFlags.DebugFlags.hpc = false;
+    RtsFlags.DebugFlags.sparks = false;
+    RtsFlags.DebugFlags.numa = false;
+    RtsFlags.DebugFlags.compact = false;
+    RtsFlags.DebugFlags.continuation = false;
+    RtsFlags.ProfFlags.doHeapProfile = false;
+    RtsFlags.ProfFlags.heapProfileInterval = 100000 * 1000;
+    RtsFlags.ProfFlags.startHeapProfileAtStartup = true;
+    RtsFlags.ProfFlags.startTimeProfileAtStartup = true;
+    RtsFlags.ProfFlags.incrementUserEra = false;
     RtsFlags.TraceFlags.tracing = TRACE_NONE;
-    RtsFlags.TraceFlags.timestamp = r#false != 0;
-    RtsFlags.TraceFlags.scheduler = r#false != 0;
-    RtsFlags.TraceFlags.gc = r#false != 0;
-    RtsFlags.TraceFlags.nonmoving_gc = r#false != 0;
-    RtsFlags.TraceFlags.sparks_sampled = r#false != 0;
-    RtsFlags.TraceFlags.sparks_full = r#false != 0;
-    RtsFlags.TraceFlags.user = r#false != 0;
-    RtsFlags.TraceFlags.ticky = r#false != 0;
+    RtsFlags.TraceFlags.timestamp = false;
+    RtsFlags.TraceFlags.scheduler = false;
+    RtsFlags.TraceFlags.gc = false;
+    RtsFlags.TraceFlags.nonmoving_gc = false;
+    RtsFlags.TraceFlags.sparks_sampled = false;
+    RtsFlags.TraceFlags.sparks_full = false;
+    RtsFlags.TraceFlags.user = false;
+    RtsFlags.TraceFlags.ticky = false;
     RtsFlags.TraceFlags.trace_output = null_mut::<c_char>();
-    RtsFlags.TraceFlags.eventlogFlushTime = 0 as Time;
-    RtsFlags.TraceFlags.nullWriter = r#false != 0;
+    RtsFlags.TraceFlags.eventlogFlushTime = 0;
+    RtsFlags.TraceFlags.nullWriter = false;
     RtsFlags.MiscFlags.tickInterval = DEFAULT_TICK_INTERVAL;
-    RtsFlags.ConcFlags.ctxtSwitchTime = 20000 as c_int as Time * 1000 as Time;
-    RtsFlags.MiscFlags.install_signal_handlers = r#true != 0;
-    RtsFlags.MiscFlags.install_seh_handlers = r#true != 0;
-    RtsFlags.MiscFlags.generate_stack_trace = r#true != 0;
-    RtsFlags.MiscFlags.generate_dump_file = r#false != 0;
-    RtsFlags.MiscFlags.machineReadable = r#false != 0;
-    RtsFlags.MiscFlags.disableDelayedOsMemoryReturn = r#false != 0;
-    RtsFlags.MiscFlags.internalCounters = r#false != 0;
+    RtsFlags.ConcFlags.ctxtSwitchTime = 20000 * 1000;
+    RtsFlags.MiscFlags.install_signal_handlers = true;
+    RtsFlags.MiscFlags.install_seh_handlers = true;
+    RtsFlags.MiscFlags.generate_stack_trace = true;
+    RtsFlags.MiscFlags.generate_dump_file = false;
+    RtsFlags.MiscFlags.machineReadable = false;
+    RtsFlags.MiscFlags.disableDelayedOsMemoryReturn = false;
+    RtsFlags.MiscFlags.internalCounters = false;
     RtsFlags.MiscFlags.linkerAlwaysPic = DEFAULT_LINKER_ALWAYS_PIC != 0;
-    RtsFlags.MiscFlags.linkerOptimistic = r#false != 0;
-    RtsFlags.MiscFlags.linkerMemBase = 0 as StgWord;
+    RtsFlags.MiscFlags.linkerOptimistic = false;
+    RtsFlags.MiscFlags.linkerMemBase = 0;
     RtsFlags.MiscFlags.ioManager = IO_MNGR_FLAG_AUTO;
-    RtsFlags.MiscFlags.numIoWorkerThreads = 1 as uint32_t;
-    RtsFlags.TickyFlags.showTickyStats = r#false != 0;
+    RtsFlags.MiscFlags.numIoWorkerThreads = 1;
+    RtsFlags.TickyFlags.showTickyStats = false;
     RtsFlags.TickyFlags.tickyFile = null_mut::<FILE>();
     RtsFlags.HpcFlags.readTixFile = HPC_YES_IMPLICIT;
-    RtsFlags.HpcFlags.writeTixFile = r#true != 0;
+    RtsFlags.HpcFlags.writeTixFile = true;
 }
 
 static mut usage_text: [*const c_char; 155] = [
-    b"\0" as *const u8 as *const c_char,
-    b"Usage: <prog> <args> [+RTS <rtsopts> | -RTS <args>] ... --RTS <args>\0"
-        as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"   +RTS     Indicates run time system options follow\0" as *const u8
-        as *const c_char,
-    b"   -RTS     Indicates program arguments follow\0" as *const u8
-        as *const c_char,
-    b"  --RTS     Indicates that ALL subsequent arguments will be given to the\0"
-        as *const u8 as *const c_char,
-    b"            program (including any of these RTS flags)\0" as *const u8
-        as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"The following run time system options may be available (note that some\0"
-        as *const u8 as *const c_char,
-    b"of these may not be usable unless this program was linked with the -rtsopts\0"
-        as *const u8 as *const c_char,
-    b"flag):\0" as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  -?        Prints this message and exits; the program is not executed\0"
-        as *const u8 as *const c_char,
-    b"  --info    Print information about the RTS used by this program\0" as *const u8
-        as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  --nonmoving-gc\0" as *const u8 as *const c_char,
-    b"            Selects the non-moving mark-and-sweep garbage collector to\0"
-        as *const u8 as *const c_char,
-    b"            manage the oldest generation.\0" as *const u8
-        as *const c_char,
-    b"  --copying-gc\0" as *const u8 as *const c_char,
-    b"            Selects the copying garbage collector to manage all generations.\0"
-        as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  -K<size>  Sets the maximum stack size (default: 80% of the heap)\0" as *const u8
-        as *const c_char,
-    b"            e.g.: -K32k -K512k -K8M\0" as *const u8 as *const c_char,
-    b"  -ki<size> Sets the initial thread stack size (default 1k)  e.g.: -ki4k -ki2m\0"
-        as *const u8 as *const c_char,
-    b"  -kc<size> Sets the stack chunk size (default 32k)\0" as *const u8
-        as *const c_char,
-    b"  -kb<size> Sets the stack chunk buffer size (default 1k)\0" as *const u8
-        as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  -A<size>  Sets the minimum allocation area size (default 4m) e.g.: -A20m -A10k\0"
-        as *const u8 as *const c_char,
-    b"  -AL<size> Sets the amount of large-object memory that can be allocated\0"
-        as *const u8 as *const c_char,
-    b"            before a GC is triggered (default: the value of -A)\0" as *const u8
-        as *const c_char,
-    b"  -F<n>     Sets the collecting threshold for old generations as a factor of\0"
-        as *const u8 as *const c_char,
-    b"            the live data in that generation the last time it was collected\0"
-        as *const u8 as *const c_char,
-    b"            (default: 2.0)\0" as *const u8 as *const c_char,
-    b"  -Fd<n>    Sets the inverse rate which memory is returned to the OS after being\0"
-        as *const u8 as *const c_char,
-    b"            optimistically retained after being allocated. Subsequent major\0"
-        as *const u8 as *const c_char,
-    b"            collections not caused by heap overflow will return an amount of\0"
-        as *const u8 as *const c_char,
-    b"            memory controlled by this factor (higher is slower). Setting the factor\0"
-        as *const u8 as *const c_char,
-    b"            to 0 means memory is not returned.\0" as *const u8
-        as *const c_char,
-    b"            (default 4.0)\0" as *const u8 as *const c_char,
-    b"  -n<size>  Allocation area chunk size (0 = disabled, default: 0)\0" as *const u8
-        as *const c_char,
-    b"  -O<size>  Sets the minimum size of the old generation (default 1M)\0"
-        as *const u8 as *const c_char,
-    b"  -M<size>  Sets the maximum heap size (default unlimited)  e.g.: -M256k -M1G\0"
-        as *const u8 as *const c_char,
-    b"  -H<size>  Sets the minimum heap size (default 0M)   e.g.: -H24m  -H1G\0"
-        as *const u8 as *const c_char,
-    b"  -xb<addr> Sets the address from which a suitable start for the heap memory\0"
-        as *const u8 as *const c_char,
-    b"            will be searched from. This is useful if the default address\0"
-        as *const u8 as *const c_char,
-    b"            clashes with some third-party library.\0" as *const u8
-        as *const c_char,
-    b"  -xn       Use the non-moving collector for the old generation.\0" as *const u8
-        as *const c_char,
-    b"  -m<n>     Minimum % of heap which must be available (default 3%)\0" as *const u8
-        as *const c_char,
-    b"  -G<n>     Number of generations (default: 2)\0" as *const u8
-        as *const c_char,
-    b"  -c<n>     Use in-place compaction instead of copying in the oldest generation\0"
-        as *const u8 as *const c_char,
-    b"            when live data is at least <n>% of the maximum heap size set with\0"
-        as *const u8 as *const c_char,
-    b"            -M (default: 30%)\0" as *const u8 as *const c_char,
-    b"  -c        Use in-place compaction for all oldest generation collections\0"
-        as *const u8 as *const c_char,
-    b"            (the default is to use copying)\0" as *const u8
-        as *const c_char,
-    b"  -w        Use mark-region for the oldest generation (experimental)\0"
-        as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  -T         Collect GC statistics (useful for in-program statistics access)\0"
-        as *const u8 as *const c_char,
-    b"  -t[<file>] One-line GC statistics (if <file> omitted, uses stderr)\0"
-        as *const u8 as *const c_char,
-    b"  -s[<file>] Summary  GC statistics (if <file> omitted, uses stderr)\0"
-        as *const u8 as *const c_char,
-    b"  -S[<file>] Detailed GC statistics (if <file> omitted, uses stderr)\0"
-        as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  -Z         Don't squeeze out update frames on context switch\0" as *const u8
-        as *const c_char,
-    b"  -B         Sound the bell at the start of each garbage collection\0" as *const u8
-        as *const c_char,
-    b"  -h       Heap residency profile (output file <program>.hp)\0" as *const u8
-        as *const c_char,
-    b"  -hT      Produce a heap profile grouped by closure type\0" as *const u8
-        as *const c_char,
-    b"  -hi      Produce a heap profile grouped by info table address\0" as *const u8
-        as *const c_char,
-    b"  -po<file>  Override profiling output file name prefix (program name by default)\0"
-        as *const u8 as *const c_char,
-    b"  -i<sec>  Time between heap profile samples (seconds, default: 0.1)\0"
-        as *const u8 as *const c_char,
-    b"  --no-automatic-heap-samples\0" as *const u8 as *const c_char,
-    b"           Do not start the heap profile interval timer on start-up,\0"
-        as *const u8 as *const c_char,
-    b"           Rather, the application will be responsible for triggering\0"
-        as *const u8 as *const c_char,
-    b"           heap profiler samples.\0" as *const u8 as *const c_char,
-    b"  -ol<file>  Send binary eventlog to <file> (default: <program>.eventlog)\0"
-        as *const u8 as *const c_char,
-    b"  -l[flags]  Log events to a file\0" as *const u8 as *const c_char,
-    b"  -v[flags]  Log events to stderr\0" as *const u8 as *const c_char,
-    b"             where [flags] can contain:\0" as *const u8
-        as *const c_char,
-    b"                s    scheduler events\0" as *const u8
-        as *const c_char,
-    b"                g    GC and heap events\0" as *const u8
-        as *const c_char,
-    b"                n    non-moving GC heap census events\0" as *const u8
-        as *const c_char,
-    b"                p    par spark events (sampled)\0" as *const u8
-        as *const c_char,
-    b"                f    par spark events (full detail)\0" as *const u8
-        as *const c_char,
-    b"                u    user events (emitted from Haskell code)\0" as *const u8
-        as *const c_char,
-    b"                T    ticky-ticky counter samples\0" as *const u8
-        as *const c_char,
-    b"                a    all event classes above\0" as *const u8
-        as *const c_char,
-    b"                t    add time stamps (only useful with -v)\0" as *const u8
-        as *const c_char,
-    b"               -x    disable an event class, for any flag above\0" as *const u8
-        as *const c_char,
-    b"             the initial enabled event classes are 'sgpu'\0" as *const u8
-        as *const c_char,
-    b" --eventlog-flush-interval=<secs>\0" as *const u8 as *const c_char,
-    b"             Periodically flush the eventlog at the specified interval.\0"
-        as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  -r<file>  Produce ticky-ticky statistics (with -rstderr for stderr)\0"
-        as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  -C<secs>  Context-switch interval in seconds.\0" as *const u8
-        as *const c_char,
-    b"            0 or no argument means switch as often as possible.\0" as *const u8
-        as *const c_char,
-    b"            Default: 0.02 sec.\0" as *const u8 as *const c_char,
-    b"  -V<secs>  Master tick interval in seconds (0 == disable timer).\0" as *const u8
-        as *const c_char,
-    b"            This sets the resolution for -C and the heap profile timer -i,\0"
-        as *const u8 as *const c_char,
-    b"            and is the frequency of time profile samples.\0" as *const u8
-        as *const c_char,
-    b"            Default: 0.01 sec.\0" as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  -Ds  DEBUG: scheduler\0" as *const u8 as *const c_char,
-    b"  -Di  DEBUG: interpreter\0" as *const u8 as *const c_char,
-    b"  -Dw  DEBUG: weak\0" as *const u8 as *const c_char,
-    b"  -DG  DEBUG: gccafs\0" as *const u8 as *const c_char,
-    b"  -Dg  DEBUG: gc\0" as *const u8 as *const c_char,
-    b"  -Dn  DEBUG: non-moving gc\0" as *const u8 as *const c_char,
-    b"  -Db  DEBUG: block\0" as *const u8 as *const c_char,
-    b"  -DS  DEBUG: sanity\0" as *const u8 as *const c_char,
-    b"  -DZ  DEBUG: zero freed memory during GC\0" as *const u8
-        as *const c_char,
-    b"  -Dt  DEBUG: stable\0" as *const u8 as *const c_char,
-    b"  -Dp  DEBUG: prof\0" as *const u8 as *const c_char,
-    b"  -Da  DEBUG: apply\0" as *const u8 as *const c_char,
-    b"  -Dl  DEBUG: linker\0" as *const u8 as *const c_char,
-    b"  -DL  DEBUG: linker (verbose)\0" as *const u8 as *const c_char,
-    b"  -Dm  DEBUG: stm\0" as *const u8 as *const c_char,
-    b"  -Dz  DEBUG: stack squeezing\0" as *const u8 as *const c_char,
-    b"  -Dc  DEBUG: program coverage\0" as *const u8 as *const c_char,
-    b"  -Dr  DEBUG: sparks\0" as *const u8 as *const c_char,
-    b"  -DC  DEBUG: compact\0" as *const u8 as *const c_char,
-    b"  -Dk  DEBUG: continuation\0" as *const u8 as *const c_char,
-    b"  -Do  DEBUG: iomanager\0" as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"     NOTE: DEBUG events are sent to stderr by default; add -l to create a\0"
-        as *const u8 as *const c_char,
-    b"     binary event log file instead.\0" as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  --install-signal-handlers=<yes|no>\0" as *const u8 as *const c_char,
-    b"             Install signal handlers (default: yes)\0" as *const u8
-        as *const c_char,
-    b"  --io-manager=<name>\0" as *const u8 as *const c_char,
-    b"             The I/O manager to use.\0" as *const u8 as *const c_char,
-    b"             Options available: auto select (default: select)\0" as *const u8
-        as *const c_char,
-    b"  -xq        The allocation limit given to a thread after it receives\0"
-        as *const u8 as *const c_char,
-    b"             an AllocationLimitExceeded exception. (default: 100k)\0" as *const u8
-        as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  -xr        The size of virtual memory address space reserved by the\0"
-        as *const u8 as *const c_char,
-    b"             two step allocator (default: 1T)\0" as *const u8
-        as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  -Mgrace=<n>\0" as *const u8 as *const c_char,
-    b"             The amount of allocation after the program receives a\0" as *const u8
-        as *const c_char,
-    b"             HeapOverflow exception before the exception is thrown again, if\0"
-        as *const u8 as *const c_char,
-    b"             the program is still exceeding the heap limit.\0" as *const u8
-        as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  --read-tix-file=<yes|no>\0" as *const u8 as *const c_char,
-    b"             Whether to initialize HPC datastructures from  <program>.tix              at the start of execution. (default: yes)\0"
-        as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"  --write-tix-file=<yes|no>\0" as *const u8 as *const c_char,
-    b"             Whether to write <program>.tix at the end of execution.\0"
-        as *const u8 as *const c_char,
-    b"             (default: yes)\0" as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"RTS options may also be specified using the GHCRTS environment variable.\0"
-        as *const u8 as *const c_char,
-    b"\0" as *const u8 as *const c_char,
-    b"Other RTS options may be available for programs compiled a different way.\0"
-        as *const u8 as *const c_char,
-    b"The GHC User's Guide has full details.\0" as *const u8
-        as *const c_char,
-    b"\0" as *const u8 as *const c_char,
+    c"".as_ptr(),
+    c"Usage: <prog> <args> [+RTS <rtsopts> | -RTS <args>] ... --RTS <args>".as_ptr(),
+    c"".as_ptr(),
+    c"   +RTS     Indicates run time system options follow".as_ptr(),
+    c"   -RTS     Indicates program arguments follow".as_ptr(),
+    c"  --RTS     Indicates that ALL subsequent arguments will be given to the".as_ptr(),
+    c"            program (including any of these RTS flags)".as_ptr(),
+    c"".as_ptr(),
+    c"The following run time system options may be available (note that some".as_ptr(),
+    c"of these may not be usable unless this program was linked with the -rtsopts"
+        .as_ptr(),
+    c"flag):".as_ptr(),
+    c"".as_ptr(),
+    c"  -?        Prints this message and exits; the program is not executed".as_ptr(),
+    c"  --info    Print information about the RTS used by this program".as_ptr(),
+    c"".as_ptr(),
+    c"  --nonmoving-gc".as_ptr(),
+    c"            Selects the non-moving mark-and-sweep garbage collector to".as_ptr(),
+    c"            manage the oldest generation.".as_ptr(),
+    c"  --copying-gc".as_ptr(),
+    c"            Selects the copying garbage collector to manage all generations."
+        .as_ptr(),
+    c"".as_ptr(),
+    c"  -K<size>  Sets the maximum stack size (default: 80% of the heap)".as_ptr(),
+    c"            e.g.: -K32k -K512k -K8M".as_ptr(),
+    c"  -ki<size> Sets the initial thread stack size (default 1k)  e.g.: -ki4k -ki2m"
+        .as_ptr(),
+    c"  -kc<size> Sets the stack chunk size (default 32k)".as_ptr(),
+    c"  -kb<size> Sets the stack chunk buffer size (default 1k)".as_ptr(),
+    c"".as_ptr(),
+    c"  -A<size>  Sets the minimum allocation area size (default 4m) e.g.: -A20m -A10k"
+        .as_ptr(),
+    c"  -AL<size> Sets the amount of large-object memory that can be allocated".as_ptr(),
+    c"            before a GC is triggered (default: the value of -A)".as_ptr(),
+    c"  -F<n>     Sets the collecting threshold for old generations as a factor of"
+        .as_ptr(),
+    c"            the live data in that generation the last time it was collected"
+        .as_ptr(),
+    c"            (default: 2.0)".as_ptr(),
+    c"  -Fd<n>    Sets the inverse rate which memory is returned to the OS after being"
+        .as_ptr(),
+    c"            optimistically retained after being allocated. Subsequent major"
+        .as_ptr(),
+    c"            collections not caused by heap overflow will return an amount of"
+        .as_ptr(),
+    c"            memory controlled by this factor (higher is slower). Setting the factor"
+        .as_ptr(),
+    c"            to 0 means memory is not returned.".as_ptr(),
+    c"            (default 4.0)".as_ptr(),
+    c"  -n<size>  Allocation area chunk size (0 = disabled, default: 0)".as_ptr(),
+    c"  -O<size>  Sets the minimum size of the old generation (default 1M)".as_ptr(),
+    c"  -M<size>  Sets the maximum heap size (default unlimited)  e.g.: -M256k -M1G"
+        .as_ptr(),
+    c"  -H<size>  Sets the minimum heap size (default 0M)   e.g.: -H24m  -H1G".as_ptr(),
+    c"  -xb<addr> Sets the address from which a suitable start for the heap memory"
+        .as_ptr(),
+    c"            will be searched from. This is useful if the default address".as_ptr(),
+    c"            clashes with some third-party library.".as_ptr(),
+    c"  -xn       Use the non-moving collector for the old generation.".as_ptr(),
+    c"  -m<n>     Minimum % of heap which must be available (default 3%)".as_ptr(),
+    c"  -G<n>     Number of generations (default: 2)".as_ptr(),
+    c"  -c<n>     Use in-place compaction instead of copying in the oldest generation"
+        .as_ptr(),
+    c"            when live data is at least <n>% of the maximum heap size set with"
+        .as_ptr(),
+    c"            -M (default: 30%)".as_ptr(),
+    c"  -c        Use in-place compaction for all oldest generation collections"
+        .as_ptr(),
+    c"            (the default is to use copying)".as_ptr(),
+    c"  -w        Use mark-region for the oldest generation (experimental)".as_ptr(),
+    c"".as_ptr(),
+    c"  -T         Collect GC statistics (useful for in-program statistics access)"
+        .as_ptr(),
+    c"  -t[<file>] One-line GC statistics (if <file> omitted, uses stderr)".as_ptr(),
+    c"  -s[<file>] Summary  GC statistics (if <file> omitted, uses stderr)".as_ptr(),
+    c"  -S[<file>] Detailed GC statistics (if <file> omitted, uses stderr)".as_ptr(),
+    c"".as_ptr(),
+    c"".as_ptr(),
+    c"  -Z         Don't squeeze out update frames on context switch".as_ptr(),
+    c"  -B         Sound the bell at the start of each garbage collection".as_ptr(),
+    c"  -h       Heap residency profile (output file <program>.hp)".as_ptr(),
+    c"  -hT      Produce a heap profile grouped by closure type".as_ptr(),
+    c"  -hi      Produce a heap profile grouped by info table address".as_ptr(),
+    c"  -po<file>  Override profiling output file name prefix (program name by default)"
+        .as_ptr(),
+    c"  -i<sec>  Time between heap profile samples (seconds, default: 0.1)".as_ptr(),
+    c"  --no-automatic-heap-samples".as_ptr(),
+    c"           Do not start the heap profile interval timer on start-up,".as_ptr(),
+    c"           Rather, the application will be responsible for triggering".as_ptr(),
+    c"           heap profiler samples.".as_ptr(),
+    c"  -ol<file>  Send binary eventlog to <file> (default: <program>.eventlog)"
+        .as_ptr(),
+    c"  -l[flags]  Log events to a file".as_ptr(),
+    c"  -v[flags]  Log events to stderr".as_ptr(),
+    c"             where [flags] can contain:".as_ptr(),
+    c"                s    scheduler events".as_ptr(),
+    c"                g    GC and heap events".as_ptr(),
+    c"                n    non-moving GC heap census events".as_ptr(),
+    c"                p    par spark events (sampled)".as_ptr(),
+    c"                f    par spark events (full detail)".as_ptr(),
+    c"                u    user events (emitted from Haskell code)".as_ptr(),
+    c"                T    ticky-ticky counter samples".as_ptr(),
+    c"                a    all event classes above".as_ptr(),
+    c"                t    add time stamps (only useful with -v)".as_ptr(),
+    c"               -x    disable an event class, for any flag above".as_ptr(),
+    c"             the initial enabled event classes are 'sgpu'".as_ptr(),
+    c" --eventlog-flush-interval=<secs>".as_ptr(),
+    c"             Periodically flush the eventlog at the specified interval.".as_ptr(),
+    c"".as_ptr(),
+    c"  -r<file>  Produce ticky-ticky statistics (with -rstderr for stderr)".as_ptr(),
+    c"".as_ptr(),
+    c"  -C<secs>  Context-switch interval in seconds.".as_ptr(),
+    c"            0 or no argument means switch as often as possible.".as_ptr(),
+    c"            Default: 0.02 sec.".as_ptr(),
+    c"  -V<secs>  Master tick interval in seconds (0 == disable timer).".as_ptr(),
+    c"            This sets the resolution for -C and the heap profile timer -i,"
+        .as_ptr(),
+    c"            and is the frequency of time profile samples.".as_ptr(),
+    c"            Default: 0.01 sec.".as_ptr(),
+    c"".as_ptr(),
+    c"  -Ds  DEBUG: scheduler".as_ptr(),
+    c"  -Di  DEBUG: interpreter".as_ptr(),
+    c"  -Dw  DEBUG: weak".as_ptr(),
+    c"  -DG  DEBUG: gccafs".as_ptr(),
+    c"  -Dg  DEBUG: gc".as_ptr(),
+    c"  -Dn  DEBUG: non-moving gc".as_ptr(),
+    c"  -Db  DEBUG: block".as_ptr(),
+    c"  -DS  DEBUG: sanity".as_ptr(),
+    c"  -DZ  DEBUG: zero freed memory during GC".as_ptr(),
+    c"  -Dt  DEBUG: stable".as_ptr(),
+    c"  -Dp  DEBUG: prof".as_ptr(),
+    c"  -Da  DEBUG: apply".as_ptr(),
+    c"  -Dl  DEBUG: linker".as_ptr(),
+    c"  -DL  DEBUG: linker (verbose)".as_ptr(),
+    c"  -Dm  DEBUG: stm".as_ptr(),
+    c"  -Dz  DEBUG: stack squeezing".as_ptr(),
+    c"  -Dc  DEBUG: program coverage".as_ptr(),
+    c"  -Dr  DEBUG: sparks".as_ptr(),
+    c"  -DC  DEBUG: compact".as_ptr(),
+    c"  -Dk  DEBUG: continuation".as_ptr(),
+    c"  -Do  DEBUG: iomanager".as_ptr(),
+    c"".as_ptr(),
+    c"     NOTE: DEBUG events are sent to stderr by default; add -l to create a"
+        .as_ptr(),
+    c"     binary event log file instead.".as_ptr(),
+    c"".as_ptr(),
+    c"  --install-signal-handlers=<yes|no>".as_ptr(),
+    c"             Install signal handlers (default: yes)".as_ptr(),
+    c"  --io-manager=<name>".as_ptr(),
+    c"             The I/O manager to use.".as_ptr(),
+    c"             Options available: auto select (default: select)".as_ptr(),
+    c"  -xq        The allocation limit given to a thread after it receives".as_ptr(),
+    c"             an AllocationLimitExceeded exception. (default: 100k)".as_ptr(),
+    c"".as_ptr(),
+    c"  -xr        The size of virtual memory address space reserved by the".as_ptr(),
+    c"             two step allocator (default: 1T)".as_ptr(),
+    c"".as_ptr(),
+    c"  -Mgrace=<n>".as_ptr(),
+    c"             The amount of allocation after the program receives a".as_ptr(),
+    c"             HeapOverflow exception before the exception is thrown again, if"
+        .as_ptr(),
+    c"             the program is still exceeding the heap limit.".as_ptr(),
+    c"".as_ptr(),
+    c"  --read-tix-file=<yes|no>".as_ptr(),
+    c"             Whether to initialize HPC datastructures from  <program>.tix              at the start of execution. (default: yes)"
+        .as_ptr(),
+    c"".as_ptr(),
+    c"  --write-tix-file=<yes|no>".as_ptr(),
+    c"             Whether to write <program>.tix at the end of execution.".as_ptr(),
+    c"             (default: yes)".as_ptr(),
+    c"".as_ptr(),
+    c"RTS options may also be specified using the GHCRTS environment variable.".as_ptr(),
+    c"".as_ptr(),
+    c"Other RTS options may be available for programs compiled a different way."
+        .as_ptr(),
+    c"The GHC User's Guide has full details.".as_ptr(),
+    c"".as_ptr(),
     null::<c_char>(),
 ];
 
 unsafe fn strequal(mut a: *const c_char, mut b: *const c_char) -> bool {
-    return strcmp(a, b) == 0 as c_int;
+    return strcmp(a, b) == 0;
 }
 
 unsafe fn appendRtsArg(mut arg: *mut c_char) {
     if rts_argc == rts_argv_size {
-        rts_argv_size *= 2 as c_int;
+        rts_argv_size *= 2;
 
         rts_argv = stgReallocBytes(
             rts_argv as *mut c_void,
-            (rts_argv_size as size_t).wrapping_mul(size_of::<*mut c_char>() as size_t),
-            b"RtsFlags.c:appendRtsArg\0" as *const u8 as *const c_char as *mut c_char,
+            (rts_argv_size as usize).wrapping_mul(size_of::<*mut c_char>() as usize),
+            c"RtsFlags.c:appendRtsArg".as_ptr(),
         ) as *mut *mut c_char;
     }
 
@@ -620,13 +552,13 @@ unsafe fn splitRtsFlags(mut s: *const c_char) {
     c1 = s;
 
     loop {
-        while isspace(*c1 as c_int) != 0 {
+        while isspace(*c1 as i32) != 0 {
             c1 = c1.offset(1);
         }
 
         c2 = c1;
 
-        while isspace(*c2 as c_int) == 0 && *c2 as c_int != '\0' as i32 {
+        while isspace(*c2 as i32) == 0 && *c2 as i32 != '\0' as i32 {
             c2 = c2.offset(1);
         }
 
@@ -635,16 +567,16 @@ unsafe fn splitRtsFlags(mut s: *const c_char) {
         }
 
         t = stgMallocBytes(
-            (c2.offset_from(c1) as c_long + 1 as c_long) as size_t,
-            b"RtsFlags.c:splitRtsFlags()\0" as *const u8 as *const c_char as *mut c_char,
+            (c2.offset_from(c1) as i64 + 1) as usize,
+            c"RtsFlags.c:splitRtsFlags()".as_ptr(),
         ) as *mut c_char;
 
-        strncpy(t, c1, c2.offset_from(c1) as c_long as size_t);
-        *t.offset(c2.offset_from(c1) as c_long as isize) = '\0' as i32 as c_char;
+        strncpy(t, c1, c2.offset_from(c1) as i64 as usize);
+        *t.offset(c2.offset_from(c1) as i64 as isize) = '\0' as i32 as c_char;
         appendRtsArg(t);
         c1 = c2;
 
-        if !(*c1 as c_int != '\0' as i32) {
+        if !(*c1 as i32 != '\0' as i32) {
             break;
         }
     }
@@ -654,98 +586,80 @@ unsafe fn errorRtsOptsDisabled(mut s: *const c_char) {
     let mut advice = null_mut::<c_char>();
 
     if rtsConfig.rts_hs_main != 0 {
-        advice =
-            b"Link with -rtsopts to enable them.\0" as *const u8 as *const c_char as *mut c_char;
+        advice = c"Link with -rtsopts to enable them.".as_ptr();
     } else {
-        advice = b"Use hs_init_with_rtsopts() to enable them.\0" as *const u8 as *const c_char
-            as *mut c_char;
+        advice = c"Use hs_init_with_rtsopts() to enable them.".as_ptr();
     }
 
     errorBelch(s, advice);
 }
 
-unsafe fn setupRtsFlags(
-    mut argc: *mut c_int,
-    mut argv: *mut *mut c_char,
-    mut rts_config: RtsConfig,
-) {
-    let mut mode: uint32_t = 0;
-    let mut total_arg: uint32_t = 0;
-    let mut arg: uint32_t = 0;
-    let mut rts_argc0: uint32_t = 0;
+unsafe fn setupRtsFlags(mut argc: *mut i32, mut argv: *mut *mut c_char, mut rts_config: RtsConfig) {
+    let mut mode: u32 = 0;
+    let mut total_arg: u32 = 0;
+    let mut arg: u32 = 0;
+    let mut rts_argc0: u32 = 0;
     rtsConfig = rts_config;
     setProgName(argv);
-    total_arg = *argc as uint32_t;
-    arg = 1 as uint32_t;
+    total_arg = *argc as u32;
+    arg = 1;
 
-    if *argc > 1 as c_int {
-        *argc = 1 as c_int;
+    if *argc > 1 {
+        *argc = 1;
     }
 
-    rts_argc = 0 as c_int;
-    rts_argv_size = total_arg.wrapping_add(1 as uint32_t) as c_int;
+    rts_argc = 0;
+    rts_argv_size = total_arg.wrapping_add(1 as u32) as i32;
 
     rts_argv = stgMallocBytes(
-        (rts_argv_size as size_t).wrapping_mul(size_of::<*mut c_char>() as size_t),
-        b"setupRtsFlags\0" as *const u8 as *const c_char as *mut c_char,
+        (rts_argv_size as usize).wrapping_mul(size_of::<*mut c_char>() as usize),
+        c"setupRtsFlags".as_ptr(),
     ) as *mut *mut c_char;
 
-    rts_argc0 = rts_argc as uint32_t;
+    rts_argc0 = rts_argc as u32;
 
     if !rtsConfig.rts_opts.is_null() {
         splitRtsFlags(rtsConfig.rts_opts);
-        procRtsOpts(rts_argc0 as c_int, RtsOptsAll);
-        rts_argc0 = rts_argc as uint32_t;
+        procRtsOpts(rts_argc0 as i32, RtsOptsAll);
+        rts_argc0 = rts_argc as u32;
     }
 
-    if rtsConfig.rts_opts_enabled as c_uint != RtsOptsIgnoreAll as c_int as c_uint {
-        let mut ghc_rts = getenv(b"GHCRTS\0" as *const u8 as *const c_char);
+    if rtsConfig.rts_opts_enabled as u32 != RtsOptsIgnoreAll as i32 as u32 {
+        let mut ghc_rts = getenv(c"GHCRTS".as_ptr());
 
         if !ghc_rts.is_null() {
-            if rtsConfig.rts_opts_enabled as c_uint == RtsOptsNone as c_int as c_uint {
+            if rtsConfig.rts_opts_enabled as u32 == RtsOptsNone as i32 as u32 {
                 errorRtsOptsDisabled(
-                    b"Warning: Ignoring GHCRTS variable as RTS options are disabled.\n         %s\0"
-                        as *const u8 as *const c_char,
+                    c"Warning: Ignoring GHCRTS variable as RTS options are disabled.\n         %s"
+                        .as_ptr(),
                 );
             } else {
                 splitRtsFlags(ghc_rts);
-                procRtsOpts(rts_argc0 as c_int, rtsConfig.rts_opts_enabled);
-                rts_argc0 = rts_argc as uint32_t;
+                procRtsOpts(rts_argc0 as i32, rtsConfig.rts_opts_enabled);
+                rts_argc0 = rts_argc as u32;
             }
         }
     }
 
-    if !(rtsConfig.rts_opts_enabled as c_uint == RtsOptsIgnoreAll as c_int as c_uint
-        || rtsConfig.rts_opts_enabled as c_uint == RtsOptsIgnore as c_int as c_uint)
+    if !(rtsConfig.rts_opts_enabled as u32 == RtsOptsIgnoreAll as i32 as u32
+        || rtsConfig.rts_opts_enabled as u32 == RtsOptsIgnore as i32 as u32)
     {
-        mode = PGM as uint32_t;
+        mode = PGM as u32;
 
         while arg < total_arg {
-            if strequal(
-                b"--RTS\0" as *const u8 as *const c_char,
-                *argv.offset(arg as isize),
-            ) {
+            if strequal(c"--RTS".as_ptr(), *argv.offset(arg as isize)) {
                 arg = arg.wrapping_add(1);
                 break;
             } else {
-                if strequal(
-                    b"--\0" as *const u8 as *const c_char,
-                    *argv.offset(arg as isize),
-                ) {
+                if strequal(c"--".as_ptr(), *argv.offset(arg as isize)) {
                     break;
                 }
 
-                if strequal(
-                    b"+RTS\0" as *const u8 as *const c_char,
-                    *argv.offset(arg as isize),
-                ) {
-                    mode = RTS as uint32_t;
-                } else if strequal(
-                    b"-RTS\0" as *const u8 as *const c_char,
-                    *argv.offset(arg as isize),
-                ) {
-                    mode = PGM as uint32_t;
-                } else if mode == RTS as uint32_t {
+                if strequal(c"+RTS".as_ptr(), *argv.offset(arg as isize)) {
+                    mode = RTS as u32;
+                } else if strequal(c"-RTS".as_ptr(), *argv.offset(arg as isize)) {
+                    mode = PGM as u32;
+                } else if mode == RTS as u32 {
                     appendRtsArg(copyArg(*argv.offset(arg as isize)));
                 } else {
                     let fresh7 = *argc;
@@ -771,7 +685,7 @@ unsafe fn setupRtsFlags(
 
     let ref mut fresh11 = *argv.offset(*argc as isize);
     *fresh11 = null_mut::<c_char>();
-    procRtsOpts(rts_argc0 as c_int, rtsConfig.rts_opts_enabled);
+    procRtsOpts(rts_argc0 as i32, rtsConfig.rts_opts_enabled);
     appendRtsArg(null_mut::<c_char>());
     rts_argc -= 1;
     normaliseRtsOpts();
@@ -787,11 +701,9 @@ unsafe fn setupRtsFlags(
 }
 
 unsafe fn checkSuid(mut enabled: RtsOptsEnabledEnum) {
-    if enabled as c_uint == RtsOptsSafeOnly as c_int as c_uint {
+    if enabled as u32 == RtsOptsSafeOnly as i32 as u32 {
         if getuid() != geteuid() || getgid() != getegid() {
-            errorRtsOptsDisabled(
-                b"RTS options are disabled for setuid binaries. %s\0" as *const u8 as *const c_char,
-            );
+            errorRtsOptsDisabled(c"RTS options are disabled for setuid binaries. %s".as_ptr());
 
             stg_exit(EXIT_FAILURE);
         }
@@ -799,24 +711,24 @@ unsafe fn checkSuid(mut enabled: RtsOptsEnabledEnum) {
 }
 
 unsafe fn checkUnsafe(mut enabled: RtsOptsEnabledEnum) {
-    if enabled as c_uint == RtsOptsSafeOnly as c_int as c_uint {
-        errorRtsOptsDisabled(b"Most RTS options are disabled. %s\0" as *const u8 as *const c_char);
+    if enabled as u32 == RtsOptsSafeOnly as i32 as u32 {
+        errorRtsOptsDisabled(c"Most RTS options are disabled. %s".as_ptr());
         stg_exit(EXIT_FAILURE);
     }
 }
 
-unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEnum) {
+unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum) {
     let mut current_block: u64;
-    let mut error = r#false != 0;
-    let mut arg: c_int = 0;
-    let mut unchecked_arg_start: c_int = 0;
+    let mut error = false;
+    let mut arg: i32 = 0;
+    let mut unchecked_arg_start: i32 = 0;
 
     if !(rts_argc0 < rts_argc) {
         return;
     }
 
-    if rtsOptsEnabled as c_uint == RtsOptsNone as c_int as c_uint {
-        errorRtsOptsDisabled(b"RTS options are disabled. %s\0" as *const u8 as *const c_char);
+    if rtsOptsEnabled as u32 == RtsOptsNone as i32 as u32 {
+        errorRtsOptsDisabled(c"RTS options are disabled. %s".as_ptr());
         stg_exit(EXIT_FAILURE);
     }
 
@@ -824,374 +736,357 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
     arg = rts_argc0;
 
     while arg < rts_argc {
-        let mut option_checked = r#false != 0;
+        let mut option_checked = false;
 
-        if *(*rts_argv.offset(arg as isize)).offset(0 as c_int as isize) as c_int != '-' as i32 {
+        if *(*rts_argv.offset(arg as isize)).offset(0) as i32 != '-' as i32 {
             fflush(__stdoutp);
 
             errorBelch(
-                b"unexpected RTS argument: %s\0" as *const u8 as *const c_char,
+                c"unexpected RTS argument: %s".as_ptr(),
                 *rts_argv.offset(arg as isize),
             );
 
-            error = r#true != 0;
+            error = true;
         } else {
-            unchecked_arg_start = 1 as c_int;
+            unchecked_arg_start = 1;
 
-            match *(*rts_argv.offset(arg as isize)).offset(1 as c_int as isize) as c_int {
+            match *(*rts_argv.offset(arg as isize)).offset(1) as i32 {
                 63 => {
-                    option_checked = r#true != 0;
-                    error = r#true != 0;
+                    option_checked = true;
+                    error = true;
                     current_block = 6501678289274187771;
                 }
                 45 => {
                     if strequal(
-                        b"install-signal-handlers=yes\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"install-signal-handlers=yes".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.MiscFlags.install_signal_handlers = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.MiscFlags.install_signal_handlers = true;
                     } else if strequal(
-                        b"install-signal-handlers=no\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"install-signal-handlers=no".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.MiscFlags.install_signal_handlers = r#false != 0;
+                        option_checked = true;
+                        RtsFlags.MiscFlags.install_signal_handlers = false;
                     } else if strequal(
-                        b"install-seh-handlers=yes\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"install-seh-handlers=yes".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.MiscFlags.install_seh_handlers = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.MiscFlags.install_seh_handlers = true;
                     } else if strequal(
-                        b"install-seh-handlers=no\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"install-seh-handlers=no".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.MiscFlags.install_seh_handlers = r#false != 0;
+                        option_checked = true;
+                        RtsFlags.MiscFlags.install_seh_handlers = false;
                     } else if strequal(
-                        b"generate-stack-traces=yes\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"generate-stack-traces=yes".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.MiscFlags.generate_stack_trace = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.MiscFlags.generate_stack_trace = true;
                     } else if strequal(
-                        b"generate-stack-traces=no\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"generate-stack-traces=no".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.MiscFlags.generate_stack_trace = r#false != 0;
+                        option_checked = true;
+                        RtsFlags.MiscFlags.generate_stack_trace = false;
                     } else if strequal(
-                        b"generate-crash-dumps\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"generate-crash-dumps".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.MiscFlags.generate_dump_file = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.MiscFlags.generate_dump_file = true;
                     } else if strequal(
-                        b"optimistic-linking\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"optimistic-linking".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.MiscFlags.linkerOptimistic = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.MiscFlags.linkerOptimistic = true;
                     } else if strequal(
-                        b"null-eventlog-writer\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"null-eventlog-writer".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.TraceFlags.nullWriter = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.TraceFlags.nullWriter = true;
                     } else if strequal(
-                        b"machine-readable\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"machine-readable".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.MiscFlags.machineReadable = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.MiscFlags.machineReadable = true;
                     } else if strequal(
-                        b"disable-delayed-os-memory-return\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"disable-delayed-os-memory-return".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.MiscFlags.disableDelayedOsMemoryReturn = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.MiscFlags.disableDelayedOsMemoryReturn = true;
                     } else if strequal(
-                        b"internal-counters\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"internal-counters".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
-                        option_checked = r#true != 0;
-                        RtsFlags.MiscFlags.internalCounters = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.MiscFlags.internalCounters = true;
                     } else if strncmp(
-                        b"io-manager=\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
-                        11 as size_t,
+                        c"io-manager=".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
+                        11,
                     ) == 0
                     {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
+                        option_checked = true;
 
-                        let mut iomgrstr: *mut c_char = (*rts_argv.offset(arg as isize))
-                            .offset(13 as c_int as isize)
-                            as *mut c_char;
+                        let mut iomgrstr: *mut c_char =
+                            (*rts_argv.offset(arg as isize)).offset(13) as *mut c_char;
 
                         let mut iomgrflag = IO_MNGR_FLAG_AUTO;
                         let mut availability = IOManagerAvailable;
                         availability = parseIOManagerFlag(iomgrstr, &raw mut iomgrflag);
 
-                        if availability as c_uint == IOManagerAvailable as c_int as c_uint {
+                        if availability as u32 == IOManagerAvailable as i32 as u32 {
                             RtsFlags.MiscFlags.ioManager = iomgrflag;
                         } else {
                             errorBelch(
-                                b"%s choice '%s' for --io-manager=\nThe choices are: auto%s\0"
-                                    as *const u8 as *const c_char,
-                                if availability as c_uint == IOManagerUnavailable as c_int as c_uint
-                                {
-                                    b"unavailable\0" as *const u8 as *const c_char
+                                c"%s choice '%s' for --io-manager=\nThe choices are: auto%s"
+                                    .as_ptr(),
+                                if availability as u32 == IOManagerUnavailable as i32 as u32 {
+                                    c"unavailable".as_ptr()
                                 } else {
-                                    b"unrecognised\0" as *const u8 as *const c_char
+                                    c"unrecognised".as_ptr()
                                 },
                                 iomgrstr,
-                                b" select\0" as *const u8 as *const c_char,
+                                c" select".as_ptr(),
                             );
 
                             stg_exit(EXIT_FAILURE);
                         }
                     } else if strequal(
-                        b"info\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"info".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
-                        option_checked = r#true != 0;
+                        option_checked = true;
                         printRtsInfo(rtsConfig);
-                        stg_exit(0 as c_int);
+                        stg_exit(0);
                     } else if strncmp(
-                        b"eventlog-flush-interval=\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
-                        24 as size_t,
+                        c"eventlog-flush-interval=".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
+                        24,
                     ) == 0
                     {
-                        option_checked = r#true != 0;
+                        option_checked = true;
 
                         let mut intervalSeconds = parseDouble(
-                            (*rts_argv.offset(arg as isize)).offset(26 as c_int as isize),
+                            (*rts_argv.offset(arg as isize)).offset(26),
                             &raw mut error,
                         );
 
                         if error {
-                            errorBelch(
-                                b"bad value for --eventlog-flush-interval\0" as *const u8
-                                    as *const c_char,
-                            );
+                            errorBelch(c"bad value for --eventlog-flush-interval".as_ptr());
                         }
 
                         RtsFlags.TraceFlags.eventlogFlushTime = fsecondsToTime(intervalSeconds);
                     } else if strequal(
-                        b"copying-gc\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"copying-gc".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
-                        option_checked = r#true != 0;
-                        RtsFlags.GcFlags.useNonmoving = r#false != 0;
+                        option_checked = true;
+                        RtsFlags.GcFlags.useNonmoving = false;
                     } else if strequal(
-                        b"nonmoving-gc\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"nonmoving-gc".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
-                        option_checked = r#true != 0;
-                        RtsFlags.GcFlags.useNonmoving = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.GcFlags.useNonmoving = true;
                     } else if strncmp(
-                        b"nonmoving-dense-allocator-count=\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
-                        32 as size_t,
+                        c"nonmoving-dense-allocator-count=".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
+                        32,
                     ) == 0
                     {
-                        option_checked = r#true != 0;
+                        option_checked = true;
 
-                        let mut threshold: int32_t = strtol(
-                            (*rts_argv.offset(arg as isize)).offset(34 as c_int as isize),
+                        let mut threshold: i32 = strtol(
+                            (*rts_argv.offset(arg as isize)).offset(34),
                             NULL as *mut *mut c_char,
-                            10 as c_int,
-                        ) as int32_t;
+                            10,
+                        ) as i32;
 
-                        if threshold < 1 as int32_t
-                            || threshold > -(1 as c_int) as uint16_t as int32_t
-                        {
-                            errorBelch(
-                                b"bad value for --nonmoving-dense-allocator-count\0" as *const u8
-                                    as *const c_char,
-                            );
+                        if threshold < 1 || threshold > -1 as u16 as i32 {
+                            errorBelch(c"bad value for --nonmoving-dense-allocator-count".as_ptr());
 
-                            error = r#true != 0;
+                            error = true;
                         } else {
-                            RtsFlags.GcFlags.nonmovingDenseAllocatorCount = threshold as uint16_t;
+                            RtsFlags.GcFlags.nonmovingDenseAllocatorCount = threshold as u16;
                         }
                     } else if strequal(
-                        b"read-tix-file=yes\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"read-tix-file=yes".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
+                        option_checked = true;
                         RtsFlags.HpcFlags.readTixFile = HPC_YES_EXPLICIT;
                     } else if strequal(
-                        b"read-tix-file=no\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"read-tix-file=no".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
+                        option_checked = true;
                         RtsFlags.HpcFlags.readTixFile = HPC_NO_EXPLICIT;
                     } else if strequal(
-                        b"write-tix-file=yes\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"write-tix-file=yes".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.HpcFlags.writeTixFile = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.HpcFlags.writeTixFile = true;
                     } else if strequal(
-                        b"write-tix-file=no\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"write-tix-file=no".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
-                        RtsFlags.HpcFlags.writeTixFile = r#false != 0;
+                        option_checked = true;
+                        RtsFlags.HpcFlags.writeTixFile = false;
                     } else if strncmp(
-                        b"long-gc-sync=\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
-                        13 as size_t,
+                        c"long-gc-sync=".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
+                        13,
                     ) == 0
                     {
-                        option_checked = r#true != 0;
+                        option_checked = true;
 
-                        if !(*(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int
-                            == '\0' as i32)
-                        {
-                            RtsFlags.GcFlags.longGCSync = fsecondsToTime(atof(
-                                (*rts_argv.offset(arg as isize)).offset(16 as c_int as isize),
-                            ));
+                        if !(*(*rts_argv.offset(arg as isize)).offset(2) as i32 == '\0' as i32) {
+                            RtsFlags.GcFlags.longGCSync =
+                                fsecondsToTime(atof((*rts_argv.offset(arg as isize)).offset(16)));
                         }
                     } else if strequal(
-                        b"no-automatic-heap-samples\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"no-automatic-heap-samples".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
-                        option_checked = r#true != 0;
-                        RtsFlags.ProfFlags.startHeapProfileAtStartup = r#false != 0;
+                        option_checked = true;
+                        RtsFlags.ProfFlags.startHeapProfileAtStartup = false;
                     } else if strequal(
-                        b"no-automatic-time-samples\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"no-automatic-time-samples".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
-                        option_checked = r#true != 0;
-                        RtsFlags.ProfFlags.startTimeProfileAtStartup = r#false != 0;
+                        option_checked = true;
+                        RtsFlags.ProfFlags.startTimeProfileAtStartup = false;
                     } else if strequal(
-                        b"automatic-era-increment\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char,
+                        c"automatic-era-increment".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
-                        option_checked = r#true != 0;
-                        RtsFlags.ProfFlags.incrementUserEra = r#true != 0;
+                        option_checked = true;
+                        RtsFlags.ProfFlags.incrementUserEra = true;
                     } else {
-                        option_checked = r#true != 0;
+                        option_checked = true;
 
                         errorBelch(
-                            b"unknown RTS option: %s\0" as *const u8 as *const c_char,
+                            c"unknown RTS option: %s".as_ptr(),
                             *rts_argv.offset(arg as isize),
                         );
 
-                        error = r#true != 0;
+                        error = true;
                     }
 
                     current_block = 6501678289274187771;
                 }
                 65 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
-                    if *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int
-                        == 'L' as i32
-                    {
+                    if *(*rts_argv.offset(arg as isize)).offset(2) as i32 == 'L' as i32 {
                         RtsFlags.GcFlags.largeAllocLim = decodeSize(
                             *rts_argv.offset(arg as isize),
-                            3 as uint32_t,
-                            (2 as c_ulong).wrapping_mul(BLOCK_SIZE) as StgWord64,
+                            3 as u32,
+                            (2 as u64).wrapping_mul(BLOCK_SIZE) as StgWord64,
                             HS_INT_MAX as StgWord64,
                         )
                         .wrapping_div(BLOCK_SIZE as StgWord64)
-                            as uint32_t;
+                            as u32;
                     } else {
                         RtsFlags.GcFlags.minAllocAreaSize = decodeSize(
                             *rts_argv.offset(arg as isize),
-                            2 as uint32_t,
-                            (2 as c_ulong).wrapping_mul(BLOCK_SIZE) as StgWord64,
+                            2 as u32,
+                            (2 as u64).wrapping_mul(BLOCK_SIZE) as StgWord64,
                             HS_INT_MAX as StgWord64,
                         )
                         .wrapping_div(BLOCK_SIZE as StgWord64)
-                            as uint32_t;
+                            as u32;
                     }
 
                     current_block = 6501678289274187771;
                 }
                 110 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
                     RtsFlags.GcFlags.nurseryChunkSize = decodeSize(
                         *rts_argv.offset(arg as isize),
-                        2 as uint32_t,
-                        (2 as c_ulong).wrapping_mul(BLOCK_SIZE) as StgWord64,
+                        2 as u32,
+                        (2 as u64).wrapping_mul(BLOCK_SIZE) as StgWord64,
                         HS_INT_MAX as StgWord64,
                     )
                     .wrapping_div(BLOCK_SIZE as StgWord64)
-                        as uint32_t;
+                        as u32;
                     current_block = 6501678289274187771;
                 }
                 66 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
-                    RtsFlags.GcFlags.ringBell = r#true != 0;
+                    option_checked = true;
+                    RtsFlags.GcFlags.ringBell = true;
                     unchecked_arg_start += 1;
                     current_block = 166025003974853318;
                 }
                 99 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
-                    if *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int
-                        != '\0' as i32
-                    {
+                    if *(*rts_argv.offset(arg as isize)).offset(2) as i32 != '\0' as i32 {
                         RtsFlags.GcFlags.compactThreshold =
-                            atof((*rts_argv.offset(arg as isize)).offset(2 as c_int as isize));
+                            atof((*rts_argv.offset(arg as isize)).offset(2));
                     } else {
-                        RtsFlags.GcFlags.compact = r#true != 0;
+                        RtsFlags.GcFlags.compact = true;
                     }
 
                     current_block = 6501678289274187771;
                 }
                 119 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
-                    RtsFlags.GcFlags.sweep = r#true != 0;
+                    option_checked = true;
+                    RtsFlags.GcFlags.sweep = true;
                     unchecked_arg_start += 1;
                     current_block = 166025003974853318;
                 }
                 70 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
-                    match *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int {
+                    match *(*rts_argv.offset(arg as isize)).offset(2) as i32 {
                         100 => {
                             RtsFlags.GcFlags.returnDecayFactor =
-                                atof((*rts_argv.offset(arg as isize)).offset(3 as c_int as isize));
+                                atof((*rts_argv.offset(arg as isize)).offset(3));
 
-                            if RtsFlags.GcFlags.returnDecayFactor < 0 as c_int as c_double {
+                            if RtsFlags.GcFlags.returnDecayFactor < 0 {
                                 bad_option(*rts_argv.offset(arg as isize));
                             }
                         }
                         _ => {
                             RtsFlags.GcFlags.oldGenFactor =
-                                atof((*rts_argv.offset(arg as isize)).offset(2 as c_int as isize));
+                                atof((*rts_argv.offset(arg as isize)).offset(2));
 
-                            if RtsFlags.GcFlags.oldGenFactor < 0 as c_int as c_double {
+                            if RtsFlags.GcFlags.oldGenFactor < 0 {
                                 bad_option(*rts_argv.offset(arg as isize));
                             }
                         }
@@ -1200,68 +1095,68 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                     current_block = 6501678289274187771;
                 }
                 68 => {
-                    option_checked = r#true != 0;
+                    option_checked = true;
                     read_debug_flags(*rts_argv.offset(arg as isize));
                     current_block = 6501678289274187771;
                 }
                 75 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
                     RtsFlags.GcFlags.maxStkSize = decodeSize(
                         *rts_argv.offset(arg as isize),
-                        2 as uint32_t,
+                        2 as u32,
                         0 as StgWord64,
                         UINT32_MAX as StgWord64,
                     )
                     .wrapping_div(size_of::<W_>() as StgWord64)
-                        as uint32_t;
+                        as u32;
                     current_block = 6501678289274187771;
                 }
                 107 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
-                    match *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int {
+                    match *(*rts_argv.offset(arg as isize)).offset(2) as i32 {
                         99 => {
                             RtsFlags.GcFlags.stkChunkSize = decodeSize(
                                 *rts_argv.offset(arg as isize),
-                                3 as uint32_t,
+                                3 as u32,
                                 size_of::<W_>() as StgWord64,
                                 HS_WORD_MAX as StgWord64,
                             )
                             .wrapping_div(size_of::<W_>() as StgWord64)
-                                as uint32_t;
+                                as u32;
                         }
                         98 => {
                             RtsFlags.GcFlags.stkChunkBufferSize = decodeSize(
                                 *rts_argv.offset(arg as isize),
-                                3 as uint32_t,
+                                3 as u32,
                                 size_of::<W_>() as StgWord64,
                                 HS_WORD_MAX as StgWord64,
                             )
                             .wrapping_div(size_of::<W_>() as StgWord64)
-                                as uint32_t;
+                                as u32;
                         }
                         105 => {
                             RtsFlags.GcFlags.initialStkSize = decodeSize(
                                 *rts_argv.offset(arg as isize),
-                                3 as uint32_t,
+                                3 as u32,
                                 size_of::<W_>() as StgWord64,
                                 HS_WORD_MAX as StgWord64,
                             )
                             .wrapping_div(size_of::<W_>() as StgWord64)
-                                as uint32_t;
+                                as u32;
                         }
                         _ => {
                             RtsFlags.GcFlags.initialStkSize = decodeSize(
                                 *rts_argv.offset(arg as isize),
-                                2 as uint32_t,
+                                2 as u32,
                                 size_of::<W_>() as StgWord64,
                                 HS_WORD_MAX as StgWord64,
                             )
                             .wrapping_div(size_of::<W_>() as StgWord64)
-                                as uint32_t;
+                                as u32;
                         }
                     }
 
@@ -1269,67 +1164,61 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                 }
                 77 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
-                    if 0 as c_int
-                        == strncmp(
-                            b"grace=\0" as *const u8 as *const c_char,
-                            (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize),
-                            6 as size_t,
-                        )
-                    {
+                    if 0 == strncmp(
+                        c"grace=".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(2),
+                        6,
+                    ) {
                         RtsFlags.GcFlags.heapLimitGrace = decodeSize(
                             *rts_argv.offset(arg as isize),
-                            8 as uint32_t,
+                            8,
                             BLOCK_SIZE as StgWord64,
                             HS_WORD_MAX as StgWord64,
                         ) as StgWord;
                     } else {
                         RtsFlags.GcFlags.maxHeapSize = decodeSize(
                             *rts_argv.offset(arg as isize),
-                            2 as uint32_t,
+                            2 as u32,
                             BLOCK_SIZE as StgWord64,
                             HS_WORD_MAX as StgWord64,
                         )
                         .wrapping_div(BLOCK_SIZE as StgWord64)
-                            as uint32_t;
+                            as u32;
                     }
 
                     current_block = 6501678289274187771;
                 }
                 109 => {
                     if strncmp(
-                        b"maxN\0" as *const u8 as *const c_char,
-                        (*rts_argv.offset(arg as isize)).offset(1 as c_int as isize) as *mut c_char,
-                        4 as size_t,
-                    ) == 0 as c_int
+                        c"maxN".as_ptr(),
+                        (*rts_argv.offset(arg as isize)).offset(1) as *mut c_char,
+                        4,
+                    ) == 0
                     {
-                        option_checked = r#true != 0;
+                        option_checked = true;
 
                         errorBelch(
-                            b"the flag %s requires the program to be built with -threaded\0"
-                                as *const u8 as *const c_char,
+                            c"the flag %s requires the program to be built with -threaded".as_ptr(),
                             *rts_argv.offset(arg as isize),
                         );
 
-                        error = r#true != 0;
+                        error = true;
                     } else {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
+                        option_checked = true;
+
                         RtsFlags.GcFlags.pcFreeHeap =
-                            atof((*rts_argv.offset(arg as isize)).offset(2 as c_int as isize));
+                            atof((*rts_argv.offset(arg as isize)).offset(2));
 
                         if RtsFlags.GcFlags.pcFreeHeap == 0.0f64
-                            && *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize)
-                                as c_int
-                                != '0' as i32
+                            && *(*rts_argv.offset(arg as isize)).offset(2) as i32 != '0' as i32
                         {
                             bad_option(*rts_argv.offset(arg as isize));
                         }
 
-                        if RtsFlags.GcFlags.pcFreeHeap < 0 as c_int as c_double
-                            || RtsFlags.GcFlags.pcFreeHeap > 100 as c_int as c_double
-                        {
+                        if RtsFlags.GcFlags.pcFreeHeap < 0 || RtsFlags.GcFlags.pcFreeHeap > 100 {
                             bad_option(*rts_argv.offset(arg as isize));
                         }
                     }
@@ -1338,77 +1227,72 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                 }
                 71 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
                     RtsFlags.GcFlags.generations = decodeSize(
                         *rts_argv.offset(arg as isize),
-                        2 as uint32_t,
-                        1 as StgWord64,
+                        2,
+                        1,
                         HS_INT_MAX as StgWord64,
-                    ) as uint32_t;
+                    ) as u32;
 
                     current_block = 6501678289274187771;
                 }
                 72 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
-                    if *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int
-                        == '\0' as i32
-                    {
-                        RtsFlags.GcFlags.heapSizeSuggestionAuto = r#true != 0;
+                    if *(*rts_argv.offset(arg as isize)).offset(2) as i32 == '\0' as i32 {
+                        RtsFlags.GcFlags.heapSizeSuggestionAuto = true;
                     } else {
                         RtsFlags.GcFlags.heapSizeSuggestion = decodeSize(
                             *rts_argv.offset(arg as isize),
-                            2 as uint32_t,
+                            2 as u32,
                             BLOCK_SIZE as StgWord64,
                             HS_WORD_MAX as StgWord64,
                         )
                         .wrapping_div(BLOCK_SIZE as StgWord64)
-                            as uint32_t;
+                            as u32;
                     }
 
                     current_block = 6501678289274187771;
                 }
                 79 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
                     RtsFlags.GcFlags.minOldGenSize = decodeSize(
                         *rts_argv.offset(arg as isize),
-                        2 as uint32_t,
+                        2 as u32,
                         BLOCK_SIZE as StgWord64,
                         HS_WORD_MAX as StgWord64,
                     )
                     .wrapping_div(BLOCK_SIZE as StgWord64)
-                        as uint32_t;
+                        as u32;
                     current_block = 6501678289274187771;
                 }
                 73 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
-                    match *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int {
+                    match *(*rts_argv.offset(arg as isize)).offset(2) as i32 {
                         119 => {
-                            if !(*(*rts_argv.offset(arg as isize)).offset(3 as c_int as isize)
-                                as c_int
-                                == '\0' as i32)
+                            if !(*(*rts_argv.offset(arg as isize)).offset(3) as i32 == '\0' as i32)
                             {
                                 RtsFlags.GcFlags.interIdleGCWait = fsecondsToTime(atof(
-                                    (*rts_argv.offset(arg as isize)).offset(3 as c_int as isize),
+                                    (*rts_argv.offset(arg as isize)).offset(3),
                                 ));
                             }
                         }
                         0 => {}
                         _ => {
-                            let mut t = fsecondsToTime(atof(
-                                (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize),
-                            ));
+                            let mut t =
+                                fsecondsToTime(atof((*rts_argv.offset(arg as isize)).offset(2)));
 
-                            if t == 0 as Time {
-                                RtsFlags.GcFlags.doIdleGC = r#false != 0;
+                            if t == 0 {
+                                RtsFlags.GcFlags.doIdleGC = false;
                             } else {
-                                RtsFlags.GcFlags.doIdleGC = r#true != 0;
+                                RtsFlags.GcFlags.doIdleGC = true;
                                 RtsFlags.GcFlags.idleGCDelayTime = t;
                             }
                         }
@@ -1417,99 +1301,86 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                     current_block = 6501678289274187771;
                 }
                 84 => {
-                    option_checked = r#true != 0;
-                    RtsFlags.GcFlags.giveStats = COLLECT_GC_STATS as uint32_t;
+                    option_checked = true;
+                    RtsFlags.GcFlags.giveStats = COLLECT_GC_STATS as u32;
                     unchecked_arg_start += 1;
                     current_block = 166025003974853318;
                 }
                 83 => {
-                    option_checked = r#true != 0;
-                    RtsFlags.GcFlags.giveStats = VERBOSE_GC_STATS as uint32_t;
+                    option_checked = true;
+                    RtsFlags.GcFlags.giveStats = VERBOSE_GC_STATS as u32;
                     current_block = 8446064538627958008;
                 }
                 115 => {
-                    option_checked = r#true != 0;
-                    RtsFlags.GcFlags.giveStats = SUMMARY_GC_STATS as uint32_t;
+                    option_checked = true;
+                    RtsFlags.GcFlags.giveStats = SUMMARY_GC_STATS as u32;
                     current_block = 8446064538627958008;
                 }
                 116 => {
-                    option_checked = r#true != 0;
-                    RtsFlags.GcFlags.giveStats = ONELINE_GC_STATS as uint32_t;
+                    option_checked = true;
+                    RtsFlags.GcFlags.giveStats = ONELINE_GC_STATS as u32;
                     current_block = 8446064538627958008;
                 }
                 90 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
-                    RtsFlags.GcFlags.squeezeUpdFrames = r#false != 0;
+                    option_checked = true;
+                    RtsFlags.GcFlags.squeezeUpdFrames = false;
                     unchecked_arg_start += 1;
                     current_block = 166025003974853318;
                 }
                 80 | 112 => {
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
-                    match *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int {
+                    match *(*rts_argv.offset(arg as isize)).offset(2) as i32 {
                         111 => {
-                            if *(*rts_argv.offset(arg as isize)).offset(3 as c_int as isize)
-                                as c_int
-                                == '\0' as i32
-                            {
-                                errorBelch(
-                                    b"flag -po expects an argument\0" as *const u8 as *const c_char,
-                                );
-
-                                error = r#true != 0;
+                            if *(*rts_argv.offset(arg as isize)).offset(3) as i32 == '\0' as i32 {
+                                errorBelch(c"flag -po expects an argument".as_ptr());
+                                error = true;
                             } else {
                                 RtsFlags.CcFlags.outputFileNameStem =
-                                    (*rts_argv.offset(arg as isize)).offset(3 as c_int as isize);
+                                    (*rts_argv.offset(arg as isize)).offset(3);
                             }
                         }
                         _ => {
                             errorBelch(
-                                b"the flag %s requires the program to be built with -prof\0"
-                                    as *const u8 as *const c_char,
+                                c"the flag %s requires the program to be built with -prof".as_ptr(),
                                 *rts_argv.offset(arg as isize),
                             );
 
-                            error = r#true != 0;
+                            error = true;
                         }
                     }
 
                     current_block = 6501678289274187771;
                 }
                 82 => {
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
                     errorBelch(
-                        b"the flag %s requires the program to be built with -prof\0" as *const u8
-                            as *const c_char,
+                        c"the flag %s requires the program to be built with -prof".as_ptr(),
                         *rts_argv.offset(arg as isize),
                     );
 
-                    error = r#true != 0;
+                    error = true;
                     current_block = 6501678289274187771;
                 }
                 76 => {
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
                     errorBelch(
-                        b"the flag %s requires the program to be built with -prof\0" as *const u8
-                            as *const c_char,
+                        c"the flag %s requires the program to be built with -prof".as_ptr(),
                         *rts_argv.offset(arg as isize),
                     );
 
-                    error = r#true != 0;
+                    error = true;
                     current_block = 6501678289274187771;
                 }
                 104 => {
                     let mut current_block_321: u64;
 
-                    match *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int {
+                    match *(*rts_argv.offset(arg as isize)).offset(2) as i32 {
                         0 => {
-                            errorBelch(
-                                b"-h is deprecated, use -hT instead.\0" as *const u8
-                                    as *const c_char,
-                            );
-
+                            errorBelch(c"-h is deprecated, use -hT instead.".as_ptr());
                             current_block_321 = 4347121995186969965;
                         }
                         84 => {
@@ -1517,20 +1388,19 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                         }
                         105 => {
                             checkUnsafe(rtsOptsEnabled);
-                            option_checked = r#true != 0;
-                            RtsFlags.ProfFlags.doHeapProfile = HEAP_BY_INFO_TABLE as uint32_t;
+                            option_checked = true;
+                            RtsFlags.ProfFlags.doHeapProfile = HEAP_BY_INFO_TABLE as u32;
                             current_block_321 = 9260825484694736987;
                         }
                         _ => {
-                            option_checked = r#true != 0;
+                            option_checked = true;
 
                             errorBelch(
-                                b"the flag %s requires the program to be built with -prof\0"
-                                    as *const u8 as *const c_char,
+                                c"the flag %s requires the program to be built with -prof".as_ptr(),
                                 *rts_argv.offset(arg as isize),
                             );
 
-                            error = r#true != 0;
+                            error = true;
                             current_block_321 = 9260825484694736987;
                         }
                     }
@@ -1538,8 +1408,8 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                     match current_block_321 {
                         4347121995186969965 => {
                             checkUnsafe(rtsOptsEnabled);
-                            option_checked = r#true != 0;
-                            RtsFlags.ProfFlags.doHeapProfile = HEAP_BY_CLOSURE_TYPE as uint32_t;
+                            option_checked = true;
+                            RtsFlags.ProfFlags.doHeapProfile = HEAP_BY_CLOSURE_TYPE as u32;
                         }
                         _ => {}
                     }
@@ -1548,18 +1418,14 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                 }
                 105 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
-                    if !(*(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int
-                        == '\0' as i32)
-                    {
-                        let mut intervalSeconds_0 = parseDouble(
-                            (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize),
-                            &raw mut error,
-                        );
+                    if !(*(*rts_argv.offset(arg as isize)).offset(2) as i32 == '\0' as i32) {
+                        let mut intervalSeconds_0 =
+                            parseDouble((*rts_argv.offset(arg as isize)).offset(2), &raw mut error);
 
                         if error {
-                            errorBelch(b"bad value for -i\0" as *const u8 as *const c_char);
+                            errorBelch(c"bad value for -i".as_ptr());
                         }
 
                         RtsFlags.ProfFlags.heapProfileInterval = fsecondsToTime(intervalSeconds_0);
@@ -1569,20 +1435,16 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                 }
                 67 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
-                    if *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int
-                        == '\0' as i32
-                    {
-                        RtsFlags.ConcFlags.ctxtSwitchTime = 0 as Time;
+                    if *(*rts_argv.offset(arg as isize)).offset(2) as i32 == '\0' as i32 {
+                        RtsFlags.ConcFlags.ctxtSwitchTime = 0;
                     } else {
-                        let mut intervalSeconds_1 = parseDouble(
-                            (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize),
-                            &raw mut error,
-                        );
+                        let mut intervalSeconds_1 =
+                            parseDouble((*rts_argv.offset(arg as isize)).offset(2), &raw mut error);
 
                         if error {
-                            errorBelch(b"bad value for -C\0" as *const u8 as *const c_char);
+                            errorBelch(c"bad value for -C".as_ptr());
                         }
 
                         RtsFlags.ConcFlags.ctxtSwitchTime = fsecondsToTime(intervalSeconds_1);
@@ -1592,20 +1454,16 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                 }
                 86 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
-                    if *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int
-                        == '\0' as i32
-                    {
-                        RtsFlags.MiscFlags.tickInterval = 0 as Time;
+                    if *(*rts_argv.offset(arg as isize)).offset(2) as i32 == '\0' as i32 {
+                        RtsFlags.MiscFlags.tickInterval = 0;
                     } else {
-                        let mut intervalSeconds_2 = parseDouble(
-                            (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize),
-                            &raw mut error,
-                        );
+                        let mut intervalSeconds_2 =
+                            parseDouble((*rts_argv.offset(arg as isize)).offset(2), &raw mut error);
 
                         if error {
-                            errorBelch(b"bad value for -V\0" as *const u8 as *const c_char);
+                            errorBelch(c"bad value for -V".as_ptr());
                         }
 
                         RtsFlags.MiscFlags.tickInterval = fsecondsToTime(intervalSeconds_2);
@@ -1614,208 +1472,185 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                     current_block = 6501678289274187771;
                 }
                 78 => {
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
                     errorBelch(
-                        b"the flag %s requires the program to be built with -threaded\0"
-                            as *const u8 as *const c_char,
+                        c"the flag %s requires the program to be built with -threaded".as_ptr(),
                         *rts_argv.offset(arg as isize),
                     );
 
-                    error = r#true != 0;
+                    error = true;
                     current_block = 6501678289274187771;
                 }
                 103 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
                     errorBelch(
-                        b"the flag %s requires the program to be built with -threaded\0"
-                            as *const u8 as *const c_char,
+                        c"the flag %s requires the program to be built with -threaded".as_ptr(),
                         *rts_argv.offset(arg as isize),
                     );
 
-                    error = r#true != 0;
+                    error = true;
                     current_block = 6501678289274187771;
                 }
                 113 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
                     errorBelch(
-                        b"the flag %s requires the program to be built with -threaded\0"
-                            as *const u8 as *const c_char,
+                        c"the flag %s requires the program to be built with -threaded".as_ptr(),
                         *rts_argv.offset(arg as isize),
                     );
 
-                    error = r#true != 0;
+                    error = true;
                     current_block = 6501678289274187771;
                 }
                 101 => {
                     checkUnsafe(rtsOptsEnabled);
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
                     errorBelch(
-                        b"the flag %s requires the program to be built with -threaded\0"
-                            as *const u8 as *const c_char,
+                        c"the flag %s requires the program to be built with -threaded".as_ptr(),
                         *rts_argv.offset(arg as isize),
                     );
 
-                    error = r#true != 0;
+                    error = true;
                     current_block = 6501678289274187771;
                 }
                 114 => {
-                    option_checked = r#true != 0;
-                    RtsFlags.TickyFlags.showTickyStats = 1 as c_int != 0;
+                    option_checked = true;
+                    RtsFlags.TickyFlags.showTickyStats = 1 != 0;
 
-                    let mut r_0: c_int = 0;
+                    let mut r_0: i32 = 0;
 
-                    if *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int
-                        != '\0' as i32
-                    {
+                    if *(*rts_argv.offset(arg as isize)).offset(2) as i32 != '\0' as i32 {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = 1 as c_int != 0;
+                        option_checked = 1 != 0;
                     }
 
                     r_0 = openStatsFile(
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize),
-                        b"%0.121s.ticky\0" as *const u8 as *const c_char,
+                        (*rts_argv.offset(arg as isize)).offset(2),
+                        c"%0.121s.ticky".as_ptr(),
                         &raw mut RtsFlags.TickyFlags.tickyFile,
                     );
 
-                    if r_0 == -(1 as c_int) {
-                        error = 1 as c_int != 0;
+                    if r_0 == -1 {
+                        error = 1 != 0;
                     }
 
                     current_block = 6501678289274187771;
                 }
                 111 => {
-                    match *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int {
+                    match *(*rts_argv.offset(arg as isize)).offset(2) as i32 {
                         108 => {
-                            option_checked = r#true != 0;
+                            option_checked = true;
 
-                            if strlen((*rts_argv.offset(arg as isize)).offset(3 as c_int as isize)
-                                as *mut c_char)
-                                == 0 as size_t
+                            if strlen((*rts_argv.offset(arg as isize)).offset(3) as *mut c_char)
+                                == 0
                             {
-                                errorBelch(b"-ol expects filename\0" as *const u8 as *const c_char);
-                                error = 1 as c_int != 0;
+                                errorBelch(c"-ol expects filename".as_ptr());
+                                error = 1 != 0;
                             } else {
                                 RtsFlags.TraceFlags.trace_output = strdup(
-                                    (*rts_argv.offset(arg as isize)).offset(3 as c_int as isize)
-                                        as *mut c_char,
+                                    (*rts_argv.offset(arg as isize)).offset(3) as *mut c_char,
                                 );
                             }
                         }
                         _ => {
                             errorBelch(
-                                b"Unknown output flag -o%c\0" as *const u8 as *const c_char,
-                                *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize)
-                                    as c_int,
+                                c"Unknown output flag -o%c".as_ptr(),
+                                *(*rts_argv.offset(arg as isize)).offset(2) as i32,
                             );
 
-                            error = r#true != 0;
+                            error = true;
                         }
                     }
 
                     current_block = 6501678289274187771;
                 }
                 108 => {
-                    option_checked = r#true != 0;
-                    RtsFlags.TraceFlags.tracing = 1 as c_int;
+                    option_checked = true;
+                    RtsFlags.TraceFlags.tracing = 1;
 
-                    read_trace_flags(
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char
-                    );
+                    read_trace_flags((*rts_argv.offset(arg as isize)).offset(2) as *mut c_char);
 
                     current_block = 6501678289274187771;
                 }
                 118 => {
-                    option_checked = r#true != 0;
-                    RtsFlags.TraceFlags.tracing = 2 as c_int;
+                    option_checked = true;
+                    RtsFlags.TraceFlags.tracing = 2;
 
-                    read_trace_flags(
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as *mut c_char
-                    );
+                    read_trace_flags((*rts_argv.offset(arg as isize)).offset(2) as *mut c_char);
 
                     current_block = 6501678289274187771;
                 }
                 120 => {
                     unchecked_arg_start += 1;
 
-                    match *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int {
+                    match *(*rts_argv.offset(arg as isize)).offset(2) as i32 {
                         0 => {
-                            option_checked = r#true != 0;
+                            option_checked = true;
 
                             errorBelch(
-                                b"incomplete RTS option: %s\0" as *const u8 as *const c_char,
+                                c"incomplete RTS option: %s".as_ptr(),
                                 *rts_argv.offset(arg as isize),
                             );
 
-                            error = r#true != 0;
+                            error = true;
                             current_block = 6501678289274187771;
                         }
                         98 => {
                             checkUnsafe(rtsOptsEnabled);
-                            option_checked = r#true != 0;
+                            option_checked = true;
 
-                            if *(*rts_argv.offset(arg as isize)).offset(3 as c_int as isize)
-                                as c_int
-                                != '\0' as i32
-                            {
+                            if *(*rts_argv.offset(arg as isize)).offset(3) as i32 != '\0' as i32 {
                                 RtsFlags.GcFlags.heapBase = strtoull(
-                                    (*rts_argv.offset(arg as isize)).offset(3 as c_int as isize),
+                                    (*rts_argv.offset(arg as isize)).offset(3),
                                     NULL as *mut *mut c_char,
-                                    0 as c_int,
+                                    0,
                                 )
                                     as StgWord;
                             } else {
-                                errorBelch(
-                                    b"-xb: requires argument\0" as *const u8 as *const c_char,
-                                );
-
-                                error = r#true != 0;
+                                errorBelch(c"-xb: requires argument".as_ptr());
+                                error = true;
                             }
 
                             current_block = 6501678289274187771;
                         }
                         110 => {
-                            option_checked = r#true != 0;
-                            RtsFlags.GcFlags.useNonmoving = r#true != 0;
+                            option_checked = true;
+                            RtsFlags.GcFlags.useNonmoving = true;
                             unchecked_arg_start += 1;
                             current_block = 6501678289274187771;
                         }
                         99 => {
-                            option_checked = r#true != 0;
+                            option_checked = true;
 
                             errorBelch(
-                                b"the flag %s requires the program to be built with -prof\0"
-                                    as *const u8 as *const c_char,
+                                c"the flag %s requires the program to be built with -prof".as_ptr(),
                                 *rts_argv.offset(arg as isize),
                             );
 
-                            error = r#true != 0;
+                            error = true;
                             unchecked_arg_start += 1;
                             current_block = 166025003974853318;
                         }
                         116 => {
-                            option_checked = r#true != 0;
+                            option_checked = true;
 
-                            errorBelch(
-                                b"The -xt option has been removed (#16795)\0" as *const u8
-                                    as *const c_char,
-                            );
+                            errorBelch(c"The -xt option has been removed (#16795)".as_ptr());
 
-                            error = r#true != 0;
+                            error = true;
                             current_block = 6501678289274187771;
                         }
                         113 => {
                             checkUnsafe(rtsOptsEnabled);
-                            option_checked = r#true != 0;
+                            option_checked = true;
 
                             RtsFlags.GcFlags.allocLimitGrace = decodeSize(
                                 *rts_argv.offset(arg as isize),
-                                3 as uint32_t,
+                                3 as u32,
                                 BLOCK_SIZE as StgWord64,
                                 HS_INT_MAX as StgWord64,
                             )
@@ -1825,11 +1660,11 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                         }
                         114 => {
                             checkUnsafe(rtsOptsEnabled);
-                            option_checked = r#true != 0;
+                            option_checked = true;
 
                             RtsFlags.GcFlags.addressSpaceSize = decodeSize(
                                 *rts_argv.offset(arg as isize),
-                                3 as uint32_t,
+                                3,
                                 MBLOCK_SIZE as StgWord64,
                                 HS_WORD64_MAX as StgWord64,
                             );
@@ -1837,75 +1672,68 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
                             current_block = 6501678289274187771;
                         }
                         _ => {
-                            option_checked = r#true != 0;
+                            option_checked = true;
 
                             errorBelch(
-                                b"unknown RTS option: %s\0" as *const u8 as *const c_char,
+                                c"unknown RTS option: %s".as_ptr(),
                                 *rts_argv.offset(arg as isize),
                             );
 
-                            error = r#true != 0;
+                            error = true;
                             current_block = 6501678289274187771;
                         }
                     }
                 }
                 _ => {
-                    option_checked = r#true != 0;
+                    option_checked = true;
 
                     errorBelch(
-                        b"unknown RTS option: %s\0" as *const u8 as *const c_char,
+                        c"unknown RTS option: %s".as_ptr(),
                         *rts_argv.offset(arg as isize),
                     );
 
-                    error = r#true != 0;
+                    error = true;
                     current_block = 6501678289274187771;
                 }
             }
 
             match current_block {
                 166025003974853318 => {
-                    if *(*rts_argv.offset(arg as isize)).offset(unchecked_arg_start as isize)
-                        as c_int
+                    if *(*rts_argv.offset(arg as isize)).offset(unchecked_arg_start as isize) as i32
                         != '\0' as i32
                     {
                         errorBelch(
-                            b"flag -%c given an argument when none was expected: %s\0" as *const u8
-                                as *const c_char,
-                            *(*rts_argv.offset(arg as isize)).offset(1 as c_int as isize) as c_int,
+                            c"flag -%c given an argument when none was expected: %s".as_ptr(),
+                            *(*rts_argv.offset(arg as isize)).offset(1) as i32,
                             *rts_argv.offset(arg as isize),
                         );
 
-                        error = r#true != 0;
+                        error = true;
                     }
                 }
                 8446064538627958008 => {
-                    let mut r: c_int = 0;
+                    let mut r: i32 = 0;
 
-                    if *(*rts_argv.offset(arg as isize)).offset(2 as c_int as isize) as c_int
-                        != '\0' as i32
-                    {
+                    if *(*rts_argv.offset(arg as isize)).offset(2) as i32 != '\0' as i32 {
                         checkUnsafe(rtsOptsEnabled);
-                        option_checked = r#true != 0;
+                        option_checked = true;
                     }
 
                     r = openStatsFile(
-                        (*rts_argv.offset(arg as isize)).offset(2 as c_int as isize),
+                        (*rts_argv.offset(arg as isize)).offset(2),
                         null::<c_char>(),
                         &raw mut RtsFlags.GcFlags.statsFile,
                     );
 
-                    if r == -(1 as c_int) {
-                        error = r#true != 0;
+                    if r == -1 {
+                        error = true;
                     }
                 }
                 _ => {}
             }
 
             if !option_checked {
-                errorBelch(
-                    b"Internal error in the RTS options parser\0" as *const u8 as *const c_char,
-                );
-
+                errorBelch(c"Internal error in the RTS options parser".as_ptr());
                 stg_exit(EXIT_FAILURE);
             }
         }
@@ -1919,17 +1747,17 @@ unsafe fn procRtsOpts(mut rts_argc0: c_int, mut rtsOptsEnabled: RtsOptsEnabledEn
 }
 
 unsafe fn normaliseRtsOpts() {
-    if RtsFlags.MiscFlags.tickInterval < 0 as Time {
+    if RtsFlags.MiscFlags.tickInterval < 0 {
         RtsFlags.MiscFlags.tickInterval = DEFAULT_TICK_INTERVAL;
     }
 
-    if RtsFlags.MiscFlags.tickInterval == 0 as Time {
-        RtsFlags.ConcFlags.ctxtSwitchTime = 0 as Time;
-        RtsFlags.GcFlags.idleGCDelayTime = 0 as Time;
-        RtsFlags.ProfFlags.heapProfileInterval = 0 as Time;
+    if RtsFlags.MiscFlags.tickInterval == 0 {
+        RtsFlags.ConcFlags.ctxtSwitchTime = 0;
+        RtsFlags.GcFlags.idleGCDelayTime = 0;
+        RtsFlags.ProfFlags.heapProfileInterval = 0;
     }
 
-    if RtsFlags.ConcFlags.ctxtSwitchTime > 0 as Time {
+    if RtsFlags.ConcFlags.ctxtSwitchTime > 0 {
         RtsFlags.MiscFlags.tickInterval = ({
             let mut _a: Time = RtsFlags.ConcFlags.ctxtSwitchTime as Time;
             let mut _b: Time = RtsFlags.MiscFlags.tickInterval as Time;
@@ -1938,7 +1766,7 @@ unsafe fn normaliseRtsOpts() {
         });
     }
 
-    if RtsFlags.GcFlags.idleGCDelayTime > 0 as Time {
+    if RtsFlags.GcFlags.idleGCDelayTime > 0 {
         RtsFlags.MiscFlags.tickInterval = ({
             let mut _a: Time = RtsFlags.GcFlags.idleGCDelayTime as Time;
             let mut _b: Time = RtsFlags.MiscFlags.tickInterval as Time;
@@ -1947,7 +1775,7 @@ unsafe fn normaliseRtsOpts() {
         });
     }
 
-    if RtsFlags.ProfFlags.heapProfileInterval > 0 as Time {
+    if RtsFlags.ProfFlags.heapProfileInterval > 0 {
         RtsFlags.MiscFlags.tickInterval = ({
             let mut _a: Time = RtsFlags.ProfFlags.heapProfileInterval as Time;
             let mut _b: Time = RtsFlags.MiscFlags.tickInterval as Time;
@@ -1956,49 +1784,42 @@ unsafe fn normaliseRtsOpts() {
         });
     }
 
-    if RtsFlags.ConcFlags.ctxtSwitchTime > 0 as Time && RtsFlags.MiscFlags.tickInterval != 0 as Time
-    {
+    if RtsFlags.ConcFlags.ctxtSwitchTime > 0 && RtsFlags.MiscFlags.tickInterval != 0 {
         RtsFlags.ConcFlags.ctxtSwitchTicks =
-            (RtsFlags.ConcFlags.ctxtSwitchTime / RtsFlags.MiscFlags.tickInterval) as c_int;
+            (RtsFlags.ConcFlags.ctxtSwitchTime / RtsFlags.MiscFlags.tickInterval) as i32;
     } else {
-        RtsFlags.ConcFlags.ctxtSwitchTicks = 0 as c_int;
+        RtsFlags.ConcFlags.ctxtSwitchTicks = 0;
     }
 
-    if RtsFlags.ProfFlags.heapProfileInterval > 0 as Time
-        && RtsFlags.MiscFlags.tickInterval != 0 as Time
-    {
+    if RtsFlags.ProfFlags.heapProfileInterval > 0 && RtsFlags.MiscFlags.tickInterval != 0 {
         RtsFlags.ProfFlags.heapProfileIntervalTicks =
-            (RtsFlags.ProfFlags.heapProfileInterval / RtsFlags.MiscFlags.tickInterval) as uint32_t;
+            (RtsFlags.ProfFlags.heapProfileInterval / RtsFlags.MiscFlags.tickInterval) as u32;
     } else {
-        RtsFlags.ProfFlags.heapProfileIntervalTicks = 0 as uint32_t;
+        RtsFlags.ProfFlags.heapProfileIntervalTicks = 0;
     }
 
-    if RtsFlags.TraceFlags.eventlogFlushTime > 0 as Time
-        && RtsFlags.MiscFlags.tickInterval != 0 as Time
-    {
+    if RtsFlags.TraceFlags.eventlogFlushTime > 0 && RtsFlags.MiscFlags.tickInterval != 0 {
         RtsFlags.TraceFlags.eventlogFlushTicks =
-            (RtsFlags.TraceFlags.eventlogFlushTime / RtsFlags.MiscFlags.tickInterval) as c_int;
+            (RtsFlags.TraceFlags.eventlogFlushTime / RtsFlags.MiscFlags.tickInterval) as i32;
     } else {
-        RtsFlags.TraceFlags.eventlogFlushTicks = 0 as c_int;
+        RtsFlags.TraceFlags.eventlogFlushTicks = 0;
     }
 
-    if RtsFlags.GcFlags.stkChunkBufferSize
-        > RtsFlags.GcFlags.stkChunkSize.wrapping_div(2 as uint32_t)
-    {
+    if RtsFlags.GcFlags.stkChunkBufferSize > RtsFlags.GcFlags.stkChunkSize.wrapping_div(2 as u32) {
         errorBelch(
-            b"stack chunk buffer size (-kb) must be less than 50%%\nof the stack chunk size (-kc)\0"
-                as *const u8 as *const c_char,
+            c"stack chunk buffer size (-kb) must be less than 50%%\nof the stack chunk size (-kc)"
+                .as_ptr(),
         );
 
         errorUsage();
     }
 
-    if RtsFlags.GcFlags.maxHeapSize != 0 as uint32_t
+    if RtsFlags.GcFlags.maxHeapSize != 0
         && RtsFlags.GcFlags.heapSizeSuggestion > RtsFlags.GcFlags.maxHeapSize
     {
         errorBelch(
-            b"Maximum heap size (-M) is smaller than suggested heap size (-H)\nSetting maximum heap size to suggested heap size ( %llu )\0"
-                as *const u8 as *const c_char,
+            c"Maximum heap size (-M) is smaller than suggested heap size (-H)\nSetting maximum heap size to suggested heap size ( %llu )"
+                .as_ptr(),
             (RtsFlags.GcFlags.maxHeapSize as StgWord64)
                 .wrapping_mul(BLOCK_SIZE as StgWord64),
         );
@@ -2006,58 +1827,53 @@ unsafe fn normaliseRtsOpts() {
         RtsFlags.GcFlags.maxHeapSize = RtsFlags.GcFlags.heapSizeSuggestion;
     }
 
-    if RtsFlags.GcFlags.maxHeapSize != 0 as uint32_t
+    if RtsFlags.GcFlags.maxHeapSize != 0
         && RtsFlags.GcFlags.minAllocAreaSize > RtsFlags.GcFlags.maxHeapSize
     {
-        errorBelch(
-            b"maximum heap size (-M) is smaller than minimum alloc area size (-A)\0" as *const u8
-                as *const c_char,
-        );
+        errorBelch(c"maximum heap size (-M) is smaller than minimum alloc area size (-A)".as_ptr());
 
         RtsFlags.GcFlags.minAllocAreaSize = RtsFlags.GcFlags.maxHeapSize;
     }
 
-    if RtsFlags.GcFlags.minAllocAreaSize as c_ulong
-        >= ((16 as c_int * 1024 as c_int * 1024 as c_int) as c_ulong).wrapping_div(BLOCK_SIZE)
+    if RtsFlags.GcFlags.minAllocAreaSize as u64
+        >= ((16 as i32 * 1024 as i32 * 1024 as i32) as u64).wrapping_div(BLOCK_SIZE)
     {
-        RtsFlags.GcFlags.nurseryChunkSize = ((4 as c_int * 1024 as c_int * 1024 as c_int)
-            as c_ulong)
-            .wrapping_div(BLOCK_SIZE) as uint32_t;
+        RtsFlags.GcFlags.nurseryChunkSize =
+            ((4 as i32 * 1024 as i32 * 1024 as i32) as u64).wrapping_div(BLOCK_SIZE) as u32;
     }
 
-    if RtsFlags.ParFlags.parGcLoadBalancingGen == !(0 as uint32_t) {
+    if RtsFlags.ParFlags.parGcLoadBalancingGen == !0 {
         let mut alloc_area_bytes: StgWord =
-            (RtsFlags.GcFlags.minAllocAreaSize as c_ulong).wrapping_mul(BLOCK_SIZE) as StgWord;
+            (RtsFlags.GcFlags.minAllocAreaSize as u64).wrapping_mul(BLOCK_SIZE) as StgWord;
 
-        if alloc_area_bytes >= (32 as c_int * 1024 as c_int * 1024 as c_int) as StgWord {
-            RtsFlags.ParFlags.parGcLoadBalancingGen = 0 as uint32_t;
+        if alloc_area_bytes >= (32 * 1024 * 1024) as StgWord {
+            RtsFlags.ParFlags.parGcLoadBalancingGen = 0;
         } else {
-            RtsFlags.ParFlags.parGcLoadBalancingGen = 1 as uint32_t;
+            RtsFlags.ParFlags.parGcLoadBalancingGen = 1;
         }
     }
 
     if RtsFlags.MiscFlags.generate_dump_file {
-        RtsFlags.MiscFlags.install_seh_handlers = r#true != 0;
+        RtsFlags.MiscFlags.install_seh_handlers = true;
     }
 
-    if RtsFlags.GcFlags.useNonmoving as c_int != 0 && RtsFlags.GcFlags.generations == 1 as uint32_t
-    {
-        barf(b"The non-moving collector doesn't support -G1\0" as *const u8 as *const c_char);
+    if RtsFlags.GcFlags.useNonmoving as i32 != 0 && RtsFlags.GcFlags.generations == 1 {
+        barf(c"The non-moving collector doesn't support -G1".as_ptr());
     }
 
-    if RtsFlags.GcFlags.compact as c_int != 0 && RtsFlags.GcFlags.useNonmoving as c_int != 0 {
+    if RtsFlags.GcFlags.compact as i32 != 0 && RtsFlags.GcFlags.useNonmoving as i32 != 0 {
         errorBelch(
-            b"The non-moving collector cannot be used in conjunction with\nthe compacting collector.\0"
-                as *const u8 as *const c_char,
+            c"The non-moving collector cannot be used in conjunction with\nthe compacting collector."
+                .as_ptr(),
         );
 
         errorUsage();
     }
 
-    if RtsFlags.TraceFlags.ticky as c_int != 0 && RtsFlags.TickyFlags.showTickyStats as c_int != 0 {
+    if RtsFlags.TraceFlags.ticky as i32 != 0 && RtsFlags.TickyFlags.showTickyStats as i32 != 0 {
         barf(
-            b"The ticky-ticky eventlog output cannot be used in conjunction with\n+RTS -r<file>.\0"
-                as *const u8 as *const c_char,
+            c"The ticky-ticky eventlog output cannot be used in conjunction with\n+RTS -r<file>."
+                .as_ptr(),
         );
     }
 }
@@ -2068,7 +1884,7 @@ unsafe fn errorUsage() -> ! {
     p = &raw mut usage_text as *mut *const c_char;
 
     while !(*p).is_null() {
-        errorBelch(b"%s\0" as *const u8 as *const c_char, *p);
+        errorBelch(c"%s".as_ptr(), *p);
         p = p.offset(1);
     }
 
@@ -2090,101 +1906,89 @@ unsafe fn openStatsFile(
     mut filename: *mut c_char,
     mut filename_fmt: *const c_char,
     mut file_ret: *mut *mut FILE,
-) -> c_int {
+) -> i32 {
     let mut f = null_mut::<FILE>();
 
-    if strequal(filename, b"stderr\0" as *const u8 as *const c_char) as c_int != 0
-        || filename_fmt.is_null() && *filename as c_int == '\0' as i32
+    if strequal(filename, c"stderr".as_ptr()) as i32 != 0
+        || filename_fmt.is_null() && *filename as i32 == '\0' as i32
     {
         f = null_mut::<FILE>();
     } else {
-        if *filename as c_int != '\0' as i32 {
-            f = __rts_fopen(filename, b"w+\0" as *const u8 as *const c_char);
+        if *filename as i32 != '\0' as i32 {
+            f = __rts_fopen(filename, c"w+".as_ptr());
         } else {
             if filename_fmt.is_null() {
-                errorBelch(
-                    b"Invalid stats filename format (NULL)\n\0" as *const u8 as *const c_char,
-                );
+                errorBelch(c"Invalid stats filename format (NULL)\n".as_ptr());
 
-                return -(1 as c_int);
+                return -1;
             }
 
             let mut stats_filename: [c_char; 128] = [0; 128];
 
             snprintf(
                 &raw mut stats_filename as *mut c_char,
-                STATS_FILENAME_MAXLEN as size_t,
+                STATS_FILENAME_MAXLEN as usize,
                 filename_fmt,
                 prog_name,
             );
 
-            f = __rts_fopen(
-                &raw mut stats_filename as *mut c_char,
-                b"w+\0" as *const u8 as *const c_char,
-            );
+            f = __rts_fopen(&raw mut stats_filename as *mut c_char, c"w+".as_ptr());
         }
 
         if f.is_null() {
-            errorBelch(
-                b"Can't open stats file %s\n\0" as *const u8 as *const c_char,
-                filename,
-            );
+            errorBelch(c"Can't open stats file %s\n".as_ptr(), filename);
 
-            return -(1 as c_int);
+            return -1;
         }
     }
 
     *file_ret = f;
 
-    return 0 as c_int;
+    return 0;
 }
 
 unsafe fn stats_fprintf_escape(mut f: *mut FILE, mut s: *mut c_char) {
-    stats_fprintf(f, b"'\0" as *const u8 as *const c_char as *mut c_char);
+    stats_fprintf(f, c"'".as_ptr());
 
-    while *s as c_int != '\0' as i32 {
-        match *s as c_int {
+    while *s as i32 != '\0' as i32 {
+        match *s as i32 {
             39 => {
-                stats_fprintf(f, b"'\\''\0" as *const u8 as *const c_char as *mut c_char);
+                stats_fprintf(f, c"'\\''".as_ptr());
             }
             _ => {
-                stats_fprintf(
-                    f,
-                    b"%c\0" as *const u8 as *const c_char as *mut c_char,
-                    *s as c_int,
-                );
+                stats_fprintf(f, c"%c".as_ptr(), *s as i32);
             }
         }
 
         s = s.offset(1);
     }
 
-    stats_fprintf(f, b"' \0" as *const u8 as *const c_char as *mut c_char);
+    stats_fprintf(f, c"' ".as_ptr());
 }
 
 unsafe fn initStatsFile(mut f: *mut FILE) {
-    let mut count: c_int = 0;
-    count = 0 as c_int;
+    let mut count: i32 = 0;
+    count = 0;
 
     while count < prog_argc {
         stats_fprintf_escape(f, *prog_argv.offset(count as isize));
         count += 1;
     }
 
-    stats_fprintf(f, b"+RTS \0" as *const u8 as *const c_char as *mut c_char);
-    count = 0 as c_int;
+    stats_fprintf(f, c"+RTS ".as_ptr());
+    count = 0;
 
     while count < rts_argc {
         stats_fprintf_escape(f, *rts_argv.offset(count as isize));
         count += 1;
     }
 
-    stats_fprintf(f, b"\n\0" as *const u8 as *const c_char as *mut c_char);
+    stats_fprintf(f, c"\n".as_ptr());
 }
 
 unsafe fn decodeSize(
     mut flag: *const c_char,
-    mut offset: uint32_t,
+    mut offset: u32,
     mut min: StgWord64,
     mut max: StgWord64,
 ) -> StgWord64 {
@@ -2194,15 +1998,14 @@ unsafe fn decodeSize(
     s = flag.offset(offset as isize);
 
     if *s == 0 {
-        m = 0 as c_int as StgDouble;
+        m = 0;
     } else {
         let mut end = null_mut::<c_char>();
         m = strtod(s, &raw mut end) as StgDouble;
 
         if end == s as *mut c_char {
             errorBelch(
-                b"error in RTS option %s: unable to parse number '%s'\0" as *const u8
-                    as *const c_char,
+                c"error in RTS option %s: unable to parse number '%s'".as_ptr(),
                 flag,
                 s,
             );
@@ -2212,34 +2015,33 @@ unsafe fn decodeSize(
 
         let mut unit: StgWord64 = 0;
 
-        match *end as c_int {
+        match *end as i32 {
             116 | 84 => {
-                unit = (1024 as c_int as StgWord64)
+                unit = (1024 as i32 as StgWord64)
                     .wrapping_mul(1024 as StgWord64)
                     .wrapping_mul(1024 as StgWord64)
                     .wrapping_mul(1024 as StgWord64);
             }
             103 | 71 => {
-                unit = (1024 as c_int * 1024 as c_int * 1024 as c_int) as StgWord64;
+                unit = (1024 * 1024 * 1024) as StgWord64;
             }
             109 | 77 => {
-                unit = (1024 as c_int * 1024 as c_int) as StgWord64;
+                unit = (1024 * 1024) as StgWord64;
             }
             107 | 75 => {
-                unit = 1024 as StgWord64;
+                unit = 1024;
             }
             119 | 87 => {
                 unit = size_of::<W_>() as StgWord64;
             }
             98 | 66 | 0 => {
-                unit = 1 as StgWord64;
+                unit = 1;
             }
             _ => {
                 errorBelch(
-                    b"error in RTS option %s: unknown unit suffix '%c'\0" as *const u8
-                        as *const c_char,
+                    c"error in RTS option %s: unknown unit suffix '%c'".as_ptr(),
                     flag,
-                    *end as c_int,
+                    *end as i32,
                 );
 
                 stg_exit(EXIT_FAILURE);
@@ -2251,10 +2053,9 @@ unsafe fn decodeSize(
 
     val = m as StgWord64;
 
-    if m < 0 as c_int as StgDouble || val < min || val > max {
+    if m < 0 || val < min || val > max {
         errorBelch(
-            b"error in RTS option %s: size outside allowed range (%llu - %llu)\0" as *const u8
-                as *const c_char,
+            c"error in RTS option %s: size outside allowed range (%llu - %llu)".as_ptr(),
             flag,
             min,
             max,
@@ -2266,24 +2067,24 @@ unsafe fn decodeSize(
     return val;
 }
 
-unsafe fn parseDouble(mut arg: *const c_char, mut error: *mut bool) -> c_double {
+unsafe fn parseDouble(mut arg: *const c_char, mut error: *mut bool) -> f64 {
     let mut endptr = null_mut::<c_char>();
-    let mut out: c_double = 0.;
-    *__error() = 0 as c_int;
+    let mut out: f64 = 0.;
+    *__error() = 0;
     out = strtod(arg, &raw mut endptr);
 
-    if *__error() != 0 as c_int || endptr == arg as *mut c_char {
-        *error = r#true != 0;
+    if *__error() != 0 || endptr == arg as *mut c_char {
+        *error = true;
 
         return out;
     }
 
-    while isspace(*endptr as c_uchar as c_int) != 0 {
+    while isspace(*endptr as u8 as i32) != 0 {
         endptr = endptr.offset(1);
     }
 
-    if *endptr as c_int != 0 as c_int {
-        *error = r#true != 0;
+    if *endptr as i32 != 0 {
+        *error = true;
     }
 
     return out;
@@ -2291,73 +2092,73 @@ unsafe fn parseDouble(mut arg: *const c_char, mut error: *mut bool) -> c_double 
 
 unsafe fn read_debug_flags(mut arg: *const c_char) {
     let mut c = null::<c_char>();
-    c = arg.offset(2 as c_int as isize);
+    c = arg.offset(2);
 
-    while *c as c_int != '\0' as i32 {
-        match *c as c_int {
+    while *c as i32 != '\0' as i32 {
+        match *c as i32 {
             115 => {
-                RtsFlags.DebugFlags.scheduler = r#true != 0;
+                RtsFlags.DebugFlags.scheduler = true;
             }
             105 => {
-                RtsFlags.DebugFlags.interpreter = r#true != 0;
+                RtsFlags.DebugFlags.interpreter = true;
             }
             119 => {
-                RtsFlags.DebugFlags.weak = r#true != 0;
+                RtsFlags.DebugFlags.weak = true;
             }
             71 => {
-                RtsFlags.DebugFlags.gccafs = r#true != 0;
+                RtsFlags.DebugFlags.gccafs = true;
             }
             103 => {
-                RtsFlags.DebugFlags.gc = r#true != 0;
+                RtsFlags.DebugFlags.gc = true;
             }
             110 => {
-                RtsFlags.DebugFlags.nonmoving_gc = r#true != 0;
+                RtsFlags.DebugFlags.nonmoving_gc = true;
             }
             98 => {
-                RtsFlags.DebugFlags.block_alloc = r#true != 0;
+                RtsFlags.DebugFlags.block_alloc = true;
             }
             83 => {
-                RtsFlags.DebugFlags.sanity = r#true != 0;
+                RtsFlags.DebugFlags.sanity = true;
             }
             90 => {
-                RtsFlags.DebugFlags.zero_on_gc = r#true != 0;
+                RtsFlags.DebugFlags.zero_on_gc = true;
             }
             116 => {
-                RtsFlags.DebugFlags.stable = r#true != 0;
+                RtsFlags.DebugFlags.stable = true;
             }
             112 => {
-                RtsFlags.DebugFlags.prof = r#true != 0;
+                RtsFlags.DebugFlags.prof = true;
             }
             108 => {
-                RtsFlags.DebugFlags.linker = r#true != 0;
+                RtsFlags.DebugFlags.linker = true;
             }
             76 => {
-                RtsFlags.DebugFlags.linker_verbose = r#true != 0;
-                RtsFlags.DebugFlags.linker = r#true != 0;
+                RtsFlags.DebugFlags.linker_verbose = true;
+                RtsFlags.DebugFlags.linker = true;
             }
             97 => {
-                RtsFlags.DebugFlags.apply = r#true != 0;
+                RtsFlags.DebugFlags.apply = true;
             }
             109 => {
-                RtsFlags.DebugFlags.stm = r#true != 0;
+                RtsFlags.DebugFlags.stm = true;
             }
             122 => {
-                RtsFlags.DebugFlags.squeeze = r#true != 0;
+                RtsFlags.DebugFlags.squeeze = true;
             }
             99 => {
-                RtsFlags.DebugFlags.hpc = r#true != 0;
+                RtsFlags.DebugFlags.hpc = true;
             }
             114 => {
-                RtsFlags.DebugFlags.sparks = r#true != 0;
+                RtsFlags.DebugFlags.sparks = true;
             }
             67 => {
-                RtsFlags.DebugFlags.compact = r#true != 0;
+                RtsFlags.DebugFlags.compact = true;
             }
             107 => {
-                RtsFlags.DebugFlags.continuation = r#true != 0;
+                RtsFlags.DebugFlags.continuation = true;
             }
             111 => {
-                RtsFlags.DebugFlags.iomanager = r#true != 0;
+                RtsFlags.DebugFlags.iomanager = true;
             }
             _ => {
                 bad_option(arg);
@@ -2372,24 +2173,24 @@ unsafe fn read_debug_flags(mut arg: *const c_char) {
     }
 
     if RtsFlags.DebugFlags.sanity {
-        RtsFlags.DebugFlags.zero_on_gc = r#true != 0;
+        RtsFlags.DebugFlags.zero_on_gc = true;
     }
 }
 
 unsafe fn read_trace_flags(mut arg: *const c_char) {
     let mut c = null::<c_char>();
-    let mut enabled = r#true != 0;
-    RtsFlags.TraceFlags.scheduler = r#true != 0;
-    RtsFlags.TraceFlags.gc = r#true != 0;
-    RtsFlags.TraceFlags.sparks_sampled = r#true != 0;
-    RtsFlags.TraceFlags.user = r#true != 0;
+    let mut enabled = true;
+    RtsFlags.TraceFlags.scheduler = true;
+    RtsFlags.TraceFlags.gc = true;
+    RtsFlags.TraceFlags.sparks_sampled = true;
+    RtsFlags.TraceFlags.user = true;
     c = arg;
 
-    while *c as c_int != '\0' as i32 {
-        match *c as c_int {
+    while *c as i32 != '\0' as i32 {
+        match *c as i32 {
             0 => {}
             45 => {
-                enabled = r#false != 0;
+                enabled = false;
             }
             97 => {
                 RtsFlags.TraceFlags.scheduler = enabled;
@@ -2399,45 +2200,42 @@ unsafe fn read_trace_flags(mut arg: *const c_char) {
                 RtsFlags.TraceFlags.user = enabled;
                 RtsFlags.TraceFlags.nonmoving_gc = enabled;
                 RtsFlags.TraceFlags.ticky = enabled;
-                enabled = r#true != 0;
+                enabled = true;
             }
             115 => {
                 RtsFlags.TraceFlags.scheduler = enabled;
-                enabled = r#true != 0;
+                enabled = true;
             }
             112 => {
                 RtsFlags.TraceFlags.sparks_sampled = enabled;
-                enabled = r#true != 0;
+                enabled = true;
             }
             102 => {
                 RtsFlags.TraceFlags.sparks_full = enabled;
-                enabled = r#true != 0;
+                enabled = true;
             }
             116 => {
                 RtsFlags.TraceFlags.timestamp = enabled;
-                enabled = r#true != 0;
+                enabled = true;
             }
             103 => {
                 RtsFlags.TraceFlags.gc = enabled;
-                enabled = r#true != 0;
+                enabled = true;
             }
             110 => {
                 RtsFlags.TraceFlags.nonmoving_gc = enabled;
-                enabled = r#true != 0;
+                enabled = true;
             }
             117 => {
                 RtsFlags.TraceFlags.user = enabled;
-                enabled = r#true != 0;
+                enabled = true;
             }
             84 => {
                 RtsFlags.TraceFlags.ticky = enabled;
-                enabled = r#true != 0;
+                enabled = true;
             }
             _ => {
-                errorBelch(
-                    b"unknown trace option: %c\0" as *const u8 as *const c_char,
-                    *c as c_int,
-                );
+                errorBelch(c"unknown trace option: %c".as_ptr(), *c as i32);
             }
         }
 
@@ -2446,32 +2244,30 @@ unsafe fn read_trace_flags(mut arg: *const c_char) {
 }
 
 unsafe fn bad_option(mut s: *const c_char) -> ! {
-    errorBelch(b"bad RTS option: %s\0" as *const u8 as *const c_char, s);
+    errorBelch(c"bad RTS option: %s".as_ptr(), s);
     stg_exit(EXIT_FAILURE);
 }
 
 unsafe fn copyArg(mut arg: *mut c_char) -> *mut c_char {
-    let mut new_arg = stgMallocBytes(
-        strlen(arg).wrapping_add(1 as size_t),
-        b"copyArg\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut c_char;
+    let mut new_arg =
+        stgMallocBytes(strlen(arg).wrapping_add(1 as usize), c"copyArg".as_ptr()) as *mut c_char;
 
     strcpy(new_arg, arg);
 
     return new_arg;
 }
 
-unsafe fn copyArgv(mut argc: c_int, mut argv: *mut *mut c_char) -> *mut *mut c_char {
-    let mut i: c_int = 0;
+unsafe fn copyArgv(mut argc: i32, mut argv: *mut *mut c_char) -> *mut *mut c_char {
+    let mut i: i32 = 0;
     let mut new_argv = null_mut::<*mut c_char>();
 
     new_argv = stgCallocBytes(
-        (argc + 1 as c_int) as size_t,
-        size_of::<*mut c_char>() as size_t,
-        b"copyArgv 1\0" as *const u8 as *const c_char as *mut c_char,
+        (argc + 1) as usize,
+        size_of::<*mut c_char>() as usize,
+        c"copyArgv 1".as_ptr(),
     ) as *mut *mut c_char;
 
-    i = 0 as c_int;
+    i = 0;
 
     while i < argc {
         let ref mut fresh0 = *new_argv.offset(i as isize);
@@ -2485,11 +2281,11 @@ unsafe fn copyArgv(mut argc: c_int, mut argv: *mut *mut c_char) -> *mut *mut c_c
     return new_argv;
 }
 
-unsafe fn freeArgv(mut argc: c_int, mut argv: *mut *mut c_char) {
-    let mut i: c_int = 0;
+unsafe fn freeArgv(mut argc: i32, mut argv: *mut *mut c_char) {
+    let mut i: i32 = 0;
 
     if !argv.is_null() {
-        i = 0 as c_int;
+        i = 0;
 
         while i < argc {
             stgFree(*argv.offset(i as isize) as *mut c_void);
@@ -2503,24 +2299,24 @@ unsafe fn freeArgv(mut argc: c_int, mut argv: *mut *mut c_char) {
 unsafe fn setProgName(mut argv: *mut *mut c_char) {
     let mut last_slash = null_mut::<c_char>();
 
-    if (*argv.offset(0 as c_int as isize)).is_null() {
-        prog_name = b"\0" as *const u8 as *const c_char as *mut c_char;
+    if (*argv.offset(0)).is_null() {
+        prog_name = c"".as_ptr();
         return;
     }
 
-    last_slash = strrchr(*argv.offset(0 as c_int as isize), '/' as i32);
+    last_slash = strrchr(*argv.offset(0), '/' as i32);
 
     if !last_slash.is_null() {
-        prog_name = last_slash.offset(1 as c_int as isize);
+        prog_name = last_slash.offset(1);
     } else {
-        prog_name = *argv.offset(0 as c_int as isize);
+        prog_name = *argv.offset(0);
     };
 }
 
 #[ffi(ghc_lib, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn getProgArgv(mut argc: *mut c_int, mut argv: *mut *mut *mut c_char) {
+pub unsafe extern "C" fn getProgArgv(mut argc: *mut i32, mut argv: *mut *mut *mut c_char) {
     if !argc.is_null() {
         *argc = prog_argc;
     }
@@ -2533,7 +2329,7 @@ pub unsafe extern "C" fn getProgArgv(mut argc: *mut c_int, mut argv: *mut *mut *
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn setProgArgv(mut argc: c_int, mut argv: *mut *mut c_char) {
+pub unsafe extern "C" fn setProgArgv(mut argc: i32, mut argv: *mut *mut c_char) {
     freeArgv(prog_argc, prog_argv as *mut *mut c_char);
     prog_argc = argc;
     prog_argv = copyArgv(argc, argv);
@@ -2542,11 +2338,11 @@ pub unsafe extern "C" fn setProgArgv(mut argc: c_int, mut argv: *mut *mut c_char
 
 unsafe fn freeProgArgv() {
     freeArgv(prog_argc, prog_argv as *mut *mut c_char);
-    prog_argc = 0 as c_int;
+    prog_argc = 0;
     prog_argv = null_mut::<*mut c_char>();
 }
 
-unsafe fn setFullProgArgv(mut argc: c_int, mut argv: *mut *mut c_char) {
+unsafe fn setFullProgArgv(mut argc: i32, mut argv: *mut *mut c_char) {
     full_prog_argc = argc;
     full_prog_argv = copyArgv(argc, argv);
 }
@@ -2554,7 +2350,7 @@ unsafe fn setFullProgArgv(mut argc: c_int, mut argv: *mut *mut c_char) {
 #[ffi(ghc_lib, libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn getFullProgArgv(mut argc: *mut c_int, mut argv: *mut *mut *mut c_char) {
+pub unsafe extern "C" fn getFullProgArgv(mut argc: *mut i32, mut argv: *mut *mut *mut c_char) {
     if !argc.is_null() {
         *argc = full_prog_argc;
     }
@@ -2566,15 +2362,15 @@ pub unsafe extern "C" fn getFullProgArgv(mut argc: *mut c_int, mut argv: *mut *m
 
 unsafe fn freeFullProgArgv() {
     freeArgv(full_prog_argc, full_prog_argv as *mut *mut c_char);
-    full_prog_argc = 0 as c_int;
+    full_prog_argc = 0;
     full_prog_argv = null_mut::<*mut c_char>();
 }
 
 unsafe fn freeRtsArgv() {
     freeArgv(rts_argc, rts_argv as *mut *mut c_char);
-    rts_argc = 0 as c_int;
+    rts_argc = 0;
     rts_argv = null_mut::<*mut c_char>();
-    rts_argv_size = 0 as c_int;
+    rts_argv_size = 0;
 }
 
 unsafe fn freeRtsArgs() {

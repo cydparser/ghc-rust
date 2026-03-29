@@ -10,5 +10,5 @@ mod tests;
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn newSpark(mut reg: *mut StgRegTable, mut p: *mut StgClosure) -> StgInt {
-    return 1 as StgInt;
+    return 1;
 }

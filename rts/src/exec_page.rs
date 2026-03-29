@@ -42,9 +42,5 @@ pub unsafe extern "C" fn freezeExecPage(mut page: *mut ExecPage) {
 }
 
 unsafe fn freeExecPage(mut page: *mut ExecPage) {
-    munmapForLinker(
-        page as *mut c_void,
-        getPageSize(),
-        b"freeExecPage\0" as *const u8 as *const c_char,
-    );
+    munmapForLinker(page as *mut c_void, getPageSize(), c"freeExecPage".as_ptr());
 }

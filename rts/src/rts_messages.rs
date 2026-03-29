@@ -41,9 +41,9 @@ pub unsafe extern "C" fn vbarf(mut s: *const c_char, mut ap: VaList) -> ! {
 
 #[ffi(utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn _assertFail(mut filename: *const c_char, mut linenum: c_uint) -> ! {
+pub unsafe extern "C" fn _assertFail(mut filename: *const c_char, mut linenum: u32) -> ! {
     barf(
-        b"ASSERTION FAILED: file %s, line %u\n\0" as *const u8 as *const c_char,
+        c"ASSERTION FAILED: file %s, line %u\n".as_ptr(),
         filename,
         linenum,
     );
@@ -55,16 +55,15 @@ pub unsafe extern "C" fn _assertFail(mut filename: *const c_char, mut linenum: c
 pub unsafe extern "C" fn errorBelch(mut s: *const c_char, mut args: ...) {
     let mut ap: VaListImpl;
     ap = args.clone();
-
     Some(errorMsgFn.expect("non-null function pointer")).expect("non-null function pointer")(
         s,
         ap.as_va_list(),
     );
 }
 
-unsafe fn _warnFail(mut filename: *const c_char, mut linenum: c_uint) {
+unsafe fn _warnFail(mut filename: *const c_char, mut linenum: u32) {
     errorBelch(
-        b"ASSERTION FAILED: file %s, line %u\n\0" as *const u8 as *const c_char,
+        c"ASSERTION FAILED: file %s, line %u\n".as_ptr(),
         filename,
         linenum,
     );
@@ -80,7 +79,6 @@ unsafe fn verrorBelch(mut s: *const c_char, mut ap: VaList) {
 unsafe fn sysErrorBelch(mut s: *const c_char, mut args: ...) {
     let mut ap: VaListImpl;
     ap = args.clone();
-
     Some(sysErrorMsgFn.expect("non-null function pointer")).expect("non-null function pointer")(
         s,
         ap.as_va_list(),
@@ -100,46 +98,37 @@ unsafe fn vsysErrorBelch(mut s: *const c_char, mut ap: VaList) {
 pub unsafe extern "C" fn debugBelch(mut s: *const c_char, mut args: ...) {
     let mut ap: VaListImpl;
     ap = args.clone();
-
     Some(debugMsgFn.expect("non-null function pointer")).expect("non-null function pointer")(
         s,
         ap.as_va_list(),
     );
 }
 
-unsafe fn vdebugBelch(mut s: *const c_char, mut ap: VaList) -> c_int {
+unsafe fn vdebugBelch(mut s: *const c_char, mut ap: VaList) -> i32 {
     return Some(debugMsgFn.expect("non-null function pointer"))
         .expect("non-null function pointer")(s, ap.as_va_list());
 }
 
 unsafe fn rtsFatalInternalErrorFn(mut s: *const c_char, mut ap: VaList) -> ! {
     if !prog_argv.is_null() && !prog_name.is_null() {
-        fprintf(
-            __stderrp,
-            b"%s: internal error: \0" as *const u8 as *const c_char,
-            prog_name,
-        );
+        fprintf(__stderrp, c"%s: internal error: ".as_ptr(), prog_name);
     } else {
-        fprintf(
-            __stderrp,
-            b"internal error: \0" as *const u8 as *const c_char,
-        );
+        fprintf(__stderrp, c"internal error: ".as_ptr());
     }
 
     vfprintf(__stderrp, s, ap.as_va_list());
-    fprintf(__stderrp, b"\n\0" as *const u8 as *const c_char);
+    fprintf(__stderrp, c"\n".as_ptr());
 
     fprintf(
         __stderrp,
-        b"    (GHC version %s for %s)\n\0" as *const u8 as *const c_char,
+        c"    (GHC version %s for %s)\n".as_ptr(),
         __GLASGOW_HASKELL_FULL_VERSION__.as_ptr(),
-        b"aarch64_apple_darwin\0" as *const u8 as *const c_char,
+        c"aarch64_apple_darwin".as_ptr(),
     );
 
     fprintf(
         __stderrp,
-        b"    Please report this as a GHC bug:  https://www.haskell.org/ghc/reportabug\n\0"
-            as *const u8 as *const c_char,
+        c"    Please report this as a GHC bug:  https://www.haskell.org/ghc/reportabug\n".as_ptr(),
     );
 
     fflush(__stderrp);
@@ -153,15 +142,11 @@ unsafe fn rtsFatalInternalErrorFn(mut s: *const c_char, mut ap: VaList) -> ! {
 
 unsafe fn rtsErrorMsgFn(mut s: *const c_char, mut ap: VaList) {
     if !prog_name.is_null() {
-        fprintf(
-            __stderrp,
-            b"%s: \0" as *const u8 as *const c_char,
-            prog_name,
-        );
+        fprintf(__stderrp, c"%s: ".as_ptr(), prog_name);
     }
 
     vfprintf(__stderrp, s, ap.as_va_list());
-    fprintf(__stderrp, b"\n\0" as *const u8 as *const c_char);
+    fprintf(__stderrp, c"\n".as_ptr());
 }
 
 unsafe fn rtsSysErrorMsgFn(mut s: *const c_char, mut ap: VaList) {
@@ -169,24 +154,20 @@ unsafe fn rtsSysErrorMsgFn(mut s: *const c_char, mut ap: VaList) {
     syserr = strerror(*__error());
 
     if !prog_argv.is_null() && !prog_name.is_null() {
-        fprintf(
-            __stderrp,
-            b"%s: \0" as *const u8 as *const c_char,
-            prog_name,
-        );
+        fprintf(__stderrp, c"%s: ".as_ptr(), prog_name);
     }
 
     vfprintf(__stderrp, s, ap.as_va_list());
 
     if !syserr.is_null() {
-        fprintf(__stderrp, b": %s\n\0" as *const u8 as *const c_char, syserr);
+        fprintf(__stderrp, c": %s\n".as_ptr(), syserr);
     } else {
-        fprintf(__stderrp, b"\n\0" as *const u8 as *const c_char);
+        fprintf(__stderrp, c"\n".as_ptr());
     };
 }
 
-unsafe fn rtsDebugMsgFn(mut s: *const c_char, mut ap: VaList) -> c_int {
-    let mut r: c_int = 0;
+unsafe fn rtsDebugMsgFn(mut s: *const c_char, mut ap: VaList) -> i32 {
+    let mut r: i32 = 0;
     r = vfprintf(__stderrp, s, ap.as_va_list());
     fflush(__stderrp);
 
@@ -194,23 +175,17 @@ unsafe fn rtsDebugMsgFn(mut s: *const c_char, mut ap: VaList) -> c_int {
 }
 
 unsafe fn rtsBadAlignmentBarf() -> ! {
-    barf(
-        b"Encountered incorrectly aligned pointer. This can't be good.\0" as *const u8
-            as *const c_char,
-    );
+    barf(c"Encountered incorrectly aligned pointer. This can't be good.".as_ptr());
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rtsOutOfBoundsAccess() -> ! {
-    barf(b"Encountered out of bounds array access.\0" as *const u8 as *const c_char);
+    barf(c"Encountered out of bounds array access.".as_ptr());
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rtsMemcpyRangeOverlap() -> ! {
-    barf(
-        b"Encountered overlapping source/destination ranges in a memcpy-using op.\0" as *const u8
-            as *const c_char,
-    );
+    barf(c"Encountered overlapping source/destination ranges in a memcpy-using op.".as_ptr());
 }

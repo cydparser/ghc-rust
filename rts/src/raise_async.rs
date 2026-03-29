@@ -36,15 +36,15 @@ use crate::stm::{stmAbortTransaction, stmCondemnTransaction, stmFreeAbortedTRec}
 use crate::threads::{threadStackUnderflow, tryWakeupThread, updateThunk};
 use crate::trace::{DEBUG_RTS, trace_, traceCap_};
 
-pub(crate) const THROWTO_SUCCESS: c_int = 0 as c_int;
+pub(crate) const THROWTO_SUCCESS: i32 = 0;
 
-pub(crate) const THROWTO_BLOCKED: c_int = 1 as c_int;
+pub(crate) const THROWTO_BLOCKED: i32 = 1;
 
 #[inline]
-pub(crate) unsafe fn interruptible(mut t: *mut StgTSO) -> c_int {
+pub(crate) unsafe fn interruptible(mut t: *mut StgTSO) -> i32 {
     match (*t).why_blocked {
-        1 | 6 | 14 | 12 | 3 | 4 | 5 => return 1 as c_int,
-        _ => return 0 as c_int,
+        1 | 6 | 14 | 12 | 3 | 4 | 5 => return 1,
+        _ => return 0,
     };
 }
 
@@ -55,7 +55,7 @@ unsafe fn throwToSingleThreaded__(
     mut stop_at_atomically: bool,
     mut stop_here: *mut StgUpdateFrame,
 ) {
-    if (*tso).what_next as c_int == ThreadComplete || (*tso).what_next as c_int == ThreadKilled {
+    if (*tso).what_next as i32 == ThreadComplete || (*tso).what_next as i32 == ThreadKilled {
         return;
     }
 
@@ -68,13 +68,7 @@ unsafe fn throwToSingleThreaded(
     mut tso: *mut StgTSO,
     mut exception: *mut StgClosure,
 ) {
-    throwToSingleThreaded__(
-        cap,
-        tso,
-        exception,
-        r#false != 0,
-        null_mut::<StgUpdateFrame>(),
-    );
+    throwToSingleThreaded__(cap, tso, exception, false, null_mut::<StgUpdateFrame>());
 }
 
 unsafe fn throwToSingleThreaded_(
@@ -97,7 +91,7 @@ unsafe fn suspendComputation(
     mut tso: *mut StgTSO,
     mut stop_here: *mut StgUpdateFrame,
 ) {
-    throwToSingleThreaded__(cap, tso, null_mut::<StgClosure>(), r#false != 0, stop_here);
+    throwToSingleThreaded__(cap, tso, null_mut::<StgClosure>(), false, stop_here);
 }
 
 unsafe fn throwToSelf(
@@ -144,7 +138,7 @@ unsafe fn throwTo(
     };
 }
 
-unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> uint32_t {
+unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> u32 {
     let mut status: StgWord = 0;
     let mut target = (*msg).target;
     let mut target_cap = null_mut::<Capability>();
@@ -152,17 +146,16 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
     loop {
         let mut what_next: StgWord16 = (*target).what_next;
 
-        if what_next as c_int == ThreadComplete || what_next as c_int == ThreadKilled {
-            return THROWTO_SUCCESS as uint32_t;
+        if what_next as i32 == ThreadComplete || what_next as i32 == ThreadKilled {
+            return THROWTO_SUCCESS as u32;
         }
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
             traceCap_(
                 cap,
-                b"throwTo: from thread %lu to thread %lu\0" as *const u8 as *const c_char
-                    as *mut c_char,
-                (*(*msg).source).id as c_ulong,
-                (*(*msg).target).id as c_ulong,
+                c"throwTo: from thread %lu to thread %lu".as_ptr(),
+                (*(*msg).source).id as u64,
+                (*(*msg).target).id as u64,
             );
         }
 
@@ -171,27 +164,27 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
         if (*target).cap != cap {
             throwToSendMsg(cap, target_cap, msg);
 
-            return THROWTO_BLOCKED as uint32_t;
+            return THROWTO_BLOCKED as u32;
         }
 
         status = (*target).why_blocked as StgWord;
 
         match status {
             0 => {
-                if (*target).flags & TSO_BLOCKEX as StgWord32 == 0 as StgWord32 {
+                if (*target).flags & TSO_BLOCKEX as StgWord32 == 0 {
                     raiseAsync(
                         cap,
                         target,
                         (*msg).exception,
-                        r#false != 0,
+                        false,
                         null_mut::<StgUpdateFrame>(),
                     );
 
-                    return THROWTO_SUCCESS as uint32_t;
+                    return THROWTO_SUCCESS as u32;
                 } else {
                     blockedThrowTo(cap, target, msg);
 
-                    return THROWTO_BLOCKED as uint32_t;
+                    return THROWTO_BLOCKED as u32;
                 }
             }
             12 => {
@@ -207,7 +200,7 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
                     if i.is_null() {
                         throwToSendMsg(cap, (*target).cap as *mut Capability, msg);
 
-                        return THROWTO_BLOCKED as uint32_t;
+                        return THROWTO_BLOCKED as u32;
                     }
                 }
 
@@ -218,12 +211,12 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
                     unlockClosure(m as *mut StgClosure, i);
                 } else {
                     if (*target).flags & TSO_BLOCKEX as StgWord32 != 0
-                        && (*target).flags & TSO_INTERRUPTIBLE as StgWord32 == 0 as StgWord32
+                        && (*target).flags & TSO_INTERRUPTIBLE as StgWord32 == 0
                     {
                         unlockClosure(m as *mut StgClosure, i);
                         blockedThrowTo(cap, target, msg);
 
-                        return THROWTO_BLOCKED as uint32_t;
+                        return THROWTO_BLOCKED as u32;
                     }
 
                     doneWithMsgThrowTo(cap, m);
@@ -232,11 +225,11 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
                         cap,
                         target,
                         (*msg).exception,
-                        r#false != 0,
+                        false,
                         null_mut::<StgUpdateFrame>(),
                     );
 
-                    return THROWTO_SUCCESS as uint32_t;
+                    return THROWTO_SUCCESS as u32;
                 }
             }
             1 | 14 => {
@@ -259,12 +252,12 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
                             unlockClosure(mvar as *mut StgClosure, info);
                             tryWakeupThread(cap, target);
                         } else if (*target).flags & TSO_BLOCKEX as StgWord32 != 0
-                            && (*target).flags & TSO_INTERRUPTIBLE as StgWord32 == 0 as StgWord32
+                            && (*target).flags & TSO_INTERRUPTIBLE as StgWord32 == 0
                         {
                             blockedThrowTo(cap, target, msg);
                             unlockClosure(mvar as *mut StgClosure, info);
 
-                            return THROWTO_BLOCKED as uint32_t;
+                            return THROWTO_BLOCKED as u32;
                         } else {
                             removeFromMVarBlockedQueue(target);
 
@@ -272,13 +265,13 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
                                 cap,
                                 target,
                                 (*msg).exception,
-                                r#false != 0,
+                                false,
                                 null_mut::<StgUpdateFrame>(),
                             );
 
                             unlockClosure(mvar as *mut StgClosure, info);
 
-                            return THROWTO_SUCCESS as uint32_t;
+                            return THROWTO_SUCCESS as u32;
                         }
                     }
                     _ => {}
@@ -288,7 +281,7 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
                 if (*target).flags & TSO_BLOCKEX as StgWord32 != 0 {
                     blockedThrowTo(cap, target, msg);
 
-                    return THROWTO_BLOCKED as uint32_t;
+                    return THROWTO_BLOCKED as u32;
                 } else {
                     SET_INFO_RELAXED(
                         (*target).block_info.bh as *mut StgClosure,
@@ -299,44 +292,44 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
                         cap,
                         target,
                         (*msg).exception,
-                        r#false != 0,
+                        false,
                         null_mut::<StgUpdateFrame>(),
                     );
 
-                    return THROWTO_SUCCESS as uint32_t;
+                    return THROWTO_SUCCESS as u32;
                 }
             }
             6 => {
                 if (*target).flags & TSO_BLOCKEX as StgWord32 != 0
-                    && (*target).flags & TSO_INTERRUPTIBLE as StgWord32 == 0 as StgWord32
+                    && (*target).flags & TSO_INTERRUPTIBLE as StgWord32 == 0
                 {
                     blockedThrowTo(cap, target, msg);
 
-                    return THROWTO_BLOCKED as uint32_t;
+                    return THROWTO_BLOCKED as u32;
                 } else {
                     raiseAsync(
                         cap,
                         target,
                         (*msg).exception,
-                        r#false != 0,
+                        false,
                         null_mut::<StgUpdateFrame>(),
                     );
 
-                    return THROWTO_SUCCESS as uint32_t;
+                    return THROWTO_SUCCESS as u32;
                 }
             }
             11 | 10 => {
                 blockedThrowTo(cap, target, msg);
 
-                return THROWTO_BLOCKED as uint32_t;
+                return THROWTO_BLOCKED as u32;
             }
             3 | 4 | 5 => {
                 if (*target).flags & TSO_BLOCKEX as StgWord32 != 0
-                    && (*target).flags & TSO_INTERRUPTIBLE as StgWord32 == 0 as StgWord32
+                    && (*target).flags & TSO_INTERRUPTIBLE as StgWord32 == 0
                 {
                     blockedThrowTo(cap, target, msg);
 
-                    return THROWTO_BLOCKED as uint32_t;
+                    return THROWTO_BLOCKED as u32;
                 } else {
                     removeFromQueues(cap, target);
 
@@ -344,11 +337,11 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
                         cap,
                         target,
                         (*msg).exception,
-                        r#false != 0,
+                        false,
                         null_mut::<StgUpdateFrame>(),
                     );
 
-                    return THROWTO_SUCCESS as uint32_t;
+                    return THROWTO_SUCCESS as u32;
                 }
             }
             13 => {
@@ -356,14 +349,14 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
             }
             _ => {
                 barf(
-                    b"throwTo: unrecognised why_blocked (%d)\0" as *const u8 as *const c_char,
+                    c"throwTo: unrecognised why_blocked (%d)".as_ptr(),
                     (*target).why_blocked,
                 );
             }
         }
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-            trace_(b"throwTo: retrying...\0" as *const u8 as *const c_char as *mut c_char);
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+            trace_(c"throwTo: retrying...".as_ptr());
         }
     }
 }
@@ -380,11 +373,11 @@ unsafe fn blockedThrowTo(
     mut target: *mut StgTSO,
     mut msg: *mut MessageThrowTo,
 ) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
         traceCap_(
             cap,
-            b"throwTo: blocking on thread %lu\0" as *const u8 as *const c_char as *mut c_char,
-            (*target).id as c_ulong,
+            c"throwTo: blocking on thread %lu".as_ptr(),
+            (*target).id as u64,
         );
     }
 
@@ -393,33 +386,32 @@ unsafe fn blockedThrowTo(
     (*target).blocked_exceptions = msg as *mut MessageThrowTo_;
 }
 
-unsafe fn maybePerformBlockedException(mut cap: *mut Capability, mut tso: *mut StgTSO) -> c_int {
+unsafe fn maybePerformBlockedException(mut cap: *mut Capability, mut tso: *mut StgTSO) -> i32 {
     let mut msg = null_mut::<MessageThrowTo>();
     let mut i = null::<StgInfoTable>();
     let mut source = null_mut::<StgTSO>();
 
-    if (*tso).what_next as c_int == ThreadComplete || (*tso).what_next as c_int == ThreadFinished {
+    if (*tso).what_next as i32 == ThreadComplete || (*tso).what_next as i32 == ThreadFinished {
         if (*tso).blocked_exceptions
             != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
                 as *mut MessageThrowTo
         {
             awakenBlockedExceptionQueue(cap, tso);
 
-            return 1 as c_int;
+            return 1;
         } else {
-            return 0 as c_int;
+            return 0;
         }
     }
 
     if (*tso).blocked_exceptions
         != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO as *mut MessageThrowTo
-        && (*tso).flags & TSO_BLOCKEX as StgWord32 != 0 as StgWord32
+        && (*tso).flags & TSO_BLOCKEX as StgWord32 != 0
     {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
             traceCap_(
                 cap,
-                b"throwTo: thread %llu has blocked exceptions but is inside block\0" as *const u8
-                    as *const c_char as *mut c_char,
+                c"throwTo: thread %llu has blocked exceptions but is inside block".as_ptr(),
                 (*tso).id,
             );
         }
@@ -427,7 +419,7 @@ unsafe fn maybePerformBlockedException(mut cap: *mut Capability, mut tso: *mut S
 
     if (*tso).blocked_exceptions
         != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO as *mut MessageThrowTo
-        && ((*tso).flags & TSO_BLOCKEX as StgWord32 == 0 as StgWord32
+        && ((*tso).flags & TSO_BLOCKEX as StgWord32 == 0
             || (*tso).flags & TSO_INTERRUPTIBLE as StgWord32 != 0 && interruptible(tso) != 0)
     {
         loop {
@@ -437,7 +429,7 @@ unsafe fn maybePerformBlockedException(mut cap: *mut Capability, mut tso: *mut S
                 == &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
                     as *mut MessageThrowTo
             {
-                return 0 as c_int;
+                return 0;
             }
 
             i = lockClosure(msg as *mut StgClosure);
@@ -455,10 +447,10 @@ unsafe fn maybePerformBlockedException(mut cap: *mut Capability, mut tso: *mut S
         doneWithMsgThrowTo(cap, msg);
         tryWakeupThread(cap, source);
 
-        return 1 as c_int;
+        return 1;
     }
 
-    return 0 as c_int;
+    return 0;
 }
 
 unsafe fn awakenBlockedExceptionQueue(mut cap: *mut Capability, mut tso: *mut StgTSO) {
@@ -531,14 +523,11 @@ unsafe fn removeFromQueues(mut cap: *mut Capability, mut tso: *mut StgTSO) {
             syncDelayCancel(cap, tso);
         }
         _ => {
-            barf(
-                b"removeFromQueues: %d\0" as *const u8 as *const c_char,
-                (*tso).why_blocked,
-            );
+            barf(c"removeFromQueues: %d".as_ptr(), (*tso).why_blocked);
         }
     }
 
-    (*tso).why_blocked = 0 as StgWord32;
+    (*tso).why_blocked = 0;
     appendToRunQueue(cap, tso);
 }
 
@@ -553,13 +542,13 @@ unsafe fn raiseAsync(
     let mut sp = null_mut::<StgWord>();
     let mut frame = null_mut::<StgWord>();
     let mut updatee = null_mut::<StgClosure>();
-    let mut i: uint32_t = 0;
+    let mut i: u32 = 0;
     let mut stack = null_mut::<StgStack>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
         traceCap_(
             cap,
-            b"raising exception in thread %llu.\0" as *const u8 as *const c_char as *mut c_char,
+            c"raising exception in thread %llu.".as_ptr(),
             (*tso).id,
         );
     }
@@ -575,14 +564,14 @@ unsafe fn raiseAsync(
         updatee = null_mut::<StgClosure>();
     }
 
-    if *sp.offset(0 as c_int as isize) == &raw const stg_enter_info as W_ {
+    if *sp.offset(0) == &raw const stg_enter_info as W_ {
         sp = sp.offset(1);
     } else {
         sp = sp.offset(-1);
-        *sp.offset(0 as c_int as isize) = &raw mut stg_dummy_ret_closure as W_ as StgWord;
+        *sp.offset(0) = &raw mut stg_dummy_ret_closure as W_ as StgWord;
     }
 
-    frame = sp.offset(1 as c_int as isize);
+    frame = sp.offset(1);
 
     while stop_here.is_null() || frame < stop_here as StgPtr {
         info = get_ret_itbl(frame as *mut StgClosure);
@@ -590,13 +579,13 @@ unsafe fn raiseAsync(
         match (*info).i.r#type {
             33 => {
                 let mut ap = null_mut::<StgAP_STACK>();
-                let mut words: uint32_t = 0;
-                words = (frame.offset_from(sp) as c_long - 1 as c_long) as uint32_t;
+                let mut words: u32 = 0;
+                words = (frame.offset_from(sp) as i64 - 1) as u32;
                 ap = allocate(cap, AP_STACK_sizeW(words) as W_) as *mut StgAP_STACK;
                 (*ap).size = words as StgWord;
-                (*ap).fun = *sp.offset(0 as c_int as isize) as *mut StgClosure;
+                (*ap).fun = *sp.offset(0) as *mut StgClosure;
                 sp = sp.offset(1);
-                i = 0 as uint32_t;
+                i = 0;
 
                 while i < words {
                     let fresh6 = sp;
@@ -629,19 +618,19 @@ unsafe fn raiseAsync(
                         .wrapping_sub(1 as usize) as isize,
                 );
 
-                *sp.offset(0 as c_int as isize) = ap as W_ as StgWord;
-                frame = sp.offset(1 as c_int as isize);
+                *sp.offset(0) = ap as W_ as StgWord;
+                frame = sp.offset(1);
                 continue;
             }
             35 => {
                 let mut ap_0 = null_mut::<StgAP_STACK>();
-                let mut words_0: uint32_t = 0;
-                words_0 = (frame.offset_from(sp) as c_long - 1 as c_long) as uint32_t;
+                let mut words_0: u32 = 0;
+                words_0 = (frame.offset_from(sp) as i64 - 1) as u32;
                 ap_0 = allocate(cap, AP_STACK_sizeW(words_0) as W_) as *mut StgAP_STACK;
                 (*ap_0).size = words_0 as StgWord;
-                (*ap_0).fun = *sp.offset(0 as c_int as isize) as *mut StgClosure;
+                (*ap_0).fun = *sp.offset(0) as *mut StgClosure;
                 sp = sp.offset(1);
-                i = 0 as uint32_t;
+                i = 0;
 
                 while i < words_0 {
                     let fresh8 = sp;
@@ -659,13 +648,12 @@ unsafe fn raiseAsync(
                 stack = (*tso).stackobj as *mut StgStack;
                 sp = (*stack).sp;
                 sp = sp.offset(-1);
-                *sp.offset(0 as c_int as isize) = ap_0 as W_ as StgWord;
-                frame = sp.offset(1 as c_int as isize);
+                *sp.offset(0) = ap_0 as W_ as StgWord;
+                frame = sp.offset(1);
                 continue;
             }
             36 => {
                 (*tso).what_next = ThreadKilled as StgWord16;
-
                 (*stack).sp = frame.offset(
                     (size_of::<StgStopFrame>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
@@ -680,9 +668,9 @@ unsafe fn raiseAsync(
                     let mut handler = (*(frame as *mut StgCatchFrame)).handler;
                     sp = frame.offset(stack_frame_sizeW(frame as *mut StgClosure) as isize);
 
-                    if (*tso).flags & TSO_BLOCKEX as StgWord32 == 0 as StgWord32 {
+                    if (*tso).flags & TSO_BLOCKEX as StgWord32 == 0 {
                         sp = sp.offset(-1);
-                        *sp.offset(0 as c_int as isize) =
+                        *sp.offset(0) =
                             &raw const stg_unmaskAsyncExceptionszh_ret_info as W_ as StgWord;
                     }
 
@@ -692,24 +680,22 @@ unsafe fn raiseAsync(
                         (*tso).flags |= (TSO_BLOCKEX | TSO_INTERRUPTIBLE) as StgWord32;
                     }
 
-                    sp = sp.offset(-(4 as c_int as isize));
-                    *sp.offset(0 as c_int as isize) = &raw const stg_enter_info as W_ as StgWord;
-                    *sp.offset(1 as c_int as isize) = handler as W_ as StgWord;
-                    *sp.offset(2 as c_int as isize) = &raw const stg_ap_pv_info as W_ as StgWord;
-                    *sp.offset(3 as c_int as isize) = exception as W_ as StgWord;
+                    sp = sp.offset(-4);
+                    *sp.offset(0) = &raw const stg_enter_info as W_ as StgWord;
+                    *sp.offset(1) = handler as W_ as StgWord;
+                    *sp.offset(2) = &raw const stg_ap_pv_info as W_ as StgWord;
+                    *sp.offset(3) = exception as W_ as StgWord;
                     (*stack).sp = sp;
-                    (*tso).what_next = 1 as StgWord16;
+                    (*tso).what_next = 1;
                     break;
                 }
             }
             55 => {
                 if stop_at_atomically {
                     stmCondemnTransaction(cap, (*tso).trec as *mut StgTRecHeader);
-                    (*stack).sp = frame.offset(-(2 as c_int as isize));
-                    *(*stack).sp.offset(1 as c_int as isize) =
-                        &raw mut stg_NO_TREC_closure as W_ as StgWord;
-                    *(*stack).sp.offset(0 as c_int as isize) =
-                        &raw const stg_ret_p_info as W_ as StgWord;
+                    (*stack).sp = frame.offset(-2);
+                    *(*stack).sp.offset(1) = &raw mut stg_NO_TREC_closure as W_ as StgWord;
+                    *(*stack).sp.offset(0) = &raw const stg_ret_p_info as W_ as StgWord;
                     (*tso).what_next = ThreadRunGHC as StgWord16;
                     break;
                 } else {
@@ -718,12 +704,8 @@ unsafe fn raiseAsync(
                     let mut atomically = null_mut::<StgThunk>();
                     let mut af = frame as *mut StgAtomicallyFrame;
 
-                    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                        traceCap_(
-                            cap,
-                            b"raiseAsync: freezing atomically frame\0" as *const u8 as *const c_char
-                                as *mut c_char,
-                        );
+                    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                        traceCap_(cap, c"raiseAsync: freezing atomically frame".as_ptr());
                     }
 
                     stmAbortTransaction(cap, trec);
@@ -741,11 +723,9 @@ unsafe fn raiseAsync(
 
                     (*atomically).header.info = &raw const stg_atomically_info;
 
-                    let ref mut fresh10 = *(&raw mut (*atomically).payload
-                        as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize);
+                    let ref mut fresh10 =
+                        *(&raw mut (*atomically).payload as *mut *mut StgClosure_).offset(0);
                     *fresh10 = (*af).code as *mut StgClosure_;
-
                     frame = frame.offset(
                         (size_of::<StgAtomicallyFrame>() as usize)
                             .wrapping_add(size_of::<W_>() as usize)
@@ -754,8 +734,8 @@ unsafe fn raiseAsync(
                             as isize,
                     );
 
-                    sp = frame.offset(-(1 as c_int as isize));
-                    *sp.offset(0 as c_int as isize) = atomically as W_ as StgWord;
+                    sp = frame.offset(-1);
+                    *sp.offset(0) = atomically as W_ as StgWord;
                     continue;
                 }
             }
@@ -763,11 +743,10 @@ unsafe fn raiseAsync(
                 let mut trec_0 = (*tso).trec as *mut StgTRecHeader;
                 let mut outer_0 = (*trec_0).enclosing_trec as *mut StgTRecHeader;
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                     traceCap_(
                         cap,
-                        b"found atomically block delivering async exception\0" as *const u8
-                            as *const c_char as *mut c_char,
+                        c"found atomically block delivering async exception".as_ptr(),
                     );
                 }
 

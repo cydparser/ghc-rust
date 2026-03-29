@@ -35,7 +35,7 @@ fn test_getProgArgv() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let mut argc: c_int = Arbitrary::arbitrary(g);
+        let mut argc: i32 = Arbitrary::arbitrary(g);
         let mut argv: c_char = Arbitrary::arbitrary(g);
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
@@ -51,7 +51,7 @@ fn test_getProgArgv() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_getProgArgv(argc: c_int, argv: c_char) -> bool {
+fn equivalent_getProgArgv(argc: i32, argv: c_char) -> bool {
     let expected = {
         let mut argc = argc;
         let mut argv = argv;
@@ -80,7 +80,7 @@ fn test_setProgArgv() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let argc: c_int = Arbitrary::arbitrary(g);
+        let argc: i32 = Arbitrary::arbitrary(g);
         let mut argv: c_char = Arbitrary::arbitrary(g);
         let mut argv = &raw mut argv;
         unsafe { setProgArgv(argc, &raw mut argv) };
@@ -95,7 +95,7 @@ fn test_setProgArgv() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_setProgArgv(argc: c_int, argv: c_char) -> bool {
+fn equivalent_setProgArgv(argc: i32, argv: c_char) -> bool {
     let expected = {
         let mut argv = argv;
         let mut argv = &raw mut argv;
@@ -120,7 +120,7 @@ fn test_getFullProgArgv() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let mut argc: c_int = Arbitrary::arbitrary(g);
+        let mut argc: i32 = Arbitrary::arbitrary(g);
         let mut argv: c_char = Arbitrary::arbitrary(g);
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
@@ -136,7 +136,7 @@ fn test_getFullProgArgv() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_getFullProgArgv(argc: c_int, argv: c_char) -> bool {
+fn equivalent_getFullProgArgv(argc: i32, argv: c_char) -> bool {
     let expected = {
         let mut argc = argc;
         let mut argv = argv;

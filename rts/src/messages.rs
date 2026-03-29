@@ -32,12 +32,11 @@ pub(crate) unsafe fn doneWithMsgThrowTo(mut cap: *mut Capability, mut m: *mut Me
     unlockClosure(m as *mut StgClosure, &raw const stg_MSG_NULL_info);
 }
 
-unsafe fn messageBlackHole(mut cap: *mut Capability, mut msg: *mut MessageBlackHole) -> uint32_t {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
+unsafe fn messageBlackHole(mut cap: *mut Capability, mut msg: *mut MessageBlackHole) -> u32 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
         traceCap_(
             cap,
-            b"message: thread %llu blocking on blackhole %p\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"message: thread %llu blocking on blackhole %p".as_ptr(),
             (*(*msg).tso).id,
             (*msg).bh,
         );
@@ -51,7 +50,7 @@ unsafe fn messageBlackHole(mut cap: *mut Capability, mut msg: *mut MessageBlackH
         && bh_info != &raw const __stg_EAGER_BLACKHOLE_info
         && bh_info != &raw const stg_WHITEHOLE_info
     {
-        return 0 as uint32_t;
+        return 0;
     }
 
     let mut p = null_mut::<StgClosure>();
@@ -95,17 +94,16 @@ unsafe fn messageBlackHole(mut cap: *mut Capability, mut msg: *mut MessageBlackH
         *fresh7 = bq as *mut StgClosure;
         recordClosureMutated(cap, bh);
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
             traceCap_(
                 cap,
-                b"thread %llu blocked on thread %llu\0" as *const u8 as *const c_char
-                    as *mut c_char,
+                c"thread %llu blocked on thread %llu".as_ptr(),
                 (*(*msg).tso).id,
                 (*owner).id,
             );
         }
 
-        return 1 as uint32_t;
+        return 1;
     } else if info == &raw const stg_BLOCKING_QUEUE_CLEAN_info
         || info == &raw const stg_BLOCKING_QUEUE_DIRTY_info
     {
@@ -120,11 +118,10 @@ unsafe fn messageBlackHole(mut cap: *mut Capability, mut msg: *mut MessageBlackH
             recordClosureMutated(cap, bq_0 as *mut StgClosure);
         }
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
             traceCap_(
                 cap,
-                b"thread %llu blocked on existing BLOCKING_QUEUE owned by thread %llu\0"
-                    as *const u8 as *const c_char as *mut c_char,
+                c"thread %llu blocked on existing BLOCKING_QUEUE owned by thread %llu".as_ptr(),
                 (*(*msg).tso).id,
                 (*owner_0).id,
             );
@@ -134,10 +131,10 @@ unsafe fn messageBlackHole(mut cap: *mut Capability, mut msg: *mut MessageBlackH
             promoteInRunQueue(cap, owner_0);
         }
 
-        return 1 as uint32_t;
+        return 1;
     }
 
-    return 0 as uint32_t;
+    return 0;
 }
 
 unsafe fn blackHoleOwner(mut bh: *mut StgClosure) -> *mut StgTSO {

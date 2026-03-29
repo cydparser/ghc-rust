@@ -22,8 +22,8 @@ fn equivalent_getAllocations() {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn test_getRTSStatsEnabled() {
-    let actual: c_int = { unsafe { getRTSStatsEnabled() } };
-    let expected: c_int = todo!();
+    let actual: i32 = { unsafe { getRTSStatsEnabled() } };
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -31,8 +31,8 @@ fn test_getRTSStatsEnabled() {
 #[test]
 #[ignore]
 fn equivalent_getRTSStatsEnabled() {
-    let expected: c_int = { unsafe { sys::getRTSStatsEnabled() } };
-    let actual: c_int = { unsafe { getRTSStatsEnabled() } };
+    let expected: i32 = { unsafe { sys::getRTSStatsEnabled() } };
+    let actual: i32 = { unsafe { getRTSStatsEnabled() } };
     assert_eq!(actual, expected);
 }
 

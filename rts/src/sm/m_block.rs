@@ -25,22 +25,22 @@ struct free_list {
     size: W_,
 }
 
-static mut peak_mblocks_allocated: W_ = 0 as W_;
+static mut peak_mblocks_allocated: W_ = 0;
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
-pub static mut mblocks_allocated: W_ = 0 as W_;
+pub static mut mblocks_allocated: W_ = 0;
 
-static mut mpc_misses: W_ = 0 as W_;
+static mut mpc_misses: W_ = 0;
 
-static mut free_list_head: *mut free_list = null::<free_list>() as *mut free_list;
+static mut free_list_head: *mut free_list = null_mut::<free_list>();
 
 static mut mblock_high_watermark: W_ = 0;
 
 static mut mblock_address_space: mblock_address_range =
     mblock_address_range(mblock_address_range_Inner {
-        begin: 0 as W_,
-        end: 0 as W_,
+        begin: 0,
+        end: 0,
         padding: [0; 6],
     });
 
@@ -101,7 +101,7 @@ unsafe fn getNextMBlock(mut state: *mut *mut c_void, mut mblock: *mut c_void) ->
     return getAllocatedMBlock(casted_state, (mblock as W_).wrapping_add(MBLOCK_SIZE as W_));
 }
 
-unsafe fn getReusableMBlocks(mut n: uint32_t) -> *mut c_void {
+unsafe fn getReusableMBlocks(mut n: u32) -> *mut c_void {
     let mut iter = null_mut::<free_list>();
     let mut size: W_ = (MBLOCK_SIZE as W_).wrapping_mul(n as W_);
     iter = free_list_head as *mut free_list;
@@ -116,7 +116,7 @@ unsafe fn getReusableMBlocks(mut n: uint32_t) -> *mut c_void {
             (*iter).address = (*iter).address.wrapping_add(size);
             (*iter).size = (*iter).size.wrapping_sub(size);
 
-            if (*iter).size == 0 as W_ {
+            if (*iter).size == 0 {
                 let mut prev = null_mut::<free_list>();
                 let mut next = null_mut::<free_list>();
                 prev = (*iter).prev;
@@ -144,12 +144,12 @@ unsafe fn getReusableMBlocks(mut n: uint32_t) -> *mut c_void {
     return NULL;
 }
 
-unsafe fn getFreshMBlocks(mut n: uint32_t) -> *mut c_void {
+unsafe fn getFreshMBlocks(mut n: u32) -> *mut c_void {
     let mut size: W_ = (MBLOCK_SIZE as W_).wrapping_mul(n as W_);
     let mut addr = mblock_high_watermark as *mut c_void;
 
     if mblock_high_watermark.wrapping_add(size) > mblock_address_space.0.end {
-        errorBelch(b"out of memory\0" as *const u8 as *const c_char);
+        errorBelch(c"out of memory".as_ptr());
         stg_exit(EXIT_HEAPOVERFLOW);
     }
 
@@ -159,7 +159,7 @@ unsafe fn getFreshMBlocks(mut n: uint32_t) -> *mut c_void {
     return addr;
 }
 
-unsafe fn getCommittedMBlocks(mut n: uint32_t) -> *mut c_void {
+unsafe fn getCommittedMBlocks(mut n: u32) -> *mut c_void {
     let mut p = null_mut::<c_void>();
     p = getReusableMBlocks(n);
 
@@ -170,7 +170,7 @@ unsafe fn getCommittedMBlocks(mut n: uint32_t) -> *mut c_void {
     return p;
 }
 
-unsafe fn decommitMBlocks(mut addr: *mut c_char, mut n: uint32_t) {
+unsafe fn decommitMBlocks(mut addr: *mut c_char, mut n: u32) {
     let mut iter = null_mut::<free_list>();
     let mut prev = null_mut::<free_list>();
     let mut size: W_ = (MBLOCK_SIZE as W_).wrapping_mul(n as W_);
@@ -224,10 +224,8 @@ unsafe fn decommitMBlocks(mut addr: *mut c_char, mut n: uint32_t) {
         } else {
             let mut new_iter = null_mut::<free_list>();
 
-            new_iter = stgMallocBytes(
-                size_of::<free_list>() as size_t,
-                b"freeMBlocks\0" as *const u8 as *const c_char as *mut c_char,
-            ) as *mut free_list;
+            new_iter = stgMallocBytes(size_of::<free_list>() as usize, c"freeMBlocks".as_ptr())
+                as *mut free_list;
 
             (*new_iter).address = address;
             (*new_iter).size = size;
@@ -250,10 +248,8 @@ unsafe fn decommitMBlocks(mut addr: *mut c_char, mut n: uint32_t) {
     } else {
         let mut new_iter_0 = null_mut::<free_list>();
 
-        new_iter_0 = stgMallocBytes(
-            size_of::<free_list>() as size_t,
-            b"freeMBlocks\0" as *const u8 as *const c_char as *mut c_char,
-        ) as *mut free_list;
+        new_iter_0 = stgMallocBytes(size_of::<free_list>() as usize, c"freeMBlocks".as_ptr())
+            as *mut free_list;
 
         (*new_iter_0).address = address;
         (*new_iter_0).size = size;
@@ -269,28 +265,24 @@ unsafe fn decommitMBlocks(mut addr: *mut c_char, mut n: uint32_t) {
 }
 
 unsafe fn releaseFreeMemory() {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
         trace_(
-            b"mblock_high_watermark: %p\n\0" as *const u8 as *const c_char as *mut c_char,
+            c"mblock_high_watermark: %p\n".as_ptr(),
             mblock_high_watermark,
         );
     }
 }
 
 unsafe fn getMBlock() -> *mut c_void {
-    return getMBlocks(1 as uint32_t);
+    return getMBlocks(1);
 }
 
-unsafe fn getMBlocks(mut n: uint32_t) -> *mut c_void {
+unsafe fn getMBlocks(mut n: u32) -> *mut c_void {
     let mut ret = null_mut::<c_void>();
     ret = getCommittedMBlocks(n);
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-        trace_(
-            b"allocated %d megablock(s) at %p\0" as *const u8 as *const c_char as *mut c_char,
-            n,
-            ret,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+        trace_(c"allocated %d megablock(s) at %p".as_ptr(), n, ret);
     }
 
     mblocks_allocated = mblocks_allocated.wrapping_add(n as W_);
@@ -305,29 +297,25 @@ unsafe fn getMBlocks(mut n: uint32_t) -> *mut c_void {
     return ret;
 }
 
-unsafe fn getMBlocksOnNode(mut node: uint32_t, mut n: uint32_t) -> *mut c_void {
+unsafe fn getMBlocksOnNode(mut node: u32, mut n: u32) -> *mut c_void {
     let mut addr = getMBlocks(n);
 
     osBindMBlocksToNode(
         addr,
-        (n as c_ulong).wrapping_mul(MBLOCK_SIZE) as StgWord,
+        (n as u64).wrapping_mul(MBLOCK_SIZE) as StgWord,
         numa_map[node as usize],
     );
 
     return addr;
 }
 
-unsafe fn getMBlockOnNode(mut node: uint32_t) -> *mut c_void {
-    return getMBlocksOnNode(node, 1 as uint32_t);
+unsafe fn getMBlockOnNode(mut node: u32) -> *mut c_void {
+    return getMBlocksOnNode(node, 1);
 }
 
-unsafe fn freeMBlocks(mut addr: *mut c_void, mut n: uint32_t) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-        trace_(
-            b"freeing %d megablock(s) at %p\0" as *const u8 as *const c_char as *mut c_char,
-            n,
-            addr,
-        );
+unsafe fn freeMBlocks(mut addr: *mut c_void, mut n: u32) {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+        trace_(c"freeing %d megablock(s) at %p".as_ptr(), n, addr);
     }
 
     mblocks_allocated = mblocks_allocated.wrapping_sub(n as W_);
@@ -335,8 +323,8 @@ unsafe fn freeMBlocks(mut addr: *mut c_void, mut n: uint32_t) {
 }
 
 unsafe fn freeAllMBlocks() {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-        trace_(b"freeing all megablocks\0" as *const u8 as *const c_char as *mut c_char);
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+        trace_(c"freeing all megablocks".as_ptr());
     }
 
     let mut iter = null_mut::<free_list>();
@@ -350,9 +338,9 @@ unsafe fn freeAllMBlocks() {
     }
 
     osReleaseHeapMemory();
-    mblock_address_space.0.begin = -(1 as c_int) as W_;
-    mblock_address_space.0.end = -(1 as c_int) as W_;
-    mblock_high_watermark = -(1 as c_int) as W_;
+    mblock_address_space.0.begin = -1 as W_;
+    mblock_address_space.0.end = -1 as W_;
+    mblock_high_watermark = -1 as W_;
 }
 
 unsafe fn initMBlocks() {
@@ -365,6 +353,7 @@ unsafe fn initMBlocks() {
     }
 
     let mut addr = osReserveHeapMemory(startAddress, &raw mut RtsFlags.GcFlags.addressSpaceSize);
+
     mblock_address_space.0.begin = addr as W_;
     mblock_address_space.0.end = (addr as W_).wrapping_add(RtsFlags.GcFlags.addressSpaceSize as W_);
     mblock_high_watermark = addr as W_;

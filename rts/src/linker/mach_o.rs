@@ -29,9 +29,9 @@ unsafe fn ocInit_MachO(mut oc: *mut ObjectCode) {
     ocDeinit_MachO(oc);
 
     (*oc).info = stgCallocBytes(
-        1 as size_t,
-        size_of::<ObjectCodeFormatInfo>() as size_t,
-        b"ocInit_MachO(ObjectCodeFormatInfo)\0" as *const u8 as *const c_char as *mut c_char,
+        1,
+        size_of::<ObjectCodeFormatInfo>() as usize,
+        c"ocInit_MachO(ObjectCodeFormatInfo)".as_ptr(),
     ) as *mut ObjectCodeFormatInfo;
 
     (*(*oc).info).header = (*oc).image as *mut MachOHeader;
@@ -44,14 +44,14 @@ unsafe fn ocInit_MachO(mut oc: *mut ObjectCode) {
         .offset(size_of::<MachOHeader>() as usize as isize)
         as *mut MachOLoadCommand;
 
-    let mut i: size_t = 0 as size_t;
+    let mut i: usize = 0;
 
-    while i < (*(*(*oc).info).header).ncmds as size_t {
-        if (*lc).cmd == LC_SEGMENT as uint32_t || (*lc).cmd == LC_SEGMENT_64 as uint32_t {
+    while i < (*(*(*oc).info).header).ncmds as usize {
+        if (*lc).cmd == LC_SEGMENT as u32 || (*lc).cmd == LC_SEGMENT_64 as u32 {
             (*(*oc).info).segCmd = lc as *mut MachOSegmentCommand;
-        } else if (*lc).cmd == LC_SYMTAB as uint32_t {
+        } else if (*lc).cmd == LC_SYMTAB as u32 {
             (*(*oc).info).symCmd = lc as *mut MachOSymtabCommand;
-        } else if (*lc).cmd == LC_DYSYMTAB as uint32_t {
+        } else if (*lc).cmd == LC_DYSYMTAB as u32 {
             (*(*oc).info).dsymCmd = lc as *mut MachODsymtabCommand;
         }
 
@@ -60,12 +60,11 @@ unsafe fn ocInit_MachO(mut oc: *mut ObjectCode) {
     }
 
     if (*(*oc).info).segCmd.is_null() {
-        barf(b"ocGetNames_MachO: no segment load command\0" as *const u8 as *const c_char);
+        barf(c"ocGetNames_MachO: no segment load command".as_ptr());
     }
 
-    (*(*oc).info).macho_sections =
-        (*(*oc).info).segCmd.offset(1 as c_int as isize) as *mut MachOSection;
-    (*oc).n_sections = (*(*(*oc).info).segCmd).nsects as c_int;
+    (*(*oc).info).macho_sections = (*(*oc).info).segCmd.offset(1) as *mut MachOSection;
+    (*oc).n_sections = (*(*(*oc).info).segCmd).nsects as i32;
 
     (*(*oc).info).nlist = if (*(*oc).info).symCmd.is_null() {
         null_mut::<MachONList>()
@@ -79,19 +78,19 @@ unsafe fn ocInit_MachO(mut oc: *mut ObjectCode) {
         (*oc).image.offset((*(*(*oc).info).symCmd).stroff as isize)
     };
 
-    (*(*oc).info).n_macho_symbols = 0 as size_t;
+    (*(*oc).info).n_macho_symbols = 0;
     (*(*oc).info).macho_symbols = null_mut::<MachOSymbol>();
 
     if !(*(*oc).info).nlist.is_null() {
-        (*(*oc).info).n_macho_symbols = (*(*(*oc).info).symCmd).nsyms as size_t;
+        (*(*oc).info).n_macho_symbols = (*(*(*oc).info).symCmd).nsyms as usize;
 
         (*(*oc).info).macho_symbols = stgCallocBytes(
-            (*(*(*oc).info).symCmd).nsyms as size_t,
-            size_of::<MachOSymbol>() as size_t,
-            b"ocInit_MachO(MachOSymbol)\0" as *const u8 as *const c_char as *mut c_char,
+            (*(*(*oc).info).symCmd).nsyms as usize,
+            size_of::<MachOSymbol>() as usize,
+            c"ocInit_MachO(MachOSymbol)".as_ptr(),
         ) as *mut MachOSymbol;
 
-        let mut i_0: uint32_t = 0 as uint32_t;
+        let mut i_0: u32 = 0;
 
         while i_0 < (*(*(*oc).info).symCmd).nsyms {
             let ref mut fresh5 = (*(*(*oc).info).macho_symbols.offset(i_0 as isize)).name;
@@ -115,14 +114,14 @@ unsafe fn ocInit_MachO(mut oc: *mut ObjectCode) {
 
 unsafe fn ocDeinit_MachO(mut oc: *mut ObjectCode) {
     if !(*oc).info.is_null() {
-        if (*(*oc).info).n_macho_symbols > 0 as size_t {
+        if (*(*oc).info).n_macho_symbols > 0 {
             stgFree((*(*oc).info).macho_symbols as *mut c_void);
         }
 
         freeGot(oc);
 
         if !(*oc).sections.is_null() {
-            let mut i = 0 as c_int;
+            let mut i = 0;
 
             while i < (*oc).n_sections {
                 freeStubs((*oc).sections.offset(i as isize) as *mut Section);
@@ -135,54 +134,48 @@ unsafe fn ocDeinit_MachO(mut oc: *mut ObjectCode) {
     }
 }
 
-unsafe fn ocAllocateExtras_MachO(mut oc: *mut ObjectCode) -> c_int {
+unsafe fn ocAllocateExtras_MachO(mut oc: *mut ObjectCode) -> i32 {
     if !(*(*oc).info).symCmd.is_null() {
-        return ocAllocateExtras(
-            oc,
-            (*(*(*oc).info).symCmd).nsyms as c_int,
-            0 as c_int,
-            0 as c_int,
-        );
+        return ocAllocateExtras(oc, (*(*(*oc).info).symCmd).nsyms as i32, 0, 0);
     }
 
-    return ocAllocateExtras(oc, 0 as c_int, 0 as c_int, 0 as c_int);
+    return ocAllocateExtras(oc, 0, 0, 0);
 }
 
-unsafe fn ocVerifyImage_MachO(mut oc: *mut ObjectCode) -> c_int {
+unsafe fn ocVerifyImage_MachO(mut oc: *mut ObjectCode) -> i32 {
     let mut image = (*oc).image;
     let mut header = image as *mut MachOHeader;
 
-    if (*header).magic != MH_MAGIC_64 as uint32_t {
+    if (*header).magic != MH_MAGIC_64 as u32 {
         errorBelch(
-            b"Could not load image %s: bad magic!\n  Expected %08x (64bit), got %08x%s\n\0"
-                as *const u8 as *const c_char,
+            c"Could not load image %s: bad magic!\n  Expected %08x (64bit), got %08x%s\n".as_ptr(),
             (*oc).fileName,
             MH_MAGIC_64,
             (*header).magic,
-            if (*header).magic == MH_MAGIC as uint32_t {
-                b" (32bit).\0" as *const u8 as *const c_char
+            if (*header).magic == MH_MAGIC as u32 {
+                c" (32bit).".as_ptr()
             } else {
-                b".\0" as *const u8 as *const c_char
+                c".".as_ptr()
             },
         );
 
-        return 0 as c_int;
+        return 0;
     }
 
-    return 1 as c_int;
+    return 1;
 }
 
 unsafe fn resolveImports(
     mut oc: *mut ObjectCode,
     mut sect: *mut MachOSection,
-    mut indirectSyms: *mut c_ulong,
-) -> c_int {
-    let mut itemSize: size_t = 4 as size_t;
-    let mut i = 0 as c_uint;
+    mut indirectSyms: *mut u64,
+) -> i32 {
+    let mut itemSize: usize = 4;
+    let mut i = 0;
 
-    while ((i as size_t).wrapping_mul(itemSize) as uint64_t) < (*sect).size {
+    while ((i as usize).wrapping_mul(itemSize) as u64) < (*sect).size {
         let mut indirectSymbolIndex =
-            *indirectSyms.offset((*sect).reserved1.wrapping_add(i as uint32_t) as isize);
+            *indirectSyms.offset((*sect).reserved1.wrapping_add(i as u32) as isize);
 
         let mut symbol: *mut MachOSymbol = (*(*oc).info)
             .macho_symbols
@@ -191,9 +184,9 @@ unsafe fn resolveImports(
 
         let mut addr = NULL as *mut c_void;
 
-        if (*(*symbol).nlist).n_type as c_int & N_TYPE == N_UNDF
-            && (*(*symbol).nlist).n_type as c_int & N_EXT != 0
-            && (*(*symbol).nlist).n_value != 0 as uint64_t
+        if (*(*symbol).nlist).n_type as i32 & N_TYPE == N_UNDF
+            && (*(*symbol).nlist).n_type as i32 & N_EXT != 0
+            && (*(*symbol).nlist).n_value != 0
         {
             addr = (*(*symbol).nlist).n_value as *mut c_void;
         } else {
@@ -202,20 +195,19 @@ unsafe fn resolveImports(
 
         if addr.is_null() {
             errorBelch(
-                b"\nlookupSymbol failed in resolveImports\n%s: unknown symbol `%s'\0" as *const u8
-                    as *const c_char,
+                c"\nlookupSymbol failed in resolveImports\n%s: unknown symbol `%s'".as_ptr(),
                 (*oc).fileName,
                 (*symbol).name,
             );
 
-            return 0 as c_int;
+            return 0;
         }
 
         checkProddableBlock(
             &raw mut (*oc).proddables,
             ((*oc).image.offset((*sect).offset as isize) as *mut *mut c_void).offset(i as isize)
                 as *mut c_void,
-            size_of::<*mut c_void>() as size_t,
+            size_of::<*mut c_void>() as usize,
         );
 
         let ref mut fresh23 =
@@ -224,125 +216,99 @@ unsafe fn resolveImports(
         i = i.wrapping_add(1);
     }
 
-    return 1 as c_int;
+    return 1;
 }
 
-unsafe fn signExtend(mut val: uint64_t, mut bits: uint8_t) -> int64_t {
-    return (val << 64 as c_int - bits as c_int) as int64_t >> 64 as c_int - bits as c_int;
+unsafe fn signExtend(mut val: u64, mut bits: u8) -> i64 {
+    return (val << 64 - bits as i32) as i64 >> 64 - bits as i32;
 }
 
-unsafe fn isVectorOp(mut p: *mut uint32_t) -> bool {
-    return *p & 0x4800000 as uint32_t == 0x4800000 as uint32_t;
+unsafe fn isVectorOp(mut p: *mut u32) -> bool {
+    return *p & 0x4800000 == 0x4800000;
 }
 
-unsafe fn isLoadStore(mut p: *mut uint32_t) -> bool {
-    return *p & 0x3b000000 as uint32_t == 0x39000000 as uint32_t;
+unsafe fn isLoadStore(mut p: *mut u32) -> bool {
+    return *p & 0x3b000000 == 0x39000000;
 }
 
 unsafe fn decodeAddend(
     mut oc: *mut ObjectCode,
     mut section: *mut Section,
     mut ri: *mut MachORelocationInfo,
-) -> int64_t {
-    let mut p =
-        ((*section).start as *mut uint8_t).offset((*ri).r_address as isize) as *mut uint32_t;
+) -> i64 {
+    let mut p = ((*section).start as *mut u8).offset((*ri).r_address as isize) as *mut u32;
 
     checkProddableBlock(
         &raw mut (*oc).proddables,
         p as *mut c_void,
-        ((1 as c_int) << (*ri).r_length() as c_int) as size_t,
+        (1 << (*ri).r_length() as i32) as usize,
     );
 
-    match (*ri).r_type() as c_int {
-        0 => match (*ri).r_length() as c_int {
+    match (*ri).r_type() as i32 {
+        0 => match (*ri).r_length() as i32 {
             0 => {
-                return signExtend(
-                    *(p as *mut uint8_t) as uint64_t,
-                    ((8 as c_int) << (*ri).r_length() as c_int) as uint8_t,
-                );
+                return signExtend(*(p as *mut u8) as u64, (8 << (*ri).r_length() as i32) as u8);
             }
             1 => {
                 return signExtend(
-                    *(p as *mut uint16_t) as uint64_t,
-                    ((8 as c_int) << (*ri).r_length() as c_int) as uint8_t,
+                    *(p as *mut u16) as u64,
+                    (8 << (*ri).r_length() as i32) as u8,
                 );
             }
             2 => {
-                return signExtend(
-                    *p as uint64_t,
-                    ((8 as c_int) << (*ri).r_length() as c_int) as uint8_t,
-                );
+                return signExtend(*p as u64, (8 << (*ri).r_length() as i32) as u8);
             }
             3 => {
-                return signExtend(
-                    *(p as *mut uint64_t),
-                    ((8 as c_int) << (*ri).r_length() as c_int) as uint8_t,
-                );
+                return signExtend(*(p as *mut u64), (8 << (*ri).r_length() as i32) as u8);
             }
             _ => {
                 barf(
-                    b"Unsupported r_length (%d) for UNSIGNED relocation\0" as *const u8
-                        as *const c_char,
-                    (*ri).r_length() as c_int,
+                    c"Unsupported r_length (%d) for UNSIGNED relocation".as_ptr(),
+                    (*ri).r_length() as i32,
                 );
             }
         },
-        1 => match (*ri).r_length() as c_int {
+        1 => match (*ri).r_length() as i32 {
             0 => {
-                return signExtend(
-                    *(p as *mut uint8_t) as uint64_t,
-                    ((8 as c_int) << (*ri).r_length() as c_int) as uint8_t,
-                );
+                return signExtend(*(p as *mut u8) as u64, (8 << (*ri).r_length() as i32) as u8);
             }
             1 => {
                 return signExtend(
-                    *(p as *mut uint16_t) as uint64_t,
-                    ((8 as c_int) << (*ri).r_length() as c_int) as uint8_t,
+                    *(p as *mut u16) as u64,
+                    (8 << (*ri).r_length() as i32) as u8,
                 );
             }
             2 => {
-                return signExtend(
-                    *p as uint64_t,
-                    ((8 as c_int) << (*ri).r_length() as c_int) as uint8_t,
-                );
+                return signExtend(*p as u64, (8 << (*ri).r_length() as i32) as u8);
             }
             3 => {
-                return signExtend(
-                    *(p as *mut uint64_t),
-                    ((8 as c_int) << (*ri).r_length() as c_int) as uint8_t,
-                );
+                return signExtend(*(p as *mut u64), (8 << (*ri).r_length() as i32) as u8);
             }
             _ => {
                 barf(
-                    b"Unsupported r_length (%d) for SUBTRACTOR relocation\0" as *const u8
-                        as *const c_char,
-                    (*ri).r_length() as c_int,
+                    c"Unsupported r_length (%d) for SUBTRACTOR relocation".as_ptr(),
+                    (*ri).r_length() as i32,
                 );
             }
         },
         2 => {
-            return signExtend(
-                ((*p & 0x3ffffff as uint32_t) << 2 as c_int) as uint64_t,
-                28 as uint8_t,
-            );
+            return signExtend(((*p & 0x3ffffff) << 2) as u64, 28);
         }
         3 | 5 => {
             return signExtend(
-                ((*p & 0x60000000 as uint32_t) >> 29 as c_int
-                    | ((*p & 0x1ffffe0 as uint32_t) >> 3 as c_int) << 12 as c_int)
-                    as uint64_t,
-                33 as uint8_t,
+                ((*p & 0x60000000) >> 29 | ((*p & 0x1ffffe0) >> 3) << 12) as u64,
+                33,
             );
         }
         4 | 6 => {
-            let mut a: int64_t = ((*p & 0x3ffc00 as uint32_t) >> 10 as c_int) as int64_t;
-            let mut shift = 0 as c_int;
+            let mut a: i64 = ((*p & 0x3ffc00) >> 10) as i64;
+            let mut shift = 0;
 
             if isLoadStore(p) {
-                shift = (*p >> 30 as c_int & 0x3 as uint32_t) as c_int;
+                shift = (*p >> 30 & 0x3) as i32;
 
-                if 0 as c_int == shift && isVectorOp(p) as c_int != 0 {
-                    shift = 4 as c_int;
+                if 0 == shift && isVectorOp(p) as i32 != 0 {
+                    shift = 4;
                 }
             }
 
@@ -352,61 +318,57 @@ unsafe fn decodeAddend(
     }
 
     barf(
-        b"unsupported relocation type: %d\n\0" as *const u8 as *const c_char,
-        (*ri).r_type() as c_int,
+        c"unsupported relocation type: %d\n".as_ptr(),
+        (*ri).r_type() as i32,
     );
 }
 
 #[inline]
-unsafe fn fitsBits(mut bits: size_t, mut value: int64_t) -> bool {
-    if bits == 64 as size_t {
-        return r#true != 0;
+unsafe fn fitsBits(mut bits: usize, mut value: i64) -> bool {
+    if bits == 64 {
+        return true;
     }
 
-    if bits > 64 as size_t {
+    if bits > 64 {
         barf(
-            b"fits_bits with %zu bits and an 64bit integer!\0" as *const u8 as *const c_char,
+            c"fits_bits with %zu bits and an 64bit integer!".as_ptr(),
             bits,
         );
     }
 
-    return 0 as int64_t == value >> bits || -(1 as c_int) as int64_t == value >> bits;
+    return 0 == value >> bits || -1 as i64 == value >> bits;
 }
 
 unsafe fn encodeAddend(
     mut oc: *mut ObjectCode,
     mut section: *mut Section,
     mut ri: *mut MachORelocationInfo,
-    mut addend: int64_t,
+    mut addend: i64,
     mut symbol: *mut MachOSymbol,
 ) {
-    let mut p =
-        ((*section).start as *mut uint8_t).offset((*ri).r_address as isize) as *mut uint32_t;
+    let mut p = ((*section).start as *mut u8).offset((*ri).r_address as isize) as *mut u32;
 
     checkProddableBlock(
         &raw mut (*oc).proddables,
         p as *mut c_void,
-        ((1 as c_int) << (*ri).r_length() as c_int) as size_t,
+        (1 << (*ri).r_length() as i32) as usize,
     );
 
     let mut symbol_name = if !symbol.is_null() && !(*symbol).name.is_null() {
         (*symbol).name as *mut c_char as *const c_char
     } else {
-        b"<unknown>\0" as *const u8 as *const c_char
+        c"<unknown>".as_ptr()
     };
 
     let mut file_name = if !(*oc).fileName.is_null() {
         (*oc).fileName as *mut c_char as *const c_char
     } else {
-        b"<unknown>\0" as *const u8 as *const c_char
+        c"<unknown>".as_ptr()
     };
 
-    match (*ri).r_type() as c_int {
+    match (*ri).r_type() as i32 {
         0 => {
-            if !fitsBits(
-                ((8 as c_int) << (*ri).r_length() as c_int) as size_t,
-                addend,
-            ) {
+            if !fitsBits((8 << (*ri).r_length() as i32) as usize, addend) {
                 let mut library_info: *const c_char = if !(*oc).archiveMemberName.is_null() {
                     (*oc).archiveMemberName
                 } else {
@@ -414,39 +376,37 @@ unsafe fn encodeAddend(
                 };
 
                 barf(
-                    b"Relocation out of range for UNSIGNED in %s: symbol '%s', addend 0x%llx, address 0x%llx, library: %s\0"
-                        as *const u8 as *const c_char,
+                    c"Relocation out of range for UNSIGNED in %s: symbol '%s', addend 0x%llx, address 0x%llx, library: %s"
+                        .as_ptr(),
                     file_name,
                     symbol_name,
-                    addend as c_longlong,
-                    (*ri).r_address as c_longlong,
+                    addend as i64,
+                    (*ri).r_address as i64,
                     if !library_info.is_null() {
-                        library_info as *mut c_char
-                            as *const c_char
+                        library_info as *mut c_char as *const c_char
                     } else {
-                        b"<unknown>\0" as *const u8 as *const c_char
+                        c"<unknown>".as_ptr()
                     },
                 );
             }
 
-            match (*ri).r_length() as c_int {
+            match (*ri).r_length() as i32 {
                 0 => {
-                    *(p as *mut uint8_t) = addend as uint8_t;
+                    *(p as *mut u8) = addend as u8;
                 }
                 1 => {
-                    *(p as *mut uint16_t) = addend as uint16_t;
+                    *(p as *mut u16) = addend as u16;
                 }
                 2 => {
-                    *p = addend as uint32_t;
+                    *p = addend as u32;
                 }
                 3 => {
-                    *(p as *mut uint64_t) = addend as uint64_t;
+                    *(p as *mut u64) = addend as u64;
                 }
                 _ => {
                     barf(
-                        b"Unsupported r_length (%d) for UNSIGNED relocation\0" as *const u8
-                            as *const c_char,
-                        (*ri).r_length() as c_int,
+                        c"Unsupported r_length (%d) for UNSIGNED relocation".as_ptr(),
+                        (*ri).r_length() as i32,
                     );
                 }
             }
@@ -454,10 +414,7 @@ unsafe fn encodeAddend(
             return;
         }
         1 => {
-            if !fitsBits(
-                ((8 as c_int) << (*ri).r_length() as c_int) as size_t,
-                addend,
-            ) {
+            if !fitsBits((8 << (*ri).r_length() as i32) as usize, addend) {
                 let mut library_info_0: *const c_char = if !(*oc).archiveMemberName.is_null() {
                     (*oc).archiveMemberName
                 } else {
@@ -465,39 +422,37 @@ unsafe fn encodeAddend(
                 };
 
                 barf(
-                    b"Relocation out of range for SUBTRACTOR in %s: symbol '%s', addend 0x%llx, address 0x%llx, library: %s\0"
-                        as *const u8 as *const c_char,
+                    c"Relocation out of range for SUBTRACTOR in %s: symbol '%s', addend 0x%llx, address 0x%llx, library: %s"
+                        .as_ptr(),
                     file_name,
                     symbol_name,
-                    addend as c_longlong,
-                    (*ri).r_address as c_longlong,
+                    addend as i64,
+                    (*ri).r_address as i64,
                     if !library_info_0.is_null() {
-                        library_info_0 as *mut c_char
-                            as *const c_char
+                        library_info_0 as *mut c_char as *const c_char
                     } else {
-                        b"<unknown>\0" as *const u8 as *const c_char
+                        c"<unknown>".as_ptr()
                     },
                 );
             }
 
-            match (*ri).r_length() as c_int {
+            match (*ri).r_length() as i32 {
                 0 => {
-                    *(p as *mut uint8_t) = addend as uint8_t;
+                    *(p as *mut u8) = addend as u8;
                 }
                 1 => {
-                    *(p as *mut uint16_t) = addend as uint16_t;
+                    *(p as *mut u16) = addend as u16;
                 }
                 2 => {
-                    *p = addend as uint32_t;
+                    *p = addend as u32;
                 }
                 3 => {
-                    *(p as *mut uint64_t) = addend as uint64_t;
+                    *(p as *mut u64) = addend as u64;
                 }
                 _ => {
                     barf(
-                        b"Unsupported r_length (%d) for SUBTRACTOR relocation\0" as *const u8
-                            as *const c_char,
-                        (*ri).r_length() as c_int,
+                        c"Unsupported r_length (%d) for SUBTRACTOR relocation".as_ptr(),
+                        (*ri).r_length() as i32,
                     );
                 }
             }
@@ -505,7 +460,7 @@ unsafe fn encodeAddend(
             return;
         }
         2 => {
-            if !fitsBits(26 as size_t, addend >> 2 as c_int) {
+            if !fitsBits(26, addend >> 2) {
                 let mut library_info_1: *const c_char = if !(*oc).archiveMemberName.is_null() {
                     (*oc).archiveMemberName
                 } else {
@@ -513,32 +468,30 @@ unsafe fn encodeAddend(
                 };
 
                 barf(
-                    b"Relocation target for BRANCH26 out of range in %s: symbol '%s', addend 0x%llx (0x%llx >> 2), address 0x%llx, library: %s\0"
-                        as *const u8 as *const c_char,
+                    c"Relocation target for BRANCH26 out of range in %s: symbol '%s', addend 0x%llx (0x%llx >> 2), address 0x%llx, library: %s"
+                        .as_ptr(),
                     file_name,
                     symbol_name,
-                    addend as c_longlong,
-                    (addend >> 2 as c_int) as c_longlong,
-                    (*ri).r_address as c_longlong,
+                    addend as i64,
+                    (addend >> 2) as i64,
+                    (*ri).r_address as i64,
                     if !library_info_1.is_null() {
-                        library_info_1 as *mut c_char
-                            as *const c_char
+                        library_info_1 as *mut c_char as *const c_char
                     } else {
-                        b"<unknown>\0" as *const u8 as *const c_char
+                        c"<unknown>".as_ptr()
                     },
                 );
             }
 
-            *p = *p & 0xfc000000 as uint32_t
-                | (addend >> 2 as c_int) as uint32_t & 0x3ffffff as uint32_t;
+            *p = *p & 0xfc000000 | (addend >> 2) as u32 & 0x3ffffff;
             return;
         }
         3 | 5 => {
-            if !fitsBits(21 as size_t, addend >> 12 as c_int) {
-                let mut reloc_type = if (*ri).r_type() as c_int == ARM64_RELOC_PAGE21 as c_int {
-                    b"PAGE21\0" as *const u8 as *const c_char
+            if !fitsBits(21, addend >> 12) {
+                let mut reloc_type = if (*ri).r_type() as i32 == ARM64_RELOC_PAGE21 as i32 {
+                    c"PAGE21".as_ptr()
                 } else {
-                    b"GOT_LOAD_PAGE21\0" as *const u8 as *const c_char
+                    c"GOT_LOAD_PAGE21".as_ptr()
                 };
 
                 let mut library_info_2: *const c_char = if !(*oc).archiveMemberName.is_null() {
@@ -548,30 +501,29 @@ unsafe fn encodeAddend(
                 };
 
                 barf(
-                    b"Relocation target for %s out of range in %s: symbol '%s', addend 0x%llx (0x%llx >> 12), address 0x%llx, library: %s\0"
-                        as *const u8 as *const c_char,
+                    c"Relocation target for %s out of range in %s: symbol '%s', addend 0x%llx (0x%llx >> 12), address 0x%llx, library: %s"
+                        .as_ptr(),
                     reloc_type,
                     file_name,
                     symbol_name,
-                    addend as c_longlong,
-                    (addend >> 12 as c_int) as c_longlong,
-                    (*ri).r_address as c_longlong,
+                    addend as i64,
+                    (addend >> 12) as i64,
+                    (*ri).r_address as i64,
                     if !library_info_2.is_null() {
-                        library_info_2 as *mut c_char
-                            as *const c_char
+                        library_info_2 as *mut c_char as *const c_char
                     } else {
-                        b"<unknown>\0" as *const u8 as *const c_char
+                        c"<unknown>".as_ptr()
                     },
                 );
             }
 
-            *p = *p & 0x9f00001f as uint32_t
-                | (addend << 17 as c_int & 0x60000000 as int64_t) as uint32_t
-                | (addend >> 9 as c_int & 0xffffe0 as int64_t) as uint32_t;
+            *p = *p & 0x9f00001f
+                | (addend << 17 & 0x60000000) as u32
+                | (addend >> 9 & 0xffffe0) as u32;
             return;
         }
         4 | 6 => {
-            if !fitsBits(12 as size_t, addend) {
+            if !fitsBits(12, addend) {
                 let mut library_info_3: *const c_char = if !(*oc).archiveMemberName.is_null() {
                     (*oc).archiveMemberName
                 } else {
@@ -579,46 +531,44 @@ unsafe fn encodeAddend(
                 };
 
                 barf(
-                    b"Relocation target for PAGEOFF12 out of range in %s: symbol '%s', addend 0x%llx, address 0x%llx, library: %s\0"
-                        as *const u8 as *const c_char,
+                    c"Relocation target for PAGEOFF12 out of range in %s: symbol '%s', addend 0x%llx, address 0x%llx, library: %s"
+                        .as_ptr(),
                     file_name,
                     symbol_name,
-                    addend as c_longlong,
-                    (*ri).r_address as c_longlong,
+                    addend as i64,
+                    (*ri).r_address as i64,
                     if !library_info_3.is_null() {
-                        library_info_3 as *mut c_char
-                            as *const c_char
+                        library_info_3 as *mut c_char as *const c_char
                     } else {
-                        b"<unknown>\0" as *const u8 as *const c_char
+                        c"<unknown>".as_ptr()
                     },
                 );
             }
 
-            let mut shift = 0 as c_int;
+            let mut shift = 0;
 
             if isLoadStore(p) {
-                shift = (*p >> 30 as c_int & 0x3 as uint32_t) as c_int;
+                shift = (*p >> 30 & 0x3) as i32;
 
-                if 0 as c_int == shift && isVectorOp(p) as c_int != 0 {
-                    shift = 4 as c_int;
+                if 0 == shift && isVectorOp(p) as i32 != 0 {
+                    shift = 4;
                 }
             }
 
-            *p = *p & 0xffc003ff as uint32_t
-                | (addend >> shift << 10 as c_int) as uint32_t & 0x3ffc00 as uint32_t;
+            *p = *p & 0xffc003ff | (addend >> shift << 10) as u32 & 0x3ffc00;
             return;
         }
         _ => {}
     }
 
     barf(
-        b"unsupported relocation type: %d\n\0" as *const u8 as *const c_char,
-        (*ri).r_type() as c_int,
+        c"unsupported relocation type: %d\n".as_ptr(),
+        (*ri).r_type() as i32,
     );
 }
 
 unsafe fn findInternalGotRefs(mut oc: *mut ObjectCode) {
-    let mut curSection = 0 as c_int;
+    let mut curSection = 0;
 
     while curSection < (*oc).n_sections {
         let mut sect: *mut Section = (*oc).sections.offset(curSection as isize) as *mut Section;
@@ -626,7 +576,7 @@ unsafe fn findInternalGotRefs(mut oc: *mut ObjectCode) {
         if !(*sect).info.is_null() {
             let mut msect = (*(*sect).info).macho_section;
             let mut relocs = (*(*sect).info).relocation_info;
-            let mut i: uint32_t = 0 as uint32_t;
+            let mut i: u32 = 0;
 
             while i < (*msect).nreloc {
                 let mut ri: *mut MachORelocationInfo =
@@ -637,7 +587,7 @@ unsafe fn findInternalGotRefs(mut oc: *mut ObjectCode) {
                         .macho_symbols
                         .offset((*ri).r_symbolnum() as isize)
                         as *mut MachOSymbol;
-                    (*symbol).needs_got = r#true != 0;
+                    (*symbol).needs_got = true;
                 }
 
                 i = i.wrapping_add(1);
@@ -649,45 +599,42 @@ unsafe fn findInternalGotRefs(mut oc: *mut ObjectCode) {
 }
 
 unsafe fn isGotLoad(mut ri: *mut relocation_info) -> bool {
-    return (*ri).r_type() as c_int == ARM64_RELOC_GOT_LOAD_PAGE21 as c_int
-        || (*ri).r_type() as c_int == ARM64_RELOC_GOT_LOAD_PAGEOFF12 as c_int;
+    return (*ri).r_type() as i32 == ARM64_RELOC_GOT_LOAD_PAGE21 as i32
+        || (*ri).r_type() as i32 == ARM64_RELOC_GOT_LOAD_PAGEOFF12 as i32;
 }
 
 unsafe fn needGotSlot(mut symbol: *mut MachOSymbol) -> bool {
     if (*symbol).needs_got {
-        return r#true != 0;
+        return true;
     }
 
-    return (*(*symbol).nlist).n_type as c_int & N_EXT != 0
-        && (N_UNDF == (*(*symbol).nlist).n_type as c_int & N_TYPE
-            || NO_SECT != (*(*symbol).nlist).n_sect as c_int);
+    return (*(*symbol).nlist).n_type as i32 & N_EXT != 0
+        && (N_UNDF == (*(*symbol).nlist).n_type as i32 & N_TYPE
+            || NO_SECT != (*(*symbol).nlist).n_sect as i32);
 }
 
 unsafe fn makeGot(mut oc: *mut ObjectCode) -> bool {
-    let mut got_slots: size_t = 0 as size_t;
-    let mut i: size_t = 0 as size_t;
+    let mut got_slots: usize = 0;
+    let mut i: usize = 0;
 
     while i < (*(*oc).info).n_macho_symbols {
         if needGotSlot((*(*oc).info).macho_symbols.offset(i as isize) as *mut MachOSymbol) {
-            got_slots = got_slots.wrapping_add(1 as size_t);
+            got_slots = got_slots.wrapping_add(1 as usize);
         }
 
         i = i.wrapping_add(1);
     }
 
-    if got_slots > 0 as size_t {
-        (*(*oc).info).got_size = got_slots.wrapping_mul(size_of::<*mut c_void>() as size_t);
+    if got_slots > 0 {
+        (*(*oc).info).got_size = got_slots.wrapping_mul(size_of::<*mut c_void>() as usize);
         (*(*oc).info).got_start = mmapAnonForLinker((*(*oc).info).got_size);
 
         if (*(*oc).info).got_start.is_null() {
-            barf(
-                b"MAP_FAILED. errno=%d\0" as *const u8 as *const c_char,
-                *__error(),
-            );
+            barf(c"MAP_FAILED. errno=%d".as_ptr(), *__error());
         }
 
-        let mut slot: size_t = 0 as size_t;
-        let mut i_0: size_t = 0 as size_t;
+        let mut slot: usize = 0;
+        let mut i_0: usize = 0;
 
         while i_0 < (*(*oc).info).n_macho_symbols {
             if needGotSlot((*(*oc).info).macho_symbols.offset(i_0 as isize) as *mut MachOSymbol) {
@@ -695,8 +642,8 @@ unsafe fn makeGot(mut oc: *mut ObjectCode) -> bool {
                 slot = slot.wrapping_add(1);
 
                 let ref mut fresh22 = (*(*(*oc).info).macho_symbols.offset(i_0 as isize)).got_addr;
-                *fresh22 = ((*(*oc).info).got_start as *mut uint8_t)
-                    .offset(fresh21.wrapping_mul(size_of::<*mut c_void>() as size_t) as isize)
+                *fresh22 = ((*(*oc).info).got_start as *mut u8)
+                    .offset(fresh21.wrapping_mul(size_of::<*mut c_void>() as usize) as isize)
                     as *mut c_void;
             }
 
@@ -708,51 +655,48 @@ unsafe fn makeGot(mut oc: *mut ObjectCode) -> bool {
 }
 
 unsafe fn freeGot(mut oc: *mut ObjectCode) {
-    if !(*(*oc).info).got_start.is_null() && (*(*oc).info).got_size > 0 as size_t {
+    if !(*(*oc).info).got_start.is_null() && (*(*oc).info).got_size > 0 {
         munmapForLinker(
             (*(*oc).info).got_start,
             (*(*oc).info).got_size,
-            b"freeGot\0" as *const u8 as *const c_char,
+            c"freeGot".as_ptr(),
         );
     }
 
     (*(*oc).info).got_start = NULL;
-    (*(*oc).info).got_size = 0 as size_t;
+    (*(*oc).info).got_size = 0;
 }
 
-unsafe fn symbol_value(mut oc: *mut ObjectCode, mut symbol: *mut MachOSymbol) -> uint64_t {
-    let mut value: uint64_t = 0 as uint64_t;
+unsafe fn symbol_value(mut oc: *mut ObjectCode, mut symbol: *mut MachOSymbol) -> u64 {
+    let mut value: u64 = 0;
 
-    if (*(*symbol).nlist).n_type as c_int & N_EXT != 0 {
-        value = lookupDependentSymbol((*symbol).name, oc, null_mut::<SymType>()) as uint64_t;
+    if (*(*symbol).nlist).n_type as i32 & N_EXT != 0 {
+        value = lookupDependentSymbol((*symbol).name, oc, null_mut::<SymType>()) as u64;
 
         if value == 0 {
-            barf(
-                b"Could not lookup symbol: %s!\0" as *const u8 as *const c_char,
-                (*symbol).name,
-            );
+            barf(c"Could not lookup symbol: %s!".as_ptr(), (*symbol).name);
         }
     } else {
-        value = (*symbol).addr as uint64_t;
+        value = (*symbol).addr as u64;
     }
 
     return value;
 }
 
-unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Section) -> c_int {
-    if (*section).size == 0 as StgWord {
-        return 1 as c_int;
+unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Section) -> i32 {
+    if (*section).size == 0 {
+        return 1;
     }
 
-    let mut explicit_addend: int64_t = 0 as int64_t;
-    let mut nreloc: size_t = (*(*(*section).info).macho_section).nreloc as size_t;
-    let mut i: size_t = 0 as size_t;
+    let mut explicit_addend: i64 = 0;
+    let mut nreloc: usize = (*(*(*section).info).macho_section).nreloc as usize;
+    let mut i: usize = 0;
 
     while i < nreloc {
         let mut ri: *mut MachORelocationInfo =
             (*(*section).info).relocation_info.offset(i as isize) as *mut MachORelocationInfo;
 
-        match (*ri).r_type() as c_int {
+        match (*ri).r_type() as i32 {
             0 => {
                 let mut symbol: *mut MachOSymbol = (*(*oc).info)
                     .macho_symbols
@@ -766,21 +710,21 @@ unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Sect
                     oc,
                     section,
                     ri,
-                    value.wrapping_add(addend as uint64_t) as int64_t,
+                    value.wrapping_add(addend as u64) as i64,
                     symbol,
                 );
             }
             1 => {
-                if !(i.wrapping_add(1 as size_t) < nreloc)
+                if !(i.wrapping_add(1 as usize) < nreloc)
                     || !((*(*(*section).info)
                         .relocation_info
-                        .offset(i.wrapping_add(1 as size_t) as isize))
-                    .r_type() as c_int
-                        == ARM64_RELOC_UNSIGNED as c_int)
+                        .offset(i.wrapping_add(1 as usize) as isize))
+                    .r_type() as i32
+                        == ARM64_RELOC_UNSIGNED as i32)
                 {
                     barf(
-                        b"SUBTRACTOR relocation *must* be followed by UNSIGNED relocation.\0"
-                            as *const u8 as *const c_char,
+                        c"SUBTRACTOR relocation *must* be followed by UNSIGNED relocation."
+                            .as_ptr(),
                     );
                 }
 
@@ -792,7 +736,7 @@ unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Sect
                 let mut sub_value = symbol_value(oc, symbol1);
                 let mut ri2: *mut MachORelocationInfo = (*(*section).info)
                     .relocation_info
-                    .offset(i.wrapping_add(1 as size_t) as isize)
+                    .offset(i.wrapping_add(1 as usize) as isize)
                     as *mut MachORelocationInfo;
 
                 let mut symbol2: *mut MachOSymbol = (*(*oc).info)
@@ -807,13 +751,13 @@ unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Sect
                     oc,
                     section,
                     ri,
-                    (addend_0 as uint64_t)
+                    (addend_0 as u64)
                         .wrapping_sub(sub_value)
-                        .wrapping_add(add_value) as int64_t,
+                        .wrapping_add(add_value) as i64,
                     symbol1,
                 );
 
-                i = i.wrapping_add(1 as size_t);
+                i = i.wrapping_add(1 as usize);
             }
             2 => {
                 let mut symbol_0: *mut MachOSymbol = (*(*oc).info)
@@ -822,32 +766,25 @@ unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Sect
                     as *mut MachOSymbol;
 
                 let mut addend_1 = decodeAddend(oc, section, ri);
-                let mut pc: uint64_t =
-                    ((*section).start as uint64_t).wrapping_add((*ri).r_address as uint64_t);
+                let mut pc: u64 = ((*section).start as u64).wrapping_add((*ri).r_address as u64);
 
-                let mut value_0: uint64_t = 0 as uint64_t;
+                let mut value_0: u64 = 0;
 
-                if (*(*symbol_0).nlist).n_type as c_int & N_EXT != 0 {
-                    value_0 = lookupDependentSymbol((*symbol_0).name, oc, null_mut::<SymType>())
-                        as uint64_t;
+                if (*(*symbol_0).nlist).n_type as i32 & N_EXT != 0 {
+                    value_0 =
+                        lookupDependentSymbol((*symbol_0).name, oc, null_mut::<SymType>()) as u64;
 
                     if value_0 == 0 {
-                        barf(
-                            b"Could not lookup symbol: %s!\0" as *const u8 as *const c_char,
-                            (*symbol_0).name,
-                        );
+                        barf(c"Could not lookup symbol: %s!".as_ptr(), (*symbol_0).name);
                     }
                 } else {
-                    value_0 = (*symbol_0).addr as uint64_t;
+                    value_0 = (*symbol_0).addr as u64;
                 }
 
-                if value_0.wrapping_sub(pc).wrapping_add(addend_1 as uint64_t)
-                    >> 2 as c_int + 26 as c_int - 1 as c_int
-                    != 0
-                {
-                    if findStub(section, &raw mut value_0 as *mut *mut c_void, 0 as uint8_t) {
-                        if makeStub(section, &raw mut value_0 as *mut *mut c_void, 0 as uint8_t) {
-                            barf(b"could not find or make stub\0" as *const u8 as *const c_char);
+                if value_0.wrapping_sub(pc).wrapping_add(addend_1 as u64) >> 2 + 26 - 1 != 0 {
+                    if findStub(section, &raw mut value_0 as *mut *mut c_void, 0) {
+                        if makeStub(section, &raw mut value_0 as *mut *mut c_void, 0) {
+                            barf(c"could not find or make stub".as_ptr());
                         }
                     }
                 }
@@ -856,7 +793,7 @@ unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Sect
                     oc,
                     section,
                     ri,
-                    value_0.wrapping_sub(pc).wrapping_add(addend_1 as uint64_t) as int64_t,
+                    value_0.wrapping_sub(pc).wrapping_add(addend_1 as u64) as i64,
                     symbol_0,
                 );
             }
@@ -868,37 +805,31 @@ unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Sect
 
                 let mut addend_2 = decodeAddend(oc, section, ri);
 
-                if !(explicit_addend == 0 as int64_t || addend_2 == 0 as int64_t) {
-                    barf(
-                        b"explicit_addend and addend can't be set at the same time.\0" as *const u8
-                            as *const c_char,
-                    );
+                if !(explicit_addend == 0 || addend_2 == 0) {
+                    barf(c"explicit_addend and addend can't be set at the same time.".as_ptr());
                 }
 
-                let mut pc_0: uint64_t =
-                    ((*section).start as uint64_t).wrapping_add((*ri).r_address as uint64_t);
+                let mut pc_0: u64 = ((*section).start as u64).wrapping_add((*ri).r_address as u64);
 
-                let mut value_1: uint64_t = (if isGotLoad(ri as *mut relocation_info) as c_int != 0
-                {
+                let mut value_1: u64 = (if isGotLoad(ri as *mut relocation_info) as i32 != 0 {
                     (*symbol_1).got_addr
                 } else {
                     (*symbol_1).addr as *mut c_void
-                }) as uint64_t;
+                }) as u64;
 
                 encodeAddend(
                     oc,
                     section,
                     ri,
                     (value_1
-                        .wrapping_add(addend_2 as uint64_t)
-                        .wrapping_add(explicit_addend as uint64_t)
-                        & -(4096 as c_int) as uint64_t)
-                        .wrapping_sub(pc_0 & -(4096 as c_int) as uint64_t)
-                        as int64_t,
+                        .wrapping_add(addend_2 as u64)
+                        .wrapping_add(explicit_addend as u64)
+                        & -(4096 as i32) as u64)
+                        .wrapping_sub(pc_0 & -(4096 as i32) as u64) as i64,
                     symbol_1,
                 );
 
-                explicit_addend = 0 as int64_t;
+                explicit_addend = 0;
             }
             4 | 6 => {
                 let mut symbol_2: *mut MachOSymbol = (*(*oc).info)
@@ -908,60 +839,54 @@ unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Sect
 
                 let mut addend_3 = decodeAddend(oc, section, ri);
 
-                if !(explicit_addend == 0 as int64_t || addend_3 == 0 as int64_t) {
-                    barf(
-                        b"explicit_addend and addend can't be set at the same time.\0" as *const u8
-                            as *const c_char,
-                    );
+                if !(explicit_addend == 0 || addend_3 == 0) {
+                    barf(c"explicit_addend and addend can't be set at the same time.".as_ptr());
                 }
 
-                let mut value_2: uint64_t = (if isGotLoad(ri as *mut relocation_info) as c_int != 0
-                {
+                let mut value_2: u64 = (if isGotLoad(ri as *mut relocation_info) as i32 != 0 {
                     (*symbol_2).got_addr
                 } else {
                     (*symbol_2).addr as *mut c_void
-                }) as uint64_t;
+                }) as u64;
 
                 encodeAddend(
                     oc,
                     section,
                     ri,
-                    (0xfff as uint64_t
+                    (0xfff
                         & value_2
-                            .wrapping_add(addend_3 as uint64_t)
-                            .wrapping_add(explicit_addend as uint64_t))
-                        as int64_t,
+                            .wrapping_add(addend_3 as u64)
+                            .wrapping_add(explicit_addend as u64)) as i64,
                     symbol_2,
                 );
 
-                explicit_addend = 0 as int64_t;
+                explicit_addend = 0;
             }
             10 => {
-                explicit_addend = signExtend((*ri).r_symbolnum() as uint64_t, 24 as uint8_t);
+                explicit_addend = signExtend((*ri).r_symbolnum() as u64, 24);
 
-                if !(i.wrapping_add(1 as size_t) < nreloc)
+                if !(i.wrapping_add(1 as usize) < nreloc)
                     || !((*(*(*section).info)
                         .relocation_info
-                        .offset(i.wrapping_add(1 as size_t) as isize))
-                    .r_type() as c_int
-                        == ARM64_RELOC_PAGE21 as c_int
+                        .offset(i.wrapping_add(1 as usize) as isize))
+                    .r_type() as i32
+                        == ARM64_RELOC_PAGE21 as i32
                         || (*(*(*section).info)
                             .relocation_info
-                            .offset(i.wrapping_add(1 as size_t) as isize))
-                        .r_type() as c_int
-                            == ARM64_RELOC_PAGEOFF12 as c_int)
+                            .offset(i.wrapping_add(1 as usize) as isize))
+                        .r_type() as i32
+                            == ARM64_RELOC_PAGEOFF12 as i32)
                 {
                     barf(
-                        b"ADDEND relocation *must* be followed by PAGE or PAGEOFF relocation\0"
-                            as *const u8 as *const c_char,
+                        c"ADDEND relocation *must* be followed by PAGE or PAGEOFF relocation"
+                            .as_ptr(),
                     );
                 }
             }
             _ => {
                 barf(
-                    b"Relocation of type: %d not (yet) supported!\n\0" as *const u8
-                        as *const c_char,
-                    (*ri).r_type() as c_int,
+                    c"Relocation of type: %d not (yet) supported!\n".as_ptr(),
+                    (*ri).r_type() as i32,
                 );
             }
         }
@@ -969,27 +894,27 @@ unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Sect
         i = i.wrapping_add(1);
     }
 
-    return 1 as c_int;
+    return 1;
 }
 
 unsafe fn getSectionKind_MachO(mut section: *mut MachOSection) -> SectionKind {
-    let mut s_type: uint8_t = ((*section).flags & SECTION_TYPE as uint32_t) as uint8_t;
+    let mut s_type: u8 = ((*section).flags & SECTION_TYPE as u32) as u8;
 
-    if s_type as c_int == S_MOD_INIT_FUNC_POINTERS {
+    if s_type as i32 == S_MOD_INIT_FUNC_POINTERS {
         return SECTIONKIND_INIT_ARRAY;
-    } else if s_type as c_int == S_MOD_TERM_FUNC_POINTERS {
+    } else if s_type as i32 == S_MOD_TERM_FUNC_POINTERS {
         return SECTIONKIND_FINI_ARRAY;
-    } else if 0 as c_int
+    } else if 0
         == strcmp(
             &raw mut (*section).segname as *mut c_char,
-            b"__TEXT\0" as *const u8 as *const c_char,
+            c"__TEXT".as_ptr(),
         )
     {
         return SECTIONKIND_CODE_OR_RODATA;
-    } else if 0 as c_int
+    } else if 0
         == strcmp(
             &raw mut (*section).segname as *mut c_char,
-            b"__DATA\0" as *const u8 as *const c_char,
+            c"__DATA".as_ptr(),
         )
     {
         return SECTIONKIND_RWDATA;
@@ -998,48 +923,47 @@ unsafe fn getSectionKind_MachO(mut section: *mut MachOSection) -> SectionKind {
     };
 }
 
-unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> c_int {
-    let mut n_rxSections = 0 as c_int;
-    let mut size_rxSegment: size_t = 0 as size_t;
+unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> i32 {
+    let mut n_rxSections = 0;
+    let mut size_rxSegment: usize = 0;
     let mut rxSegment = null_mut::<Segment>();
-    let mut n_rwSections = 0 as c_int;
-    let mut size_rwSegment: size_t = 0 as size_t;
+    let mut n_rwSections = 0;
+    let mut size_rwSegment: usize = 0;
     let mut rwSegment = null_mut::<Segment>();
-    let mut n_gbZerofills = 0 as c_int;
-    let mut size_gbZerofillSegment: size_t = 0 as size_t;
+    let mut n_gbZerofills = 0;
+    let mut size_gbZerofillSegment: usize = 0;
     let mut gbZerofillSegment = null_mut::<Segment>();
-    let mut n_activeSegments = 0 as c_int;
-    let mut curSegment = 0 as c_int;
-    let mut size_compound: size_t = 0;
+    let mut n_activeSegments = 0;
+    let mut curSegment = 0;
+    let mut size_compound: usize = 0;
     let mut segments = null_mut::<Segment>();
     let mut mem = NULL;
     let mut curMem = NULL;
-    let mut i = 0 as c_int;
+    let mut i = 0;
 
     while i < (*oc).n_sections {
         let mut macho: *mut MachOSection =
             (*(*oc).info).macho_sections.offset(i as isize) as *mut MachOSection;
 
-        if !(0 as uint64_t == (*macho).size) {
-            let mut alignment: size_t = ((1 as c_int) << (*macho).align) as size_t;
+        if !(0 == (*macho).size) {
+            let mut alignment: usize = (1 << (*macho).align) as usize;
 
-            if S_GB_ZEROFILL as uint32_t == (*macho).flags & SECTION_TYPE as uint32_t {
+            if S_GB_ZEROFILL as u32 == (*macho).flags & SECTION_TYPE as u32 {
                 size_gbZerofillSegment = roundUpToAlign(size_gbZerofillSegment, alignment);
-                size_gbZerofillSegment = (size_gbZerofillSegment as uint64_t)
-                    .wrapping_add((*macho).size) as size_t
-                    as size_t;
+
+                size_gbZerofillSegment =
+                    (size_gbZerofillSegment as u64).wrapping_add((*macho).size) as usize as usize;
                 n_gbZerofills += 1;
-            } else if getSectionKind_MachO(macho) as c_uint
-                == SECTIONKIND_CODE_OR_RODATA as c_int as c_uint
+            } else if getSectionKind_MachO(macho) as u32 == SECTIONKIND_CODE_OR_RODATA as i32 as u32
             {
                 size_rxSegment = roundUpToAlign(size_rxSegment, alignment);
                 size_rxSegment =
-                    (size_rxSegment as uint64_t).wrapping_add((*macho).size) as size_t as size_t;
+                    (size_rxSegment as u64).wrapping_add((*macho).size) as usize as usize;
                 n_rxSections += 1;
             } else {
                 size_rwSegment = roundUpToAlign(size_rwSegment, alignment);
                 size_rwSegment =
-                    (size_rwSegment as uint64_t).wrapping_add((*macho).size) as size_t as size_t;
+                    (size_rwSegment as u64).wrapping_add((*macho).size) as usize as usize;
                 n_rwSections += 1;
             }
         }
@@ -1051,37 +975,37 @@ unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> c_int {
         .wrapping_add(roundUpToPage(size_rwSegment))
         .wrapping_add(roundUpToPage(size_gbZerofillSegment));
 
-    if n_rxSections > 0 as c_int {
+    if n_rxSections > 0 {
         n_activeSegments += 1;
     }
 
-    if n_rwSections > 0 as c_int {
+    if n_rwSections > 0 {
         n_activeSegments += 1;
     }
 
-    if n_gbZerofills > 0 as c_int {
+    if n_gbZerofills > 0 {
         n_activeSegments += 1;
     }
 
-    if 0 as size_t == size_compound {
-        return 1 as c_int;
+    if 0 == size_compound {
+        return 1;
     }
 
     mem = mmapAnonForLinker(size_compound);
 
     if mem.is_null() {
-        return 0 as c_int;
+        return 0;
     }
 
     segments = stgCallocBytes(
-        n_activeSegments as size_t,
-        size_of::<Segment>() as size_t,
-        b"ocBuildSegments_MachO(segments)\0" as *const u8 as *const c_char as *mut c_char,
+        n_activeSegments as usize,
+        size_of::<Segment>() as usize,
+        c"ocBuildSegments_MachO(segments)".as_ptr(),
     ) as *mut Segment;
 
     curMem = mem;
 
-    if n_rxSections > 0 as c_int {
+    if n_rxSections > 0 {
         rxSegment = segments.offset(curSegment as isize) as *mut Segment;
 
         initSegment(
@@ -1096,7 +1020,7 @@ unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> c_int {
         curSegment += 1;
     }
 
-    if n_rwSections > 0 as c_int {
+    if n_rwSections > 0 {
         rwSegment = segments.offset(curSegment as isize) as *mut Segment;
 
         initSegment(
@@ -1111,7 +1035,7 @@ unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> c_int {
         curSegment += 1;
     }
 
-    if n_gbZerofills > 0 as c_int {
+    if n_gbZerofills > 0 {
         gbZerofillSegment = segments.offset(curSegment as isize) as *mut Segment;
 
         initSegment(
@@ -1126,22 +1050,22 @@ unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> c_int {
         curSegment += 1;
     }
 
-    let mut i_0 = 0 as c_int;
-    let mut rx = 0 as c_int;
-    let mut rw = 0 as c_int;
-    let mut gb = 0 as c_int;
+    let mut i_0 = 0;
+    let mut rx = 0;
+    let mut rw = 0;
+    let mut gb = 0;
 
     while i_0 < (*oc).n_sections {
         let mut macho_0: *mut MachOSection =
             (*(*oc).info).macho_sections.offset(i_0 as isize) as *mut MachOSection;
 
-        if !(0 as uint64_t == (*macho_0).size) {
-            if S_GB_ZEROFILL as uint32_t == (*macho_0).flags & SECTION_TYPE as uint32_t {
+        if !(0 == (*macho_0).size) {
+            if S_GB_ZEROFILL as u32 == (*macho_0).flags & SECTION_TYPE as u32 {
                 let fresh9 = gb;
                 gb = gb + 1;
                 *(*gbZerofillSegment).sections_idx.offset(fresh9 as isize) = i_0;
-            } else if getSectionKind_MachO(macho_0) as c_uint
-                == SECTIONKIND_CODE_OR_RODATA as c_int as c_uint
+            } else if getSectionKind_MachO(macho_0) as u32
+                == SECTIONKIND_CODE_OR_RODATA as i32 as u32
             {
                 let fresh10 = rx;
                 rx = rx + 1;
@@ -1159,55 +1083,56 @@ unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> c_int {
     (*oc).segments = segments;
     (*oc).n_segments = n_activeSegments;
 
-    return 1 as c_int;
+    return 1;
 }
 
-unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> c_int {
-    let mut curSymbol = 0 as c_uint;
-    let mut commonSize = 0 as c_ulong;
+unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> i32 {
+    let mut curSymbol = 0;
+    let mut commonSize = 0;
     let mut commonStorage = NULL as *mut c_void;
-    let mut commonCounter: c_ulong = 0;
+    let mut commonCounter: u64 = 0;
     let mut secArray = null_mut::<Section>();
 
     secArray = stgCallocBytes(
-        (*(*(*oc).info).segCmd).nsects as size_t,
-        size_of::<Section>() as size_t,
-        b"ocGetNames_MachO(sections)\0" as *const u8 as *const c_char as *mut c_char,
+        (*(*(*oc).info).segCmd).nsects as usize,
+        size_of::<Section>() as usize,
+        c"ocGetNames_MachO(sections)".as_ptr(),
     ) as *mut Section;
 
     (*oc).sections = secArray;
 
-    if (ocBuildSegments_MachO(oc) != 0) as c_int as c_long != 0 {
+    if (ocBuildSegments_MachO(oc) != 0) as i32 as i64 != 0 {
     } else {
-        barf(b"ocGetNames_MachO: failed to build segments\n\0" as *const u8 as *const c_char);
+        barf(c"ocGetNames_MachO: failed to build segments\n".as_ptr());
     }
 
-    let mut seg_n = 0 as c_int;
+    let mut seg_n = 0;
 
     while seg_n < (*oc).n_segments {
         let mut segment: *mut Segment = (*oc).segments.offset(seg_n as isize) as *mut Segment;
+
         let mut curMem = (*segment).start;
-        let mut sec_n = 0 as c_int;
+        let mut sec_n = 0;
 
         while sec_n < (*segment).n_sections {
             let mut sec_idx = *(*segment).sections_idx.offset(sec_n as isize);
             let mut section: *mut MachOSection =
                 (*(*oc).info).macho_sections.offset(sec_idx as isize) as *mut MachOSection;
 
-            let mut alignment: size_t = ((1 as c_int) << (*section).align) as size_t;
+            let mut alignment: usize = (1 << (*section).align) as usize;
             let mut kind = getSectionKind_MachO(section);
             let mut alloc = SECTION_NOMEM;
             let mut start = NULL;
             let mut mapped_start = NULL;
-            let mut mapped_size: StgWord = 0 as StgWord;
-            let mut mapped_offset: StgWord = 0 as StgWord;
+            let mut mapped_size: StgWord = 0;
+            let mut mapped_offset: StgWord = 0;
             let mut size: StgWord = (*section).size as StgWord;
-            let mut secMem = roundUpToAlign(curMem as size_t, alignment) as *mut c_void;
+            let mut secMem = roundUpToAlign(curMem as usize, alignment) as *mut c_void;
             start = secMem;
 
-            match (*section).flags & SECTION_TYPE as uint32_t {
+            match (*section).flags & SECTION_TYPE as u32 {
                 1 | 12 => {
-                    memset(secMem, 0 as c_int, (*section).size as size_t);
+                    memset(secMem, 0, (*section).size as usize);
 
                     addSection(
                         secArray.offset(sec_idx as isize) as *mut Section,
@@ -1221,21 +1146,21 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> c_int {
                     );
                 }
                 _ => {
-                    let mut nstubs = numberOfStubsForSection(oc, sec_idx as c_uint);
-                    let mut stub_space = stubSizeAarch64.wrapping_mul(nstubs as size_t) as c_uint;
+                    let mut nstubs = numberOfStubsForSection(oc, sec_idx as u32);
+                    let mut stub_space = stubSizeAarch64.wrapping_mul(nstubs as usize) as u32;
 
                     let mut mem = mmapForLinker(
-                        (*section).size.wrapping_add(stub_space as uint64_t) as size_t,
+                        (*section).size.wrapping_add(stub_space as u64) as usize,
                         MEM_READ_WRITE,
-                        MAP_ANON as uint32_t,
-                        -(1 as c_int),
-                        0 as c_int,
+                        MAP_ANON as u32,
+                        -1,
+                        0,
                     );
 
                     if mem == MAP_FAILED {
                         sysErrorBelch(
-                            b"failed to mmap allocated memory to load section %d. errno = %d\0"
-                                as *const u8 as *const c_char,
+                            c"failed to mmap allocated memory to load section %d. errno = %d"
+                                .as_ptr(),
                             sec_idx,
                             *__error(),
                         );
@@ -1244,13 +1169,15 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> c_int {
                     memcpy(
                         mem,
                         (*oc).image.offset((*section).offset as isize) as *const c_void,
-                        size as size_t,
+                        size as usize,
                     );
 
                     alloc = SECTION_MMAP;
-                    mapped_offset = 0 as StgWord;
-                    mapped_size = roundUpToPage(size.wrapping_add(stub_space as StgWord) as size_t)
-                        as StgWord;
+                    mapped_offset = 0;
+
+                    mapped_size =
+                        roundUpToPage(size.wrapping_add(stub_space as StgWord) as usize) as StgWord;
+
                     start = mem;
                     mapped_start = mem;
 
@@ -1265,15 +1192,16 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> c_int {
                         mapped_size,
                     );
 
-                    (*(*secArray.offset(sec_idx as isize)).info).nstubs = 0 as size_t;
+                    (*(*secArray.offset(sec_idx as isize)).info).nstubs = 0;
 
                     let ref mut fresh12 = (*(*secArray.offset(sec_idx as isize)).info).stub_offset;
-                    *fresh12 = (mem as *mut uint8_t).offset(size as isize) as *mut c_void;
-                    (*(*secArray.offset(sec_idx as isize)).info).stub_size = stub_space as size_t;
+                    *fresh12 = (mem as *mut u8).offset(size as isize) as *mut c_void;
+                    (*(*secArray.offset(sec_idx as isize)).info).stub_size = stub_space as usize;
 
                     let ref mut fresh13 = (*(*secArray.offset(sec_idx as isize)).info).stubs;
                     *fresh13 = null_mut::<Stub>();
-                    addProddableBlock(&raw mut (*oc).proddables, start, (*section).size as size_t);
+
+                    addProddableBlock(&raw mut (*oc).proddables, start, (*section).size as usize);
                 }
             }
 
@@ -1290,28 +1218,28 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> c_int {
         seg_n += 1;
     }
 
-    let mut i: size_t = 0 as size_t;
+    let mut i: usize = 0;
 
     while i < (*(*oc).info).n_macho_symbols {
         let mut s: *mut MachOSymbol =
             (*(*oc).info).macho_symbols.offset(i as isize) as *mut MachOSymbol;
 
-        if N_SECT == (*(*s).nlist).n_type as c_int & N_TYPE {
-            if NO_SECT == (*(*s).nlist).n_sect as c_int {
-                barf(b"Symbol with N_SECT type, but no section.\0" as *const u8 as *const c_char);
+        if N_SECT == (*(*s).nlist).n_type as i32 & N_TYPE {
+            if NO_SECT == (*(*s).nlist).n_sect as i32 {
+                barf(c"Symbol with N_SECT type, but no section.".as_ptr());
             }
 
-            let mut n: uint8_t = ((*(*s).nlist).n_sect as c_int - 1 as c_int) as uint8_t;
+            let mut n: u8 = ((*(*s).nlist).n_sect as i32 - 1) as u8;
 
-            if !(0 as uint64_t == (*(*(*oc).info).macho_sections.offset(n as isize)).size) {
-                (*s).addr = ((*(*oc).sections.offset(n as isize)).start as *mut uint8_t)
+            if !(0 == (*(*(*oc).info).macho_sections.offset(n as isize)).size) {
+                (*s).addr = ((*(*oc).sections.offset(n as isize)).start as *mut u8)
                     .offset(-((*(*(*oc).info).macho_sections.offset(n as isize)).addr as isize))
                     .offset((*(*s).nlist).n_value as isize)
                     as *mut c_void;
 
                 if (*s).addr.is_null() {
                     barf(
-                        b"Failed to compute address for symbol %s\0" as *const u8 as *const c_char,
+                        c"Failed to compute address for symbol %s".as_ptr(),
                         (*s).name,
                     );
                 }
@@ -1321,23 +1249,23 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> c_int {
         i = i.wrapping_add(1);
     }
 
-    (*oc).n_symbols = 0 as c_int;
+    (*oc).n_symbols = 0;
 
     if !(*(*oc).info).symCmd.is_null() {
-        let mut i_0: size_t = 0 as size_t;
+        let mut i_0: usize = 0;
 
         while i_0 < (*(*oc).info).n_macho_symbols {
-            if !((*(*(*oc).info).nlist.offset(i_0 as isize)).n_type as c_int & N_STAB != 0) {
-                if (*(*(*oc).info).nlist.offset(i_0 as isize)).n_type as c_int & N_EXT != 0 {
-                    if (*(*(*oc).info).nlist.offset(i_0 as isize)).n_type as c_int & N_TYPE
-                        == N_UNDF
-                        && (*(*(*oc).info).nlist.offset(i_0 as isize)).n_value != 0 as uint64_t
+            if !((*(*(*oc).info).nlist.offset(i_0 as isize)).n_type as i32 & N_STAB != 0) {
+                if (*(*(*oc).info).nlist.offset(i_0 as isize)).n_type as i32 & N_EXT != 0 {
+                    if (*(*(*oc).info).nlist.offset(i_0 as isize)).n_type as i32 & N_TYPE == N_UNDF
+                        && (*(*(*oc).info).nlist.offset(i_0 as isize)).n_value != 0
                     {
-                        commonSize = (commonSize as uint64_t)
+                        commonSize = (commonSize as u64)
                             .wrapping_add((*(*(*oc).info).nlist.offset(i_0 as isize)).n_value)
-                            as c_ulong as c_ulong;
+                            as u64 as u64;
+
                         (*oc).n_symbols += 1;
-                    } else if (*(*(*oc).info).nlist.offset(i_0 as isize)).n_type as c_int & N_TYPE
+                    } else if (*(*(*oc).info).nlist.offset(i_0 as isize)).n_type as i32 & N_TYPE
                         == N_SECT
                     {
                         (*oc).n_symbols += 1;
@@ -1350,25 +1278,25 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> c_int {
     }
 
     (*oc).symbols = stgMallocBytes(
-        ((*oc).n_symbols as size_t).wrapping_mul(size_of::<Symbol_t>() as size_t),
-        b"ocGetNames_MachO(oc->symbols)\0" as *const u8 as *const c_char as *mut c_char,
+        ((*oc).n_symbols as usize).wrapping_mul(size_of::<Symbol_t>() as usize),
+        c"ocGetNames_MachO(oc->symbols)".as_ptr(),
     ) as *mut Symbol_t;
 
     if !(*(*oc).info).symCmd.is_null() {
-        let mut i_1: size_t = 0 as size_t;
+        let mut i_1: usize = 0;
 
         while i_1 < (*(*oc).info).n_macho_symbols {
             let mut nm = (*(*(*oc).info).macho_symbols.offset(i_1 as isize)).name;
 
-            if !((*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as c_int & N_STAB != 0) {
-                if (*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as c_int & N_TYPE == N_SECT {
-                    if (*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as c_int & N_EXT != 0 {
-                        if !((*(*(*oc).info).nlist.offset(i_1 as isize)).n_desc as c_int
-                            & N_WEAK_DEF
+            if !((*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as i32 & N_STAB != 0) {
+                if (*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as i32 & N_TYPE == N_SECT {
+                    if (*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as i32 & N_EXT != 0 {
+                        if !((*(*(*oc).info).nlist.offset(i_1 as isize)).n_desc as i32 & N_WEAK_DEF
                             != 0
                             && !lookupDependentSymbol(nm, oc, null_mut::<SymType>()).is_null())
                         {
                             let mut addr = (*(*(*oc).info).macho_symbols.offset(i_1 as isize)).addr;
+
                             let mut sym_type = SYM_TYPE_CODE;
 
                             ghciInsertSymbolTable(
@@ -1398,27 +1326,27 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> c_int {
     }
 
     commonStorage = stgCallocBytes(
-        1 as size_t,
-        commonSize as size_t,
-        b"ocGetNames_MachO(common symbols)\0" as *const u8 as *const c_char as *mut c_char,
+        1,
+        commonSize as usize,
+        c"ocGetNames_MachO(common symbols)".as_ptr(),
     ) as *mut c_void;
 
-    commonCounter = commonStorage as c_ulong;
+    commonCounter = commonStorage as u64;
 
     if !(*(*oc).info).symCmd.is_null() {
-        let mut i_2: size_t = 0 as size_t;
+        let mut i_2: usize = 0;
 
         while i_2 < (*(*oc).info).n_macho_symbols {
             let mut nm_0 = (*(*(*oc).info).macho_symbols.offset(i_2 as isize)).name;
             let mut nlist: *mut MachONList =
                 (*(*oc).info).nlist.offset(i_2 as isize) as *mut MachONList;
 
-            if (*nlist).n_type as c_int & N_TYPE == N_UNDF
-                && (*nlist).n_type as c_int & N_EXT != 0
-                && (*nlist).n_value != 0 as uint64_t
+            if (*nlist).n_type as i32 & N_TYPE == N_UNDF
+                && (*nlist).n_type as i32 & N_EXT != 0
+                && (*nlist).n_value != 0
             {
-                let mut sz = (*nlist).n_value as c_ulong;
-                (*nlist).n_value = commonCounter as uint64_t;
+                let mut sz = (*nlist).n_value as u64;
+                (*nlist).n_value = commonCounter as u64;
 
                 let ref mut fresh18 = (*(*(*oc).info).macho_symbols.offset(i_2 as isize)).addr;
                 *fresh18 = commonCounter as *mut c_void as *mut c_void;
@@ -1451,17 +1379,17 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> c_int {
     findInternalGotRefs(oc);
     makeGot(oc);
 
-    return 1 as c_int;
+    return 1;
 }
 
 unsafe fn ocMprotect_MachO(mut oc: *mut ObjectCode) -> bool {
-    let mut i = 0 as c_int;
+    let mut i = 0;
 
     while i < (*oc).n_segments {
         let mut segment: *mut Segment = (*oc).segments.offset(i as isize) as *mut Segment;
 
-        if !((*segment).size == 0 as size_t) {
-            if (*segment).prot as c_uint == SEGMENT_PROT_RX as c_int as c_uint {
+        if !((*segment).size == 0) {
+            if (*segment).prot as u32 == SEGMENT_PROT_RX as i32 as u32 {
                 mprotectForLinker((*segment).start, (*segment).size, MEM_READ_EXECUTE);
             }
         }
@@ -1469,19 +1397,19 @@ unsafe fn ocMprotect_MachO(mut oc: *mut ObjectCode) -> bool {
         i += 1;
     }
 
-    let mut i_0 = 0 as c_int;
+    let mut i_0 = 0;
 
     while i_0 < (*oc).n_sections {
         let mut section: *mut Section = (*oc).sections.offset(i_0 as isize) as *mut Section;
 
-        if !((*section).size == 0 as StgWord) {
-            if !((*section).alloc as c_uint != SECTION_MMAP as c_int as c_uint) {
-                if !((*section).alloc as c_uint == SECTION_M32 as c_int as c_uint) {
-                    match (*section).kind as c_uint {
+        if !((*section).size == 0) {
+            if !((*section).alloc as u32 != SECTION_MMAP as i32 as u32) {
+                if !((*section).alloc as u32 == SECTION_M32 as i32 as u32) {
+                    match (*section).kind as u32 {
                         0 => {
                             mprotectForLinker(
                                 (*section).mapped_start,
-                                (*section).mapped_size as size_t,
+                                (*section).mapped_size as usize,
                                 MEM_READ_EXECUTE,
                             );
                         }
@@ -1494,34 +1422,25 @@ unsafe fn ocMprotect_MachO(mut oc: *mut ObjectCode) -> bool {
         i_0 += 1;
     }
 
-    return r#true != 0;
+    return true;
 }
 
-unsafe fn ocResolve_MachO(mut oc: *mut ObjectCode) -> c_int {
+unsafe fn ocResolve_MachO(mut oc: *mut ObjectCode) -> i32 {
     if !(*(*oc).info).dsymCmd.is_null() {
         let mut indirectSyms = (*oc)
             .image
             .offset((*(*(*oc).info).dsymCmd).indirectsymoff as isize)
-            as *mut c_ulong;
+            as *mut u64;
 
-        let mut i = 0 as c_int;
+        let mut i = 0;
 
         while i < (*oc).n_sections {
             let mut sectionName: *const c_char =
                 &raw mut (*(*(*oc).info).macho_sections.offset(i as isize)).sectname as *mut c_char;
 
-            if strcmp(
-                sectionName,
-                b"__la_symbol_ptr\0" as *const u8 as *const c_char,
-            ) == 0
-                || strcmp(
-                    sectionName,
-                    b"__la_sym_ptr2\0" as *const u8 as *const c_char,
-                ) == 0
-                || strcmp(
-                    sectionName,
-                    b"__la_sym_ptr3\0" as *const u8 as *const c_char,
-                ) == 0
+            if strcmp(sectionName, c"__la_symbol_ptr".as_ptr()) == 0
+                || strcmp(sectionName, c"__la_sym_ptr2".as_ptr()) == 0
+                || strcmp(sectionName, c"__la_sym_ptr3".as_ptr()) == 0
             {
                 if resolveImports(
                     oc,
@@ -1529,13 +1448,10 @@ unsafe fn ocResolve_MachO(mut oc: *mut ObjectCode) -> c_int {
                     indirectSyms,
                 ) == 0
                 {
-                    return 0 as c_int;
+                    return 0;
                 }
-            } else if strcmp(
-                sectionName,
-                b"__nl_symbol_ptr\0" as *const u8 as *const c_char,
-            ) == 0
-                || strcmp(sectionName, b"__pointers\0" as *const u8 as *const c_char) == 0
+            } else if strcmp(sectionName, c"__nl_symbol_ptr".as_ptr()) == 0
+                || strcmp(sectionName, c"__pointers".as_ptr()) == 0
             {
                 if resolveImports(
                     oc,
@@ -1543,16 +1459,16 @@ unsafe fn ocResolve_MachO(mut oc: *mut ObjectCode) -> c_int {
                     indirectSyms,
                 ) == 0
                 {
-                    return 0 as c_int;
+                    return 0;
                 }
-            } else if strcmp(sectionName, b"__jump_table\0" as *const u8 as *const c_char) == 0 {
+            } else if strcmp(sectionName, c"__jump_table".as_ptr()) == 0 {
                 if resolveImports(
                     oc,
                     (*(*oc).info).macho_sections.offset(i as isize) as *mut MachOSection,
                     indirectSyms,
                 ) == 0
                 {
-                    return 0 as c_int;
+                    return 0;
                 }
             }
 
@@ -1560,96 +1476,91 @@ unsafe fn ocResolve_MachO(mut oc: *mut ObjectCode) -> c_int {
         }
     }
 
-    let mut i_0: size_t = 0 as size_t;
+    let mut i_0: usize = 0;
 
     while i_0 < (*(*oc).info).n_macho_symbols {
         let mut symbol: *mut MachOSymbol =
             (*(*oc).info).macho_symbols.offset(i_0 as isize) as *mut MachOSymbol;
 
         if needGotSlot(symbol) {
-            if N_UNDF == (*(*symbol).nlist).n_type as c_int & N_TYPE {
+            if N_UNDF == (*(*symbol).nlist).n_type as i32 & N_TYPE {
                 if (*symbol).addr.is_null() {
                     (*symbol).addr =
                         lookupDependentSymbol((*symbol).name, oc, null_mut::<SymType>());
 
                     if (*symbol).addr.is_null() {
-                        errorBelch(
-                            b"Failed to lookup symbol: %s\0" as *const u8 as *const c_char,
-                            (*symbol).name,
-                        );
+                        errorBelch(c"Failed to lookup symbol: %s".as_ptr(), (*symbol).name);
 
-                        return 0 as c_int;
+                        return 0;
                     }
                 }
             }
 
             if (*symbol).addr.is_null() {
                 errorBelch(
-                    b"Symbol %s has no address!\n\0" as *const u8 as *const c_char,
+                    c"Symbol %s has no address!\n".as_ptr(),
                     (*symbol).name as *mut c_char,
                 );
 
-                return 0 as c_int;
+                return 0;
             }
 
             if (*symbol).got_addr.is_null() {
                 errorBelch(
-                    b"Symbol %s has no Global Offset Table address!\n\0" as *const u8
-                        as *const c_char,
+                    c"Symbol %s has no Global Offset Table address!\n".as_ptr(),
                     (*symbol).name as *mut c_char,
                 );
 
-                return 0 as c_int;
+                return 0;
             }
 
-            *((*symbol).got_addr as *mut uint64_t) = (*symbol).addr as uint64_t;
+            *((*symbol).got_addr as *mut u64) = (*symbol).addr as u64;
         }
 
         i_0 = i_0.wrapping_add(1);
     }
 
-    let mut i_1 = 0 as c_int;
+    let mut i_1 = 0;
 
     while i_1 < (*oc).n_sections {
         if relocateSectionAarch64(oc, (*oc).sections.offset(i_1 as isize) as *mut Section) == 0 {
-            return 0 as c_int;
+            return 0;
         }
 
         i_1 += 1;
     }
 
     if !ocMprotect_MachO(oc) {
-        return 0 as c_int;
+        return 0;
     }
 
-    return 1 as c_int;
+    return 1;
 }
 
-unsafe fn ocRunInit_MachO(mut oc: *mut ObjectCode) -> c_int {
+unsafe fn ocRunInit_MachO(mut oc: *mut ObjectCode) -> i32 {
     if (*(*oc).info).segCmd.is_null() {
-        barf(b"ocRunInit_MachO: no segment load command\0" as *const u8 as *const c_char);
+        barf(c"ocRunInit_MachO: no segment load command".as_ptr());
     }
 
-    let mut argc: c_int = 0;
-    let mut envc: c_int = 0;
+    let mut argc: i32 = 0;
+    let mut envc: i32 = 0;
     let mut argv = null_mut::<*mut c_char>();
     let mut envv = null_mut::<*mut c_char>();
     getProgArgv(&raw mut argc, &raw mut argv);
     getProgEnvv(&raw mut envc, &raw mut envv);
 
-    let mut i = 0 as c_int;
+    let mut i = 0;
 
     while i < (*oc).n_sections {
-        if (*(*oc).sections.offset(i as isize)).kind as c_uint
-            == SECTIONKIND_INIT_ARRAY as c_int as c_uint
+        if (*(*oc).sections.offset(i as isize)).kind as u32 == SECTIONKIND_INIT_ARRAY as i32 as u32
         {
             let mut init_startC = (*(*oc).sections.offset(i as isize)).start;
             let mut init = init_startC as *mut init_t;
-            let mut init_end = (init_startC as *mut uint8_t)
+            let mut init_end = (init_startC as *mut u8)
                 .offset((*(*(*(*oc).sections.offset(i as isize)).info).macho_section).size as isize)
                 as *mut init_t;
 
-            let mut pn = 0 as c_int;
+            let mut pn = 0;
 
             while init < init_end {
                 (*init).expect("non-null function pointer")(argc, argv, envv);
@@ -1663,27 +1574,26 @@ unsafe fn ocRunInit_MachO(mut oc: *mut ObjectCode) -> c_int {
 
     freeProgEnvv(envc, envv as *mut *mut c_char);
 
-    return 1 as c_int;
+    return 1;
 }
 
-unsafe fn ocRunFini_MachO(mut oc: *mut ObjectCode) -> c_int {
+unsafe fn ocRunFini_MachO(mut oc: *mut ObjectCode) -> i32 {
     if (*(*oc).info).segCmd.is_null() {
-        barf(b"ocRunInit_MachO: no segment load command\0" as *const u8 as *const c_char);
+        barf(c"ocRunInit_MachO: no segment load command".as_ptr());
     }
 
-    let mut i = 0 as c_int;
+    let mut i = 0;
 
     while i < (*oc).n_sections {
-        if (*(*oc).sections.offset(i as isize)).kind as c_uint
-            == SECTIONKIND_FINI_ARRAY as c_int as c_uint
+        if (*(*oc).sections.offset(i as isize)).kind as u32 == SECTIONKIND_FINI_ARRAY as i32 as u32
         {
             let mut fini_startC = (*(*oc).sections.offset(i as isize)).start;
             let mut fini = fini_startC as *mut fini_t;
-            let mut fini_end = (fini_startC as *mut uint8_t)
+            let mut fini_end = (fini_startC as *mut u8)
                 .offset((*(*(*(*oc).sections.offset(i as isize)).info).macho_section).size as isize)
                 as *mut fini_t;
 
-            let mut pn = 0 as c_int;
+            let mut pn = 0;
 
             while fini < fini_end {
                 (*fini).expect("non-null function pointer")();
@@ -1695,10 +1605,10 @@ unsafe fn ocRunFini_MachO(mut oc: *mut ObjectCode) -> c_int {
         i += 1;
     }
 
-    return 1 as c_int;
+    return 1;
 }
 
-unsafe fn machoGetMisalignment(mut f: *mut FILE) -> c_int {
+unsafe fn machoGetMisalignment(mut f: *mut FILE) -> i32 {
     let mut header = mach_header_64 {
         magic: 0,
         cputype: 0,
@@ -1710,39 +1620,39 @@ unsafe fn machoGetMisalignment(mut f: *mut FILE) -> c_int {
         reserved: 0,
     };
 
-    let mut misalignment: c_int = 0;
+    let mut misalignment: i32 = 0;
 
     let mut n = fread(
         &raw mut header as *mut c_void,
-        size_of::<MachOHeader>() as size_t,
-        1 as size_t,
+        size_of::<MachOHeader>() as usize,
+        1,
         f,
-    ) as size_t;
+    ) as usize;
 
-    if n != 1 as size_t {
-        barf(b"machoGetMisalignment: can't read the Mach-O header\0" as *const u8 as *const c_char);
+    if n != 1 {
+        barf(c"machoGetMisalignment: can't read the Mach-O header".as_ptr());
     }
 
     fseek(
         f,
-        (size_of::<MachOHeader>() as usize).wrapping_neg() as c_long,
+        (size_of::<MachOHeader>() as usize).wrapping_neg() as i64,
         SEEK_CUR,
     );
 
-    if header.magic != MH_MAGIC_64 as uint32_t {
+    if header.magic != MH_MAGIC_64 as u32 {
         barf(
-            b"Bad magic. Expected: %08x, got: %08x.\0" as *const u8 as *const c_char,
+            c"Bad magic. Expected: %08x, got: %08x.".as_ptr(),
             MH_MAGIC_64,
             header.magic,
         );
     }
 
-    misalignment = ((header.sizeofcmds as usize).wrapping_add(size_of::<MachOHeader>() as usize)
-        & 0xf as usize) as c_int;
+    misalignment =
+        ((header.sizeofcmds as usize).wrapping_add(size_of::<MachOHeader>() as usize) & 0xf) as i32;
 
     return if misalignment != 0 {
-        16 as c_int - misalignment
+        16 - misalignment
     } else {
-        0 as c_int
+        0
     };
 }

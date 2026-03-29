@@ -49,7 +49,7 @@ use crate::updates::updateWithIndirection;
 #[cfg(test)]
 mod tests;
 
-static mut next_thread_id: StgThreadID = 1 as StgThreadID;
+static mut next_thread_id: StgThreadID = 1;
 
 const MIN_STACK_WORDS: usize = (RESERVED_STACK_WORDS as usize)
     .wrapping_add(
@@ -63,7 +63,7 @@ const MIN_STACK_WORDS: usize = (RESERVED_STACK_WORDS as usize)
 unsafe fn createThread(mut cap: *mut Capability, mut size: W_) -> *mut StgTSO {
     let mut tso = null_mut::<StgTSO>();
     let mut stack = null_mut::<StgStack>();
-    let mut stack_size: uint32_t = 0;
+    let mut stack_size: u32 = 0;
 
     if size
         < MIN_STACK_WORDS
@@ -102,11 +102,10 @@ unsafe fn createThread(mut cap: *mut Capability, mut size: W_) -> *mut StgTSO {
                 .wrapping_sub(1 as usize)
                 .wrapping_div(size_of::<W_>() as usize) as StgWord,
         ),
-    ) as uint32_t;
+    ) as u32;
 
     stack = allocate(cap, stack_size as W_) as *mut StgStack;
     (*stack).header.info = &raw const stg_STACK_info;
-
     (*stack).stack_size = (stack_size as usize).wrapping_sub(
         (size_of::<StgStack>() as usize)
             .wrapping_add(size_of::<W_>() as usize)
@@ -117,7 +116,7 @@ unsafe fn createThread(mut cap: *mut Capability, mut size: W_) -> *mut StgTSO {
     (*stack).sp =
         (&raw mut (*stack).stack as *mut StgWord).offset((*stack).stack_size as isize) as StgPtr;
     (*stack).dirty = STACK_DIRTY as StgWord8;
-    (*stack).marking = 0 as StgWord8;
+    (*stack).marking = 0;
 
     tso = allocate(
         cap,
@@ -136,19 +135,18 @@ unsafe fn createThread(mut cap: *mut Capability, mut size: W_) -> *mut StgTSO {
         as *mut MessageThrowTo as *mut MessageThrowTo_;
     (*tso).bq = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
         as *mut StgBlockingQueue as *mut StgBlockingQueue_;
-    (*tso).flags = 0 as StgWord32;
-    (*tso).dirty = 1 as StgWord32;
+    (*tso).flags = 0;
+    (*tso).dirty = 1;
     (*tso)._link = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO as *mut StgTSO_;
-    (*tso).saved_errno = 0 as StgWord32;
+    (*tso).saved_errno = 0;
     (*tso).bound = null_mut::<InCall_>();
     (*tso).cap = cap as *mut Capability_;
     (*tso).stackobj = stack as *mut StgStack_;
     (*tso).tot_stack_size = (*stack).stack_size;
-    ASSIGN_Int64(&raw mut (*tso).alloc_limit as *mut W_, 0 as StgInt64);
+    ASSIGN_Int64(&raw mut (*tso).alloc_limit as *mut W_, 0);
     (*tso).trec =
         &raw mut stg_NO_TREC_closure as *mut c_void as *mut StgTRecHeader as *mut StgTRecHeader_;
     (*tso).label = null_mut::<StgArrBytes>();
-
     (*stack).sp = (*stack).sp.offset(
         -((size_of::<StgStopFrame>() as usize)
             .wrapping_add(size_of::<W_>() as usize)
@@ -179,15 +177,15 @@ pub unsafe extern "C" fn eq_thread(mut tso1: StgPtr, mut tso2: StgPtr) -> bool {
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn cmp_thread(mut tso1: StgPtr, mut tso2: StgPtr) -> c_int {
+pub unsafe extern "C" fn cmp_thread(mut tso1: StgPtr, mut tso2: StgPtr) -> i32 {
     if tso1 == tso2 {
-        return 0 as c_int;
+        return 0;
     }
 
     let mut id1: StgThreadID = (*(tso1 as *mut StgTSO)).id;
     let mut id2: StgThreadID = (*(tso2 as *mut StgTSO)).id;
 
-    return if id1 < id2 { -(1 as c_int) } else { 1 as c_int };
+    return if id1 < id2 { -1 } else { 1 };
 }
 
 #[ffi(ghc_lib, testsuite)]
@@ -228,13 +226,13 @@ unsafe fn removeThreadFromQueue(
                 (*t)._link = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
                     as *mut StgTSO_;
 
-                return r#false != 0;
+                return false;
             } else {
                 *queue = (*t)._link as *mut StgTSO;
                 (*t)._link = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
                     as *mut StgTSO_;
 
-                return r#true != 0;
+                return true;
             }
         }
 
@@ -242,7 +240,7 @@ unsafe fn removeThreadFromQueue(
         t = (*t)._link as *mut StgTSO;
     }
 
-    barf(b"removeThreadFromQueue: not found\0" as *const u8 as *const c_char);
+    barf(c"removeThreadFromQueue: not found".as_ptr());
 }
 
 unsafe fn removeThreadFromDeQueue(
@@ -253,7 +251,7 @@ unsafe fn removeThreadFromDeQueue(
 ) -> bool {
     let mut t = null_mut::<StgTSO>();
     let mut prev = null_mut::<StgTSO>();
-    let mut flag = r#false != 0;
+    let mut flag = false;
     prev = null_mut::<StgTSO>();
     t = *head;
 
@@ -261,10 +259,10 @@ unsafe fn removeThreadFromDeQueue(
         if t == tso {
             if !prev.is_null() {
                 setTSOLink(cap, prev, (*t)._link as *mut StgTSO);
-                flag = r#false != 0;
+                flag = false;
             } else {
                 *head = (*t)._link as *mut StgTSO;
-                flag = r#true != 0;
+                flag = true;
             }
 
             (*t)._link =
@@ -277,7 +275,7 @@ unsafe fn removeThreadFromDeQueue(
                     *tail = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
                 }
 
-                return r#true != 0;
+                return true;
             } else {
                 return flag;
             }
@@ -287,7 +285,7 @@ unsafe fn removeThreadFromDeQueue(
         t = (*t)._link as *mut StgTSO;
     }
 
-    barf(b"removeThreadFromDeQueue: not found\0" as *const u8 as *const c_char);
+    barf(c"removeThreadFromDeQueue: not found".as_ptr());
 }
 
 unsafe fn tryWakeupThread(mut cap: *mut Capability, mut tso: *mut StgTSO) {
@@ -308,11 +306,10 @@ unsafe fn tryWakeupThread(mut cap: *mut Capability, mut tso: *mut StgTSO) {
             unlockClosure((*tso).block_info.closure, i);
 
             if i != &raw const stg_MSG_NULL_info {
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
                     traceCap_(
                         cap,
-                        b"thread %llu still blocked on throwto (%p)\0" as *const u8 as *const c_char
-                            as *mut c_char,
+                        c"thread %llu still blocked on throwto (%p)".as_ptr(),
                         (*tso).id,
                         (*(*tso).block_info.throwto).header.info,
                     );
@@ -321,7 +318,7 @@ unsafe fn tryWakeupThread(mut cap: *mut Capability, mut tso: *mut StgTSO) {
                 return;
             }
 
-            (*(*tso).stackobj).sp = (*(*tso).stackobj).sp.offset(3 as c_int as isize);
+            (*(*tso).stackobj).sp = (*(*tso).stackobj).sp.offset(3);
         }
         6 => {
             (*tso).block_info.closure = &raw mut stg_STM_AWOKEN_closure;
@@ -366,11 +363,10 @@ unsafe fn checkBlockingQueues(mut cap: *mut Capability, mut tso: *mut StgTSO) {
     let mut next = null_mut::<StgBlockingQueue>();
     let mut p = null_mut::<StgClosure>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
         traceCap_(
             cap,
-            b"collision occurred; checking blocking queues for thread %llu\0" as *const u8
-                as *const c_char as *mut c_char,
+            c"collision occurred; checking blocking queues for thread %llu".as_ptr(),
             (*tso).id,
         );
     }
@@ -458,7 +454,7 @@ pub unsafe extern "C" fn rtsSupportsBoundThreads() -> HsBool {
 }
 
 unsafe fn isThreadBound(mut tso: *mut StgTSO) -> StgBool {
-    return r#false;
+    return false;
 }
 
 unsafe fn threadStackOverflow(mut cap: *mut Capability, mut tso: *mut StgTSO) {
@@ -467,20 +463,18 @@ unsafe fn threadStackOverflow(mut cap: *mut Capability, mut tso: *mut StgTSO) {
     let mut frame = null_mut::<StgUnderflowFrame>();
     let mut chunk_size: W_ = 0;
 
-    if RtsFlags.GcFlags.maxStkSize > 0 as uint32_t
-        && (*tso).tot_stack_size >= RtsFlags.GcFlags.maxStkSize
-    {
+    if RtsFlags.GcFlags.maxStkSize > 0 && (*tso).tot_stack_size >= RtsFlags.GcFlags.maxStkSize {
         if (*tso).flags & TSO_SQUEEZED as StgWord32 != 0 {
             return;
         }
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
             trace_(
-                b"threadStackOverflow of TSO %llu (%p): stack too large (now %ld; max is %ld)\0"
-                    as *const u8 as *const c_char as *mut c_char,
+                c"threadStackOverflow of TSO %llu (%p): stack too large (now %ld; max is %ld)"
+                    .as_ptr(),
                 (*tso).id,
                 tso,
-                (*(*tso).stackobj).stack_size as c_long,
+                (*(*tso).stackobj).stack_size as i64,
                 RtsFlags.GcFlags.maxStkSize,
             );
         }
@@ -492,8 +486,7 @@ unsafe fn threadStackOverflow(mut cap: *mut Capability, mut tso: *mut StgTSO) {
     if (*tso).flags & TSO_SQUEEZED as StgWord32 != 0
         && (*(*tso).stackobj)
             .sp
-            .offset_from(&raw mut (*(*tso).stackobj).stack as *mut StgWord) as c_long
-            as W_
+            .offset_from(&raw mut (*(*tso).stackobj).stack as *mut StgWord) as i64 as W_
             >= BLOCK_SIZE_W as W_
     {
         return;
@@ -506,32 +499,27 @@ unsafe fn threadStackOverflow(mut cap: *mut Capability, mut tso: *mut StgTSO) {
             .offset((*old_stack).stack_size.wrapping_div(2 as StgWord32) as isize)
     {
         chunk_size = ({
-            let mut _a = (2 as c_ulong).wrapping_mul(
-                ((*old_stack).stack_size as c_ulong).wrapping_add(
-                    (size_of::<StgStack>() as c_ulong)
-                        .wrapping_add(size_of::<W_>() as c_ulong)
-                        .wrapping_sub(1 as c_ulong)
-                        .wrapping_div(size_of::<W_>() as c_ulong),
+            let mut _a = (2 as u64).wrapping_mul(
+                ((*old_stack).stack_size as u64).wrapping_add(
+                    (size_of::<StgStack>() as u64)
+                        .wrapping_add(size_of::<W_>() as u64)
+                        .wrapping_sub(1 as u64)
+                        .wrapping_div(size_of::<W_>() as u64),
                 ),
             );
 
-            let mut _b = RtsFlags.GcFlags.stkChunkSize as c_ulong;
+            let mut _b = RtsFlags.GcFlags.stkChunkSize as u64;
 
-            if _a <= _b {
-                _b as c_ulong
-            } else {
-                _a as c_ulong
-            }
+            if _a <= _b { _b as u64 } else { _a as u64 }
         }) as W_;
     } else {
         chunk_size = RtsFlags.GcFlags.stkChunkSize as W_;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
         traceCap_(
             cap,
-            b"allocating new stack chunk of size %d bytes\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"allocating new stack chunk of size %d bytes".as_ptr(),
             chunk_size.wrapping_mul(size_of::<W_>() as W_),
         );
     }
@@ -540,9 +528,8 @@ unsafe fn threadStackOverflow(mut cap: *mut Capability, mut tso: *mut StgTSO) {
     new_stack = allocate(cap, chunk_size) as *mut StgStack;
     (*cap).r.rCurrentTSO = null_mut::<StgTSO_>();
     (*new_stack).header.info = &raw const stg_STACK_info;
-    (*new_stack).dirty = 0 as StgWord8;
-    (*new_stack).marking = 0 as StgWord8;
-
+    (*new_stack).dirty = 0;
+    (*new_stack).marking = 0;
     (*new_stack).stack_size = chunk_size.wrapping_sub(
         (size_of::<StgStack>() as usize)
             .wrapping_add(size_of::<W_>() as usize)
@@ -618,12 +605,12 @@ unsafe fn threadStackOverflow(mut cap: *mut Capability, mut tso: *mut StgTSO) {
         (*frame).next_chunk = old_stack as *mut StgStack_;
     }
 
-    chunk_words = sp.offset_from((*old_stack).sp) as c_long as W_;
+    chunk_words = sp.offset_from((*old_stack).sp) as i64 as W_;
 
     memcpy(
         (*new_stack).sp.offset(-(chunk_words as isize)) as *mut c_void,
         (*old_stack).sp as *const c_void,
-        chunk_words.wrapping_mul(size_of::<W_>() as W_) as size_t,
+        chunk_words.wrapping_mul(size_of::<W_>() as W_) as usize,
     );
 
     (*old_stack).sp = (*old_stack).sp.offset(chunk_words as isize);
@@ -636,13 +623,10 @@ unsafe fn threadStackUnderflow(mut cap: *mut Capability, mut tso: *mut StgTSO) -
     let mut new_stack = null_mut::<StgStack>();
     let mut old_stack = null_mut::<StgStack>();
     let mut frame = null_mut::<StgUnderflowFrame>();
-    let mut retvals: uint32_t = 0;
+    let mut retvals: u32 = 0;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-        traceCap_(
-            cap,
-            b"stack underflow\0" as *const u8 as *const c_char as *mut c_char,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+        traceCap_(cap, c"stack underflow".as_ptr());
     }
 
     old_stack = (*tso).stackobj as *mut StgStack;
@@ -657,24 +641,21 @@ unsafe fn threadStackUnderflow(mut cap: *mut Capability, mut tso: *mut StgTSO) -
 
     new_stack = (*frame).next_chunk as *mut StgStack;
     (*tso).stackobj = new_stack as *mut StgStack_;
-    retvals = (frame as P_).offset_from((*old_stack).sp) as c_long as uint32_t;
+    retvals = (frame as P_).offset_from((*old_stack).sp) as i64 as u32;
 
-    if retvals != 0 as uint32_t {
+    if retvals != 0 {
         if ((*new_stack)
             .sp
-            .offset_from(&raw mut (*new_stack).stack as *mut StgWord) as c_long as W_)
+            .offset_from(&raw mut (*new_stack).stack as *mut StgWord) as i64 as W_)
             < retvals as W_
         {
-            barf(
-                b"threadStackUnderflow: not enough space for return values\0" as *const u8
-                    as *const c_char,
-            );
+            barf(c"threadStackUnderflow: not enough space for return values".as_ptr());
         }
 
         memcpy(
             (*new_stack).sp.offset(-(retvals as isize)) as *mut c_void,
             (*old_stack).sp as *const c_void,
-            (retvals as size_t).wrapping_mul(size_of::<W_>() as size_t),
+            (retvals as usize).wrapping_mul(size_of::<W_>() as usize),
         );
     }
 
@@ -701,7 +682,7 @@ unsafe fn performTryPutMVar(
     info = lockClosure(mvar as *mut StgClosure);
 
     if (*mvar).value != &raw mut stg_END_TSO_QUEUE_closure {
-        return r#false != 0;
+        return false;
     }
 
     q = (*mvar).head as *mut StgMVarTSOQueue;
@@ -715,7 +696,7 @@ unsafe fn performTryPutMVar(
             (*mvar).value = value;
             unlockClosure(mvar as *mut StgClosure, &raw const stg_MVAR_DIRTY_info);
 
-            return r#true != 0;
+            return true;
         }
 
         qinfo = (*q).header.info;
@@ -737,11 +718,11 @@ unsafe fn performTryPutMVar(
 
             why_blocked = (*tso).why_blocked as StgWord;
             stack = (*tso).stackobj as *mut StgStack;
-            *(*stack).sp.offset(1 as c_int as isize) = value as W_ as StgWord;
-            *(*stack).sp.offset(0 as c_int as isize) = &raw const stg_ret_p_info as W_ as StgWord;
+            *(*stack).sp.offset(1) = value as W_ as StgWord;
+            *(*stack).sp.offset(0) = &raw const stg_ret_p_info as W_ as StgWord;
             (*tso)._link = &raw mut stg_END_TSO_QUEUE_closure as *mut StgTSO as *mut StgTSO_;
 
-            if (*stack).dirty as c_int & STACK_DIRTY == 0 as c_int {
+            if (*stack).dirty as i32 & STACK_DIRTY == 0 {
                 dirty_STACK(cap, stack);
             }
 
@@ -755,7 +736,7 @@ unsafe fn performTryPutMVar(
 
     unlockClosure(mvar as *mut StgClosure, info);
 
-    return r#true != 0;
+    return true;
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -763,10 +744,10 @@ unsafe fn performTryPutMVar(
 #[instrument]
 pub unsafe extern "C" fn listThreads(mut cap: *mut Capability) -> *mut _StgMutArrPtrs {
     let mut i: StgWord = 0;
-    let mut n_threads: StgWord = 0 as StgWord;
-    let mut g = 0 as c_uint;
+    let mut n_threads: StgWord = 0;
+    let mut g = 0;
 
-    while (g as uint32_t) < RtsFlags.GcFlags.generations {
+    while (g as u32) < RtsFlags.GcFlags.generations {
         let mut t = (*generations.offset(g as isize)).threads;
 
         while t != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO {
@@ -779,12 +760,12 @@ pub unsafe extern "C" fn listThreads(mut cap: *mut Capability) -> *mut _StgMutAr
 
     let mut arr = allocateMutArrPtrs(cap, n_threads, (*cap).r.rCCCS as *mut CostCentreStack);
 
-    if !((arr == null_mut::<c_void>() as *mut StgMutArrPtrs) as c_int as c_long != 0) {
-        i = 0 as StgWord;
+    if !((arr == null_mut::<c_void>() as *mut StgMutArrPtrs) as i32 as i64 != 0) {
+        i = 0;
 
-        let mut g_0 = 0 as c_uint;
+        let mut g_0 = 0;
 
-        while (g_0 as uint32_t) < RtsFlags.GcFlags.generations {
+        while (g_0 as u32) < RtsFlags.GcFlags.generations {
             let mut t_0 = (*generations.offset(g_0 as isize)).threads;
 
             while t_0 != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO {
@@ -802,9 +783,9 @@ pub unsafe extern "C" fn listThreads(mut cap: *mut Capability) -> *mut _StgMutAr
             g_0 = g_0.wrapping_add(1);
         }
 
-        if (i == n_threads) as c_int as c_long != 0 {
+        if (i == n_threads) as i32 as i64 != 0 {
         } else {
-            barf(b"listThreads: Found too few threads\0" as *const u8 as *const c_char);
+            barf(c"listThreads: Found too few threads".as_ptr());
         }
     }
 

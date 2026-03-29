@@ -68,6 +68,6 @@ pub unsafe extern "C" fn libdwLookupLocation(
     mut session: *mut LibdwSession,
     mut loc: *mut Location,
     mut pc: StgPtr,
-) -> c_int {
-    return 1 as c_int;
+) -> i32 {
+    return 1;
 }

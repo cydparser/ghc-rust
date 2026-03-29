@@ -57,9 +57,9 @@ extern "C" {
     pub(crate) fn init_ghc_hs_iface();
 }
 
-static mut hs_init_count: StgWord = 0 as StgWord;
+static mut hs_init_count: StgWord = 0;
 
-static mut rts_shutdown: bool = r#false != 0;
+static mut rts_shutdown: bool = false;
 
 unsafe fn x86_init_fpu() {}
 
@@ -94,17 +94,14 @@ unsafe fn initBuiltinGcRoots() {
 #[ffi(docs, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_init(mut argc: *mut c_int, mut argv: *mut *mut *mut c_char) {
+pub unsafe extern "C" fn hs_init(mut argc: *mut i32, mut argv: *mut *mut *mut c_char) {
     hs_init_ghc(argc, argv, defaultRtsConfig);
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_init_with_rtsopts(
-    mut argc: *mut c_int,
-    mut argv: *mut *mut *mut c_char,
-) {
+pub unsafe extern "C" fn hs_init_with_rtsopts(mut argc: *mut i32, mut argv: *mut *mut *mut c_char) {
     let mut rts_opts = defaultRtsConfig;
     rts_opts.rts_opts_enabled = RtsOptsAll;
     hs_init_ghc(argc, argv, rts_opts);
@@ -114,26 +111,26 @@ pub unsafe extern "C" fn hs_init_with_rtsopts(
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_init_ghc(
-    mut argc: *mut c_int,
+    mut argc: *mut i32,
     mut argv: *mut *mut *mut c_char,
     mut rts_config: RtsConfig,
 ) {
-    let mut init_count = atomic_inc(&raw mut hs_init_count as StgVolatilePtr, 1 as StgWord);
+    let mut init_count = atomic_inc(&raw mut hs_init_count as StgVolatilePtr, 1);
 
-    if init_count > 1 as StgWord {
+    if init_count > 1 {
         return;
     }
 
     if rts_shutdown {
         errorBelch(
-            b"hs_init_ghc: reinitializing the RTS after shutdown is not currently supported\0"
-                as *const u8 as *const c_char,
+            c"hs_init_ghc: reinitializing the RTS after shutdown is not currently supported"
+                .as_ptr(),
         );
 
-        stg_exit(1 as c_int);
+        stg_exit(1);
     }
 
-    setlocale(LC_CTYPE, b"\0" as *const u8 as *const c_char);
+    setlocale(LC_CTYPE, c"".as_ptr());
     init_ghc_hs_iface();
     initStats0();
     initializeTimer();
@@ -146,12 +143,9 @@ pub unsafe extern "C" fn hs_init_ghc(
     }
 
     if argc.is_null() || argv.is_null() {
-        let mut my_argc = 1 as c_int;
+        let mut my_argc = 1;
 
-        let mut my_argv: [*mut c_char; 2] = [
-            b"<unknown>\0" as *const u8 as *const c_char as *mut c_char,
-            null_mut::<c_char>(),
-        ];
+        let mut my_argv: [*mut c_char; 2] = [c"<unknown>".as_ptr(), null_mut::<c_char>()];
 
         setFullProgArgv(my_argc, &raw mut my_argv as *mut *mut c_char);
 
@@ -203,7 +197,7 @@ pub unsafe extern "C" fn hs_init_ghc(
 }
 
 unsafe fn startupHaskell(
-    mut argc: c_int,
+    mut argc: i32,
     mut argv: *mut *mut c_char,
     mut init_root: Option<unsafe extern "C" fn() -> ()>,
 ) {
@@ -211,34 +205,33 @@ unsafe fn startupHaskell(
 }
 
 unsafe fn hs_exit_(mut wait_foreign: bool) {
-    let mut g: uint32_t = 0;
-    let mut i: uint32_t = 0;
-    let mut init_count: StgInt =
-        atomic_dec(&raw mut hs_init_count as StgVolatilePtr, 1 as StgWord) as StgInt;
+    let mut g: u32 = 0;
+    let mut i: u32 = 0;
+    let mut init_count: StgInt = atomic_dec(&raw mut hs_init_count as StgVolatilePtr, 1) as StgInt;
 
-    if init_count > 0 as StgInt {
+    if init_count > 0 {
         return;
     }
 
-    if init_count < 0 as StgInt {
-        errorBelch(b"warning: too many hs_exit()s\0" as *const u8 as *const c_char);
+    if init_count < 0 {
+        errorBelch(c"warning: too many hs_exit()s".as_ptr());
         return;
     }
 
-    rts_shutdown = r#true != 0;
+    rts_shutdown = true;
     stat_startExit();
     rtsConfig.onExitHook.expect("non-null function pointer")();
     flushStdHandles();
     stopIOManager();
     exitScheduler(wait_foreign);
-    i = 0 as uint32_t;
+    i = 0;
 
-    while i < getNumCapabilities() as uint32_t {
+    while i < getNumCapabilities() as u32 {
         runAllCFinalizers((*getCapability(i)).weak_ptr_list_hd);
         i = i.wrapping_add(1);
     }
 
-    g = 0 as uint32_t;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         runAllCFinalizers((*generations.offset(g as isize)).weak_ptr_list);
@@ -252,7 +245,7 @@ unsafe fn hs_exit_(mut wait_foreign: bool) {
     }
 
     stopTimer();
-    exitTimer(r#true != 0);
+    exitTimer(true);
     resetTerminalSettings();
 
     if RtsFlags.MiscFlags.install_signal_handlers {
@@ -300,14 +293,14 @@ unsafe fn flushStdHandles() {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_exit() {
-    hs_exit_(r#true != 0);
+    hs_exit_(true);
 }
 
 #[ffi(docs)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_exit_nowait() {
-    hs_exit_(r#false != 0);
+    hs_exit_(false);
 }
 
 unsafe fn shutdownHaskell() {
@@ -316,9 +309,9 @@ unsafe fn shutdownHaskell() {
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn shutdownHaskellAndExit(mut n: c_int, mut fastExit: c_int) -> ! {
+pub unsafe extern "C" fn shutdownHaskellAndExit(mut n: i32, mut fastExit: i32) -> ! {
     if fastExit == 0 {
-        hs_exit_(r#false != 0);
+        hs_exit_(false);
     }
 
     stg_exit(n);
@@ -326,15 +319,15 @@ pub unsafe extern "C" fn shutdownHaskellAndExit(mut n: c_int, mut fastExit: c_in
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn shutdownHaskellAndSignal(mut sig: c_int, mut fastExit: c_int) -> ! {
+pub unsafe extern "C" fn shutdownHaskellAndSignal(mut sig: i32, mut fastExit: i32) -> ! {
     if fastExit == 0 {
-        hs_exit_(r#false != 0);
+        hs_exit_(false);
     }
 
     exitBySignal(sig);
 }
 
-unsafe fn exitBySignal(mut sig: c_int) -> ! {
+unsafe fn exitBySignal(mut sig: i32) -> ! {
     let mut dfl = sigaction {
         __sigaction_u: __sigaction_u { __sa_handler: None },
         sa_mask: 0,
@@ -342,21 +335,21 @@ unsafe fn exitBySignal(mut sig: c_int) -> ! {
     };
 
     let mut sigset: sigset_t = 0;
-    dfl.sa_mask = 0 as sigset_t;
-    dfl.sa_flags = 0 as c_int;
+    dfl.sa_mask = 0;
+    dfl.sa_flags = 0;
     dfl.__sigaction_u.__sa_handler = SIG_DFL;
     sigaction(sig, &raw mut dfl, null_mut::<sigaction>());
-    sigset = 0 as sigset_t;
+    sigset = 0;
     sigset |= __sigbits(sig) as sigset_t;
     sigprocmask(SIG_UNBLOCK, &raw mut sigset, null_mut::<sigset_t>());
 
     match sig {
         SIGSTOP | SIGTSTP | SIGTTIN | SIGTTOU | SIGCONT => {
-            exit(0xff as c_int);
+            exit(0xff);
         }
         _ => {
             kill(getpid(), sig);
-            exit(0xff as c_int);
+            exit(0xff);
         }
     };
 }
@@ -365,7 +358,7 @@ static mut exitFn: Option<unsafe extern "C" fn(c_int) -> ()> = None;
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn stg_exit(mut n: c_int) -> ! {
+pub unsafe extern "C" fn stg_exit(mut n: i32) -> ! {
     if exitFn.is_some() {
         Some(exitFn.expect("non-null function pointer")).expect("non-null function pointer")(n);
     }

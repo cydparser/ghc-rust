@@ -37,7 +37,7 @@ use crate::traverse_heap::{
     visitClosure_cb,
 };
 
-pub(crate) type nextPosType = c_uint;
+pub(crate) type nextPosType = u32;
 
 pub(crate) const posTypeEmpty: nextPosType = 4;
 
@@ -107,8 +107,8 @@ pub(crate) struct traverseState_ {
     pub(crate) stackBottom: *mut stackElement,
     pub(crate) stackTop: *mut stackElement,
     pub(crate) stackLimit: *mut stackElement,
-    pub(crate) stackSize: c_int,
-    pub(crate) maxStackSize: c_int,
+    pub(crate) stackSize: i32,
+    pub(crate) maxStackSize: i32,
     pub(crate) return_cb: Option<
         unsafe extern "C" fn(*mut StgClosure, stackAccum, *mut StgClosure, *mut stackAccum) -> (),
     >,
@@ -128,13 +128,13 @@ pub(crate) type visitClosure_cb = Option<
 >;
 
 static mut nullStackData: stackData = stackData_ {
-    c_child_r: null::<CostCentreStack>() as *mut CostCentreStack,
+    c_child_r: null_mut::<CostCentreStack>(),
 };
 
 unsafe fn getTravData(mut c: *const StgClosure) -> StgWord {
     let hp_hdr: StgWord = (*c).header.prof.hp.trav;
 
-    return hp_hdr & (STG_WORD_MAX as StgWord ^ 1 as StgWord);
+    return hp_hdr & (STG_WORD_MAX as StgWord ^ 1);
 }
 
 unsafe fn setTravData(mut ts: *const traverseState, mut c: *mut StgClosure, mut w: StgWord) {
@@ -142,12 +142,12 @@ unsafe fn setTravData(mut ts: *const traverseState, mut c: *mut StgClosure, mut 
 }
 
 unsafe fn isTravDataValid(mut ts: *const traverseState, mut c: *const StgClosure) -> bool {
-    return (*c).header.prof.hp.trav & 1 as StgWord == (*ts).flip;
+    return (*c).header.prof.hp.trav & 1 == (*ts).flip;
 }
 
 unsafe fn debug(mut s: *const c_char, mut args: ...) {}
 
-const BLOCKS_IN_STACK: c_int = 1 as c_int;
+const BLOCKS_IN_STACK: i32 = 1;
 
 #[inline]
 unsafe fn newStackBlock(mut ts: *mut traverseState, mut bd: *mut bdescr) {
@@ -181,8 +181,8 @@ unsafe fn initializeTraverseStack(mut ts: *mut traverseState) {
     (*ts).firstStack = allocGroup(BLOCKS_IN_STACK as W_);
     (*(*ts).firstStack).link = null_mut::<bdescr_>();
     (*(*ts).firstStack).u.back = null_mut::<bdescr_>();
-    (*ts).stackSize = 0 as c_int;
-    (*ts).maxStackSize = 0 as c_int;
+    (*ts).stackSize = 0;
+    (*ts).maxStackSize = 0;
     newStackBlock(ts, (*ts).firstStack);
 }
 
@@ -191,7 +191,7 @@ unsafe fn closeTraverseStack(mut ts: *mut traverseState) {
     (*ts).firstStack = null_mut::<bdescr>();
 }
 
-unsafe fn getTraverseStackMaxSize(mut ts: *mut traverseState) -> c_int {
+unsafe fn getTraverseStackMaxSize(mut ts: *mut traverseState) -> i32 {
     return (*ts).maxStackSize;
 }
 
@@ -202,7 +202,7 @@ unsafe fn isEmptyWorkStack(mut ts: *mut traverseState) -> bool {
 
 unsafe fn traverseWorkStackBlocks(mut ts: *mut traverseState) -> W_ {
     let mut bd = null_mut::<bdescr>();
-    let mut res: W_ = 0 as W_;
+    let mut res: W_ = 0;
     bd = (*ts).firstStack;
 
     while !bd.is_null() {
@@ -214,9 +214,9 @@ unsafe fn traverseWorkStackBlocks(mut ts: *mut traverseState) -> W_ {
 }
 
 #[inline]
-unsafe fn init_ptrs(mut info: *mut stackPos, mut ptrs: uint32_t, mut payload: StgPtr) {
+unsafe fn init_ptrs(mut info: *mut stackPos, mut ptrs: u32, mut payload: StgPtr) {
     (*info).r#type = posTypePtrs;
-    (*info).next.ptrs.pos = 0 as StgHalfWord;
+    (*info).next.ptrs.pos = 0;
     (*info).next.ptrs.ptrs = ptrs as StgHalfWord;
     (*info).next.ptrs.payload = payload;
 }
@@ -238,7 +238,7 @@ unsafe fn init_srt_fun(mut info: *mut stackPos, mut infoTable: *const StgFunInfo
     (*info).r#type = posTypeSRT;
 
     if (*infoTable).i.srt != 0 {
-        (*info).next.srt.srt = (infoTable.offset(1 as c_int as isize) as StgWord)
+        (*info).next.srt.srt = (infoTable.offset(1 as i32 as isize) as StgWord)
             .wrapping_add((*infoTable).i.srt as StgWord)
             as *mut StgClosure;
     } else {
@@ -251,7 +251,7 @@ unsafe fn init_srt_thunk(mut info: *mut stackPos, mut infoTable: *const StgThunk
     (*info).r#type = posTypeSRT;
 
     if (*infoTable).i.srt != 0 {
-        (*info).next.srt.srt = (infoTable.offset(1 as c_int as isize) as StgWord)
+        (*info).next.srt.srt = (infoTable.offset(1 as i32 as isize) as StgWord)
             .wrapping_add((*infoTable).i.srt as StgWord)
             as *mut StgClosure;
     } else {
@@ -263,7 +263,7 @@ unsafe fn init_srt_thunk(mut info: *mut stackPos, mut infoTable: *const StgThunk
 unsafe fn find_srt(mut info: *mut stackPos) -> *mut StgClosure {
     let mut c = null_mut::<StgClosure>();
 
-    if (*info).r#type as c_uint == posTypeSRT as c_int as c_uint {
+    if (*info).r#type as u32 == posTypeSRT as i32 as u32 {
         c = (*info).next.srt.srt;
         (*info).next.srt.srt = null_mut::<StgClosure>();
 
@@ -276,8 +276,8 @@ unsafe fn find_srt(mut info: *mut stackPos) -> *mut StgClosure {
 unsafe fn pushStackElement(mut ts: *mut traverseState, se: stackElement) -> *mut stackElement {
     let mut nbd = null_mut::<bdescr>();
 
-    if (*ts).stackTop.offset(-(1 as c_int as isize)) < (*ts).stackBottom {
-        debug(b"pushStackElement() to the next stack.\n\0" as *const u8 as *const c_char);
+    if (*ts).stackTop.offset(-1) < (*ts).stackBottom {
+        debug(c"pushStackElement() to the next stack.\n".as_ptr());
         (*(*ts).currentStack).c2rust_unnamed.free = (*ts).stackTop as StgPtr;
 
         if (*(*ts).currentStack).link.is_null() {
@@ -300,10 +300,7 @@ unsafe fn pushStackElement(mut ts: *mut traverseState, se: stackElement) -> *mut
         (*ts).maxStackSize = (*ts).stackSize;
     }
 
-    debug(
-        b"stackSize = %d\n\0" as *const u8 as *const c_char,
-        (*ts).stackSize,
-    );
+    debug(c"stackSize = %d\n".as_ptr(), (*ts).stackSize);
 
     return (*ts).stackTop;
 }
@@ -324,7 +321,7 @@ unsafe fn traversePushClosure(
         c: null_mut::<StgClosure>(),
         sep: null_mut::<stackElement_>(),
         data: stackData_ {
-            c_child_r: null::<CostCentreStack>() as *mut CostCentreStack,
+            c_child_r: null_mut::<CostCentreStack>(),
         },
         accum: stackAccum_ { subtree_sizeW: 0 },
     };
@@ -333,11 +330,7 @@ unsafe fn traversePushClosure(
     se.info.next.cp = cp;
     se.sep = sep as *mut stackElement_;
     se.data = data;
-
-    se.accum = stackAccum_ {
-        subtree_sizeW: 0 as c_int as StgWord,
-    };
-
+    se.accum = stackAccum_ { subtree_sizeW: 0 };
     se.info.r#type = posTypeFresh;
     pushStackElement(ts, se);
 }
@@ -370,7 +363,7 @@ unsafe fn traversePushReturn(
         c: null_mut::<StgClosure>(),
         sep: null_mut::<stackElement_>(),
         data: stackData_ {
-            c_child_r: null::<CostCentreStack>() as *mut CostCentreStack,
+            c_child_r: null_mut::<CostCentreStack>(),
         },
         accum: stackAccum_ { subtree_sizeW: 0 },
     };
@@ -379,13 +372,11 @@ unsafe fn traversePushReturn(
     se.info.next.cp = null_mut::<StgClosure>();
     se.accum = acc;
     se.sep = sep as *mut stackElement_;
-
     memset(
         &raw mut se.data as *mut c_void,
-        0 as c_int,
-        size_of::<stackData>() as size_t,
+        0,
+        size_of::<stackData>() as usize,
     );
-
     se.info.r#type = posTypeEmpty;
 
     return pushStackElement(ts, se);
@@ -399,7 +390,7 @@ unsafe fn traverseGetChildren(
     mut se: *mut stackElement,
 ) {
     (*se).c = c;
-    *other_children = r#false != 0;
+    *other_children = false;
 
     let mut current_block_68: u64;
 
@@ -421,33 +412,33 @@ unsafe fn traverseGetChildren(
             return;
         }
         2 | 5 => {
-            *first_child = *(&raw mut (*c).payload as *mut *mut StgClosure_)
-                .offset(0 as c_int as isize) as *mut StgClosure;
+            *first_child =
+                *(&raw mut (*c).payload as *mut *mut StgClosure_).offset(0) as *mut StgClosure;
             return;
         }
         4 => {
-            *first_child = *(&raw mut (*c).payload as *mut *mut StgClosure_)
-                .offset(0 as c_int as isize) as *mut StgClosure;
+            *first_child =
+                *(&raw mut (*c).payload as *mut *mut StgClosure_).offset(0) as *mut StgClosure;
             (*se).info.r#type = posTypeStep;
-            (*se).info.next.step = 2 as StgWord;
+            (*se).info.next.step = 2;
             current_block_68 = 919954187481050311;
         }
         39 | 40 => {
             *first_child = (*(c as *mut StgMVar)).head as *mut StgClosure;
             (*se).info.r#type = posTypeStep;
-            (*se).info.next.step = 2 as StgWord;
+            (*se).info.next.step = 2;
             current_block_68 = 919954187481050311;
         }
         49 => {
             *first_child = (*(c as *mut StgWeak)).key;
             (*se).info.r#type = posTypeStep;
-            (*se).info.next.step = 2 as StgWord;
+            (*se).info.next.step = 2;
             current_block_68 = 919954187481050311;
         }
         41 | 1 | 7 | 50 | 51 | 23 => {
             init_ptrs(
                 &raw mut (*se).info,
-                (*get_itbl(c)).layout.payload.ptrs as uint32_t,
+                (*get_itbl(c)).layout.payload.ptrs as u32,
                 &raw mut (*c).payload as *mut *mut StgClosure_ as StgPtr,
             );
 
@@ -462,7 +453,7 @@ unsafe fn traverseGetChildren(
         43 | 44 | 46 | 45 => {
             init_ptrs(
                 &raw mut (*se).info,
-                (*(c as *mut StgMutArrPtrs)).ptrs as uint32_t,
+                (*(c as *mut StgMutArrPtrs)).ptrs as u32,
                 &raw mut (*(c as *mut StgMutArrPtrs)).payload as *mut *mut StgClosure as StgPtr,
             );
 
@@ -477,7 +468,7 @@ unsafe fn traverseGetChildren(
         59 | 60 | 62 | 61 => {
             init_ptrs(
                 &raw mut (*se).info,
-                (*(c as *mut StgSmallMutArrPtrs)).ptrs as uint32_t,
+                (*(c as *mut StgSmallMutArrPtrs)).ptrs as u32,
                 &raw mut (*(c as *mut StgSmallMutArrPtrs)).payload as *mut *mut StgClosure
                     as StgPtr,
             );
@@ -493,7 +484,7 @@ unsafe fn traverseGetChildren(
         14 | 8 | 11 => {
             init_ptrs(
                 &raw mut (*se).info,
-                (*get_itbl(c)).layout.payload.ptrs as uint32_t,
+                (*get_itbl(c)).layout.payload.ptrs as u32,
                 &raw mut (*c).payload as *mut *mut StgClosure_ as StgPtr,
             );
 
@@ -508,7 +499,7 @@ unsafe fn traverseGetChildren(
         15 | 18 => {
             init_ptrs(
                 &raw mut (*se).info,
-                (*get_itbl(c)).layout.payload.ptrs as uint32_t,
+                (*get_itbl(c)).layout.payload.ptrs as u32,
                 &raw mut (*(c as *mut StgThunk)).payload as *mut *mut StgClosure_ as StgPtr,
             );
 
@@ -521,14 +512,14 @@ unsafe fn traverseGetChildren(
             }
         }
         9 | 12 => {
-            *first_child = *(&raw mut (*c).payload as *mut *mut StgClosure_)
-                .offset(0 as c_int as isize) as *mut StgClosure;
+            *first_child =
+                *(&raw mut (*c).payload as *mut *mut StgClosure_).offset(0) as *mut StgClosure;
             init_srt_fun(&raw mut (*se).info, get_fun_itbl(c));
             current_block_68 = 919954187481050311;
         }
         16 | 19 => {
             *first_child = *(&raw mut (*(c as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                .offset(0 as c_int as isize) as *mut StgClosure;
+                .offset(0) as *mut StgClosure;
             init_srt_thunk(&raw mut (*se).info, get_thunk_itbl(c));
             current_block_68 = 919954187481050311;
         }
@@ -541,12 +532,13 @@ unsafe fn traverseGetChildren(
         54 => {
             *first_child = (*(c as *mut StgTRecChunk)).prev_chunk as *mut StgClosure;
             (*se).info.r#type = posTypeStep;
-            (*se).info.next.step = 0 as StgWord;
+            (*se).info.next.step = 0;
             current_block_68 = 919954187481050311;
         }
+
         25 | 24 | 26 | 64 | 52 | 53 | 28 | 33 | 34 | 35 | 36 | 29 | 30 | 31 | 65 | 27 | 0 | _ => {
             barf(
-                b"Invalid object *c in push(): %d\0" as *const u8 as *const c_char,
+                c"Invalid object *c in push(): %d".as_ptr(),
                 (*get_itbl(c)).r#type,
             );
         }
@@ -572,17 +564,17 @@ unsafe fn traverseGetChildren(
         _ => {}
     }
 
-    *other_children = r#true != 0;
+    *other_children = true;
 }
 
 #[inline]
 unsafe fn popStackElement(mut ts: *mut traverseState) {
     debug(
-        b"popStackElement(): stackTop = 0x%x\n\0" as *const u8 as *const c_char,
+        c"popStackElement(): stackTop = 0x%x\n".as_ptr(),
         (*ts).stackTop,
     );
 
-    if (*ts).stackTop.offset(1 as c_int as isize) < (*ts).stackLimit {
+    if (*ts).stackTop.offset(1) < (*ts).stackLimit {
         (*ts).stackTop = (*ts).stackTop.offset(1);
         (*ts).stackSize -= 1;
 
@@ -590,16 +582,12 @@ unsafe fn popStackElement(mut ts: *mut traverseState) {
             (*ts).maxStackSize = (*ts).stackSize;
         }
 
-        debug(
-            b"stackSize = (--) %d\n\0" as *const u8 as *const c_char,
-            (*ts).stackSize,
-        );
-
+        debug(c"stackSize = (--) %d\n".as_ptr(), (*ts).stackSize);
         return;
     }
 
     let mut pbd = null_mut::<bdescr>();
-    debug(b"popStackElement() to the previous stack.\n\0" as *const u8 as *const c_char);
+    debug(c"popStackElement() to the previous stack.\n".as_ptr());
 
     if (*ts).firstStack == (*ts).currentStack {
         (*ts).stackTop = (*ts).stackTop.offset(1);
@@ -609,11 +597,7 @@ unsafe fn popStackElement(mut ts: *mut traverseState) {
             (*ts).maxStackSize = (*ts).stackSize;
         }
 
-        debug(
-            b"stackSize = %d\n\0" as *const u8 as *const c_char,
-            (*ts).stackSize,
-        );
-
+        debug(c"stackSize = %d\n".as_ptr(), (*ts).stackSize);
         return;
     }
 
@@ -626,10 +610,7 @@ unsafe fn popStackElement(mut ts: *mut traverseState) {
         (*ts).maxStackSize = (*ts).stackSize;
     }
 
-    debug(
-        b"stackSize = %d\n\0" as *const u8 as *const c_char,
-        (*ts).stackSize,
-    );
+    debug(c"stackSize = %d\n".as_ptr(), (*ts).stackSize);
 }
 
 unsafe fn callReturnAndPopStackElement(mut ts: *mut traverseState) {
@@ -657,13 +638,9 @@ unsafe fn traversePop(
 ) {
     let mut current_block: u64;
     let mut se = null_mut::<stackElement>();
+    debug(c"traversePop(): stackTop = 0x%x\n".as_ptr(), (*ts).stackTop);
 
-    debug(
-        b"traversePop(): stackTop = 0x%x\n\0" as *const u8 as *const c_char,
-        (*ts).stackTop,
-    );
-
-    let mut last = r#false != 0;
+    let mut last = false;
     *c = null_mut::<StgClosure>();
 
     loop {
@@ -675,42 +652,41 @@ unsafe fn traversePop(
         se = (*ts).stackTop;
         *sep = (*se).sep as *mut stackElement;
 
-        if (*se).info.r#type as c_uint == posTypeFresh as c_int as c_uint {
+        if (*se).info.r#type as u32 == posTypeFresh as i32 as u32 {
             *cp = (*se).info.next.cp;
             *c = (*se).c;
             *data = (*se).data;
             popStackElement(ts);
             return;
         } else {
-            if (*se).info.r#type as c_uint == posTypeEmpty as c_int as c_uint {
+            if (*se).info.r#type as u32 == posTypeEmpty as i32 as u32 {
                 callReturnAndPopStackElement(ts);
             } else {
                 match (*get_itbl((*se).c)).r#type {
                     4 => {
-                        *c = *(&raw mut (*(*se).c).payload as *mut *mut StgClosure_)
-                            .offset(1 as c_int as isize)
+                        *c = *(&raw mut (*(*se).c).payload as *mut *mut StgClosure_).offset(1)
                             as *mut StgClosure;
-                        last = r#true != 0;
+                        last = true;
                         break;
                     }
                     39 | 40 => {
-                        if (*se).info.next.step == 2 as StgWord {
+                        if (*se).info.next.step == 2 {
                             *c = (*((*se).c as *mut StgMVar)).tail as *mut StgClosure;
                             (*se).info.next.step = (*se).info.next.step.wrapping_add(1);
                         } else {
                             *c = (*((*se).c as *mut StgMVar)).value;
-                            last = r#true != 0;
+                            last = true;
                         }
 
                         break;
                     }
                     49 => {
-                        if (*se).info.next.step == 2 as StgWord {
+                        if (*se).info.next.step == 2 {
                             *c = (*((*se).c as *mut StgWeak)).value;
                             (*se).info.next.step = (*se).info.next.step.wrapping_add(1);
                         } else {
                             *c = (*((*se).c as *mut StgWeak)).finalizer;
-                            last = r#true != 0;
+                            last = true;
                         }
 
                         break;
@@ -718,16 +694,16 @@ unsafe fn traversePop(
                     54 => {
                         let mut entry = null_mut::<TRecEntry>();
                         let mut step: StgWord = (*se).info.next.step;
-                        let mut entry_no: uint32_t = (step >> 2 as c_int) as uint32_t;
-                        let mut field_no: uint32_t = (step & 3 as StgWord) as uint32_t;
+                        let mut entry_no: u32 = (step >> 2) as u32;
+                        let mut field_no: u32 = (step & 3) as u32;
                         entry = (&raw mut (*((*se).c as *mut StgTRecChunk)).entries
                             as *mut TRecEntry)
                             .offset(entry_no as isize)
                             as *mut TRecEntry;
 
-                        if field_no == 0 as uint32_t {
+                        if field_no == 0 {
                             *c = (*entry).tvar as *mut StgClosure;
-                        } else if field_no == 1 as uint32_t {
+                        } else if field_no == 1 {
                             *c = (*entry).expected_value;
                         } else {
                             *c = (*entry).new_value;
@@ -735,7 +711,7 @@ unsafe fn traversePop(
 
                         step = step.wrapping_add(1);
                         (*se).info.next.step = step;
-                        entry_no = (step >> 2 as c_int) as uint32_t;
+                        entry_no = (step >> 2) as u32;
 
                         if !(entry_no as StgWord
                             == (*((*se).c as *mut StgTRecChunk)).next_entry_idx)
@@ -757,7 +733,7 @@ unsafe fn traversePop(
                         current_block = 8258075665625361029;
                     }
                     8 | 14 | 11 => {
-                        if (*se).info.r#type as c_uint == posTypePtrs as c_int as c_uint {
+                        if (*se).info.r#type as u32 == posTypePtrs as i32 as u32 {
                             *c = find_ptrs(&raw mut (*se).info);
 
                             if !(*c).is_null() {
@@ -771,7 +747,7 @@ unsafe fn traversePop(
                         }
                     }
                     15 | 18 => {
-                        if (*se).info.r#type as c_uint == posTypePtrs as c_int as c_uint {
+                        if (*se).info.r#type as u32 == posTypePtrs as i32 as u32 {
                             *c = find_ptrs(&raw mut (*se).info);
 
                             if !(*c).is_null() {
@@ -791,8 +767,7 @@ unsafe fn traversePop(
                     3 | 6 | 42 | 47 | 48 | 22 | 5 | 25 | 24 | 26 | 64 | 52 | 53 | 28 | 7 | 33
                     | 34 | 35 | 36 | 29 | 30 | 31 | 65 | 27 | 0 | _ => {
                         barf(
-                            b"Invalid object *c in traversePop(): %d\0" as *const u8
-                                as *const c_char,
+                            c"Invalid object *c in traversePop(): %d".as_ptr(),
                             (*get_itbl((*se).c)).r#type,
                         );
                     }
@@ -822,7 +797,7 @@ unsafe fn traversePop(
     *data = (*se).data;
     *sep = se;
 
-    if last as c_int != 0 && (*ts).return_cb.is_some() {
+    if last as i32 != 0 && (*ts).return_cb.is_some() {
         (*se).info.r#type = posTypeEmpty;
     } else if last {
         popStackElement(ts);
@@ -834,32 +809,32 @@ unsafe fn traverseMaybeInitClosureData(
     mut c: *mut StgClosure,
 ) -> bool {
     if !isTravDataValid(ts, c) {
-        setTravData(ts, c, 0 as StgWord);
+        setTravData(ts, c, 0);
 
-        return r#true != 0;
+        return true;
     }
 
-    return r#false != 0;
+    return false;
 }
 
 unsafe fn traverseLargeBitmap(
     mut ts: *mut traverseState,
     mut p: StgPtr,
     mut large_bitmap: *mut StgLargeBitmap,
-    mut size: uint32_t,
+    mut size: u32,
     mut c: *mut StgClosure,
     mut sep: *mut stackElement,
     mut data: stackData,
 ) {
-    let mut i: uint32_t = 0;
-    let mut b: uint32_t = 0;
+    let mut i: u32 = 0;
+    let mut b: u32 = 0;
     let mut bitmap: StgWord = 0;
-    b = 0 as uint32_t;
+    b = 0;
     bitmap = *(&raw mut (*large_bitmap).bitmap as *mut StgWord).offset(b as isize);
-    i = 0 as uint32_t;
+    i = 0;
 
     while i < size {
-        if bitmap & 1 as StgWord == 0 as StgWord {
+        if bitmap & 1 == 0 {
             traversePushClosure(ts, *p as *mut StgClosure, c, sep, data);
         }
 
@@ -868,12 +843,12 @@ unsafe fn traverseLargeBitmap(
 
         if (i as usize)
             .wrapping_rem((BITS_PER_BYTE as usize).wrapping_mul(size_of::<W_>() as usize))
-            == 0 as usize
+            == 0
         {
             b = b.wrapping_add(1);
             bitmap = *(&raw mut (*large_bitmap).bitmap as *mut StgWord).offset(b as isize);
         } else {
-            bitmap = bitmap >> 1 as c_int;
+            bitmap = bitmap >> 1;
         }
     }
 }
@@ -882,19 +857,19 @@ unsafe fn traverseLargeBitmap(
 unsafe fn traverseSmallBitmap(
     mut ts: *mut traverseState,
     mut p: StgPtr,
-    mut size: uint32_t,
+    mut size: u32,
     mut bitmap: StgWord,
     mut c: *mut StgClosure,
     mut sep: *mut stackElement,
     mut data: stackData,
 ) -> StgPtr {
-    while size > 0 as uint32_t {
-        if bitmap & 1 as StgWord == 0 as StgWord {
+    while size > 0 {
+        if bitmap & 1 == 0 {
             traversePushClosure(ts, *p as *mut StgClosure, c, sep, data);
         }
 
         p = p.offset(1);
-        bitmap = bitmap >> 1 as c_int;
+        bitmap = bitmap >> 1;
         size = size.wrapping_sub(1);
     }
 
@@ -912,7 +887,7 @@ unsafe fn traversePushStack(
     let mut p = null_mut::<StgWord>();
     let mut info = null::<StgRetInfoTable>();
     let mut bitmap: StgWord = 0;
-    let mut size: uint32_t = 0;
+    let mut size: u32 = 0;
     p = stackStart;
 
     while p < stackEnd {
@@ -933,7 +908,7 @@ unsafe fn traversePushStack(
             }
             35 | 36 | 34 | 57 | 56 | 55 | 30 | 65 => {
                 bitmap = (*info).i.layout.bitmap >> BITMAP_BITS_SHIFT;
-                size = ((*info).i.layout.bitmap & BITMAP_SIZE_MASK as StgWord) as uint32_t;
+                size = ((*info).i.layout.bitmap & BITMAP_SIZE_MASK as StgWord) as u32;
                 p = p.offset(1);
                 p = traverseSmallBitmap(ts, p, size, bitmap, cp, sep, data);
             }
@@ -943,8 +918,8 @@ unsafe fn traversePushStack(
                 traversePushClosure(ts, *p as *mut StgClosure, cp, sep, data);
                 bco = *p as *mut StgBCO;
                 p = p.offset(1);
-                size = (*(&raw mut (*bco).bitmap as *mut StgWord as *mut StgLargeBitmap)).size
-                    as uint32_t;
+                size =
+                    (*(&raw mut (*bco).bitmap as *mut StgWord as *mut StgLargeBitmap)).size as u32;
 
                 traverseLargeBitmap(
                     ts,
@@ -960,16 +935,16 @@ unsafe fn traversePushStack(
                 continue;
             }
             31 => {
-                size = (*(((&raw const (*info).i).offset(1 as c_int as isize) as StgWord)
+                size = (*(((&raw const (*info).i).offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*info).i.layout.large_bitmap_offset as StgWord)
                     as *mut StgLargeBitmap))
-                    .size as uint32_t;
+                    .size as u32;
                 p = p.offset(1);
 
                 traverseLargeBitmap(
                     ts,
                     p,
-                    ((&raw const (*info).i).offset(1 as c_int as isize) as StgWord)
+                    ((&raw const (*info).i).offset(1 as i32 as isize) as StgWord)
                         .wrapping_add((*info).i.layout.large_bitmap_offset as StgWord)
                         as *mut StgLargeBitmap,
                     size,
@@ -990,19 +965,19 @@ unsafe fn traversePushStack(
                 match (*fun_info).f.fun_type {
                     0 => {
                         bitmap = (*fun_info).f.b.bitmap >> BITMAP_BITS_SHIFT;
-                        size = ((*fun_info).f.b.bitmap & BITMAP_SIZE_MASK as StgWord) as uint32_t;
+                        size = ((*fun_info).f.b.bitmap & BITMAP_SIZE_MASK as StgWord) as u32;
                         p = traverseSmallBitmap(ts, p, size, bitmap, cp, sep, data);
                     }
                     1 => {
-                        size = (*((fun_info.offset(1 as c_int as isize) as StgWord)
+                        size = (*((fun_info.offset(1 as i32 as isize) as StgWord)
                             .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                             as *mut StgLargeBitmap))
-                            .size as uint32_t;
+                            .size as u32;
 
                         traverseLargeBitmap(
                             ts,
                             p,
-                            (fun_info.offset(1 as c_int as isize) as StgWord)
+                            (fun_info.offset(1 as i32 as isize) as StgWord)
                                 .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                                 as *mut StgLargeBitmap,
                             size,
@@ -1020,17 +995,15 @@ unsafe fn traversePushStack(
 
                         size = (*(&raw const stg_arg_bitmaps as *const StgWord)
                             .offset((*fun_info).f.fun_type as isize)
-                            & BITMAP_SIZE_MASK as StgWord)
-                            as uint32_t;
+                            & BITMAP_SIZE_MASK as StgWord) as u32;
                         p = traverseSmallBitmap(ts, p, size, bitmap, cp, sep, data);
                     }
                 }
             }
             _ => {
                 barf(
-                    b"Invalid object found in traversePushStack(): %d\0" as *const u8
-                        as *const c_char,
-                    (*info).i.r#type as c_int,
+                    c"Invalid object found in traversePushStack(): %d".as_ptr(),
+                    (*info).i.r#type as i32,
                 );
             }
         }
@@ -1038,7 +1011,7 @@ unsafe fn traversePushStack(
         if (*info).i.srt != 0 {
             traversePushClosure(
                 ts,
-                (info.offset(1 as c_int as isize) as StgWord).wrapping_add((*info).i.srt as StgWord)
+                (info.offset(1 as i32 as isize) as StgWord).wrapping_add((*info).i.srt as StgWord)
                     as *mut StgClosure,
                 cp,
                 sep,
@@ -1068,16 +1041,16 @@ unsafe fn traversePAP(
     match (*fun_info).f.fun_type {
         0 => {
             bitmap = (*fun_info).f.b.bitmap >> BITMAP_BITS_SHIFT;
-            p = traverseSmallBitmap(ts, p, n_args as uint32_t, bitmap, pap, sep, data);
+            p = traverseSmallBitmap(ts, p, n_args as u32, bitmap, pap, sep, data);
         }
         1 => {
             traverseLargeBitmap(
                 ts,
                 p,
-                (fun_info.offset(1 as c_int as isize) as StgWord)
+                (fun_info.offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                     as *mut StgLargeBitmap,
-                n_args as uint32_t,
+                n_args as u32,
                 pap,
                 sep,
                 data,
@@ -1090,7 +1063,7 @@ unsafe fn traversePAP(
                 ts,
                 payload as StgPtr,
                 &raw mut (*(fun as *mut StgBCO)).bitmap as *mut StgWord as *mut StgLargeBitmap,
-                n_args as uint32_t,
+                n_args as u32,
                 pap,
                 sep,
                 data,
@@ -1102,8 +1075,7 @@ unsafe fn traversePAP(
             bitmap = *(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 >> BITMAP_BITS_SHIFT;
-
-            p = traverseSmallBitmap(ts, p, n_args as uint32_t, bitmap, pap, sep, data);
+            p = traverseSmallBitmap(ts, p, n_args as u32, bitmap, pap, sep, data);
         }
     }
 
@@ -1111,16 +1083,16 @@ unsafe fn traversePAP(
 }
 
 unsafe fn resetMutableObjects(mut ts: *mut traverseState) {
-    let mut g: uint32_t = 0;
-    let mut n: uint32_t = 0;
+    let mut g: u32 = 0;
+    let mut n: u32 = 0;
     let mut bd = null_mut::<bdescr>();
     let mut ml = null_mut::<StgWord>();
-    g = 0 as uint32_t;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
-        n = 0 as uint32_t;
+        n = 0;
 
-        while n < getNumCapabilities() as uint32_t {
+        while n < getNumCapabilities() as u32 {
             bd = *(*getCapability(n)).mut_lists.offset(g as isize);
 
             while !bd.is_null() {
@@ -1148,11 +1120,11 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
     let mut first_child = null_mut::<StgClosure>();
 
     let mut data = stackData_ {
-        c_child_r: null::<CostCentreStack>() as *mut CostCentreStack,
+        c_child_r: null_mut::<CostCentreStack>(),
     };
 
     let mut child_data = stackData_ {
-        c_child_r: null::<CostCentreStack>() as *mut CostCentreStack,
+        c_child_r: null_mut::<CostCentreStack>(),
     };
 
     let mut typeOfc: StgWord = 0;
@@ -1163,11 +1135,7 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
         traversePop(ts, &raw mut c, &raw mut cp, &raw mut data, &raw mut sep);
 
         if c.is_null() {
-            debug(
-                b"maxStackSize= %d\n\0" as *const u8 as *const c_char,
-                (*ts).maxStackSize,
-            );
-
+            debug(c"maxStackSize= %d\n".as_ptr(), (*ts).maxStackSize);
             return;
         }
 
@@ -1177,12 +1145,12 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
 
             match typeOfc {
                 52 => {
-                    if (*(c as *mut StgTSO)).what_next as c_int == ThreadComplete
-                        || (*(c as *mut StgTSO)).what_next as c_int == ThreadKilled
+                    if (*(c as *mut StgTSO)).what_next as i32 == ThreadComplete
+                        || (*(c as *mut StgTSO)).what_next as i32 == ThreadKilled
                     {
                         debug(
-                            b"ThreadComplete or ThreadKilled encountered in traverseWorkStack()\n\0"
-                                as *const u8 as *const c_char,
+                            c"ThreadComplete or ThreadKilled encountered in traverseWorkStack()\n"
+                                .as_ptr(),
                         );
 
                         break;
@@ -1198,7 +1166,7 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
                     break;
                 }
                 21 => {
-                    if (*get_itbl(c)).srt == 0 as StgSRTField {
+                    if (*get_itbl(c)).srt == 0 {
                         break;
                     } else {
                         current_block = 12349973810996921269;
@@ -1216,9 +1184,7 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
                 12349973810996921269 => {
                     let mut info = get_itbl(c);
 
-                    if (*info).srt == 0 as StgSRTField
-                        && (*info).layout.payload.ptrs == 0 as StgHalfWord
-                    {
+                    if (*info).srt == 0 && (*info).layout.payload.ptrs == 0 {
                         break;
                     }
                 }
@@ -1263,6 +1229,7 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
                 52 => {
                     let mut tso = c as *mut StgTSO;
                     sep = traversePushReturn(ts, c, accum, sep);
+
                     traversePushClosure(ts, (*tso).stackobj as *mut StgClosure, c, sep, child_data);
 
                     traversePushClosure(
@@ -1274,6 +1241,7 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
                     );
 
                     traversePushClosure(ts, (*tso).bq as *mut StgClosure, c, sep, child_data);
+
                     traversePushClosure(ts, (*tso).trec as *mut StgClosure, c, sep, child_data);
 
                     match (*tso).why_blocked {
@@ -1288,9 +1256,13 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
                 37 => {
                     let mut bq = c as *mut StgBlockingQueue;
                     sep = traversePushReturn(ts, c, accum, sep);
+
                     traversePushClosure(ts, (*bq).link as *mut StgClosure, c, sep, child_data);
+
                     traversePushClosure(ts, (*bq).bh, c, sep, child_data);
+
                     traversePushClosure(ts, (*bq).owner as *mut StgClosure, c, sep, child_data);
+
                     break;
                 }
                 25 => {
@@ -1327,6 +1299,7 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
                 }
                 26 => {
                     sep = traversePushReturn(ts, c, accum, sep);
+
                     traversePushClosure(ts, (*(c as *mut StgAP_STACK)).fun, c, sep, child_data);
 
                     traversePushStack(
@@ -1367,7 +1340,7 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
                         c: null_mut::<StgClosure>(),
                         sep: null_mut::<stackElement_>(),
                         data: stackData_ {
-                            c_child_r: null::<CostCentreStack>() as *mut CostCentreStack,
+                            c_child_r: null_mut::<CostCentreStack>(),
                         },
                         accum: stackAccum_ { subtree_sizeW: 0 },
                     };
@@ -1414,14 +1387,14 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
 
 unsafe fn traverseInvalidateClosureData(mut ts: *mut traverseState) {
     resetMutableObjects(ts);
-    (*ts).flip = (*ts).flip ^ 1 as StgWord;
+    (*ts).flip = (*ts).flip ^ 1;
 }
 
 unsafe fn resetStaticObjectForProfiling(
     mut ts: *const traverseState,
     mut static_objects: *mut StgClosure,
 ) {
-    let mut count: uint32_t = 0 as uint32_t;
+    let mut count: u32 = 0;
     let mut p = null_mut::<StgClosure>();
     p = static_objects;
 
@@ -1431,13 +1404,11 @@ unsafe fn resetStaticObjectForProfiling(
 
         match (*get_itbl(p)).r#type {
             28 => {
-                p = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(1 as c_int as isize)
-                    as *mut StgClosure;
+                p = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(1) as *mut StgClosure;
             }
             21 => {
                 traverseMaybeInitClosureData(ts, p);
-                p = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(1 as c_int as isize)
-                    as *mut StgClosure;
+                p = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(1) as *mut StgClosure;
             }
             14 | 1 | 2 | 4 | 5 | 7 => {
                 traverseMaybeInitClosureData(ts, p);
@@ -1445,16 +1416,13 @@ unsafe fn resetStaticObjectForProfiling(
             }
             _ => {
                 barf(
-                    b"resetStaticObjectForProfiling: %p (%lu)\0" as *const u8 as *const c_char,
+                    c"resetStaticObjectForProfiling: %p (%lu)".as_ptr(),
                     p,
-                    (*get_itbl(p)).r#type as c_ulong,
+                    (*get_itbl(p)).r#type as u64,
                 );
             }
         }
     }
 
-    debug(
-        b"count in scavenged_static_objects = %d\n\0" as *const u8 as *const c_char,
-        count,
-    );
+    debug(c"count in scavenged_static_objects = %d\n".as_ptr(), count);
 }

@@ -20,11 +20,11 @@ use crate::sm::storage::dirty_TVAR;
 use crate::threads::tryWakeupThread;
 use crate::trace::{DEBUG_RTS, trace_};
 
-unsafe fn shake() -> c_int {
-    return r#false;
+unsafe fn shake() -> i32 {
+    return false;
 }
 
-static mut config_use_read_phase: StgBool = r#false;
+static mut config_use_read_phase: StgBool = false;
 
 unsafe fn lock_tvar(
     mut cap: *mut Capability,
@@ -33,12 +33,8 @@ unsafe fn lock_tvar(
 ) -> *mut StgClosure {
     let mut result = null_mut::<StgClosure>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : lock_tvar(%p)\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-            s,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : lock_tvar(%p)".as_ptr(), trec, s);
     }
 
     result = (*s).current_value;
@@ -53,12 +49,8 @@ unsafe fn unlock_tvar(
     mut c: *mut StgClosure,
     mut force_update: StgBool,
 ) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : unlock_tvar(%p)\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-            s,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : unlock_tvar(%p)".as_ptr(), trec, s);
     }
 
     if force_update != 0 {
@@ -77,19 +69,16 @@ unsafe fn cond_lock_tvar(
     let mut result = null_mut::<StgClosure>();
     result = (*s).current_value;
 
-    return (result == expected) as c_int;
+    return (result == expected) as i32;
 }
 
 unsafe fn park_tso(mut tso: *mut StgTSO) {
     (*tso).block_info.closure =
         &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO as *mut StgClosure;
-    (*tso).why_blocked = 6 as StgWord32;
+    (*tso).why_blocked = 6;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: park_tso on tso=%p\0" as *const u8 as *const c_char as *mut c_char,
-            tso,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: park_tso on tso=%p".as_ptr(), tso);
     }
 }
 
@@ -101,11 +90,8 @@ unsafe fn unpark_waiters_on(mut cap: *mut Capability, mut s: *mut StgTVar) {
     let mut q = null_mut::<StgTVarWatchQueue>();
     let mut trail = null_mut::<StgTVarWatchQueue>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: unpark_waiters_on tvar=%p\0" as *const u8 as *const c_char as *mut c_char,
-            s,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: unpark_waiters_on tvar=%p".as_ptr(), s);
     }
 
     q = (*s).first_watch_queue_entry;
@@ -158,7 +144,7 @@ unsafe fn new_stg_trec_chunk(mut cap: *mut Capability) -> *mut StgTRecChunk {
     (*result).header.info = &raw const stg_TREC_CHUNK_info;
     (*result).prev_chunk = &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void
         as *mut StgTRecChunk as *mut StgTRecChunk_;
-    (*result).next_entry_idx = 0 as StgWord;
+    (*result).next_entry_idx = 0;
 
     return result;
 }
@@ -226,7 +212,7 @@ unsafe fn alloc_stg_trec_chunk(mut cap: *mut Capability) -> *mut StgTRecChunk {
         (*cap).free_trec_chunks = (*result).prev_chunk as *mut StgTRecChunk;
         (*result).prev_chunk = &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void
             as *mut StgTRecChunk as *mut StgTRecChunk_;
-        (*result).next_entry_idx = 0 as StgWord;
+        (*result).next_entry_idx = 0;
     }
 
     return result;
@@ -250,7 +236,7 @@ unsafe fn alloc_stg_trec_header(
         result = (*cap).free_trec_headers;
         (*cap).free_trec_headers = (*result).enclosing_trec as *mut StgTRecHeader;
         (*result).enclosing_trec = enclosing_trec as *mut StgTRecHeader_;
-        (*(*result).current_chunk).next_entry_idx = 0 as StgWord;
+        (*(*result).current_chunk).next_entry_idx = 0;
 
         if enclosing_trec == &raw mut stg_NO_TREC_closure as *mut c_void as *mut StgTRecHeader {
             (*result).state = TREC_ACTIVE;
@@ -282,10 +268,9 @@ unsafe fn build_watch_queue_entries_for_trec(
     mut tso: *mut StgTSO,
     mut trec: *mut StgTRecHeader,
 ) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : build_watch_queue_entries_for_trec()\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : build_watch_queue_entries_for_trec()".as_ptr(),
             trec,
         );
     }
@@ -294,10 +279,9 @@ unsafe fn build_watch_queue_entries_for_trec(
     let mut __c = (*__t).current_chunk;
     let mut __limit: StgWord = (*__c).next_entry_idx;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld".as_ptr(),
             __t,
             __c,
             __limit,
@@ -306,7 +290,7 @@ unsafe fn build_watch_queue_entries_for_trec(
 
     while __c != &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk {
         let mut __i: StgWord = 0;
-        __i = 0 as StgWord;
+        __i = 0;
 
         while __i < __limit {
             let mut e: *mut TRecEntry =
@@ -317,10 +301,9 @@ unsafe fn build_watch_queue_entries_for_trec(
             let mut fq = null_mut::<StgTVarWatchQueue>();
             s = (*e).tvar;
 
-            if 0 as c_int != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+            if 0 != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                 trace_(
-                    b"STM: %p : adding tso=%p to watch queue for tvar=%p\0" as *const u8
-                        as *const c_char as *mut c_char,
+                    c"STM: %p : adding tso=%p to watch queue for tvar=%p".as_ptr(),
                     trec,
                     tso,
                     s,
@@ -355,10 +338,9 @@ unsafe fn remove_watch_queue_entries_for_trec(
     mut cap: *mut Capability,
     mut trec: *mut StgTRecHeader,
 ) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : remove_watch_queue_entries_for_trec()\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : remove_watch_queue_entries_for_trec()".as_ptr(),
             trec,
         );
     }
@@ -367,10 +349,9 @@ unsafe fn remove_watch_queue_entries_for_trec(
     let mut __c = (*__t).current_chunk;
     let mut __limit: StgWord = (*__c).next_entry_idx;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld".as_ptr(),
             __t,
             __c,
             __limit,
@@ -379,7 +360,7 @@ unsafe fn remove_watch_queue_entries_for_trec(
 
     while __c != &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk {
         let mut __i: StgWord = 0;
-        __i = 0 as StgWord;
+        __i = 0;
 
         while __i < __limit {
             let mut e: *mut TRecEntry =
@@ -394,10 +375,9 @@ unsafe fn remove_watch_queue_entries_for_trec(
             saw = lock_tvar(cap, trec, s);
             q = (*e).new_value as *mut StgTVarWatchQueue;
 
-            if 0 as c_int != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+            if 0 != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                 trace_(
-                    b"STM: %p : removing tso=%p from watch queue for tvar=%p\0" as *const u8
-                        as *const c_char as *mut c_char,
+                    c"STM: %p : removing tso=%p from watch queue for tvar=%p".as_ptr(),
                     trec,
                     (*q).closure,
                     s,
@@ -423,7 +403,7 @@ unsafe fn remove_watch_queue_entries_for_trec(
             }
 
             free_stg_tvar_watch_queue(cap, q);
-            unlock_tvar(cap, trec, s, saw, 0 as StgBool);
+            unlock_tvar(cap, trec, s, saw, 0);
             __i = __i.wrapping_add(1);
         }
 
@@ -435,9 +415,9 @@ unsafe fn remove_watch_queue_entries_for_trec(
 unsafe fn get_new_entry(mut cap: *mut Capability, mut t: *mut StgTRecHeader) -> *mut TRecEntry {
     let mut result = null_mut::<TRecEntry>();
     let mut c = null_mut::<StgTRecChunk>();
-    let mut i: c_int = 0;
+    let mut i: i32 = 0;
     c = (*t).current_chunk;
-    i = (*c).next_entry_idx as c_int;
+    i = (*c).next_entry_idx as i32;
 
     if i < TREC_CHUNK_NUM_ENTRIES {
         result = (&raw mut (*c).entries as *mut TRecEntry).offset(i as isize) as *mut TRecEntry;
@@ -446,10 +426,9 @@ unsafe fn get_new_entry(mut cap: *mut Capability, mut t: *mut StgTRecHeader) -> 
         let mut nc = null_mut::<StgTRecChunk>();
         nc = alloc_stg_trec_chunk(cap);
         (*nc).prev_chunk = c as *mut StgTRecChunk_;
-        (*nc).next_entry_idx = 1 as StgWord;
+        (*nc).next_entry_idx = 1;
         (*t).current_chunk = nc;
-        result = (&raw mut (*nc).entries as *mut TRecEntry).offset(0 as c_int as isize)
-            as *mut TRecEntry;
+        result = (&raw mut (*nc).entries as *mut TRecEntry).offset(0) as *mut TRecEntry;
     }
 
     return result;
@@ -462,15 +441,14 @@ unsafe fn merge_update_into(
     mut expected_value: *mut StgClosure,
     mut new_value: *mut StgClosure,
 ) {
-    let mut found = r#false != 0;
+    let mut found = false;
     let mut __t = t;
     let mut __c = (*__t).current_chunk;
     let mut __limit: StgWord = (*__c).next_entry_idx;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld".as_ptr(),
             __t,
             __c,
             __limit,
@@ -480,7 +458,7 @@ unsafe fn merge_update_into(
     's_28: while __c != &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk
     {
         let mut __i: StgWord = 0;
-        __i = 0 as StgWord;
+        __i = 0;
 
         while __i < __limit {
             let mut e: *mut TRecEntry =
@@ -490,13 +468,12 @@ unsafe fn merge_update_into(
             s = (*e).tvar;
 
             if s == tvar {
-                found = 1 as c_int != 0;
+                found = 1 != 0;
 
                 if (*e).expected_value != expected_value {
-                    if 0 as c_int != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+                    if 0 != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                         trace_(
-                            b"STM: %p : update entries inconsistent at %p (%p vs %p)\0" as *const u8
-                                as *const c_char as *mut c_char,
+                            c"STM: %p : update entries inconsistent at %p (%p vs %p)".as_ptr(),
                             t,
                             tvar,
                             (*e).expected_value,
@@ -534,7 +511,7 @@ unsafe fn merge_read_into(
     mut expected_value: *mut StgClosure,
 ) {
     let mut t = null_mut::<StgTRecHeader>();
-    let mut found = r#false != 0;
+    let mut found = false;
     t = trec;
 
     while !found && t != &raw mut stg_NO_TREC_closure as *mut c_void as *mut StgTRecHeader {
@@ -542,10 +519,9 @@ unsafe fn merge_read_into(
         let mut __c = (*__t).current_chunk;
         let mut __limit: StgWord = (*__c).next_entry_idx;
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
             trace_(
-                b"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld\0" as *const u8
-                    as *const c_char as *mut c_char,
+                c"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld".as_ptr(),
                 __t,
                 __c,
                 __limit,
@@ -556,7 +532,7 @@ unsafe fn merge_read_into(
             != &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk
         {
             let mut __i: StgWord = 0;
-            __i = 0 as StgWord;
+            __i = 0;
 
             while __i < __limit {
                 let mut e: *mut TRecEntry = (&raw mut (*__c).entries as *mut TRecEntry)
@@ -564,14 +540,12 @@ unsafe fn merge_read_into(
                     as *mut TRecEntry;
 
                 if (*e).tvar == tvar {
-                    found = 1 as c_int != 0;
+                    found = 1 != 0;
 
                     if (*e).expected_value != expected_value {
-                        if 0 as c_int != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+                        if 0 != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                             trace_(
-                                b"STM: %p : read entries inconsistent at %p (%p vs %p)\0"
-                                    as *const u8 as *const c_char
-                                    as *mut c_char,
+                                c"STM: %p : read entries inconsistent at %p (%p vs %p)".as_ptr(),
                                 t,
                                 tvar,
                                 (*e).expected_value,
@@ -606,7 +580,7 @@ unsafe fn merge_read_into(
 
 unsafe fn entry_is_update(mut e: *mut TRecEntry) -> StgBool {
     let mut result: StgBool = 0;
-    result = ((*e).expected_value != (*e).new_value) as c_int as StgBool;
+    result = ((*e).expected_value != (*e).new_value) as i32 as StgBool;
 
     return result;
 }
@@ -624,38 +598,35 @@ unsafe fn validate_trec_optimistic(
 ) -> StgBool {
     let mut result: StgBool = 0;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: cap %d, trec %p : validate_trec_optimistic\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: cap %d, trec %p : validate_trec_optimistic".as_ptr(),
             (*cap).no,
             trec,
         );
     }
 
     if shake() != 0 {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
             trace_(
-                b"STM: %p : shake, pretending trec is invalid when it may not be\0" as *const u8
-                    as *const c_char as *mut c_char,
+                c"STM: %p : shake, pretending trec is invalid when it may not be".as_ptr(),
                 trec,
             );
         }
 
-        return r#false;
+        return false;
     }
 
-    result = !((*trec).state as c_uint == TREC_CONDEMNED as c_int as c_uint) as c_int as StgBool;
+    result = !((*trec).state as u32 == TREC_CONDEMNED as i32 as u32) as i32 as StgBool;
 
     if result != 0 {
         let mut __t = trec;
         let mut __c = (*__t).current_chunk;
         let mut __limit: StgWord = (*__c).next_entry_idx;
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
             trace_(
-                b"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld\0" as *const u8
-                    as *const c_char as *mut c_char,
+                c"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld".as_ptr(),
                 __t,
                 __c,
                 __limit,
@@ -666,7 +637,7 @@ unsafe fn validate_trec_optimistic(
             != &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk
         {
             let mut __i: StgWord = 0;
-            __i = 0 as StgWord;
+            __i = 0;
 
             while __i < __limit {
                 let mut e: *mut TRecEntry = (&raw mut (*__c).entries as *mut TRecEntry)
@@ -681,16 +652,11 @@ unsafe fn validate_trec_optimistic(
                 if current != (*e).expected_value
                     && GET_INFO(UNTAG_CLOSURE(current)) != &raw const stg_TREC_HEADER_info
                 {
-                    if 0 as c_int != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                        trace_(
-                            b"STM: %p : failed optimistic validate %p\0" as *const u8
-                                as *const c_char as *mut c_char,
-                            trec,
-                            s,
-                        );
+                    if 0 != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                        trace_(c"STM: %p : failed optimistic validate %p".as_ptr(), trec, s);
                     }
 
-                    result = 0 as c_int as StgBool;
+                    result = 0;
                     break 's_87;
                 } else {
                     __i = __i.wrapping_add(1);
@@ -702,10 +668,9 @@ unsafe fn validate_trec_optimistic(
         }
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : validate_trec_optimistic, result: %d\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : validate_trec_optimistic, result: %d".as_ptr(),
             trec,
             result,
         );
@@ -717,15 +682,14 @@ unsafe fn validate_trec_optimistic(
 unsafe fn validate_and_acquire_ownership(
     mut cap: *mut Capability,
     mut trec: *mut StgTRecHeader,
-    mut acquire_all: c_int,
-    mut retain_ownership: c_int,
+    mut acquire_all: i32,
+    mut retain_ownership: i32,
 ) -> StgBool {
     let mut result: StgBool = 0;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: cap %d, trec %p : validate_and_acquire_ownership, all: %d, retrain: %d\0"
-                as *const u8 as *const c_char as *mut c_char,
+            c"STM: cap %d, trec %p : validate_and_acquire_ownership, all: %d, retrain: %d".as_ptr(),
             (*cap).no,
             trec,
             acquire_all,
@@ -734,28 +698,26 @@ unsafe fn validate_and_acquire_ownership(
     }
 
     if shake() != 0 {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
             trace_(
-                b"STM: %p : shake, pretending trec is invalid when it may not be\0" as *const u8
-                    as *const c_char as *mut c_char,
+                c"STM: %p : shake, pretending trec is invalid when it may not be".as_ptr(),
                 trec,
             );
         }
 
-        return r#false;
+        return false;
     }
 
-    result = !((*trec).state as c_uint == TREC_CONDEMNED as c_int as c_uint) as c_int as StgBool;
+    result = !((*trec).state as u32 == TREC_CONDEMNED as i32 as u32) as i32 as StgBool;
 
     if result != 0 {
         let mut __t = trec;
         let mut __c = (*__t).current_chunk;
         let mut __limit: StgWord = (*__c).next_entry_idx;
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
             trace_(
-                b"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld\0" as *const u8
-                    as *const c_char as *mut c_char,
+                c"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld".as_ptr(),
                 __t,
                 __c,
                 __limit,
@@ -766,7 +728,7 @@ unsafe fn validate_and_acquire_ownership(
             != &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk
         {
             let mut __i: StgWord = 0;
-            __i = 0 as StgWord;
+            __i = 0;
 
             while __i < __limit {
                 let mut e: *mut TRecEntry = (&raw mut (*__c).entries as *mut TRecEntry)
@@ -777,26 +739,16 @@ unsafe fn validate_and_acquire_ownership(
                 s = (*e).tvar;
 
                 if acquire_all != 0 || entry_is_update(e) != 0 {
-                    if 0 as c_int != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                        trace_(
-                            b"STM: %p : trying to acquire %p\0" as *const u8 as *const c_char
-                                as *mut c_char,
-                            trec,
-                            s,
-                        );
+                    if 0 != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                        trace_(c"STM: %p : trying to acquire %p".as_ptr(), trec, s);
                     }
 
                     if cond_lock_tvar(cap, trec, s, (*e).expected_value) == 0 {
-                        if 0 as c_int != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                            trace_(
-                                b"STM: %p : failed to acquire %p\0" as *const u8 as *const c_char
-                                    as *mut c_char,
-                                trec,
-                                s,
-                            );
+                        if 0 != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                            trace_(c"STM: %p : failed to acquire %p".as_ptr(), trec, s);
                         }
 
-                        result = 0 as c_int as StgBool;
+                        result = 0;
                         break 's_87;
                     }
                 }
@@ -813,10 +765,9 @@ unsafe fn validate_and_acquire_ownership(
         revert_ownership(cap, trec, acquire_all as StgBool);
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : validate_and_acquire_ownership, result: %d\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : validate_and_acquire_ownership, result: %d".as_ptr(),
             trec,
             result,
         );
@@ -826,14 +777,14 @@ unsafe fn validate_and_acquire_ownership(
 }
 
 unsafe fn check_read_only(mut trec: *mut StgTRecHeader) -> StgBool {
-    let mut result = r#true;
+    let mut result = true;
 
     return result;
 }
 
 unsafe fn stmPreGCHook(mut cap: *mut Capability) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(b"STM: stmPreGCHook\0" as *const u8 as *const c_char as *mut c_char);
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: stmPreGCHook".as_ptr());
     }
 
     (*cap).free_tvar_watch_queues =
@@ -843,10 +794,10 @@ unsafe fn stmPreGCHook(mut cap: *mut Capability) {
     (*cap).free_trec_headers = &raw mut stg_NO_TREC_closure as *mut c_void as *mut StgTRecHeader;
 }
 
-const TOKEN_BATCH_SIZE: c_int = 1024 as c_int;
+const TOKEN_BATCH_SIZE: i32 = 1024;
 
 unsafe fn getMaxCommits() -> StgInt64 {
-    return 0 as StgInt64;
+    return 0;
 }
 
 unsafe fn getToken(mut cap: *mut Capability) {}
@@ -857,10 +808,9 @@ unsafe fn stmStartTransaction(
 ) -> *mut StgTRecHeader {
     let mut t = null_mut::<StgTRecHeader>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : stmStartTransaction with %d tokens\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : stmStartTransaction with %d tokens".as_ptr(),
             outer,
             (*cap).transaction_tokens,
         );
@@ -869,12 +819,8 @@ unsafe fn stmStartTransaction(
     getToken(cap);
     t = alloc_stg_trec_header(cap, outer);
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmStartTransaction()=%p\0" as *const u8 as *const c_char as *mut c_char,
-            outer,
-            t,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmStartTransaction()=%p".as_ptr(), outer, t);
     }
 
     return t;
@@ -883,29 +829,21 @@ unsafe fn stmStartTransaction(
 unsafe fn stmAbortTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecHeader) {
     let mut et = null_mut::<StgTRecHeader>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmAbortTransaction\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmAbortTransaction".as_ptr(), trec);
     }
 
     et = (*trec).enclosing_trec as *mut StgTRecHeader;
 
     if et == &raw mut stg_NO_TREC_closure as *mut c_void as *mut StgTRecHeader {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-            trace_(
-                b"STM: %p : aborting top-level transaction\0" as *const u8 as *const c_char
-                    as *mut c_char,
-                trec,
-            );
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+            trace_(c"STM: %p : aborting top-level transaction".as_ptr(), trec);
         }
 
-        if (*trec).state as c_uint == TREC_WAITING as c_int as c_uint {
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+        if (*trec).state as u32 == TREC_WAITING as i32 as u32 {
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                 trace_(
-                    b"STM: %p : stmAbortTransaction aborting waiting transaction\0" as *const u8
-                        as *const c_char as *mut c_char,
+                    c"STM: %p : stmAbortTransaction aborting waiting transaction".as_ptr(),
                     trec,
                 );
             }
@@ -913,10 +851,9 @@ unsafe fn stmAbortTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecHe
             remove_watch_queue_entries_for_trec(cap, trec);
         }
     } else {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
             trace_(
-                b"STM: %p : retaining read-set into parent %p\0" as *const u8 as *const c_char
-                    as *mut c_char,
+                c"STM: %p : retaining read-set into parent %p".as_ptr(),
                 trec,
                 et,
             );
@@ -926,10 +863,9 @@ unsafe fn stmAbortTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecHe
         let mut __c = (*__t).current_chunk;
         let mut __limit: StgWord = (*__c).next_entry_idx;
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
             trace_(
-                b"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld\0" as *const u8
-                    as *const c_char as *mut c_char,
+                c"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld".as_ptr(),
                 __t,
                 __c,
                 __limit,
@@ -938,7 +874,7 @@ unsafe fn stmAbortTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecHe
 
         while __c != &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk {
             let mut __i: StgWord = 0;
-            __i = 0 as StgWord;
+            __i = 0;
 
             while __i < __limit {
                 let mut e: *mut TRecEntry = (&raw mut (*__c).entries as *mut TRecEntry)
@@ -957,45 +893,32 @@ unsafe fn stmAbortTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecHe
 
     (*trec).state = TREC_ABORTED;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmAbortTransaction done\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmAbortTransaction done".as_ptr(), trec);
     }
 }
 
 unsafe fn stmFreeAbortedTRec(mut cap: *mut Capability, mut trec: *mut StgTRecHeader) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmFreeAbortedTRec\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmFreeAbortedTRec".as_ptr(), trec);
     }
 
     free_stg_trec_header(cap, trec);
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmFreeAbortedTRec done\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmFreeAbortedTRec done".as_ptr(), trec);
     }
 }
 
 unsafe fn stmCondemnTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecHeader) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmCondemnTransaction\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmCondemnTransaction".as_ptr(), trec);
     }
 
-    if (*trec).state as c_uint == TREC_WAITING as c_int as c_uint {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if (*trec).state as u32 == TREC_WAITING as i32 as u32 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
             trace_(
-                b"STM: %p : stmCondemnTransaction condemning waiting transaction\0" as *const u8
-                    as *const c_char as *mut c_char,
+                c"STM: %p : stmCondemnTransaction condemning waiting transaction".as_ptr(),
                 trec,
             );
         }
@@ -1005,11 +928,8 @@ unsafe fn stmCondemnTransaction(mut cap: *mut Capability, mut trec: *mut StgTRec
 
     (*trec).state = TREC_CONDEMNED;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmCondemnTransaction done\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmCondemnTransaction done".as_ptr(), trec);
     }
 }
 
@@ -1020,10 +940,9 @@ unsafe fn stmValidateNestOfTransactions(
 ) -> StgBool {
     let mut t = null_mut::<StgTRecHeader>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : stmValidateNestOfTransactions, %b\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : stmValidateNestOfTransactions, %b".as_ptr(),
             trec,
             optimistically,
         );
@@ -1031,26 +950,25 @@ unsafe fn stmValidateNestOfTransactions(
 
     t = trec;
 
-    let mut result = r#true;
+    let mut result = true;
 
     while t != &raw mut stg_NO_TREC_closure as *mut c_void as *mut StgTRecHeader {
         if optimistically != 0 {
             result &= validate_trec_optimistic(cap, t);
         } else {
-            result &= validate_and_acquire_ownership(cap, t, r#true, r#false);
+            result &= validate_and_acquire_ownership(cap, t, true, false);
         }
 
         t = (*t).enclosing_trec as *mut StgTRecHeader;
     }
 
-    if result == 0 && (*trec).state as c_uint != TREC_WAITING as c_int as c_uint {
+    if result == 0 && (*trec).state as u32 != TREC_WAITING as i32 as u32 {
         (*trec).state = TREC_CONDEMNED;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : stmValidateNestOfTransactions()=%d\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : stmValidateNestOfTransactions()=%d".as_ptr(),
             trec,
             result,
         );
@@ -1066,12 +984,8 @@ unsafe fn get_entry_for(
 ) -> *mut TRecEntry {
     let mut result = null_mut::<TRecEntry>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : get_entry_for TVar %p\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-            tvar,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : get_entry_for TVar %p".as_ptr(), trec, tvar);
     }
 
     loop {
@@ -1079,10 +993,9 @@ unsafe fn get_entry_for(
         let mut __c = (*__t).current_chunk;
         let mut __limit: StgWord = (*__c).next_entry_idx;
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
             trace_(
-                b"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld\0" as *const u8
-                    as *const c_char as *mut c_char,
+                c"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld".as_ptr(),
                 __t,
                 __c,
                 __limit,
@@ -1093,7 +1006,7 @@ unsafe fn get_entry_for(
             != &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk
         {
             let mut __i: StgWord = 0;
-            __i = 0 as StgWord;
+            __i = 0;
 
             while __i < __limit {
                 let mut e: *mut TRecEntry = (&raw mut (*__c).entries as *mut TRecEntry)
@@ -1132,56 +1045,46 @@ unsafe fn get_entry_for(
 unsafe fn stmCommitTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecHeader) -> StgBool {
     let mut max_commits_at_start = getMaxCommits();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmCommitTransaction()\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmCommitTransaction()".as_ptr(), trec);
     }
 
     let mut result =
-        validate_and_acquire_ownership(cap, trec, (config_use_read_phase == 0) as c_int, r#true)
-            != 0;
+        validate_and_acquire_ownership(cap, trec, (config_use_read_phase == 0) as i32, true) != 0;
 
     if result {
         if config_use_read_phase != 0 {
             let mut max_commits_at_end: StgInt64 = 0;
             let mut max_concurrent_commits: StgInt64 = 0;
 
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                trace_(
-                    b"STM: %p : doing read check\0" as *const u8 as *const c_char as *mut c_char,
-                    trec,
-                );
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                trace_(c"STM: %p : doing read check".as_ptr(), trec);
             }
 
             result = check_read_only(trec) != 0;
 
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                 trace_(
-                    b"STM: %p : read-check %s\0" as *const u8 as *const c_char as *mut c_char,
+                    c"STM: %p : read-check %s".as_ptr(),
                     trec,
-                    if result as c_int != 0 {
-                        b"succeeded\0" as *const u8 as *const c_char
+                    if result as i32 != 0 {
+                        c"succeeded".as_ptr()
                     } else {
-                        b"failed\0" as *const u8 as *const c_char
+                        c"failed".as_ptr()
                     },
                 );
             }
 
             max_commits_at_end = getMaxCommits();
             max_concurrent_commits = max_commits_at_end - max_commits_at_start
-                + getNumCapabilities().wrapping_mul(TOKEN_BATCH_SIZE as c_uint) as StgInt64;
+                + getNumCapabilities().wrapping_mul(TOKEN_BATCH_SIZE as u32) as StgInt64;
 
-            if max_concurrent_commits >> 32 as c_int > 0 as StgInt64 || shake() != 0 {
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                    trace_(
-                        b"STM: STM - Max commit number exceeded\0" as *const u8 as *const c_char
-                            as *mut c_char,
-                    );
+            if max_concurrent_commits >> 32 > 0 || shake() != 0 {
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                    trace_(c"STM: STM - Max commit number exceeded".as_ptr());
                 }
 
-                result = r#false != 0;
+                result = false;
             }
         }
 
@@ -1190,10 +1093,9 @@ unsafe fn stmCommitTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecH
             let mut __c = (*__t).current_chunk;
             let mut __limit: StgWord = (*__c).next_entry_idx;
 
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                 trace_(
-                    b"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld\0" as *const u8
-                        as *const c_char as *mut c_char,
+                    c"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld".as_ptr(),
                     __t,
                     __c,
                     __limit,
@@ -1203,7 +1105,7 @@ unsafe fn stmCommitTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecH
             while __c != &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk
             {
                 let mut __i: StgWord = 0;
-                __i = 0 as StgWord;
+                __i = 0;
 
                 while __i < __limit {
                     let mut e: *mut TRecEntry = (&raw mut (*__c).entries as *mut TRecEntry)
@@ -1214,10 +1116,9 @@ unsafe fn stmCommitTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecH
                     s = (*e).tvar;
 
                     if config_use_read_phase == 0 || (*e).new_value != (*e).expected_value {
-                        if 0 as c_int != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+                        if 0 != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                             trace_(
-                                b"STM: %p : writing %p to %p, waking waiters\0" as *const u8
-                                    as *const c_char as *mut c_char,
+                                c"STM: %p : writing %p to %p, waking waiters".as_ptr(),
                                 trec,
                                 (*e).new_value,
                                 s,
@@ -1225,7 +1126,7 @@ unsafe fn stmCommitTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecH
                         }
 
                         unpark_waiters_on(cap, s);
-                        unlock_tvar(cap, trec, s, (*e).new_value, 1 as StgBool);
+                        unlock_tvar(cap, trec, s, (*e).new_value, 1);
                     }
 
                     __i = __i.wrapping_add(1);
@@ -1235,17 +1136,17 @@ unsafe fn stmCommitTransaction(mut cap: *mut Capability, mut trec: *mut StgTRecH
                 __limit = TREC_CHUNK_NUM_ENTRIES as StgWord;
             }
         } else {
-            revert_ownership(cap, trec, r#false);
+            revert_ownership(cap, trec, false);
         }
     }
 
     free_stg_trec_header(cap, trec);
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : stmCommitTransaction()=%d\0" as *const u8 as *const c_char as *mut c_char,
+            c"STM: %p : stmCommitTransaction()=%d".as_ptr(),
             trec,
-            result as c_int,
+            result as i32,
         );
     }
 
@@ -1258,10 +1159,9 @@ unsafe fn stmCommitNestedTransaction(
 ) -> StgBool {
     let mut et = null_mut::<StgTRecHeader>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : stmCommitNestedTransaction() into %p\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : stmCommitNestedTransaction() into %p".as_ptr(),
             trec,
             (*trec).enclosing_trec,
         );
@@ -1270,38 +1170,29 @@ unsafe fn stmCommitNestedTransaction(
     et = (*trec).enclosing_trec as *mut StgTRecHeader;
 
     let mut result =
-        validate_and_acquire_ownership(cap, trec, (config_use_read_phase == 0) as c_int, r#true)
-            != 0;
+        validate_and_acquire_ownership(cap, trec, (config_use_read_phase == 0) as i32, true) != 0;
 
     if result {
         if config_use_read_phase != 0 {
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                trace_(
-                    b"STM: %p : doing read check\0" as *const u8 as *const c_char as *mut c_char,
-                    trec,
-                );
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                trace_(c"STM: %p : doing read check".as_ptr(), trec);
             }
 
             result = check_read_only(trec) != 0;
         }
 
         if result {
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                trace_(
-                    b"STM: %p : read-check succeeded\0" as *const u8 as *const c_char
-                        as *mut c_char,
-                    trec,
-                );
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                trace_(c"STM: %p : read-check succeeded".as_ptr(), trec);
             }
 
             let mut __t = trec;
             let mut __c = (*__t).current_chunk;
             let mut __limit: StgWord = (*__c).next_entry_idx;
 
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                 trace_(
-                    b"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld\0" as *const u8
-                        as *const c_char as *mut c_char,
+                    c"STM: %p : FOR_EACH_ENTRY, current_chunk=%p limit=%ld".as_ptr(),
                     __t,
                     __c,
                     __limit,
@@ -1311,7 +1202,7 @@ unsafe fn stmCommitNestedTransaction(
             while __c != &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk
             {
                 let mut __i: StgWord = 0;
-                __i = 0 as StgWord;
+                __i = 0;
 
                 while __i < __limit {
                     let mut e: *mut TRecEntry = (&raw mut (*__c).entries as *mut TRecEntry)
@@ -1322,7 +1213,7 @@ unsafe fn stmCommitNestedTransaction(
                     s = (*e).tvar;
 
                     if entry_is_update(e) != 0 {
-                        unlock_tvar(cap, trec, s, (*e).expected_value, 0 as StgBool);
+                        unlock_tvar(cap, trec, s, (*e).expected_value, 0);
                     }
 
                     merge_update_into(cap, et, s, (*e).expected_value, (*e).new_value);
@@ -1333,18 +1224,17 @@ unsafe fn stmCommitNestedTransaction(
                 __limit = TREC_CHUNK_NUM_ENTRIES as StgWord;
             }
         } else {
-            revert_ownership(cap, trec, r#false);
+            revert_ownership(cap, trec, false);
         }
     }
 
     free_stg_trec_header(cap, trec);
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : stmCommitNestedTransaction()=%d\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"STM: %p : stmCommitNestedTransaction()=%d".as_ptr(),
             trec,
-            result as c_int,
+            result as i32,
         );
     }
 
@@ -1356,15 +1246,11 @@ unsafe fn stmWait(
     mut tso: *mut StgTSO,
     mut trec: *mut StgTRecHeader,
 ) -> StgBool {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmWait(%p)\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-            tso,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmWait(%p)".as_ptr(), trec, tso);
     }
 
-    let mut result = validate_and_acquire_ownership(cap, trec, r#true, r#true) != 0;
+    let mut result = validate_and_acquire_ownership(cap, trec, true, true) != 0;
 
     if result {
         build_watch_queue_entries_for_trec(cap, tso, trec);
@@ -1374,12 +1260,12 @@ unsafe fn stmWait(
         free_stg_trec_header(cap, trec);
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : stmWait(%p)=%d\0" as *const u8 as *const c_char as *mut c_char,
+            c"STM: %p : stmWait(%p)=%d".as_ptr(),
             trec,
             tso,
-            result as c_int,
+            result as i32,
         );
     }
 
@@ -1387,50 +1273,43 @@ unsafe fn stmWait(
 }
 
 unsafe fn stmWaitUnlock(mut cap: *mut Capability, mut trec: *mut StgTRecHeader) {
-    revert_ownership(cap, trec, r#true);
+    revert_ownership(cap, trec, true);
 }
 
 unsafe fn stmReWait(mut cap: *mut Capability, mut tso: *mut StgTSO) -> StgBool {
     let mut trec = (*tso).trec as *mut StgTRecHeader;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmReWait\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmReWait".as_ptr(), trec);
     }
 
-    let mut result = validate_and_acquire_ownership(cap, trec, r#true, r#true) != 0;
+    let mut result = validate_and_acquire_ownership(cap, trec, true, true) != 0;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : validation %s\0" as *const u8 as *const c_char as *mut c_char,
+            c"STM: %p : validation %s".as_ptr(),
             trec,
-            if result as c_int != 0 {
-                b"succeeded\0" as *const u8 as *const c_char
+            if result as i32 != 0 {
+                c"succeeded".as_ptr()
             } else {
-                b"failed\0" as *const u8 as *const c_char
+                c"failed".as_ptr()
             },
         );
     }
 
     if result {
         park_tso(tso);
-        revert_ownership(cap, trec, r#true);
+        revert_ownership(cap, trec, true);
     } else {
-        if (*trec).state as c_uint != TREC_CONDEMNED as c_int as c_uint {
+        if (*trec).state as u32 != TREC_CONDEMNED as i32 as u32 {
             remove_watch_queue_entries_for_trec(cap, trec);
         }
 
         free_stg_trec_header(cap, trec);
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmReWait()=%d\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-            result as c_int,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmReWait()=%d".as_ptr(), trec, result as i32);
     }
 
     return result as StgBool;
@@ -1443,9 +1322,9 @@ unsafe fn read_current_value(
     let mut result = null_mut::<StgClosure>();
     result = (*tvar).current_value;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : read_current_value(%p)=%p\0" as *const u8 as *const c_char as *mut c_char,
+            c"STM: %p : read_current_value(%p)=%p".as_ptr(),
             trec,
             tvar,
             result,
@@ -1464,12 +1343,8 @@ unsafe fn stmReadTVar(
     let mut result = null_mut::<StgClosure>();
     let mut entry = null_mut::<TRecEntry>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmReadTVar(%p)\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-            tvar,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmReadTVar(%p)".as_ptr(), trec, tvar);
     }
 
     entry = get_entry_for(trec, tvar, &raw mut entry_in);
@@ -1493,13 +1368,8 @@ unsafe fn stmReadTVar(
         result = current_value;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmReadTVar(%p)=%p\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-            tvar,
-            result,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmReadTVar(%p)=%p".as_ptr(), trec, tvar, result);
     }
 
     return result;
@@ -1514,9 +1384,9 @@ unsafe fn stmWriteTVar(
     let mut entry_in = null_mut::<StgTRecHeader>();
     let mut entry = null_mut::<TRecEntry>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
         trace_(
-            b"STM: %p : stmWriteTVar(%p, %p)\0" as *const u8 as *const c_char as *mut c_char,
+            c"STM: %p : stmWriteTVar(%p, %p)".as_ptr(),
             trec,
             tvar,
             new_value,
@@ -1542,10 +1412,7 @@ unsafe fn stmWriteTVar(
         (*new_entry_0).new_value = new_value;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-        trace_(
-            b"STM: %p : stmWriteTVar done\0" as *const u8 as *const c_char as *mut c_char,
-            trec,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+        trace_(c"STM: %p : stmWriteTVar done".as_ptr(), trec);
     }
 }

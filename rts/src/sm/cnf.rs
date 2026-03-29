@@ -44,7 +44,7 @@ pub(crate) unsafe fn objectGetCompactBlock(
     let mut head_block = null_mut::<bdescr>();
     object_block = Bdescr(closure as StgPtr);
 
-    if (*object_block).blocks == 0 as StgWord32 {
+    if (*object_block).blocks == 0 {
         head_block = (*object_block).link as *mut bdescr;
     } else {
         head_block = object_block;
@@ -60,7 +60,7 @@ pub(crate) unsafe fn objectGetCompact(mut closure: *mut StgClosure) -> *mut StgC
     return (*block).owner as *mut StgCompactNFData;
 }
 
-type AllocateOp = c_uint;
+type AllocateOp = u32;
 
 const ALLOCATE_IMPORT_APPEND: AllocateOp = 3;
 
@@ -79,12 +79,12 @@ unsafe fn compactAllocateBlockInternal(
     let mut self_0 = null_mut::<StgCompactNFDataBlock>();
     let mut block = null_mut::<bdescr>();
     let mut head = null_mut::<bdescr>();
-    let mut n_blocks: uint32_t = 0;
+    let mut n_blocks: u32 = 0;
     let mut g = null_mut::<generation>();
-    n_blocks = aligned_size.wrapping_div(BLOCK_SIZE as StgWord) as uint32_t;
+    n_blocks = aligned_size.wrapping_div(BLOCK_SIZE as StgWord) as u32;
 
-    if RtsFlags.GcFlags.maxHeapSize > 0 as uint32_t && n_blocks >= RtsFlags.GcFlags.maxHeapSize
-        || n_blocks >= HS_INT32_MAX as uint32_t
+    if RtsFlags.GcFlags.maxHeapSize > 0 && n_blocks >= RtsFlags.GcFlags.maxHeapSize
+        || n_blocks >= HS_INT32_MAX as u32
     {
         reportHeapOverflow();
         stg_exit(EXIT_HEAPOVERFLOW);
@@ -101,7 +101,7 @@ unsafe fn compactAllocateBlockInternal(
 
     let mut current_block_38: u64;
 
-    match operation as c_uint {
+    match operation as u32 {
         1 => {
             dbl_link_onto(block, &raw mut (*g0).compact_objects);
             (*g).n_compact_blocks = (*g)
@@ -151,20 +151,20 @@ unsafe fn compactAllocateBlockInternal(
 
     (*cap).total_allocated = (*cap)
         .total_allocated
-        .wrapping_add(aligned_size.wrapping_div(size_of::<StgWord>() as StgWord) as uint64_t);
+        .wrapping_add(aligned_size.wrapping_div(size_of::<StgWord>() as StgWord) as u64);
     self_0 = (*block).start as *mut StgCompactNFDataBlock;
     (*self_0).self_0 = self_0 as *mut StgCompactNFDataBlock_;
     (*self_0).next = null_mut::<StgCompactNFDataBlock_>();
     head = block;
     initBdescr(head, g, g);
     (*head).flags = BF_COMPACT as StgWord16;
-    block = head.offset(1 as c_int as isize);
+    block = head.offset(1);
     n_blocks = n_blocks.wrapping_sub(1);
 
-    while n_blocks > 0 as uint32_t {
+    while n_blocks > 0 {
         initBdescr(block, g, g);
         (*block).link = head as *mut bdescr_;
-        (*block).blocks = 0 as StgWord32;
+        (*block).blocks = 0;
         (*block).flags = BF_COMPACT as StgWord16;
         block = block.offset(1);
         n_blocks = n_blocks.wrapping_sub(1);
@@ -241,11 +241,8 @@ unsafe fn compactNew(mut cap: *mut Capability, mut size: StgWord) -> *mut StgCom
         .offset(((*bd).blocks as usize).wrapping_mul(BLOCK_SIZE_W) as isize);
     (*self_0).totalW = ((*bd).blocks as usize).wrapping_mul(BLOCK_SIZE_W) as StgWord;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.compact as c_long != 0 {
-        trace_(
-            b"compactNew: size %llu\0" as *const u8 as *const c_char as *mut c_char,
-            size,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.compact as i64 != 0 {
+        trace_(c"compactNew: size %llu".as_ptr(), size);
     }
 
     return self_0;
@@ -316,7 +313,7 @@ unsafe fn block_is_full(mut block: *mut StgCompactNFDataBlock) -> bool {
     let mut bd = null_mut::<bdescr>();
     bd = Bdescr(block as StgPtr);
 
-    return !has_room_for(bd, 7 as StgWord);
+    return !has_room_for(bd, 7);
 }
 
 unsafe fn allocateForCompact(
@@ -347,7 +344,7 @@ unsafe fn allocateForCompact(
         loop {
             (*str).nursery = (*(*str).nursery).next as *mut StgCompactNFDataBlock;
 
-            if !(!(*str).nursery.is_null() && block_is_full((*str).nursery) as c_int != 0) {
+            if !(!(*str).nursery.is_null() && block_is_full((*str).nursery) as i32 != 0) {
                 break;
             }
         }
@@ -389,9 +386,9 @@ unsafe fn allocateForCompact(
         let mut _b: StgWord = sizeW
             .wrapping_mul(size_of::<StgWord>() as StgWord)
             .wrapping_add(size_of::<StgCompactNFDataBlock>() as StgWord)
-            .wrapping_add(((1 as c_ulong) << 12 as c_int) as StgWord)
+            .wrapping_add(((1 as u64) << 12 as i32) as StgWord)
             .wrapping_sub(1 as StgWord)
-            & !((1 as c_ulong) << 12 as c_int).wrapping_sub(1 as c_ulong) as StgWord;
+            & !((1 as u64) << 12 as i32).wrapping_sub(1 as u64) as StgWord;
 
         if _a <= _b { _b } else { _a as StgWord }
     });
@@ -428,13 +425,13 @@ unsafe fn compactContains(mut str: *mut StgCompactNFData, mut what: StgPtr) -> S
     let mut bd = null_mut::<bdescr>();
 
     if !(what as W_ >= mblock_address_space.0.begin && (what as W_) < mblock_address_space.0.end) {
-        return 0 as StgWord;
+        return 0;
     }
 
     bd = Bdescr(what);
 
-    return ((*bd).flags as c_int & BF_COMPACT != 0 as c_int
-        && (str.is_null() || objectGetCompact(what as *mut StgClosure) == str)) as c_int
+    return ((*bd).flags as i32 & BF_COMPACT != 0
+        && (str.is_null() || objectGetCompact(what as *mut StgClosure) == str)) as i32
         as StgWord;
 }
 
@@ -454,9 +451,9 @@ unsafe fn compactAllocateBlock(
         aligned_size,
         null_mut::<StgCompactNFDataBlock>(),
         (if !previous.is_null() {
-            ALLOCATE_IMPORT_APPEND as c_int
+            ALLOCATE_IMPORT_APPEND as i32
         } else {
-            ALLOCATE_IMPORT_NEW as c_int
+            ALLOCATE_IMPORT_NEW as i32
         }) as AllocateOp,
     );
 
@@ -479,11 +476,11 @@ unsafe fn shouldCompact(mut str: *mut StgCompactNFData, mut p: *mut StgClosure) 
 
     bd = Bdescr(p as StgPtr);
 
-    if (*bd).flags as c_int & BF_PINNED != 0 {
+    if (*bd).flags as i32 & BF_PINNED != 0 {
         return SHOULDCOMPACT_PINNED as StgWord;
     }
 
-    if (*bd).flags as c_int & BF_COMPACT != 0 && objectGetCompact(p) == str {
+    if (*bd).flags as i32 & BF_COMPACT != 0 && objectGetCompact(p) == str {
         return SHOULDCOMPACT_IN_CNF as StgWord;
     } else {
         return SHOULDCOMPACT_NOTIN_CNF as StgWord;
@@ -494,7 +491,7 @@ unsafe fn shouldCompact(mut str: *mut StgCompactNFData, mut p: *mut StgClosure) 
 unsafe fn any_needs_fixup(mut block: *mut StgCompactNFDataBlock) -> bool {
     loop {
         if (*block).self_0 != block {
-            return r#true != 0;
+            return true;
         }
 
         block = (*block).next as *mut StgCompactNFDataBlock;
@@ -504,30 +501,29 @@ unsafe fn any_needs_fixup(mut block: *mut StgCompactNFDataBlock) -> bool {
         }
     }
 
-    return r#false != 0;
+    return false;
 }
 
 #[inline]
 unsafe fn find_pointer(
     mut fixup_table: *mut StgWord,
-    mut count: uint32_t,
+    mut count: u32,
     mut q: *mut StgClosure,
 ) -> *mut StgCompactNFDataBlock {
     let mut address: StgWord = q as StgWord;
-    let mut a: uint32_t = 0;
-    let mut b: uint32_t = 0;
-    let mut c: uint32_t = 0;
+    let mut a: u32 = 0;
+    let mut b: u32 = 0;
+    let mut c: u32 = 0;
     let mut key: StgWord = 0;
     let mut value: StgWord = 0;
     let mut bd = null_mut::<bdescr>();
-    a = 0 as uint32_t;
+    a = 0;
     b = count;
 
-    while a < b.wrapping_sub(1 as uint32_t) {
-        c = a.wrapping_add(b).wrapping_div(2 as uint32_t);
-        key = *fixup_table.offset(c.wrapping_mul(2 as uint32_t) as isize);
-        value =
-            *fixup_table.offset(c.wrapping_mul(2 as uint32_t).wrapping_add(1 as uint32_t) as isize);
+    while a < b.wrapping_sub(1 as u32) {
+        c = a.wrapping_add(b).wrapping_div(2 as u32);
+        key = *fixup_table.offset(c.wrapping_mul(2 as u32) as isize);
+        value = *fixup_table.offset(c.wrapping_mul(2 as u32).wrapping_add(1 as u32) as isize);
 
         if key > address {
             b = c;
@@ -537,14 +533,13 @@ unsafe fn find_pointer(
     }
 
     if a < b {
-        key = *fixup_table.offset(a.wrapping_mul(2 as uint32_t) as isize);
-        value =
-            *fixup_table.offset(a.wrapping_mul(2 as uint32_t).wrapping_add(1 as uint32_t) as isize);
+        key = *fixup_table.offset(a.wrapping_mul(2 as u32) as isize);
+        value = *fixup_table.offset(a.wrapping_mul(2 as u32).wrapping_add(1 as u32) as isize);
 
         if !(key > address) {
             bd = Bdescr(value as StgPtr);
 
-            if !(key.wrapping_add(((*bd).blocks as c_ulong).wrapping_mul(BLOCK_SIZE) as StgWord)
+            if !(key.wrapping_add(((*bd).blocks as u64).wrapping_mul(BLOCK_SIZE) as StgWord)
                 <= address)
             {
                 return value as *mut StgCompactNFDataBlock;
@@ -557,7 +552,7 @@ unsafe fn find_pointer(
 
 unsafe fn fixup_one_pointer(
     mut fixup_table: *mut StgWord,
-    mut count: uint32_t,
+    mut count: u32,
     mut p: *mut *mut StgClosure,
 ) -> bool {
     let mut tag: StgWord = 0;
@@ -568,17 +563,17 @@ unsafe fn fixup_one_pointer(
     q = UNTAG_CLOSURE(q);
 
     if !(q as W_ >= mblock_address_space.0.begin && (q as W_) < mblock_address_space.0.end) {
-        return r#true != 0;
+        return true;
     }
 
     block = find_pointer(fixup_table, count, q);
 
     if block.is_null() {
-        return r#false != 0;
+        return false;
     }
 
     if block == (*block).self_0 {
-        return r#true != 0;
+        return true;
     }
 
     q = (q as W_)
@@ -586,42 +581,40 @@ unsafe fn fixup_one_pointer(
         .wrapping_add(block as W_) as *mut StgClosure;
     *p = TAG_CLOSURE(tag, q);
 
-    return r#true != 0;
+    return true;
 }
 
 unsafe fn fixup_mut_arr_ptrs(
     mut fixup_table: *mut StgWord,
-    mut count: uint32_t,
+    mut count: u32,
     mut a: *mut StgMutArrPtrs,
 ) -> bool {
     let mut p = null_mut::<StgWord>();
     let mut q = null_mut::<StgWord>();
-    p = (&raw mut (*a).payload as *mut *mut StgClosure).offset(0 as c_int as isize)
-        as *mut *mut StgClosure as StgPtr;
+    p = (&raw mut (*a).payload as *mut *mut StgClosure).offset(0) as *mut *mut StgClosure as StgPtr;
     q = (&raw mut (*a).payload as *mut *mut StgClosure).offset((*a).ptrs as isize)
         as *mut *mut StgClosure as StgPtr;
 
     while p < q {
         if !fixup_one_pointer(fixup_table, count, p as *mut *mut StgClosure) {
-            return r#false != 0;
+            return false;
         }
 
         p = p.offset(1);
     }
 
-    return r#true != 0;
+    return true;
 }
 
 unsafe fn fixup_block(
     mut block: *mut StgCompactNFDataBlock,
     mut fixup_table: *mut StgWord,
-    mut count: uint32_t,
+    mut count: u32,
 ) -> bool {
     let mut info = null::<StgInfoTable>();
     let mut bd = null_mut::<bdescr>();
     let mut p = null_mut::<StgWord>();
     bd = Bdescr(block as StgPtr);
-
     p = (*bd).start.offset(
         (size_of::<StgCompactNFDataBlock>() as usize)
             .wrapping_add(size_of::<W_>() as usize)
@@ -639,10 +632,10 @@ unsafe fn fixup_block(
                 if !fixup_one_pointer(
                     fixup_table,
                     count,
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 ) {
-                    return r#false != 0;
+                    return false;
                 }
 
                 current_block_36 = 6935415395941392425;
@@ -654,10 +647,10 @@ unsafe fn fixup_block(
                 if !fixup_one_pointer(
                     fixup_table,
                     count,
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(1)
+                        as *mut *mut StgClosure,
                 ) {
-                    return r#false != 0;
+                    return false;
                 }
 
                 current_block_36 = 15964801498953055232;
@@ -677,7 +670,7 @@ unsafe fn fixup_block(
 
                 while p < end {
                     if !fixup_one_pointer(fixup_table, count, p as *mut *mut StgClosure) {
-                        return r#false != 0;
+                        return false;
                     }
 
                     p = p.offset(1);
@@ -696,9 +689,9 @@ unsafe fn fixup_block(
                 current_block_36 = 11743904203796629665;
             }
             62 | 61 => {
-                let mut i: uint32_t = 0;
+                let mut i: u32 = 0;
                 let mut arr = p as *mut StgSmallMutArrPtrs;
-                i = 0 as uint32_t;
+                i = 0;
 
                 while (i as StgWord) < (*arr).ptrs {
                     if !fixup_one_pointer(
@@ -707,7 +700,7 @@ unsafe fn fixup_block(
                         (&raw mut (*arr).payload as *mut *mut StgClosure).offset(i as isize)
                             as *mut *mut StgClosure,
                     ) {
-                        return r#false != 0;
+                        return false;
                     }
 
                     i = i.wrapping_add(1);
@@ -751,12 +744,11 @@ unsafe fn fixup_block(
         match current_block_36 {
             7626285455412833715 => {
                 debugBelch(
-                    b"Invalid non-NFData closure (type %d) in Compact\n\0" as *const u8
-                        as *const c_char,
+                    c"Invalid non-NFData closure (type %d) in Compact\n".as_ptr(),
                     (*info).r#type,
                 );
 
-                return r#false != 0;
+                return false;
             }
             6935415395941392425 => {
                 p = p.offset(
@@ -773,10 +765,10 @@ unsafe fn fixup_block(
                 if !fixup_one_pointer(
                     fixup_table,
                     count,
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 ) {
-                    return r#false != 0;
+                    return false;
                 }
 
                 current_block_36 = 13504857111530276372;
@@ -798,30 +790,30 @@ unsafe fn fixup_block(
         }
     }
 
-    return r#true != 0;
+    return true;
 }
 
-unsafe fn cmp_fixup_table_item(mut e1: *const c_void, mut e2: *const c_void) -> c_int {
+unsafe fn cmp_fixup_table_item(mut e1: *const c_void, mut e2: *const c_void) -> i32 {
     let mut w1 = e1 as *const StgWord;
     let mut w2 = e2 as *const StgWord;
 
     if *w1 > *w2 {
-        return 1 as c_int;
+        return 1;
     } else if *w1 < *w2 {
-        return -(1 as c_int);
+        return -1;
     } else {
-        return 0 as c_int;
+        return 0;
     };
 }
 
 unsafe fn build_fixup_table(
     mut block: *mut StgCompactNFDataBlock,
-    mut pcount: *mut uint32_t,
+    mut pcount: *mut u32,
 ) -> *mut StgWord {
-    let mut count: uint32_t = 0;
+    let mut count: u32 = 0;
     let mut tmp = null_mut::<StgCompactNFDataBlock>();
     let mut table = null_mut::<StgWord>();
-    count = 0 as uint32_t;
+    count = 0;
     tmp = block;
 
     loop {
@@ -834,24 +826,18 @@ unsafe fn build_fixup_table(
     }
 
     table = stgMallocBytes(
-        (size_of::<StgWord>() as size_t)
-            .wrapping_mul(2 as size_t)
-            .wrapping_mul(count as size_t),
-        b"build_fixup_table\0" as *const u8 as *const c_char as *mut c_char,
+        (size_of::<StgWord>() as usize)
+            .wrapping_mul(2 as usize)
+            .wrapping_mul(count as usize),
+        c"build_fixup_table".as_ptr(),
     ) as *mut StgWord;
 
-    count = 0 as uint32_t;
+    count = 0;
 
     loop {
-        *table.offset(count.wrapping_mul(2 as uint32_t) as isize) =
-            (*block).self_0 as W_ as StgWord;
-
-        *table.offset(
-            count
-                .wrapping_mul(2 as uint32_t)
-                .wrapping_add(1 as uint32_t) as isize,
-        ) = block as W_ as StgWord;
-
+        *table.offset(count.wrapping_mul(2 as u32) as isize) = (*block).self_0 as W_ as StgWord;
+        *table.offset(count.wrapping_mul(2 as u32).wrapping_add(1 as u32) as isize) =
+            block as W_ as StgWord;
         count = count.wrapping_add(1);
         block = (*block).next as *mut StgCompactNFDataBlock;
 
@@ -862,8 +848,8 @@ unsafe fn build_fixup_table(
 
     qsort(
         table as *mut c_void,
-        count as size_t,
-        (size_of::<StgWord>() as size_t).wrapping_mul(2 as size_t),
+        count as usize,
+        (size_of::<StgWord>() as usize).wrapping_mul(2 as usize),
         Some(cmp_fixup_table_item as unsafe extern "C" fn(*const c_void, *const c_void) -> c_int),
     );
 
@@ -879,12 +865,12 @@ unsafe fn fixup_loop(
     let mut current_block: u64;
     let mut table = null_mut::<StgWord>();
     let mut ok: bool = false;
-    let mut count: uint32_t = 0;
+    let mut count: u32 = 0;
     table = build_fixup_table(block, &raw mut count);
 
     loop {
         if !fixup_block(block, table, count) {
-            ok = r#false != 0;
+            ok = false;
             current_block = 8019040075682676234;
             break;
         } else {
@@ -929,7 +915,7 @@ unsafe fn fixup_late(mut str: *mut StgCompactNFData, mut block: *mut StgCompactN
     let mut bd = null_mut::<bdescr>();
     let mut totalW: StgWord = 0;
     nursery = block;
-    totalW = 0 as StgWord;
+    totalW = 0;
 
     loop {
         (*block).self_0 = block as *mut StgCompactNFDataBlock_;

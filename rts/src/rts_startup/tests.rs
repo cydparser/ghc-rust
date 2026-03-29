@@ -7,7 +7,7 @@ fn test_hs_init() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let mut argc: c_int = Arbitrary::arbitrary(g);
+        let mut argc: i32 = Arbitrary::arbitrary(g);
         let mut argv: c_char = Arbitrary::arbitrary(g);
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
@@ -23,7 +23,7 @@ fn test_hs_init() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_hs_init(argc: c_int, argv: c_char) -> bool {
+fn equivalent_hs_init(argc: i32, argv: c_char) -> bool {
     let expected = {
         let mut argc = argc;
         let mut argv = argv;
@@ -52,7 +52,7 @@ fn test_hs_init_with_rtsopts() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let mut argc: c_int = Arbitrary::arbitrary(g);
+        let mut argc: i32 = Arbitrary::arbitrary(g);
         let mut argv: c_char = Arbitrary::arbitrary(g);
         let mut argv = &raw mut argv;
         let mut argv = &raw mut argv;
@@ -68,7 +68,7 @@ fn test_hs_init_with_rtsopts() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_hs_init_with_rtsopts(argc: c_int, argv: c_char) -> bool {
+fn equivalent_hs_init_with_rtsopts(argc: i32, argv: c_char) -> bool {
     let expected = {
         let mut argc = argc;
         let mut argv = argv;
@@ -97,7 +97,7 @@ fn test_hs_init_ghc() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let argc: c_int = Arbitrary::arbitrary(g);
+        let argc: i32 = Arbitrary::arbitrary(g);
         let mut argv: c_char = Arbitrary::arbitrary(g);
         let mut argv = &raw mut argv;
         let argv = &raw mut argv;
@@ -114,7 +114,7 @@ fn test_hs_init_ghc() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_hs_init_ghc(argc: c_int, argv: c_char) -> bool {
+fn equivalent_hs_init_ghc(argc: i32, argv: c_char) -> bool {
     let expected = {
         let argc = argc;
         let mut argv = argv;

@@ -222,7 +222,9 @@ fn test_rts_mkInt16() {
 fn equivalent_rts_mkInt16(i: HsInt16) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt16(&raw mut arg1, i)) };
+
         todo!()
     };
 
@@ -259,7 +261,9 @@ fn test_rts_mkInt32() {
 fn equivalent_rts_mkInt32(i: HsInt32) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt32(&raw mut arg1, i)) };
+
         todo!()
     };
 
@@ -296,7 +300,9 @@ fn test_rts_mkInt64() {
 fn equivalent_rts_mkInt64(i: HsInt64) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkInt64(&raw mut arg1, i)) };
+
         todo!()
     };
 
@@ -370,7 +376,9 @@ fn test_rts_mkWord8() {
 fn equivalent_rts_mkWord8(w: HsWord8) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord8(&raw mut arg1, w)) };
+
         todo!()
     };
 
@@ -407,7 +415,9 @@ fn test_rts_mkWord16() {
 fn equivalent_rts_mkWord16(w: HsWord16) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord16(&raw mut arg1, w)) };
+
         todo!()
     };
 
@@ -444,7 +454,9 @@ fn test_rts_mkWord32() {
 fn equivalent_rts_mkWord32(w: HsWord32) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord32(&raw mut arg1, w)) };
+
         todo!()
     };
 
@@ -481,7 +493,9 @@ fn test_rts_mkWord64() {
 fn equivalent_rts_mkWord64(w: HsWord64) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkWord64(&raw mut arg1, w)) };
+
         todo!()
     };
 
@@ -518,7 +532,9 @@ fn test_rts_mkFloat() {
 fn equivalent_rts_mkFloat(f: HsFloat) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkFloat(&raw mut arg1, f)) };
+
         todo!()
     };
 
@@ -555,7 +571,9 @@ fn test_rts_mkDouble() {
 fn equivalent_rts_mkDouble(f: HsDouble) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkDouble(&raw mut arg1, f)) };
+
         todo!()
     };
 
@@ -591,7 +609,9 @@ fn equivalent_rts_mkStablePtr() {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let s: HsStablePtr = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkStablePtr(&raw mut arg1, s)) };
+
         todo!()
     };
 
@@ -663,7 +683,9 @@ fn equivalent_rts_mkFunPtr() {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let a: HsFunPtr = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkFunPtr(&raw mut arg1, a)) };
+
         todo!()
     };
 
@@ -738,7 +760,9 @@ fn equivalent_rts_mkString(s: c_char) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let mut s = s;
+
         let result: HaskellObj = unsafe { transmute(sys::rts_mkString(&raw mut arg1, &raw mut s)) };
+
         todo!()
     };
 
@@ -777,7 +801,9 @@ fn equivalent_rts_apply() {
         let mut arg1: sys::Capability = todo!();
         let arg2: sys::HaskellObj = todo!();
         let arg3: sys::HaskellObj = todo!();
+
         let result: HaskellObj = unsafe { transmute(sys::rts_apply(&raw mut arg1, arg2, arg3)) };
+
         todo!()
     };
 
@@ -1320,8 +1346,10 @@ fn test_createGenThread() {
         let cap: Capability = todo!();
         let stack_size: W_ = Arbitrary::arbitrary(g);
         let closure: StgClosure = todo!();
+
         let result: &StgTSO =
             unsafe { &*createGenThread(&raw mut cap, stack_size, &raw mut closure) };
+
         todo!()
     };
 
@@ -1352,8 +1380,10 @@ fn equivalent_createGenThread(stack_size: W_) -> bool {
     let actual = {
         let mut cap: Capability = todo!();
         let mut closure: StgClosure = todo!();
+
         let result: &StgTSO =
             unsafe { &*createGenThread(&raw mut cap, stack_size, &raw mut closure) };
+
         todo!()
     };
 
@@ -1412,7 +1442,7 @@ fn test_rts_eval_() {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
         let p: HaskellObj = todo!();
-        let stack_size: c_uint = Arbitrary::arbitrary(g);
+        let stack_size: u32 = Arbitrary::arbitrary(g);
         let ret: HaskellObj = todo!();
         unsafe { rts_eval_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
@@ -1426,7 +1456,7 @@ fn test_rts_eval_() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_rts_eval_(stack_size: c_uint) -> bool {
+fn equivalent_rts_eval_(stack_size: u32) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let mut arg1 = &raw mut arg1;
@@ -1668,7 +1698,7 @@ fn test_rts_evalLazyIO_() {
         let mut arg1: Capability = todo!();
         let mut arg1 = &raw mut arg1;
         let p: HaskellObj = todo!();
-        let stack_size: c_uint = Arbitrary::arbitrary(g);
+        let stack_size: u32 = Arbitrary::arbitrary(g);
         let ret: HaskellObj = todo!();
         unsafe { rts_evalLazyIO_(&raw mut arg1, p, stack_size, &raw mut ret) };
         todo!()
@@ -1682,7 +1712,7 @@ fn test_rts_evalLazyIO_() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_rts_evalLazyIO_(stack_size: c_uint) -> bool {
+fn equivalent_rts_evalLazyIO_(stack_size: u32) -> bool {
     let expected = {
         let mut arg1: sys::Capability = todo!();
         let mut arg1 = &raw mut arg1;
@@ -1857,8 +1887,10 @@ fn test_pauseTokenCapability() {
 fn equivalent_pauseTokenCapability() {
     let expected = {
         let mut pauseToken: sys::PauseToken = todo!();
+
         let result: &Capability =
             unsafe { transmute(&*sys::pauseTokenCapability(&raw mut pauseToken)) };
+
         todo!()
     };
 
@@ -2030,7 +2062,7 @@ fn test_hs_try_putmvar() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let capability: c_int = Arbitrary::arbitrary(g);
+        let capability: i32 = Arbitrary::arbitrary(g);
         let sp: HsStablePtr = todo!();
         unsafe { hs_try_putmvar(capability, sp) };
         todo!()
@@ -2044,7 +2076,7 @@ fn test_hs_try_putmvar() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_hs_try_putmvar(capability: c_int) -> bool {
+fn equivalent_hs_try_putmvar(capability: i32) -> bool {
     let expected = {
         let sp: HsStablePtr = todo!();
         unsafe { sys::hs_try_putmvar(capability, sp) };
@@ -2067,7 +2099,7 @@ fn test_hs_try_putmvar_with_value() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let capability: c_int = Arbitrary::arbitrary(g);
+        let capability: i32 = Arbitrary::arbitrary(g);
         let sp: HsStablePtr = todo!();
         let value: StgClosure = todo!();
         unsafe { hs_try_putmvar_with_value(capability, sp, &raw mut value) };
@@ -2082,7 +2114,7 @@ fn test_hs_try_putmvar_with_value() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_hs_try_putmvar_with_value(capability: c_int) -> bool {
+fn equivalent_hs_try_putmvar_with_value(capability: i32) -> bool {
     let expected = {
         let sp: HsStablePtr = todo!();
         let mut value: sys::StgClosure = todo!();

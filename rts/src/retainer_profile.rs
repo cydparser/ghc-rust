@@ -27,19 +27,19 @@ use crate::traverse_heap::{
     traverseState_, traverseWorkStack, traverseWorkStackBlocks,
 };
 
-static mut retainerGeneration: uint32_t = 0;
+static mut retainerGeneration: u32 = 0;
 
-static mut numObjectVisited: uint32_t = 0;
+static mut numObjectVisited: u32 = 0;
 
-static mut timesAnyObjectVisited: uint32_t = 0;
+static mut timesAnyObjectVisited: u32 = 0;
 
 static mut g_retainerTraverseState: traverseState = traverseState_ {
     flip: 0,
-    firstStack: null::<bdescr>() as *mut bdescr,
-    currentStack: null::<bdescr>() as *mut bdescr,
-    stackBottom: null::<stackElement>() as *mut stackElement,
-    stackTop: null::<stackElement>() as *mut stackElement,
-    stackLimit: null::<stackElement>() as *mut stackElement,
+    firstStack: null_mut::<bdescr>(),
+    currentStack: null_mut::<bdescr>(),
+    stackBottom: null_mut::<stackElement>(),
+    stackTop: null_mut::<stackElement>(),
+    stackLimit: null_mut::<stackElement>(),
     stackSize: 0,
     maxStackSize: 0,
     return_cb: None,
@@ -51,7 +51,7 @@ unsafe fn retainerStackBlocks() -> W_ {
 
 unsafe fn initRetainerProfiling() {
     initializeAllRetainerSet();
-    retainerGeneration = 0 as uint32_t;
+    retainerGeneration = 0;
 }
 
 unsafe fn endRetainerProfiling() {
@@ -62,12 +62,12 @@ unsafe fn endRetainerProfiling() {
 unsafe fn isRetainer(mut c: *const StgClosure) -> bool {
     match (*get_itbl(c)).r#type {
         52 | 53 | 51 | 39 | 40 | 41 | 47 | 48 | 43 | 44 | 59 | 60 | 37 | 15 | 16 | 17 | 18 | 19
-        | 20 | 22 | 24 | 26 | 21 | 49 => return r#true != 0,
+        | 20 | 22 | 24 | 26 | 21 | 49 => return true,
         1 | 7 | 2 | 3 | 4 | 5 | 6 | 8 | 9 | 10 | 11 | 12 | 13 | 25 | 64 | 28 | 38 | 58 | 14
-        | 50 | 23 | 42 | 63 | 54 | 46 | 45 | 62 | 61 => return r#false != 0,
+        | 50 | 23 | 42 | 63 | 54 | 46 | 45 | 62 | 61 => return false,
         33 | 34 | 56 | 57 | 35 | 55 | 36 | 29 | 30 | 31 | 32 | 65 | 27 | 0 | _ => {
             barf(
-                b"Invalid object in isRetainer(): %d\0" as *const u8 as *const c_char,
+                c"Invalid object in isRetainer(): %d".as_ptr(),
                 (*get_itbl(c)).r#type,
             );
         }
@@ -122,32 +122,32 @@ unsafe fn retainVisitClosure(
             associate(c, s);
         }
 
-        (*out_data).c_child_r = if isRetainer(c) as c_int != 0 {
+        (*out_data).c_child_r = if isRetainer(c) as i32 != 0 {
             getRetainerFrom(c)
         } else {
             r
         };
     } else {
         if isMember(r, retainerSetOfc) {
-            return 0 as c_int != 0;
+            return 0 != 0;
         }
 
         if s.is_null() {
             associate(c, addElement(r, retainerSetOfc));
-        } else if (*s).num == (*retainerSetOfc).num.wrapping_add(1 as uint32_t) {
+        } else if (*s).num == (*retainerSetOfc).num.wrapping_add(1 as u32) {
             associate(c, s);
         } else {
             associate(c, addElement(r, retainerSetOfc));
         }
 
         if isRetainer(c) {
-            return 0 as c_int != 0;
+            return 0 != 0;
         }
 
         (*out_data).c_child_r = r;
     }
 
-    return 1 as c_int != 0;
+    return 1 != 0;
 }
 
 unsafe fn retainRoot(mut user: *mut c_void, mut tl: *mut *mut StgClosure) {
@@ -156,7 +156,7 @@ unsafe fn retainRoot(mut user: *mut c_void, mut tl: *mut *mut StgClosure) {
     c = UNTAG_CLOSURE(*tl);
     traverseMaybeInitClosureData(&raw mut g_retainerTraverseState, c);
 
-    if c != &raw mut stg_END_TSO_QUEUE_closure && isRetainer(c) as c_int != 0 {
+    if c != &raw mut stg_END_TSO_QUEUE_closure && isRetainer(c) as i32 != 0 {
         traversePushRoot(
             ts,
             c,
@@ -179,8 +179,8 @@ unsafe fn retainRoot(mut user: *mut c_void, mut tl: *mut *mut StgClosure) {
 
 unsafe fn computeRetainerSet(mut ts: *mut traverseState) {
     let mut weak = null_mut::<StgWeak>();
-    let mut g: uint32_t = 0;
-    let mut n: uint32_t = 0;
+    let mut g: u32 = 0;
+    let mut n: u32 = 0;
     traverseInvalidateClosureData(ts);
 
     markCapabilities(
@@ -188,13 +188,13 @@ unsafe fn computeRetainerSet(mut ts: *mut traverseState) {
         ts as *mut c_void,
     );
 
-    n = 0 as uint32_t;
+    n = 0;
 
-    while n < getNumCapabilities() as uint32_t {
+    while n < getNumCapabilities() as u32 {
         n = n.wrapping_add(1);
     }
 
-    g = 0 as uint32_t;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         weak = (*generations.offset(g as isize)).weak_ptr_list;
@@ -232,8 +232,8 @@ unsafe fn computeRetainerSet(mut ts: *mut traverseState) {
 
 unsafe fn retainerProfile() {
     stat_startRP();
-    numObjectVisited = 0 as uint32_t;
-    timesAnyObjectVisited = 0 as uint32_t;
+    numObjectVisited = 0;
+    timesAnyObjectVisited = 0;
     initializeTraverseStack(&raw mut g_retainerTraverseState);
     initializeAllRetainerSet();
     computeRetainerSet(&raw mut g_retainerTraverseState);
@@ -241,8 +241,8 @@ unsafe fn retainerProfile() {
     retainerGeneration = retainerGeneration.wrapping_add(1);
 
     stat_endRP(
-        retainerGeneration.wrapping_sub(1 as uint32_t),
+        retainerGeneration.wrapping_sub(1 as u32),
         getTraverseStackMaxSize(&raw mut g_retainerTraverseState),
-        timesAnyObjectVisited as c_double / numObjectVisited as c_double,
+        timesAnyObjectVisited as f64 / numObjectVisited as f64,
     );
 }

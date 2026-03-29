@@ -8,9 +8,9 @@ mod tests;
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_bitrev8(mut x: StgWord) -> StgWord {
-    x = x >> 1 as c_int & 0x55 as StgWord | (x & 0x55 as StgWord) << 1 as c_int;
-    x = x >> 2 as c_int & 0x33 as StgWord | (x & 0x33 as StgWord) << 2 as c_int;
-    x = x >> 4 as c_int & 0xf as StgWord | (x & 0xf as StgWord) << 4 as c_int;
+    x = x >> 1 & 0x55 | (x & 0x55) << 1;
+    x = x >> 2 & 0x33 | (x & 0x33) << 2;
+    x = x >> 4 & 0xf | (x & 0xf) << 4;
 
     return x;
 }
@@ -19,14 +19,10 @@ pub unsafe extern "C" fn hs_bitrev8(mut x: StgWord) -> StgWord {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_bitrev16(mut x: StgWord16) -> StgWord16 {
-    x = (x as c_int >> 1 as c_int & 0x5555 as c_int | (x as c_int & 0x5555 as c_int) << 1 as c_int)
-        as StgWord16;
-    x = (x as c_int >> 2 as c_int & 0x3333 as c_int | (x as c_int & 0x3333 as c_int) << 2 as c_int)
-        as StgWord16;
-    x = (x as c_int >> 4 as c_int & 0xf0f as c_int | (x as c_int & 0xf0f as c_int) << 4 as c_int)
-        as StgWord16;
-    x = (x as c_int >> 8 as c_int & 0xff as c_int | (x as c_int & 0xff as c_int) << 8 as c_int)
-        as StgWord16;
+    x = (x as i32 >> 1 & 0x5555 | (x as i32 & 0x5555) << 1) as StgWord16;
+    x = (x as i32 >> 2 & 0x3333 | (x as i32 & 0x3333) << 2) as StgWord16;
+    x = (x as i32 >> 4 & 0xf0f | (x as i32 & 0xf0f) << 4) as StgWord16;
+    x = (x as i32 >> 8 & 0xff | (x as i32 & 0xff) << 8) as StgWord16;
 
     return x;
 }
@@ -35,11 +31,11 @@ pub unsafe extern "C" fn hs_bitrev16(mut x: StgWord16) -> StgWord16 {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_bitrev32(mut x: StgWord32) -> StgWord32 {
-    x = x >> 1 as c_int & 0x55555555 as StgWord32 | (x & 0x55555555 as StgWord32) << 1 as c_int;
-    x = x >> 2 as c_int & 0x33333333 as StgWord32 | (x & 0x33333333 as StgWord32) << 2 as c_int;
-    x = x >> 4 as c_int & 0xf0f0f0f as StgWord32 | (x & 0xf0f0f0f as StgWord32) << 4 as c_int;
-    x = x >> 8 as c_int & 0xff00ff as StgWord32 | (x & 0xff00ff as StgWord32) << 8 as c_int;
-    x = x >> 16 as c_int | x << 16 as c_int;
+    x = x >> 1 & 0x55555555 | (x & 0x55555555) << 1;
+    x = x >> 2 & 0x33333333 | (x & 0x33333333) << 2;
+    x = x >> 4 & 0xf0f0f0f | (x & 0xf0f0f0f) << 4;
+    x = x >> 8 & 0xff00ff | (x & 0xff00ff) << 8;
+    x = x >> 16 | x << 16;
 
     return x;
 }
@@ -48,17 +44,12 @@ pub unsafe extern "C" fn hs_bitrev32(mut x: StgWord32) -> StgWord32 {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_bitrev64(mut x: StgWord64) -> StgWord64 {
-    x = x >> 1 as c_int & 0x5555555555555555 as StgWord64
-        | (x & 0x5555555555555555 as StgWord64) << 1 as c_int;
-    x = x >> 2 as c_int & 0x3333333333333333 as StgWord64
-        | (x & 0x3333333333333333 as StgWord64) << 2 as c_int;
-    x = x >> 4 as c_int & 0xf0f0f0f0f0f0f0f as StgWord64
-        | (x & 0xf0f0f0f0f0f0f0f as StgWord64) << 4 as c_int;
-    x = x >> 8 as c_int & 0xff00ff00ff00ff as StgWord64
-        | (x & 0xff00ff00ff00ff as StgWord64) << 8 as c_int;
-    x = x >> 16 as c_int & 0xffff0000ffff as StgWord64
-        | (x & 0xffff0000ffff as StgWord64) << 16 as c_int;
-    x = x >> 32 as c_int | x << 32 as c_int;
+    x = x >> 1 & 0x5555555555555555 | (x & 0x5555555555555555) << 1;
+    x = x >> 2 & 0x3333333333333333 | (x & 0x3333333333333333) << 2;
+    x = x >> 4 & 0xf0f0f0f0f0f0f0f | (x & 0xf0f0f0f0f0f0f0f) << 4;
+    x = x >> 8 & 0xff00ff00ff00ff | (x & 0xff00ff00ff00ff) << 8;
+    x = x >> 16 & 0xffff0000ffff | (x & 0xffff0000ffff) << 16;
+    x = x >> 32 | x << 32;
 
     return x;
 }

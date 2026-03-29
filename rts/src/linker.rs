@@ -69,20 +69,20 @@ mod tests;
 pub struct _ObjectCode {
     pub(crate) status: OStatus,
     pub(crate) fileName: *mut pathchar,
-    pub(crate) fileSize: c_int,
+    pub(crate) fileSize: i32,
     pub(crate) formatName: *mut c_char,
     pub(crate) r#type: ObjectType,
     pub(crate) archiveMemberName: *mut pathchar,
     pub(crate) symbols: *mut Symbol_t,
-    pub(crate) n_symbols: c_int,
+    pub(crate) n_symbols: i32,
     pub(crate) image: *mut c_char,
     pub(crate) info: *mut ObjectCodeFormatInfo,
-    pub(crate) imageMapped: c_int,
-    pub(crate) misalignment: c_int,
+    pub(crate) imageMapped: i32,
+    pub(crate) misalignment: i32,
     pub(crate) cxa_finalize: cxa_finalize_fn,
-    pub(crate) n_sections: c_int,
+    pub(crate) n_sections: i32,
     pub(crate) sections: *mut Section,
-    pub(crate) n_segments: c_int,
+    pub(crate) n_segments: i32,
     pub(crate) segments: *mut Segment,
     pub(crate) next: *mut _ObjectCode,
     pub(crate) prev: *mut _ObjectCode,
@@ -92,8 +92,8 @@ pub struct _ObjectCode {
     pub(crate) dependencies: *mut HashSet,
     pub(crate) proddables: ProddableBlockSet,
     pub(crate) symbol_extras: *mut SymbolExtra,
-    pub(crate) first_symbol_extra: c_ulong,
-    pub(crate) n_symbol_extras: c_ulong,
+    pub(crate) first_symbol_extra: u64,
+    pub(crate) n_symbol_extras: u64,
     pub(crate) bssBegin: *mut c_char,
     pub(crate) bssEnd: *mut c_char,
     pub(crate) foreign_exports: *mut ForeignExportsList,
@@ -121,13 +121,13 @@ pub(crate) type Segment = _Segment;
 /// cbindgen:no-export
 pub(crate) struct _Segment {
     pub(crate) start: *mut c_void,
-    pub(crate) size: size_t,
+    pub(crate) size: usize,
     pub(crate) prot: SegmentProt,
-    pub(crate) sections_idx: *mut c_int,
-    pub(crate) n_sections: c_int,
+    pub(crate) sections_idx: *mut i32,
+    pub(crate) n_sections: i32,
 }
 
-pub(crate) type SegmentProt = c_uint;
+pub(crate) type SegmentProt = u32;
 
 pub(crate) const SEGMENT_PROT_RWO: SegmentProt = 3;
 
@@ -149,7 +149,7 @@ pub(crate) struct _Section {
     pub(crate) info: *mut SectionFormatInfo,
 }
 
-pub(crate) type SectionAlloc = c_uint;
+pub(crate) type SectionAlloc = u32;
 
 pub(crate) const SECTION_MALLOC: SectionAlloc = 3;
 
@@ -159,7 +159,7 @@ pub(crate) const SECTION_M32: SectionAlloc = 1;
 
 pub(crate) const SECTION_NOMEM: SectionAlloc = 0;
 
-pub(crate) type SectionKind = c_uint;
+pub(crate) type SectionKind = u32;
 
 pub(crate) const SECTIONKIND_BFD_IMPORT_LIBRARY: SectionKind = 10;
 
@@ -194,7 +194,7 @@ pub(crate) struct _Symbol {
     pub(crate) r#type: SymType,
 }
 
-pub(crate) type ObjectType = c_uint;
+pub(crate) type ObjectType = u32;
 
 pub(crate) const DYNAMIC_OBJECT: ObjectType = 1;
 
@@ -212,7 +212,7 @@ pub(crate) struct _RtsSymbolInfo {
     pub(crate) r#type: SymType,
 }
 
-pub(crate) const USE_CONTIGUOUS_MMAP: c_int = 0 as c_int;
+pub(crate) const USE_CONTIGUOUS_MMAP: i32 = 0;
 
 extern "C" {
     pub(crate) fn isArchive(path: *mut pathchar) -> bool;
@@ -319,7 +319,7 @@ pub(crate) const OBJECT_NEEDED: OStatus = 1;
 
 pub(crate) const OBJECT_LOADED: OStatus = 0;
 
-static mut symhash: *mut StrHashTable = null::<StrHashTable>() as *mut StrHashTable;
+static mut symhash: *mut StrHashTable = null_mut::<StrHashTable>();
 
 unsafe fn ghciRemoveSymbolTable(
     mut table: *mut StrHashTable,
@@ -342,14 +342,14 @@ unsafe fn ghciRemoveSymbolTable(
 }
 
 unsafe fn symbolTypeString(mut r#type: SymType) -> *const c_char {
-    match r#type as c_uint & !(SYM_TYPE_DUP_DISCARD as c_int | SYM_TYPE_HIDDEN as c_int) as c_uint {
-        1 => return b"code\0" as *const u8 as *const c_char,
-        2 => return b"data\0" as *const u8 as *const c_char,
-        4 => return b"indirect-data\0" as *const u8 as *const c_char,
+    match r#type as u32 & !(SYM_TYPE_DUP_DISCARD as i32 | SYM_TYPE_HIDDEN as i32) as u32 {
+        1 => return c"code".as_ptr(),
+        2 => return c"data".as_ptr(),
+        4 => return c"indirect-data".as_ptr(),
         _ => {
             barf(
-                b"symbolTypeString: unknown symbol type (%d)\0" as *const u8 as *const c_char,
-                r#type as c_uint,
+                c"symbolTypeString: unknown symbol type (%d)".as_ptr(),
+                r#type as u32,
             );
         }
     };
@@ -363,13 +363,13 @@ unsafe fn ghciInsertSymbolTable(
     mut strength: SymStrength,
     mut r#type: SymType,
     mut owner: *mut ObjectCode,
-) -> c_int {
+) -> i32 {
     let mut pinfo = lookupStrHashTable(table, key as *const c_char) as *mut RtsSymbolInfo;
 
     if pinfo.is_null() {
         pinfo = stgMallocBytes(
-            size_of::<RtsSymbolInfo>() as size_t,
-            b"ghciInsertToSymbolTable\0" as *const u8 as *const c_char as *mut c_char,
+            size_of::<RtsSymbolInfo>() as usize,
+            c"ghciInsertToSymbolTable".as_ptr(),
         ) as *mut RtsSymbolInfo;
 
         (*pinfo).value = data;
@@ -378,35 +378,33 @@ unsafe fn ghciInsertSymbolTable(
         (*pinfo).r#type = r#type;
         insertStrHashTable(table, key as *const c_char, pinfo as *const c_void);
 
-        return 1 as c_int;
-    } else if (*pinfo).r#type as c_uint ^ r#type as c_uint != 0 {
-        if (*pinfo).r#type as c_uint & SYM_TYPE_HIDDEN as c_int as c_uint != 0 {
+        return 1;
+    } else if (*pinfo).r#type as u32 ^ r#type as u32 != 0 {
+        if (*pinfo).r#type as u32 & SYM_TYPE_HIDDEN as i32 as u32 != 0 {
             (*pinfo).value = data;
             (*pinfo).owner = owner;
             (*pinfo).strength = strength;
             (*pinfo).r#type = r#type;
 
-            return 1 as c_int;
+            return 1;
         }
 
-        if r#type as c_uint & (SYM_TYPE_DUP_DISCARD as c_int | SYM_TYPE_HIDDEN as c_int) as c_uint
-            == 0
-        {
+        if r#type as u32 & (SYM_TYPE_DUP_DISCARD as i32 | SYM_TYPE_HIDDEN as i32) as u32 == 0 {
             debugBelch(
-                b"Symbol type mismatch (existing %d, new %d).\n\0" as *const u8 as *const c_char,
-                (*pinfo).r#type as c_uint,
-                r#type as c_uint,
+                c"Symbol type mismatch (existing %d, new %d).\n".as_ptr(),
+                (*pinfo).r#type as u32,
+                r#type as u32,
             );
 
             debugBelch(
-                b"Symbol %s was defined by %s to be a %s symbol.\n\0" as *const u8 as *const c_char,
+                c"Symbol %s was defined by %s to be a %s symbol.\n".as_ptr(),
                 key,
                 obj_name,
                 symbolTypeString(r#type),
             );
 
             debugBelch(
-                b"      yet was defined by %s to be a %s symbol.\n\0" as *const u8 as *const c_char,
+                c"      yet was defined by %s to be a %s symbol.\n".as_ptr(),
                 if !(*pinfo).owner.is_null() {
                     (*(*pinfo).owner).fileName as *const pathchar
                 } else {
@@ -416,57 +414,57 @@ unsafe fn ghciInsertSymbolTable(
             );
         }
 
-        return 1 as c_int;
-    } else if (*pinfo).strength as c_uint == STRENGTH_STRONG as c_int as c_uint {
-        return 1 as c_int;
-    } else if strength as c_uint == STRENGTH_WEAK as c_int as c_uint
+        return 1;
+    } else if (*pinfo).strength as u32 == STRENGTH_STRONG as i32 as u32 {
+        return 1;
+    } else if strength as u32 == STRENGTH_WEAK as i32 as u32
         && !data.is_null()
-        && (*pinfo).strength as c_uint == STRENGTH_WEAK as c_int as c_uint
+        && (*pinfo).strength as u32 == STRENGTH_WEAK as i32 as u32
         && (*pinfo).value.is_null()
     {
         (*pinfo).value = data;
         (*pinfo).owner = owner;
 
-        return 1 as c_int;
-    } else if strength as c_uint == STRENGTH_WEAK as c_int as c_uint {
-        return 1 as c_int;
-    } else if (*pinfo).strength as c_uint == STRENGTH_WEAK as c_int as c_uint
-        && strength as c_uint != STRENGTH_WEAK as c_int as c_uint
+        return 1;
+    } else if strength as u32 == STRENGTH_WEAK as i32 as u32 {
+        return 1;
+    } else if (*pinfo).strength as u32 == STRENGTH_WEAK as i32 as u32
+        && strength as u32 != STRENGTH_WEAK as i32 as u32
     {
         (*pinfo).value = data;
         (*pinfo).owner = owner;
         (*pinfo).strength = strength;
 
-        return 1 as c_int;
+        return 1;
     } else if !(*pinfo).owner.is_null()
-        && (*(*pinfo).owner).status as c_uint != OBJECT_READY as c_int as c_uint
-        && (*(*pinfo).owner).status as c_uint != OBJECT_RESOLVED as c_int as c_uint
-        && (*(*pinfo).owner).status as c_uint != OBJECT_NEEDED as c_int as c_uint
+        && (*(*pinfo).owner).status as u32 != OBJECT_READY as i32 as u32
+        && (*(*pinfo).owner).status as u32 != OBJECT_RESOLVED as i32 as u32
+        && (*(*pinfo).owner).status as u32 != OBJECT_NEEDED as i32 as u32
     {
         if !owner.is_null()
-            && ((*owner).status as c_uint == OBJECT_NEEDED as c_int as c_uint
-                || (*owner).status as c_uint == OBJECT_RESOLVED as c_int as c_uint
-                || (*owner).status as c_uint == OBJECT_READY as c_int as c_uint)
+            && ((*owner).status as u32 == OBJECT_NEEDED as i32 as u32
+                || (*owner).status as u32 == OBJECT_RESOLVED as i32 as u32
+                || (*owner).status as u32 == OBJECT_READY as i32 as u32)
         {
             (*pinfo).value = data;
             (*pinfo).owner = owner;
             (*pinfo).strength = strength;
         }
 
-        return 1 as c_int;
+        return 1;
     } else if (*pinfo).owner == owner {
-        return 1 as c_int;
-    } else if !owner.is_null() && (*owner).status as c_uint == OBJECT_LOADED as c_int as c_uint {
-        return 1 as c_int;
+        return 1;
+    } else if !owner.is_null() && (*owner).status as u32 == OBJECT_LOADED as i32 as u32 {
+        return 1;
     }
 
     debugBelch(
-        b"GHC runtime linker: fatal error: I found a duplicate definition for symbol\n   %s\nwhilst processing object file\n   %s\nThe symbol was previously defined in\n   %s\nThis could be caused by:\n   * Loading two different object files which export the same symbol\n   * Specifying the same object file twice on the GHCi command line\n   * An incorrect `package.conf' entry, causing some object to be\n     loaded twice.\n\0"
-            as *const u8 as *const c_char,
+        c"GHC runtime linker: fatal error: I found a duplicate definition for symbol\n   %s\nwhilst processing object file\n   %s\nThe symbol was previously defined in\n   %s\nThis could be caused by:\n   * Loading two different object files which export the same symbol\n   * Specifying the same object file twice on the GHCi command line\n   * An incorrect `package.conf' entry, causing some object to be\n     loaded twice.\n"
+            .as_ptr(),
         key as *mut c_char,
         obj_name,
         if (*pinfo).owner.is_null() {
-            b"(GHCi built-in symbols)\0" as *const u8 as *const c_char
+            c"(GHCi built-in symbols)".as_ptr()
         } else {
             (if !(*(*pinfo).owner).archiveMemberName.is_null() {
                 (*(*pinfo).owner).archiveMemberName
@@ -476,7 +474,7 @@ unsafe fn ghciInsertSymbolTable(
         },
     );
 
-    return 0 as c_int;
+    return 0;
 }
 
 unsafe fn ghciLookupSymbolInfo(
@@ -492,7 +490,7 @@ unsafe fn ghciLookupSymbolInfo(
         return HS_BOOL_FALSE as HsBool;
     }
 
-    if (*pinfo).strength as c_uint == STRENGTH_WEAK as c_int as c_uint {
+    if (*pinfo).strength as u32 == STRENGTH_WEAK as i32 as u32 {
         (*pinfo).strength = STRENGTH_NORMAL;
     }
 
@@ -501,41 +499,41 @@ unsafe fn ghciLookupSymbolInfo(
     return HS_BOOL_TRUE as HsBool;
 }
 
-static mut linker_init_done: c_int = 0 as c_int;
+static mut linker_init_done: i32 = 0;
 
-static mut dl_prog_handle: *mut c_void = null::<c_void>() as *mut c_void;
+static mut dl_prog_handle: *mut c_void = null_mut::<c_void>();
 
 static mut re_invalid: regex_t = regex_t {
     re_magic: 0,
     re_nsub: 0,
     re_endp: null::<c_char>(),
-    re_g: null::<re_guts>() as *mut re_guts,
+    re_g: null_mut::<re_guts>(),
 };
 
 static mut re_realso: regex_t = regex_t {
     re_magic: 0,
     re_nsub: 0,
     re_endp: null::<c_char>(),
-    re_g: null::<re_guts>() as *mut re_guts,
+    re_g: null_mut::<re_guts>(),
 };
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn initLinker() {
-    initLinker_(1 as c_int);
+    initLinker_(1);
 }
 
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn initLinker_(mut retain_cafs: c_int) {
-    let mut compileResult: c_int = 0;
+pub unsafe extern "C" fn initLinker_(mut retain_cafs: i32) {
+    let mut compileResult: i32 = 0;
 
-    if linker_init_done == 1 as c_int {
+    if linker_init_done == 1 {
         return;
     } else {
-        linker_init_done = 1 as c_int;
+        linker_init_done = 1;
     }
 
     initUnloadCheck();
@@ -545,7 +543,7 @@ pub unsafe extern "C" fn initLinker_(mut retain_cafs: c_int) {
 
     while !(*sym).lbl.is_null() {
         if ghciInsertSymbolTable(
-            b"(GHCi built-in symbols)\0" as *const u8 as *const c_char as *mut pathchar,
+            c"(GHCi built-in symbols)".as_ptr() as *mut pathchar,
             symhash,
             (*sym).lbl,
             (*sym).addr,
@@ -554,7 +552,7 @@ pub unsafe extern "C" fn initLinker_(mut retain_cafs: c_int) {
             null_mut::<ObjectCode>(),
         ) == 0
         {
-            barf(b"ghciInsertSymbolTable failed\0" as *const u8 as *const c_char);
+            barf(c"ghciInsertSymbolTable failed".as_ptr());
         }
 
         sym = sym.offset(1);
@@ -567,7 +565,7 @@ pub unsafe extern "C" fn initLinker_(mut retain_cafs: c_int) {
 
         while !(*sym_0).lbl.is_null() {
             if ghciInsertSymbolTable(
-                b"(GHCi built-in symbols)\0" as *const u8 as *const c_char as *mut pathchar,
+                c"(GHCi built-in symbols)".as_ptr() as *mut pathchar,
                 symhash,
                 (*sym_0).lbl,
                 (*sym_0).addr,
@@ -576,7 +574,7 @@ pub unsafe extern "C" fn initLinker_(mut retain_cafs: c_int) {
                 null_mut::<ObjectCode>(),
             ) == 0
             {
-                barf(b"ghciInsertSymbolTable failed\0" as *const u8 as *const c_char);
+                barf(c"ghciInsertSymbolTable failed".as_ptr());
             }
 
             sym_0 = sym_0.offset(1);
@@ -584,7 +582,7 @@ pub unsafe extern "C" fn initLinker_(mut retain_cafs: c_int) {
     }
 
     if ghciInsertSymbolTable(
-        b"(GHCi built-in symbols)\0" as *const u8 as *const c_char as *mut pathchar,
+        c"(GHCi built-in symbols)".as_ptr() as *mut pathchar,
         symhash,
         b"_newCAF\0" as *const u8 as *const SymbolName,
         transmute::<
@@ -606,45 +604,44 @@ pub unsafe extern "C" fn initLinker_(mut retain_cafs: c_int) {
         null_mut::<ObjectCode>(),
     ) == 0
     {
-        barf(b"ghciInsertSymbolTable failed\0" as *const u8 as *const c_char);
+        barf(c"ghciInsertSymbolTable failed".as_ptr());
     }
 
     dl_prog_handle = RTLD_DEFAULT;
 
     compileResult = regcomp(
         &raw mut re_invalid,
-        b"(([^ \t()])+\\.so([^ \t:()])*):([ \t])*(invalid ELF header|file too short|invalid file format|Exec format error)\0"
-            as *const u8 as *const c_char,
+        c"(([^ \t()])+\\.so([^ \t:()])*):([ \t])*(invalid ELF header|file too short|invalid file format|Exec format error)"
+            .as_ptr(),
         REG_EXTENDED,
     );
 
-    if compileResult != 0 as c_int {
-        barf(b"Compiling re_invalid failed\0" as *const u8 as *const c_char);
+    if compileResult != 0 {
+        barf(c"Compiling re_invalid failed".as_ptr());
     }
 
     compileResult = regcomp(
         &raw mut re_realso,
-        b"(GROUP|INPUT) *\\( *([^ )]+)\0" as *const u8 as *const c_char,
+        c"(GROUP|INPUT) *\\( *([^ )]+)".as_ptr(),
         REG_EXTENDED,
     );
 
-    if compileResult != 0 as c_int {
-        barf(b"Compiling re_realso failed\0" as *const u8 as *const c_char);
+    if compileResult != 0 {
+        barf(c"Compiling re_realso failed".as_ptr());
     }
 }
 
 unsafe fn exitLinker() {
-    if linker_init_done == 1 as c_int {
+    if linker_init_done == 1 {
         regfree(&raw mut re_invalid);
         regfree(&raw mut re_realso);
     }
 
-    if linker_init_done == 1 as c_int {
+    if linker_init_done == 1 {
         freeStrHashTable(
             symhash,
             Some(free as unsafe extern "C" fn(*mut c_void) -> ()),
         );
-
         exitUnloadCheck();
     }
 }
@@ -661,7 +658,7 @@ unsafe fn internal_dlsym(mut symbol: *const c_char) -> *mut c_void {
     let mut nc = loaded_objects;
 
     while !nc.is_null() {
-        if (*nc).r#type as c_uint == DYNAMIC_OBJECT as c_int as c_uint {
+        if (*nc).r#type as u32 == DYNAMIC_OBJECT as i32 as u32 {
             v = dlsym((*nc).dlopen_handle, symbol);
 
             if dlerror().is_null() {
@@ -682,15 +679,12 @@ pub unsafe extern "C" fn lookupSymbolInNativeObj(
     mut handle: *mut c_void,
     mut symbol_name: *const c_char,
 ) -> *mut c_void {
-    if (*symbol_name.offset(0 as c_int as isize) as c_int == '_' as i32) as c_int as c_long != 0 {
+    if (*symbol_name.offset(0) as i32 == '_' as i32) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/Linker.c\0" as *const u8 as *const c_char,
-            673 as c_uint,
-        );
+        _assertFail(c"rts/Linker.c".as_ptr(), 673);
     }
 
-    symbol_name = symbol_name.offset(1 as c_int as isize);
+    symbol_name = symbol_name.offset(1);
 
     let mut result = dlsym(handle, symbol_name);
 
@@ -721,10 +715,7 @@ unsafe fn warnMissingKBLibraryPaths() {
     static mut missing_update_warn: HsBool = HS_BOOL_FALSE as HsBool;
 
     if missing_update_warn == 0 {
-        debugBelch(
-            b"Warning: If linking fails, consider installing KB2533623.\n\0" as *const u8
-                as *const c_char,
-        );
+        debugBelch(c"Warning: If linking fails, consider installing KB2533623.\n".as_ptr());
 
         missing_update_warn = HS_BOOL_TRUE as HsBool;
     }
@@ -767,7 +758,7 @@ unsafe fn lookupDependentSymbol(
 ) -> *mut c_void {
     let mut pinfo = null_mut::<RtsSymbolInfo>();
 
-    if strcmp(lbl, b"___dso_handle\0" as *const u8 as *const c_char) == 0 as c_int {
+    if strcmp(lbl, c"___dso_handle".as_ptr()) == 0 {
         if !dependent.is_null() {
             return (*dependent).image as *mut c_void;
         } else {
@@ -791,39 +782,34 @@ unsafe fn lookupDependentSymbol(
         }
     }
 
-    if strcmp(lbl, b"___cxa_atexit\0" as *const u8 as *const c_char) == 0 as c_int
-        && !dependent.is_null()
-    {
+    if strcmp(lbl, c"___cxa_atexit".as_ptr()) == 0 && !dependent.is_null() {
         (*dependent).cxa_finalize =
             transmute::<*mut c_void, cxa_finalize_fn>(lookupDependentSymbol(
-                b"___cxa_finalize\0" as *const u8 as *const c_char as *mut SymbolName,
+                c"___cxa_finalize".as_ptr() as *mut SymbolName,
                 dependent,
                 null_mut::<SymType>(),
             ));
     }
 
     if ghciLookupSymbolInfo(symhash, lbl, &raw mut pinfo) == 0 {
-        if (*lbl.offset(0 as c_int as isize) as c_int == '_' as i32) as c_int as c_long != 0 {
+        if (*lbl.offset(0) as i32 == '_' as i32) as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"rts/Linker.c\0" as *const u8 as *const c_char,
-                866 as c_uint,
-            );
+            _assertFail(c"rts/Linker.c".as_ptr(), 866);
         }
 
         if !r#type.is_null() {
             *r#type = SYM_TYPE_CODE;
         }
 
-        return internal_dlsym(lbl.offset(1 as c_int as isize)) as *mut c_void;
+        return internal_dlsym(lbl.offset(1)) as *mut c_void;
     } else {
         static mut RTS_NO_FINI: *mut c_void = NULL;
 
-        if strcmp(lbl, b"__fini_array_end\0" as *const u8 as *const c_char) == 0 as c_int {
+        if strcmp(lbl, c"__fini_array_end".as_ptr()) == 0 {
             return &raw mut RTS_NO_FINI as *mut c_void;
         }
 
-        if strcmp(lbl, b"__fini_array_start\0" as *const u8 as *const c_char) == 0 as c_int {
+        if strcmp(lbl, c"__fini_array_start".as_ptr()) == 0 {
             return &raw mut RTS_NO_FINI as *mut c_void;
         }
 
@@ -846,8 +832,7 @@ unsafe fn lookupDependentSymbol(
 unsafe fn loadSymbol(mut lbl: *mut SymbolName, mut pinfo: *mut RtsSymbolInfo) -> *mut c_void {
     let mut oc = (*pinfo).owner;
 
-    if !oc.is_null() && !lbl.is_null() && (*oc).status as c_uint == OBJECT_LOADED as c_int as c_uint
-    {
+    if !oc.is_null() && !lbl.is_null() && (*oc).status as u32 == OBJECT_LOADED as i32 as u32 {
         (*oc).status = OBJECT_NEEDED;
 
         let mut r = ocTryLoad(oc);
@@ -866,10 +851,10 @@ unsafe fn printLoadedObjects() {
 
     while !oc.is_null() {
         if !(*oc).sections.is_null() {
-            let mut i: c_int = 0;
+            let mut i: i32 = 0;
 
             printf(
-                b"%s\n\0" as *const u8 as *const c_char,
+                c"%s\n".as_ptr(),
                 if !(*oc).archiveMemberName.is_null() {
                     (*oc).archiveMemberName
                 } else {
@@ -877,24 +862,23 @@ unsafe fn printLoadedObjects() {
                 },
             );
 
-            i = 0 as c_int;
+            i = 0;
 
             while i < (*oc).n_sections {
                 if !(*(*oc).sections.offset(i as isize)).mapped_start.is_null()
                     || !(*(*oc).sections.offset(i as isize)).start.is_null()
                 {
                     printf(
-                        b"\tsec %2d[alloc: %d; kind: %d]: %p - %p; mmaped: %p - %p\n\0" as *const u8
-                            as *const c_char,
+                        c"\tsec %2d[alloc: %d; kind: %d]: %p - %p; mmaped: %p - %p\n".as_ptr(),
                         i,
-                        (*(*oc).sections.offset(i as isize)).alloc as c_uint,
-                        (*(*oc).sections.offset(i as isize)).kind as c_uint,
+                        (*(*oc).sections.offset(i as isize)).alloc as u32,
+                        (*(*oc).sections.offset(i as isize)).kind as u32,
                         (*(*oc).sections.offset(i as isize)).start,
-                        ((*(*oc).sections.offset(i as isize)).start as uintptr_t as StgWord)
+                        ((*(*oc).sections.offset(i as isize)).start as usize as StgWord)
                             .wrapping_add((*(*oc).sections.offset(i as isize)).size)
                             as *mut c_void,
                         (*(*oc).sections.offset(i as isize)).mapped_start,
-                        ((*(*oc).sections.offset(i as isize)).mapped_start as uintptr_t as StgWord)
+                        ((*(*oc).sections.offset(i as isize)).mapped_start as usize as StgWord)
                             .wrapping_add((*(*oc).sections.offset(i as isize)).mapped_size)
                             as *mut c_void,
                     );
@@ -917,25 +901,25 @@ pub unsafe extern "C" fn lookupSymbol(mut lbl: *mut SymbolName) -> *mut c_void {
     if r.is_null() {
         if !RtsFlags.MiscFlags.linkerOptimistic {
             errorBelch(
-                b"^^ Could not load '%s', dependency unresolved. See top entry above. You might consider using --optimistic-linking\n\0"
-                    as *const u8 as *const c_char,
+                c"^^ Could not load '%s', dependency unresolved. See top entry above. You might consider using --optimistic-linking\n"
+                    .as_ptr(),
                 lbl,
             );
 
             fflush(__stderrp);
         } else {
             errorBelch(
-                b"^^ Could not load '%s', dependency unresolved, optimistically continuing\n\0"
-                    as *const u8 as *const c_char,
+                c"^^ Could not load '%s', dependency unresolved, optimistically continuing\n"
+                    .as_ptr(),
                 lbl,
             );
 
-            r = 0xdeadbeef as c_uint as *mut c_void as *mut c_void;
+            r = 0xdeadbeef;
         }
     }
 
     if runPendingInitializers() == 0 {
-        errorBelch(b"lookupSymbol: Failed to run initializers.\0" as *const u8 as *const c_char);
+        errorBelch(c"lookupSymbol: Failed to run initializers.".as_ptr());
     }
 
     return r as *mut c_void;
@@ -943,9 +927,9 @@ pub unsafe extern "C" fn lookupSymbol(mut lbl: *mut SymbolName) -> *mut c_void {
 
 unsafe fn resolveSymbolAddr(
     mut buffer: *mut pathchar,
-    mut size: c_int,
+    mut size: i32,
     mut symbol: *mut c_void,
-    mut top: *mut uintptr_t,
+    mut top: *mut usize,
 ) -> *mut pathchar {
     return null_mut::<pathchar>();
 }
@@ -955,8 +939,8 @@ unsafe fn removeOcSymbols(mut oc: *mut ObjectCode) {
         return;
     }
 
-    let mut i: c_int = 0;
-    i = 0 as c_int;
+    let mut i: i32 = 0;
+    i = 0;
 
     while i < (*oc).n_symbols {
         if !(*(*oc).symbols.offset(i as isize)).name.is_null() {
@@ -978,7 +962,7 @@ unsafe fn freeOcStablePtrs(mut oc: *mut ObjectCode) {
     while !exports.is_null() {
         next = (*exports).next;
 
-        let mut i = 0 as c_int;
+        let mut i = 0;
 
         while i < (*exports).n_entries {
             freeStablePtr(*(*exports).stable_ptrs.offset(i as isize) as StgStablePtr);
@@ -998,21 +982,21 @@ unsafe fn freePreloadObjectFile(mut oc: *mut ObjectCode) {
     if RTS_LINKER_USE_MMAP != 0 && (*oc).imageMapped != 0 {
         munmapForLinker(
             (*oc).image as *mut c_void,
-            (*oc).fileSize as size_t,
-            b"freePreloadObjectFile\0" as *const u8 as *const c_char,
+            (*oc).fileSize as usize,
+            c"freePreloadObjectFile".as_ptr(),
         );
     } else {
         stgFree((*oc).image as *mut c_void);
     }
 
     (*oc).image = null_mut::<c_char>();
-    (*oc).fileSize = 0 as c_int;
+    (*oc).fileSize = 0;
 }
 
 unsafe fn freeObjectCode(mut oc: *mut ObjectCode) {
-    if (*oc).r#type as c_uint == STATIC_OBJECT as c_int as c_uint
-        && ((*oc).status as c_uint == OBJECT_READY as c_int as c_uint
-            || (*oc).status as c_uint == OBJECT_UNLOADED as c_int as c_uint)
+    if (*oc).r#type as u32 == STATIC_OBJECT as i32 as u32
+        && ((*oc).status as u32 == OBJECT_READY as i32 as u32
+            || (*oc).status as u32 == OBJECT_UNLOADED as i32 as u32)
     {
         ocRunFini_MachO(oc);
     }
@@ -1021,7 +1005,7 @@ unsafe fn freeObjectCode(mut oc: *mut ObjectCode) {
         (*oc).cxa_finalize.expect("non-null function pointer")((*oc).image as *mut c_void);
     }
 
-    if (*oc).r#type as c_uint == DYNAMIC_OBJECT as c_int as c_uint {
+    if (*oc).r#type as u32 == DYNAMIC_OBJECT as i32 as u32 {
         freeNativeCode_POSIX(oc);
     }
 
@@ -1038,17 +1022,17 @@ unsafe fn freeObjectCode(mut oc: *mut ObjectCode) {
     }
 
     if !(*oc).sections.is_null() {
-        let mut i: c_int = 0;
-        i = 0 as c_int;
+        let mut i: i32 = 0;
+        i = 0;
 
         while i < (*oc).n_sections {
             if !(*(*oc).sections.offset(i as isize)).start.is_null() {
-                match (*(*oc).sections.offset(i as isize)).alloc as c_uint {
+                match (*(*oc).sections.offset(i as isize)).alloc as u32 {
                     2 => {
                         munmapForLinker(
                             (*(*oc).sections.offset(i as isize)).mapped_start,
-                            (*(*oc).sections.offset(i as isize)).mapped_size as size_t,
-                            b"freeObjectCode\0" as *const u8 as *const c_char,
+                            (*(*oc).sections.offset(i as isize)).mapped_size as usize,
+                            c"freeObjectCode".as_ptr(),
                         );
                     }
                     3 => {
@@ -1085,30 +1069,25 @@ unsafe fn mkOc(
     mut r#type: ObjectType,
     mut path: *mut pathchar,
     mut image: *mut c_char,
-    mut imageSize: c_int,
+    mut imageSize: i32,
     mut mapped: bool,
     mut archiveMemberName: *mut pathchar,
-    mut misalignment: c_int,
+    mut misalignment: i32,
 ) -> *mut ObjectCode {
     let mut oc = null_mut::<ObjectCode>();
-
-    oc = stgMallocBytes(
-        size_of::<ObjectCode>() as size_t,
-        b"mkOc(oc)\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut ObjectCode;
-
+    oc = stgMallocBytes(size_of::<ObjectCode>() as usize, c"mkOc(oc)".as_ptr()) as *mut ObjectCode;
     (*oc).info = null_mut::<ObjectCodeFormatInfo>();
     (*oc).r#type = r#type;
-    (*oc).formatName = b"Mach-O\0" as *const u8 as *const c_char as *mut c_char;
+    (*oc).formatName = c"Mach-O".as_ptr();
     (*oc).image = image;
     (*oc).fileName = pathdup(path);
 
     if !archiveMemberName.is_null() {
         (*oc).archiveMemberName = stgMallocBytes(
             strlen(archiveMemberName)
-                .wrapping_add(1 as size_t)
+                .wrapping_add(1 as usize)
                 .wrapping_mul(pathsize),
-            b"loadObj\0" as *const u8 as *const c_char as *mut c_char,
+            c"loadObj".as_ptr(),
         ) as *mut pathchar;
 
         strcpy((*oc).archiveMemberName as *mut c_char, archiveMemberName);
@@ -1123,18 +1102,18 @@ unsafe fn mkOc(
     }
 
     (*oc).fileSize = imageSize;
-    (*oc).n_symbols = 0 as c_int;
+    (*oc).n_symbols = 0;
     (*oc).symbols = null_mut::<Symbol_t>();
-    (*oc).n_sections = 0 as c_int;
+    (*oc).n_sections = 0;
     (*oc).sections = null_mut::<Section>();
-    (*oc).n_segments = 0 as c_int;
+    (*oc).n_segments = 0;
     (*oc).segments = null_mut::<Segment>();
     initProddableBlockSet(&raw mut (*oc).proddables);
     (*oc).foreign_exports = null_mut::<ForeignExportsList>();
     (*oc).symbol_extras = null_mut::<SymbolExtra>();
     (*oc).bssBegin = null_mut::<c_char>();
     (*oc).bssEnd = null_mut::<c_char>();
-    (*oc).imageMapped = mapped as c_int;
+    (*oc).imageMapped = mapped as i32;
     (*oc).misalignment = misalignment;
     (*oc).cxa_finalize = None;
     (*oc).extraInfos = null_mut::<StrHashTable>();
@@ -1142,10 +1121,10 @@ unsafe fn mkOc(
     (*oc).prev = null_mut::<_ObjectCode>();
     (*oc).next_loaded_object = null_mut::<_ObjectCode>();
     (*oc).mark = object_code_mark_bit as StgWord;
-    (*oc).unloadable = r#true != 0;
+    (*oc).unloadable = true;
     (*oc).dependencies = allocHashSet();
-    (*oc).rw_m32 = m32_allocator_new(r#false != 0);
-    (*oc).rx_m32 = m32_allocator_new(r#true != 0);
+    (*oc).rw_m32 = m32_allocator_new(false);
+    (*oc).rx_m32 = m32_allocator_new(true);
     (*oc).nc_ranges = null_mut::<NativeCodeRange>();
     (*oc).dlopen_handle = NULL;
 
@@ -1156,20 +1135,18 @@ unsafe fn isAlreadyLoaded(mut path: *mut pathchar) -> HsInt {
     let mut o = objects;
 
     while !o.is_null() {
-        if 0 as c_int == strcmp((*o).fileName, path)
-            && (*o).status as c_uint != OBJECT_UNLOADED as c_int as c_uint
-        {
-            return 1 as HsInt;
+        if 0 == strcmp((*o).fileName, path) && (*o).status as u32 != OBJECT_UNLOADED as i32 as u32 {
+            return 1;
         }
 
         o = (*o).next as *mut ObjectCode;
     }
 
-    return 0 as HsInt;
+    return 0;
 }
 
 unsafe fn preloadObjectFile(mut path: *mut pathchar) -> *mut ObjectCode {
-    let mut fileSize: c_int = 0;
+    let mut fileSize: i32 = 0;
 
     let mut st = stat {
         st_dev: 0,
@@ -1204,48 +1181,33 @@ unsafe fn preloadObjectFile(mut path: *mut pathchar) -> *mut ObjectCode {
         st_qspare: [0; 2],
     };
 
-    let mut r: c_int = 0;
+    let mut r: i32 = 0;
     let mut image = null_mut::<c_void>();
     let mut oc = null_mut::<ObjectCode>();
-    let mut misalignment = 0 as c_int;
+    let mut misalignment = 0;
     r = stat(path, &raw mut st);
 
-    if r == -(1 as c_int) {
-        errorBelch(
-            b"loadObj: %s: file doesn't exist\0" as *const u8 as *const c_char,
-            path,
-        );
+    if r == -1 {
+        errorBelch(c"loadObj: %s: file doesn't exist".as_ptr(), path);
 
         return null_mut::<ObjectCode>();
     }
 
-    fileSize = st.st_size as c_int;
+    fileSize = st.st_size as i32;
 
-    let mut fd: c_int = 0;
+    let mut fd: i32 = 0;
     fd = open(path, O_RDONLY);
 
-    if fd == -(1 as c_int) {
-        errorBelch(
-            b"loadObj: can't open %s\0" as *const u8 as *const c_char,
-            path,
-        );
+    if fd == -1 {
+        errorBelch(c"loadObj: can't open %s".as_ptr(), path);
 
         return null_mut::<ObjectCode>();
     }
 
-    image = mmapForLinker(
-        fileSize as size_t,
-        MEM_READ_WRITE,
-        MAP_PRIVATE as uint32_t,
-        fd,
-        0 as c_int,
-    );
+    image = mmapForLinker(fileSize as usize, MEM_READ_WRITE, MAP_PRIVATE as u32, fd, 0);
 
     if image == MAP_FAILED {
-        errorBelch(
-            b"mmap: failed. errno = %d\0" as *const u8 as *const c_char,
-            *__error(),
-        );
+        errorBelch(c"mmap: failed. errno = %d".as_ptr(), *__error());
     }
 
     close(fd);
@@ -1255,7 +1217,7 @@ unsafe fn preloadObjectFile(mut path: *mut pathchar) -> *mut ObjectCode {
         path,
         image as *mut c_char,
         fileSize,
-        r#true != 0,
+        true,
         null_mut::<pathchar>(),
         misalignment,
     );
@@ -1269,33 +1231,33 @@ unsafe fn preloadObjectFile(mut path: *mut pathchar) -> *mut ObjectCode {
 
 unsafe fn loadObj_(mut path: *mut pathchar) -> HsInt {
     if isAlreadyLoaded(path) != 0 {
-        return 1 as HsInt;
+        return 1;
     }
 
     if isArchive(path) {
         if loadArchive_(path) != 0 {
-            return 1 as HsInt;
+            return 1;
         }
     }
 
     let mut oc = preloadObjectFile(path);
 
     if oc.is_null() {
-        return 0 as HsInt;
+        return 0;
     }
 
     if loadOc(oc) == 0 {
         removeOcSymbols(oc);
         freeObjectCode(oc);
 
-        return 0 as HsInt;
+        return 0;
     }
 
     insertOCSectionIndices(oc);
     (*oc).next_loaded_object = loaded_objects as *mut _ObjectCode;
     loaded_objects = oc;
 
-    return 1 as HsInt;
+    return 1;
 }
 
 #[ffi(compiler, ghc_lib, testsuite)]
@@ -1308,7 +1270,7 @@ pub unsafe extern "C" fn loadObj(mut path: *mut pathchar) -> HsInt {
 }
 
 unsafe fn loadOc(mut oc: *mut ObjectCode) -> HsInt {
-    let mut r: c_int = 0;
+    let mut r: i32 = 0;
     r = ocVerifyImage_MachO(oc);
 
     if r == 0 {
@@ -1327,7 +1289,7 @@ unsafe fn loadOc(mut oc: *mut ObjectCode) -> HsInt {
         return r as HsInt;
     }
 
-    if (*oc).status as c_uint != OBJECT_DONT_RESOLVE as c_int as c_uint {
+    if (*oc).status as u32 != OBJECT_DONT_RESOLVE as i32 as u32 {
         if (*oc).archiveMemberName.is_null() {
             (*oc).status = OBJECT_NEEDED;
         } else {
@@ -1335,25 +1297,25 @@ unsafe fn loadOc(mut oc: *mut ObjectCode) -> HsInt {
         }
     }
 
-    return 1 as HsInt;
+    return 1;
 }
 
-unsafe fn ocTryLoad(mut oc: *mut ObjectCode) -> c_int {
-    let mut r: c_int = 0;
+unsafe fn ocTryLoad(mut oc: *mut ObjectCode) -> i32 {
+    let mut r: i32 = 0;
 
-    if (*oc).status as c_uint != OBJECT_NEEDED as c_int as c_uint {
-        return 1 as c_int;
+    if (*oc).status as u32 != OBJECT_NEEDED as i32 as u32 {
+        return 1;
     }
 
-    let mut x: c_int = 0;
+    let mut x: i32 = 0;
 
     let mut symbol = _Symbol {
         name: null_mut::<SymbolName>(),
         addr: null_mut::<c_void>(),
-        r#type: 0 as SymType,
+        r#type: 0,
     };
 
-    x = 0 as c_int;
+    x = 0;
 
     while x < (*oc).n_symbols {
         symbol = *(*oc).symbols.offset(x as isize);
@@ -1369,7 +1331,7 @@ unsafe fn ocTryLoad(mut oc: *mut ObjectCode) -> c_int {
                 oc,
             ) == 0
         {
-            return 0 as c_int;
+            return 0;
         }
 
         x += 1;
@@ -1386,17 +1348,17 @@ unsafe fn ocTryLoad(mut oc: *mut ObjectCode) -> c_int {
     m32_allocator_flush((*oc).rw_m32);
     (*oc).status = OBJECT_RESOLVED;
 
-    return 1 as c_int;
+    return 1;
 }
 
-unsafe fn ocRunInit(mut oc: *mut ObjectCode) -> c_int {
-    if (*oc).status as c_uint != OBJECT_RESOLVED as c_int as c_uint {
-        return 1 as c_int;
+unsafe fn ocRunInit(mut oc: *mut ObjectCode) -> i32 {
+    if (*oc).status as u32 != OBJECT_RESOLVED as i32 as u32 {
+        return 1;
     }
 
     foreignExportsLoadingObject(oc);
 
-    let mut r: c_int = 0;
+    let mut r: i32 = 0;
     r = ocRunInit_MachO(oc);
     foreignExportsFinishedLoadingObject();
 
@@ -1406,10 +1368,10 @@ unsafe fn ocRunInit(mut oc: *mut ObjectCode) -> c_int {
 
     (*oc).status = OBJECT_READY;
 
-    return 1 as c_int;
+    return 1;
 }
 
-unsafe fn runPendingInitializers() -> c_int {
+unsafe fn runPendingInitializers() -> i32 {
     let mut oc = objects;
 
     while !oc.is_null() {
@@ -1417,7 +1379,7 @@ unsafe fn runPendingInitializers() -> c_int {
 
         if r == 0 {
             errorBelch(
-                b"Could not run initializers of Object Code %s.\n\0" as *const u8 as *const c_char,
+                c"Could not run initializers of Object Code %s.\n".as_ptr(),
                 if !(*oc).archiveMemberName.is_null() {
                     (*oc).archiveMemberName
                 } else {
@@ -1433,7 +1395,7 @@ unsafe fn runPendingInitializers() -> c_int {
         oc = (*oc).next as *mut ObjectCode;
     }
 
-    return 1 as c_int;
+    return 1;
 }
 
 unsafe fn resolveObjs_() -> HsInt {
@@ -1444,7 +1406,7 @@ unsafe fn resolveObjs_() -> HsInt {
 
         if r == 0 {
             errorBelch(
-                b"Could not load Object Code %s.\n\0" as *const u8 as *const c_char,
+                c"Could not load Object Code %s.\n".as_ptr(),
                 if !(*oc).archiveMemberName.is_null() {
                     (*oc).archiveMemberName
                 } else {
@@ -1461,10 +1423,10 @@ unsafe fn resolveObjs_() -> HsInt {
     }
 
     if runPendingInitializers() == 0 {
-        return 0 as HsInt;
+        return 0;
     }
 
-    return 1 as HsInt;
+    return 1;
 }
 
 #[ffi(compiler, ghc_lib, testsuite)]
@@ -1477,19 +1439,19 @@ pub unsafe extern "C" fn resolveObjs() -> HsInt {
 }
 
 unsafe fn unloadObj_(mut path: *mut pathchar, mut just_purge: bool) -> HsInt {
-    let mut unloadedAnyObj = r#false != 0;
+    let mut unloadedAnyObj = false;
     let mut prev = null_mut::<ObjectCode>();
     let mut oc = loaded_objects;
 
     while !oc.is_null() {
-        if strcmp((*oc).fileName, path) == 0 as c_int {
+        if strcmp((*oc).fileName, path) == 0 {
             (*oc).status = OBJECT_UNLOADED;
             removeOcSymbols(oc);
             freeOcStablePtrs(oc);
-            unloadedAnyObj = r#true != 0;
+            unloadedAnyObj = true;
 
             if !just_purge {
-                n_unloaded_objects += 1 as c_int;
+                n_unloaded_objects += 1;
 
                 if prev.is_null() {
                     loaded_objects = (*oc).next_loaded_object as *mut ObjectCode;
@@ -1505,14 +1467,11 @@ unsafe fn unloadObj_(mut path: *mut pathchar, mut just_purge: bool) -> HsInt {
     }
 
     if unloadedAnyObj {
-        return 1 as HsInt;
+        return 1;
     } else {
-        errorBelch(
-            b"unloadObj: can't find `%s' to unload\0" as *const u8 as *const c_char,
-            path,
-        );
+        errorBelch(c"unloadObj: can't find `%s' to unload".as_ptr(), path);
 
-        return 0 as HsInt;
+        return 0;
     };
 }
 
@@ -1520,7 +1479,7 @@ unsafe fn unloadObj_(mut path: *mut pathchar, mut just_purge: bool) -> HsInt {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn unloadObj(mut path: *mut pathchar) -> HsInt {
-    let mut r = unloadObj_(path, r#false != 0);
+    let mut r = unloadObj_(path, false);
 
     return r;
 }
@@ -1529,7 +1488,7 @@ pub unsafe extern "C" fn unloadObj(mut path: *mut pathchar) -> HsInt {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn purgeObj(mut path: *mut pathchar) -> HsInt {
-    let mut r = unloadObj_(path, r#true != 0);
+    let mut r = unloadObj_(path, true);
 
     return r;
 }
@@ -1538,7 +1497,7 @@ unsafe fn lookupObjectByPath(mut path: *mut pathchar) -> *mut ObjectCode {
     let mut o = objects;
 
     while !o.is_null() {
-        if 0 as c_int == strcmp((*o).fileName, path) {
+        if 0 == strcmp((*o).fileName, path) {
             return o;
         }
 
@@ -1587,9 +1546,9 @@ unsafe fn addSection(
 
     if (*s).info.is_null() {
         (*s).info = stgCallocBytes(
-            1 as size_t,
-            size_of::<SectionFormatInfo>() as size_t,
-            b"addSection(SectionFormatInfo)\0" as *const u8 as *const c_char as *mut c_char,
+            1,
+            size_of::<SectionFormatInfo>() as usize,
+            c"addSection(SectionFormatInfo)".as_ptr(),
         ) as *mut SectionFormatInfo;
     }
 }
@@ -1607,7 +1566,7 @@ pub unsafe extern "C" fn loadNativeObj(
 }
 
 unsafe fn unloadNativeObj_(mut handle: *mut c_void) -> HsInt {
-    let mut unloadedAnyObj = r#false != 0;
+    let mut unloadedAnyObj = false;
     let mut prev = null_mut::<ObjectCode>();
     let mut next = null_mut::<ObjectCode>();
     let mut nc = loaded_objects;
@@ -1615,18 +1574,13 @@ unsafe fn unloadNativeObj_(mut handle: *mut c_void) -> HsInt {
     while !nc.is_null() {
         next = (*nc).next_loaded_object as *mut ObjectCode;
 
-        if (*nc).r#type as c_uint == DYNAMIC_OBJECT as c_int as c_uint
-            && (*nc).dlopen_handle == handle
-        {
+        if (*nc).r#type as u32 == DYNAMIC_OBJECT as i32 as u32 && (*nc).dlopen_handle == handle {
             (*nc).status = OBJECT_UNLOADED;
-            n_unloaded_objects += 1 as c_int;
+            n_unloaded_objects += 1;
 
-            if (*nc).symbols.is_null() as c_int as c_long != 0 {
+            if (*nc).symbols.is_null() as i32 as i64 != 0 {
             } else {
-                _assertFail(
-                    b"rts/Linker.c\0" as *const u8 as *const c_char,
-                    1908 as c_uint,
-                );
+                _assertFail(c"rts/Linker.c".as_ptr(), 1908);
             }
 
             freeOcStablePtrs(nc);
@@ -1637,7 +1591,7 @@ unsafe fn unloadNativeObj_(mut handle: *mut c_void) -> HsInt {
                 (*prev).next_loaded_object = (*nc).next_loaded_object;
             }
 
-            unloadedAnyObj = r#true != 0;
+            unloadedAnyObj = true;
         } else {
             prev = nc;
         }
@@ -1646,14 +1600,14 @@ unsafe fn unloadNativeObj_(mut handle: *mut c_void) -> HsInt {
     }
 
     if unloadedAnyObj {
-        return 1 as HsInt;
+        return 1;
     } else {
         errorBelch(
-            b"unloadObjNativeObj_: can't find `%p' to unload\0" as *const u8 as *const c_char,
+            c"unloadObjNativeObj_: can't find `%p' to unload".as_ptr(),
             handle,
         );
 
-        return 0 as HsInt;
+        return 0;
     };
 }
 
@@ -1669,39 +1623,34 @@ pub unsafe extern "C" fn unloadNativeObj(mut handle: *mut c_void) -> HsInt {
 unsafe fn initSegment(
     mut s: *mut Segment,
     mut start: *mut c_void,
-    mut size: size_t,
+    mut size: usize,
     mut prot: SegmentProt,
-    mut n_sections: c_int,
+    mut n_sections: i32,
 ) {
     (*s).start = start;
     (*s).size = size;
     (*s).prot = prot;
 
     (*s).sections_idx = stgCallocBytes(
-        n_sections as size_t,
-        size_of::<c_int>() as size_t,
-        b"initSegment(segment)\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut c_int;
+        n_sections as usize,
+        size_of::<i32>() as usize,
+        c"initSegment(segment)".as_ptr(),
+    ) as *mut i32;
 
     (*s).n_sections = n_sections;
 }
 
 unsafe fn freeSegments(mut oc: *mut ObjectCode) {
     if !(*oc).segments.is_null() {
-        let mut i = 0 as c_int;
+        let mut i = 0;
 
         while i < (*oc).n_segments {
             let mut s: *mut Segment = (*oc).segments.offset(i as isize) as *mut Segment;
             stgFree((*s).sections_idx as *mut c_void);
-            (*s).sections_idx = null_mut::<c_int>();
+            (*s).sections_idx = null_mut::<i32>();
 
-            if !(0 as size_t == (*s).size) {
-                munmapForLinker(
-                    (*s).start,
-                    (*s).size,
-                    b"freeSegments\0" as *const u8 as *const c_char,
-                );
-
+            if !(0 == (*s).size) {
+                munmapForLinker((*s).start, (*s).size, c"freeSegments".as_ptr());
                 (*s).start = NULL;
             }
 

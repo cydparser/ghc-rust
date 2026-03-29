@@ -34,25 +34,25 @@ unsafe fn isAlive(mut p: *mut StgClosure) -> *mut StgClosure {
 
         bd = Bdescr(q as StgPtr);
 
-        if (*bd).flags as c_int & BF_NONMOVING != 0 {
+        if (*bd).flags as i32 & BF_NONMOVING != 0 {
             return p;
         }
 
-        if (*bd).flags as c_int & BF_EVACUATED != 0 {
+        if (*bd).flags as i32 & BF_EVACUATED != 0 {
             return p;
         }
 
-        if (*bd).flags as c_int & BF_LARGE != 0 {
+        if (*bd).flags as i32 & BF_LARGE != 0 {
             return null_mut::<StgClosure>();
         }
 
-        if (*bd).flags as c_int & BF_MARKED != 0 && is_marked(q as StgPtr, bd) != 0 {
+        if (*bd).flags as i32 & BF_MARKED != 0 && is_marked(q as StgPtr, bd) != 0 {
             return p;
         }
 
         info = (*q).header.info;
 
-        if info as StgWord & 1 as StgWord != 0 as StgWord {
+        if info as StgWord & 1 != 0 {
             return TAG_CLOSURE(
                 tag,
                 (info as StgWord).wrapping_sub(1 as StgWord) as *mut StgClosure,
@@ -68,7 +68,7 @@ unsafe fn isAlive(mut p: *mut StgClosure) -> *mut StgClosure {
             38 => {
                 p = (*(q as *mut StgInd)).indirectee;
 
-                if GET_CLOSURE_TAG(p) != 0 as StgWord {
+                if GET_CLOSURE_TAG(p) != 0 {
                     continue;
                 }
 

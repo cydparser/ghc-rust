@@ -23,12 +23,12 @@ struct m32_allocator_t {
 /// cbindgen:no-export
 struct m32_page_t {
     c2rust_unnamed: C2RustUnnamed_6,
-    contents: [uint8_t; 0],
+    contents: [u8; 0],
 }
 
 union C2RustUnnamed_6 {
     filled_page: C2RustUnnamed_8,
-    current_size: size_t,
+    current_size: usize,
     free_page: C2RustUnnamed_7,
 }
 
@@ -39,30 +39,28 @@ struct C2RustUnnamed_7 {
 
 /// cbindgen:no-export
 struct C2RustUnnamed_8 {
-    size: uint32_t,
+    size: u32,
     next: *mut m32_page_t,
 }
 
-const M32_MAX_PAGES: c_int = 32 as c_int;
+const M32_MAX_PAGES: i32 = 32;
 
-const M32_MAP_PAGES: c_int = 32 as c_int;
+const M32_MAP_PAGES: i32 = 32;
 
-const M32_MAX_FREE_PAGE_POOL_SIZE: c_int = 256 as c_int;
+const M32_MAX_FREE_PAGE_POOL_SIZE: i32 = 256;
 
 unsafe fn is_okay_address(mut p: *mut c_void) -> bool {
-    let mut here = &raw const stg_upd_frame_info as *mut c_void as *mut int8_t;
-    let mut displacement: ssize_t = (p as *mut int8_t).offset_from(here) as ssize_t;
+    let mut here = &raw const stg_upd_frame_info as *mut c_void as *mut i8;
+    let mut displacement: isize = (p as *mut i8).offset_from(here) as isize;
 
-    return RtsFlags.MiscFlags.linkerAlwaysPic as c_int != 0
-        || displacement > -(0x7fffffff as c_int) as ssize_t
-            && displacement < 0x7fffffff as c_int as ssize_t;
+    return RtsFlags.MiscFlags.linkerAlwaysPic as i32 != 0
+        || displacement > -0x7fffffff as isize && displacement < 0x7fffffff;
 }
 
 unsafe fn m32_filled_page_set_next(mut page: *mut m32_page_t, mut next: *mut m32_page_t) {
     if !next.is_null() && !is_okay_address(next as *mut c_void) {
         barf(
-            b"m32_filled_page_set_next: Page %p not within 4GB of program text\0" as *const u8
-                as *const c_char,
+            c"m32_filled_page_set_next: Page %p not within 4GB of program text".as_ptr(),
             next,
         );
     }
@@ -71,19 +69,19 @@ unsafe fn m32_filled_page_set_next(mut page: *mut m32_page_t, mut next: *mut m32
 }
 
 unsafe fn m32_filled_page_get_next(mut page: *mut m32_page_t) -> *mut m32_page_t {
-    return (*page).c2rust_unnamed.filled_page.next as uintptr_t as *mut m32_page_t;
+    return (*page).c2rust_unnamed.filled_page.next as usize as *mut m32_page_t;
 }
 
-static mut m32_free_page_pool: *mut m32_page_t = null::<m32_page_t>() as *mut m32_page_t;
+static mut m32_free_page_pool: *mut m32_page_t = null_mut::<m32_page_t>();
 
-static mut m32_free_page_pool_size: c_uint = 0 as c_uint;
+static mut m32_free_page_pool_size: u32 = 0;
 
 unsafe fn m32_release_page(mut page: *mut m32_page_t) {
-    let pgsz = getPageSize() as size_t;
-    let mut sz: ssize_t = (*page).c2rust_unnamed.filled_page.size as ssize_t;
+    let pgsz = getPageSize() as usize;
+    let mut sz: isize = (*page).c2rust_unnamed.filled_page.size as isize;
 
-    while sz > 0 as ssize_t {
-        if !(m32_free_page_pool_size < M32_MAX_FREE_PAGE_POOL_SIZE as c_uint) {
+    while sz > 0 {
+        if !(m32_free_page_pool_size < M32_MAX_FREE_PAGE_POOL_SIZE as u32) {
             break;
         }
 
@@ -91,56 +89,56 @@ unsafe fn m32_release_page(mut page: *mut m32_page_t) {
         (*page).c2rust_unnamed.free_page.next = m32_free_page_pool;
         m32_free_page_pool = page;
         m32_free_page_pool_size = m32_free_page_pool_size.wrapping_add(1);
-        page = (page as *mut uint8_t).offset(pgsz as isize) as *mut m32_page_t;
-        sz = (sz as size_t).wrapping_sub(pgsz) as ssize_t as ssize_t;
+        page = (page as *mut u8).offset(pgsz as isize) as *mut m32_page_t;
+        sz = (sz as usize).wrapping_sub(pgsz) as isize as isize;
     }
 
-    if sz > 0 as ssize_t {
+    if sz > 0 {
         munmapForLinker(
             page as *mut c_void,
-            (sz as size_t).wrapping_add(pgsz).wrapping_sub(1 as size_t)
-                & !pgsz.wrapping_sub(1 as size_t),
-            b"m32_release_page\0" as *const u8 as *const c_char,
+            (sz as usize).wrapping_add(pgsz).wrapping_sub(1 as usize)
+                & !pgsz.wrapping_sub(1 as usize),
+            c"m32_release_page".as_ptr(),
         );
     }
 }
 
 unsafe fn m32_alloc_page() -> *mut m32_page_t {
-    if m32_free_page_pool_size == 0 as c_uint {
-        let pgsz = getPageSize() as size_t;
-        let map_sz: size_t = pgsz.wrapping_mul(M32_MAP_PAGES as size_t);
-        let mut chunk = mmapAnonForLinker(map_sz) as *mut uint8_t;
+    if m32_free_page_pool_size == 0 {
+        let pgsz = getPageSize() as usize;
+        let map_sz: usize = pgsz.wrapping_mul(M32_MAP_PAGES as usize);
+        let mut chunk = mmapAnonForLinker(map_sz) as *mut u8;
 
         if !is_okay_address(chunk.offset(map_sz as isize) as *mut c_void) {
             reportMemoryMap();
 
             barf(
-                b"m32_alloc_page: failed to allocate pages within 4GB of program text (got %p)\0"
-                    as *const u8 as *const c_char,
+                c"m32_alloc_page: failed to allocate pages within 4GB of program text (got %p)"
+                    .as_ptr(),
                 chunk,
             );
         }
 
-        let mut i = 0 as c_int;
+        let mut i = 0;
 
         while i < M32_MAP_PAGES {
             let mut page =
-                chunk.offset((i as size_t).wrapping_mul(pgsz) as isize) as *mut m32_page_t;
+                chunk.offset((i as usize).wrapping_mul(pgsz) as isize) as *mut m32_page_t;
             (*page).c2rust_unnamed.free_page.next = chunk
-                .offset(((i + 1 as c_int) as size_t).wrapping_mul(pgsz) as isize)
+                .offset(((i + 1 as i32) as usize).wrapping_mul(pgsz) as isize)
                 as *mut m32_page_t;
             i += 1;
         }
 
         let ref mut fresh5 = (*(chunk
-            .offset(((32 as c_int - 1 as c_int) as size_t).wrapping_mul(pgsz) as isize)
+            .offset(((32 as i32 - 1 as i32) as usize).wrapping_mul(pgsz) as isize)
             as *mut m32_page_t))
             .c2rust_unnamed
             .free_page
             .next;
         *fresh5 = m32_free_page_pool;
         m32_free_page_pool = chunk as *mut m32_page_t;
-        m32_free_page_pool_size = m32_free_page_pool_size.wrapping_add(M32_MAP_PAGES as c_uint);
+        m32_free_page_pool_size = m32_free_page_pool_size.wrapping_add(M32_MAP_PAGES as u32);
     }
 
     let mut page_0 = m32_free_page_pool;
@@ -152,16 +150,15 @@ unsafe fn m32_alloc_page() -> *mut m32_page_t {
 
 unsafe fn m32_allocator_new(mut executable: bool) -> *mut m32_allocator {
     let mut alloc = stgMallocBytes(
-        size_of::<m32_allocator>() as size_t,
-        b"m32_new_allocator\0" as *const u8 as *const c_char as *mut c_char,
+        size_of::<m32_allocator>() as usize,
+        c"m32_new_allocator".as_ptr(),
     ) as *mut m32_allocator;
 
     memset(
         alloc as *mut c_void,
-        0 as c_int,
-        size_of::<m32_allocator_t>() as size_t,
+        0,
+        size_of::<m32_allocator_t>() as usize,
     );
-
     (*alloc).executable = executable;
 
     return alloc;
@@ -179,7 +176,7 @@ unsafe fn m32_allocator_free(mut alloc: *mut m32_allocator) {
     m32_allocator_unmap_list((*alloc).unprotected_list);
     m32_allocator_unmap_list((*alloc).protected_list);
 
-    let mut i = 0 as c_int;
+    let mut i = 0;
 
     while i < M32_MAX_PAGES {
         if !(*alloc).pages[i as usize].is_null() {
@@ -201,7 +198,7 @@ unsafe fn m32_allocator_push_filled_list(
 }
 
 unsafe fn m32_allocator_flush(mut alloc: *mut m32_allocator) {
-    let mut i = 0 as c_int;
+    let mut i = 0;
 
     while i < M32_MAX_PAGES {
         if !(*alloc).pages[i as usize].is_null() {
@@ -231,7 +228,7 @@ unsafe fn m32_allocator_flush(mut alloc: *mut m32_allocator) {
 
             mprotectForLinker(
                 page as *mut c_void,
-                (*page).c2rust_unnamed.filled_page.size as size_t,
+                (*page).c2rust_unnamed.filled_page.size as usize,
                 MEM_READ_EXECUTE,
             );
 
@@ -242,41 +239,41 @@ unsafe fn m32_allocator_flush(mut alloc: *mut m32_allocator) {
     }
 }
 
-unsafe fn m32_is_large_object(mut size: size_t, mut alignment: size_t) -> bool {
+unsafe fn m32_is_large_object(mut size: usize, mut alignment: usize) -> bool {
     return size
         >= getPageSize().wrapping_sub(
-            (size_of::<m32_page_t>() as size_t)
+            (size_of::<m32_page_t>() as usize)
                 .wrapping_add(alignment)
-                .wrapping_sub(1 as size_t)
-                & !alignment.wrapping_sub(1 as size_t),
+                .wrapping_sub(1 as usize)
+                & !alignment.wrapping_sub(1 as usize),
         );
 }
 
 unsafe fn m32_report_allocation(
     mut alloc: *mut m32_allocator_t,
     mut addr: *mut c_void,
-    mut size: size_t,
+    mut size: usize,
 ) {
 }
 
 unsafe fn m32_alloc(
     mut alloc: *mut m32_allocator_t,
-    mut size: size_t,
-    mut alignment: size_t,
+    mut size: usize,
+    mut alignment: usize,
 ) -> *mut c_void {
     let mut pgsz = getPageSize();
 
     if m32_is_large_object(size, alignment) {
-        let mut alsize: size_t = (size_of::<m32_page_t>() as size_t)
+        let mut alsize: usize = (size_of::<m32_page_t>() as usize)
             .wrapping_add(alignment)
-            .wrapping_sub(1 as size_t)
-            & !alignment.wrapping_sub(1 as size_t);
+            .wrapping_sub(1 as usize)
+            & !alignment.wrapping_sub(1 as usize);
 
         let mut page = mmapAnonForLinker(alsize.wrapping_add(size)) as *mut m32_page_t;
 
         if page.is_null() {
             sysErrorBelch(
-                b"m32_alloc: Failed to map pages for %zd bytes\0" as *const u8 as *const c_char,
+                c"m32_alloc: Failed to map pages for %zd bytes".as_ptr(),
                 size,
             );
 
@@ -285,37 +282,37 @@ unsafe fn m32_alloc(
             reportMemoryMap();
 
             barf(
-                b"m32_alloc: warning: Allocation of %zd bytes resulted in pages above 4GB (%p)\0"
-                    as *const u8 as *const c_char,
+                c"m32_alloc: warning: Allocation of %zd bytes resulted in pages above 4GB (%p)"
+                    .as_ptr(),
                 size,
                 page,
             );
         }
 
-        (*page).c2rust_unnamed.filled_page.size = alsize.wrapping_add(size) as uint32_t;
+        (*page).c2rust_unnamed.filled_page.size = alsize.wrapping_add(size) as u32;
         m32_allocator_push_filled_list(&raw mut (*alloc).unprotected_list, page);
 
-        let mut res = (page as *mut uint8_t).offset(alsize as isize);
+        let mut res = (page as *mut u8).offset(alsize as isize);
         m32_report_allocation(alloc, res as *mut c_void, size);
 
         return res as *mut c_void;
     }
 
-    let mut empty = -(1 as c_int);
-    let mut most_filled = -(1 as c_int);
-    let mut i: c_int = 0;
-    i = 0 as c_int;
+    let mut empty = -1;
+    let mut most_filled = -1;
+    let mut i: i32 = 0;
+    i = 0;
 
     while i < M32_MAX_PAGES {
         if (*alloc).pages[i as usize].is_null() {
-            empty = if empty == -(1 as c_int) { i } else { empty };
+            empty = if empty == -1 { i } else { empty };
         } else {
-            let mut alsize_0: size_t = (*(*alloc).pages[i as usize])
+            let mut alsize_0: usize = (*(*alloc).pages[i as usize])
                 .c2rust_unnamed
                 .current_size
                 .wrapping_add(alignment)
-                .wrapping_sub(1 as size_t)
-                & !alignment.wrapping_sub(1 as size_t);
+                .wrapping_sub(1 as usize)
+                & !alignment.wrapping_sub(1 as usize);
 
             if size <= pgsz.wrapping_sub(alsize_0) {
                 let mut addr = ((*alloc).pages[i as usize] as *mut c_char).offset(alsize_0 as isize)
@@ -327,7 +324,7 @@ unsafe fn m32_alloc(
                 return addr;
             }
 
-            if most_filled == -(1 as c_int)
+            if most_filled == -1
                 || (*(*alloc).pages[most_filled as usize])
                     .c2rust_unnamed
                     .current_size
@@ -340,7 +337,7 @@ unsafe fn m32_alloc(
         i += 1;
     }
 
-    if empty == -(1 as c_int) {
+    if empty == -1 {
         m32_allocator_push_filled_list(
             &raw mut (*alloc).unprotected_list,
             (*alloc).pages[most_filled as usize],
@@ -360,13 +357,13 @@ unsafe fn m32_alloc(
     (*(*alloc).pages[empty as usize])
         .c2rust_unnamed
         .current_size = size.wrapping_add(
-        (size_of::<m32_page_t>() as size_t)
+        (size_of::<m32_page_t>() as usize)
             .wrapping_add(alignment)
-            .wrapping_sub(1 as size_t)
-            & !alignment.wrapping_sub(1 as size_t),
+            .wrapping_sub(1 as usize)
+            & !alignment.wrapping_sub(1 as usize),
     );
 
-    let mut res_0 = (page_0 as *mut uint8_t).offset(
+    let mut res_0 = (page_0 as *mut u8).offset(
         ((size_of::<m32_page_t>() as usize)
             .wrapping_add(alignment as usize)
             .wrapping_sub(1 as usize)

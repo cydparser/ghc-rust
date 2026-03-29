@@ -16,16 +16,11 @@ struct _Arena {
     lim: *mut StgWord,
 }
 
-static mut arena_blocks: c_long = 0 as c_long;
+static mut arena_blocks: i64 = 0;
 
 unsafe fn newArena() -> *mut Arena {
     let mut arena = null_mut::<Arena>();
-
-    arena = stgMallocBytes(
-        size_of::<Arena>() as size_t,
-        b"newArena\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut Arena;
-
+    arena = stgMallocBytes(size_of::<Arena>() as usize, c"newArena".as_ptr()) as *mut Arena;
     (*arena).current = allocBlock_lock();
     (*(*arena).current).link = null_mut::<bdescr_>();
     (*arena).free = (*(*arena).current).start as *mut StgWord;
@@ -35,14 +30,13 @@ unsafe fn newArena() -> *mut Arena {
     return arena;
 }
 
-unsafe fn arenaAlloc(mut arena: *mut Arena, mut size: size_t) -> *mut c_void {
+unsafe fn arenaAlloc(mut arena: *mut Arena, mut size: usize) -> *mut c_void {
     let mut p = null_mut::<c_void>();
-    let mut size_w: uint32_t = 0;
-    let mut req_blocks: uint32_t = 0;
+    let mut size_w: u32 = 0;
+    let mut req_blocks: u32 = 0;
     let mut bd = null_mut::<bdescr>();
-    size = size.wrapping_add((8 as c_int - 1 as c_int) as size_t)
-        & !(8 as c_int - 1 as c_int) as size_t;
-    size_w = size.wrapping_div(size_of::<W_>() as size_t) as uint32_t;
+    size = size.wrapping_add((8 as i32 - 1 as i32) as usize) & !(8 - 1) as usize;
+    size_w = size.wrapping_div(size_of::<W_>() as usize) as u32;
 
     if (*arena).free.offset(size_w as isize) < (*arena).lim {
         p = (*arena).free as *mut c_void;
@@ -54,13 +48,13 @@ unsafe fn arenaAlloc(mut arena: *mut Arena, mut size: size_t) -> *mut c_void {
             .wrapping_add(BLOCK_SIZE as W_)
             .wrapping_sub(1 as W_)
             & !BLOCK_MASK as W_)
-            .wrapping_div(BLOCK_SIZE as W_) as uint32_t;
+            .wrapping_div(BLOCK_SIZE as W_) as u32;
         bd = allocGroup_lock(req_blocks as W_);
-        arena_blocks += (*bd).blocks as c_long;
-        (*bd).gen_no = 0 as StgWord16;
+        arena_blocks += (*bd).blocks as i64;
+        (*bd).gen_no = 0;
         (*bd).r#gen = null_mut::<generation_>();
-        (*bd).dest_no = 0 as StgWord16;
-        (*bd).flags = 0 as StgWord16;
+        (*bd).dest_no = 0;
+        (*bd).flags = 0;
         (*bd).c2rust_unnamed.free = (*bd).start;
         (*bd).link = (*arena).current as *mut bdescr_;
         (*arena).current = bd;
@@ -82,7 +76,7 @@ unsafe fn arenaFree(mut arena: *mut Arena) {
 
     while !bd.is_null() {
         next = (*bd).link as *mut bdescr;
-        arena_blocks -= (*bd).blocks as c_long;
+        arena_blocks -= (*bd).blocks as i64;
         freeGroup_lock(bd);
         bd = next;
     }
@@ -90,6 +84,6 @@ unsafe fn arenaFree(mut arena: *mut Arena) {
     stgFree(arena as *mut c_void);
 }
 
-unsafe fn arenaBlocks() -> c_ulong {
-    return arena_blocks as c_ulong;
+unsafe fn arenaBlocks() -> u64 {
+    return arena_blocks as u64;
 }

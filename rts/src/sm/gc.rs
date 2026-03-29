@@ -78,7 +78,7 @@ mod tests;
 #[ffi(compiler)]
 #[repr(C)]
 pub struct generation_ {
-    pub no: uint32_t,
+    pub no: u32,
     pub blocks: *mut bdescr,
     pub n_blocks: memcount,
     pub n_words: memcount,
@@ -94,11 +94,11 @@ pub struct generation_ {
     pub threads: *mut StgTSO,
     pub weak_ptr_list: *mut StgWeak,
     pub to: *mut generation_,
-    pub collections: uint32_t,
-    pub par_collections: uint32_t,
-    pub failed_promotions: uint32_t,
-    pub mark: c_int,
-    pub compact: c_int,
+    pub collections: u32,
+    pub par_collections: u32,
+    pub failed_promotions: u32,
+    pub mark: i32,
+    pub compact: i32,
     pub old_blocks: *mut bdescr,
     pub n_old_blocks: memcount,
     pub live_estimate: memcount,
@@ -136,20 +136,14 @@ pub(crate) unsafe fn initBdescr(
     (*bd).gen_no = (*r#gen).no as StgWord16;
     (*bd).dest_no = (*dest).no as StgWord16;
 
-    if ((*r#gen).no < RtsFlags.GcFlags.generations) as c_int as c_long != 0 {
+    if ((*r#gen).no < RtsFlags.GcFlags.generations) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/include/rts/storage/GC.h\0" as *const u8 as *const c_char,
-            334 as c_uint,
-        );
+        _assertFail(c"rts/include/rts/storage/GC.h".as_ptr(), 334);
     }
 
-    if ((*dest).no < RtsFlags.GcFlags.generations) as c_int as c_long != 0 {
+    if ((*dest).no < RtsFlags.GcFlags.generations) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/include/rts/storage/GC.h\0" as *const u8 as *const c_char,
-            335 as c_uint,
-        );
+        _assertFail(c"rts/include/rts/storage/GC.h".as_ptr(), 335);
     };
 }
 
@@ -163,7 +157,7 @@ extern "C" {
     pub(crate) static mut large_alloc_lim: W_;
 }
 
-static mut N: uint32_t = 0;
+static mut N: u32 = 0;
 
 static mut major_gc: bool = false;
 
@@ -171,9 +165,9 @@ static mut deadlock_detect_gc: bool = false;
 
 static mut unload_mark_needed: bool = false;
 
-static mut g0_pcnt_kept: W_ = 30 as W_;
+static mut g0_pcnt_kept: W_ = 30;
 
-static mut consec_idle_gcs: c_int = 0 as c_int;
+static mut consec_idle_gcs: i32 = 0;
 
 static mut mutlist_scav_stats: MutListScavStats = MutListScavStats {
     n_MUTVAR: 0,
@@ -186,39 +180,39 @@ static mut mutlist_scav_stats: MutListScavStats = MutListScavStats {
     n_OTHERS: 0,
 };
 
-static mut gc_threads: *mut *mut gc_thread = null::<*mut gc_thread>() as *mut *mut gc_thread;
+static mut gc_threads: *mut *mut gc_thread = null_mut::<*mut gc_thread>();
 
 static mut gc_running_threads: StgWord = 0;
 
 static mut the_gc_thread: [StgWord8; 8448] = [0; 8448];
 
-static mut n_gc_threads: uint32_t = 0;
+static mut n_gc_threads: u32 = 0;
 
-static mut n_gc_idle_threads: uint32_t = 0;
+static mut n_gc_idle_threads: u32 = 0;
 
 static mut work_stealing: bool = false;
 
 unsafe fn is_par_gc() -> bool {
-    return r#false != 0;
+    return false;
 }
 
-static mut copied: c_long = 0;
+static mut copied: i64 = 0;
 
-static mut static_flag: uint32_t = STATIC_FLAG_B as uint32_t;
+static mut static_flag: u32 = STATIC_FLAG_B as u32;
 
-static mut prev_static_flag: uint32_t = STATIC_FLAG_A as uint32_t;
+static mut prev_static_flag: u32 = STATIC_FLAG_A as u32;
 
-static mut mark_stack_top_bd: *mut bdescr = null::<bdescr>() as *mut bdescr;
+static mut mark_stack_top_bd: *mut bdescr = null_mut::<bdescr>();
 
-static mut mark_stack_bd: *mut bdescr = null::<bdescr>() as *mut bdescr;
+static mut mark_stack_bd: *mut bdescr = null_mut::<bdescr>();
 
-static mut mark_sp: StgPtr = null::<StgWord>() as *mut StgWord;
+static mut mark_sp: StgPtr = null_mut::<StgWord>();
 
 unsafe fn zeroMutListScavStats(mut src: *mut MutListScavStats) {
     memset(
         src as *mut c_void,
-        0 as c_int,
-        size_of::<MutListScavStats>() as size_t,
+        0,
+        size_of::<MutListScavStats>() as usize,
     );
 }
 
@@ -245,9 +239,9 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
     let mut any_work: StgWord = 0;
     let mut scav_find_work: StgWord = 0;
     let mut max_n_todo_overflow: StgWord = 0;
-    let mut g: uint32_t = 0;
-    let mut n: uint32_t = 0;
-    let mut mut_time: Time = 0 as Time;
+    let mut g: u32 = 0;
+    let mut n: u32 = 0;
+    let mut mut_time: Time = 0;
 
     if config.do_heap_census {
         let mut stats = _RTSStats {
@@ -308,12 +302,9 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         mut_time = stats.mutator_cpu_ns;
     }
 
-    if !config.parallel as c_int as c_long != 0 {
+    if !config.parallel as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            308 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 308);
     }
 
     if RtsFlags.MiscFlags.install_signal_handlers {
@@ -321,89 +312,72 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
     }
 
     if (size_of::<gen_workspace>() as usize
-        == (16 as usize).wrapping_mul(size_of::<StgWord>() as usize)) as c_int as c_long
+        == (16 as usize).wrapping_mul(size_of::<StgWord>() as usize)) as i32 as i64
         != 0
     {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            324 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 324);
     }
 
     stat_startGC(cap, &raw mut the_gc_thread as *mut gc_thread_);
     stablePtrLock();
     zeroMutListScavStats(&raw mut mutlist_scav_stats);
     N = config.collect_gen;
-    major_gc = N == RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t);
+    major_gc = N == RtsFlags.GcFlags.generations.wrapping_sub(1 as u32);
     deadlock_detect_gc = config.deadlock_detect;
 
-    if major_gc as c_int != 0 && !RtsFlags.GcFlags.useNonmoving {
+    if major_gc as i32 != 0 && !RtsFlags.GcFlags.useNonmoving {
         prev_static_flag = static_flag;
 
-        static_flag = (if static_flag == STATIC_FLAG_A as uint32_t {
+        static_flag = (if static_flag == STATIC_FLAG_A as u32 {
             STATIC_FLAG_B
         } else {
             STATIC_FLAG_A
-        }) as uint32_t;
+        }) as u32;
     }
 
-    if major_gc as c_int != 0 && !RtsFlags.GcFlags.useNonmoving {
+    if major_gc as i32 != 0 && !RtsFlags.GcFlags.useNonmoving {
         unload_mark_needed = prepareUnloadCheck();
     } else {
-        unload_mark_needed = r#false != 0;
+        unload_mark_needed = false;
     }
 
-    n_gc_threads = 1 as uint32_t;
-    work_stealing = r#false != 0;
-    n_gc_idle_threads = 0 as uint32_t;
-    gc_running_threads = 0 as StgWord;
+    n_gc_threads = 1;
+    work_stealing = false;
+    n_gc_idle_threads = 0;
+    gc_running_threads = 0;
 
-    if (n_gc_threads > 0 as uint32_t) as c_int as c_long != 0 {
+    if (n_gc_threads > 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            432 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 432);
     }
 
-    if (n_gc_threads <= getNumCapabilities() as uint32_t) as c_int as c_long != 0 {
+    if (n_gc_threads <= getNumCapabilities() as u32) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            433 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 433);
     }
 
-    if (n_gc_idle_threads < getNumCapabilities() as uint32_t) as c_int as c_long != 0 {
+    if (n_gc_idle_threads < getNumCapabilities() as u32) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            434 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 434);
     }
 
-    if (!work_stealing || n_gc_threads.wrapping_sub(1 as uint32_t) > n_gc_idle_threads) as c_int
-        as c_long
+    if (!work_stealing || n_gc_threads.wrapping_sub(1 as u32) > n_gc_idle_threads) as i32 as i64
         != 0
     {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            437 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 437);
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
         trace_(
-            b"GC (gen %d, using %d thread(s), %s work stealing)\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"GC (gen %d, using %d thread(s), %s work stealing)".as_ptr(),
             N,
-            getNumCapabilities() as c_int - n_gc_idle_threads as c_int,
-            if work_stealing as c_int != 0 {
-                b"with\0" as *const u8 as *const c_char
+            getNumCapabilities() as i32 - n_gc_idle_threads as i32,
+            if work_stealing as i32 != 0 {
+                c"with".as_ptr()
             } else {
-                b"without\0" as *const u8 as *const c_char
+                c"without".as_ptr()
             },
         );
     }
@@ -413,18 +387,18 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
     collectFreshWeakPtrs();
 
     if RtsFlags.DebugFlags.sanity {
-        checkSanity(0 as c_int != 0, major_gc);
+        checkSanity(0 != 0, major_gc);
     }
 
     collect_pinned_object_blocks();
-    g = 0 as uint32_t;
+    g = 0;
 
     while g <= N {
         prepare_collected_gen(generations.offset(g as isize) as *mut generation);
         g = g.wrapping_add(1);
     }
 
-    g = N.wrapping_add(1 as uint32_t);
+    g = N.wrapping_add(1 as u32);
 
     while g < RtsFlags.GcFlags.generations {
         prepare_uncollected_gen(generations.offset(g as isize) as *mut generation);
@@ -433,7 +407,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
 
     init_gc_thread(&raw mut the_gc_thread as *mut gc_thread);
 
-    if major_gc as c_int != 0 && (*oldest_gen).mark != 0 {
+    if major_gc as i32 != 0 && (*oldest_gen).mark != 0 {
         mark_stack_bd = allocBlock();
         mark_stack_top_bd = mark_stack_bd;
         (*mark_stack_bd).link = null_mut::<bdescr_>();
@@ -455,17 +429,17 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
     traceEventGcWork((*(&raw mut the_gc_thread as *mut gc_thread)).cap);
 
     if !is_par_gc() {
-        n = 0 as uint32_t;
+        n = 0;
 
-        while n < getNumCapabilities() as uint32_t {
+        while n < getNumCapabilities() as u32 {
             scavenge_capability_mut_lists(getCapability(n));
             n = n.wrapping_add(1);
         }
     } else {
         scavenge_capability_mut_lists((*(&raw mut the_gc_thread as *mut gc_thread)).cap);
-        n = 0 as uint32_t;
+        n = 0;
 
-        while n < getNumCapabilities() as uint32_t {
+        while n < getNumCapabilities() as u32 {
             if *idle_cap.offset(n as isize) {
                 markCapability(
                     Some(
@@ -473,7 +447,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
                     ),
                     &raw mut the_gc_thread as *mut gc_thread as *mut c_void,
                     getCapability(n),
-                    r#true != 0,
+                    true,
                 );
 
                 scavenge_capability_mut_lists(getCapability(n));
@@ -483,24 +457,24 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         }
     }
 
-    (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = 0 as uint32_t;
+    (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = 0;
 
     markCAFs(
         Some(mark_root as unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> ()),
         &raw mut the_gc_thread as *mut gc_thread as *mut c_void,
     );
 
-    (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = 0 as uint32_t;
+    (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = 0;
 
     if !is_par_gc() {
-        n = 0 as uint32_t;
+        n = 0;
 
-        while n < getNumCapabilities() as uint32_t {
+        while n < getNumCapabilities() as u32 {
             markCapability(
                 Some(mark_root as unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> ()),
                 &raw mut the_gc_thread as *mut gc_thread as *mut c_void,
                 getCapability(n),
-                r#true != 0,
+                true,
             );
 
             n = n.wrapping_add(1);
@@ -510,7 +484,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
             Some(mark_root as unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> ()),
             &raw mut the_gc_thread as *mut gc_thread as *mut c_void,
             cap,
-            r#true != 0,
+            true,
         );
     }
 
@@ -532,7 +506,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
 
     let mut dead_weak_ptr_list = null_mut::<StgWeak>();
     let mut resurrected_threads = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
-    work_stealing = r#false != 0;
+    work_stealing = false;
 
     while traverseWeakPtrList(&raw mut dead_weak_ptr_list, &raw mut resurrected_threads) {
         inc_running();
@@ -541,7 +515,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
 
     gcStableNameTable();
 
-    if major_gc as c_int != 0 && (*oldest_gen).mark != 0 {
+    if major_gc as i32 != 0 && (*oldest_gen).mark != 0 {
         if (*oldest_gen).compact != 0 {
             compact(
                 (*(&raw mut the_gc_thread as *mut gc_thread)).scavenged_static_objects,
@@ -553,80 +527,68 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         }
     }
 
-    copied = 0 as c_long;
-    par_max_copied = 0 as StgWord;
-    par_balanced_copied = 0 as StgWord;
-    any_work = 0 as StgWord;
-    scav_find_work = 0 as StgWord;
-    max_n_todo_overflow = 0 as StgWord;
+    copied = 0;
+    par_max_copied = 0;
+    par_balanced_copied = 0;
+    any_work = 0;
+    scav_find_work = 0;
+    max_n_todo_overflow = 0;
 
-    let mut i: uint32_t = 0;
-    let mut par_balanced_copied_acc: uint64_t = 0 as uint64_t;
+    let mut i: u32 = 0;
+    let mut par_balanced_copied_acc: u64 = 0;
     let mut thread = null::<gc_thread>();
 
     if is_par_gc() {
         let mut other_active_threads = n_gc_threads
             .wrapping_sub(n_gc_idle_threads)
-            .wrapping_sub(1 as uint32_t) as c_int;
+            .wrapping_sub(1 as u32) as i32;
 
-        if (other_active_threads > 0 as c_int) as c_int as c_long != 0 {
+        if (other_active_threads > 0) as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                629 as c_uint,
-            );
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 629);
         }
 
-        i = 0 as uint32_t;
+        i = 0;
 
         while i < n_gc_threads {
             if !*idle_cap.offset(i as isize) {
                 copied = (copied as W_).wrapping_add((**gc_threads.offset(i as isize)).copied)
-                    as c_long as c_long;
+                    as i64 as i64;
             }
 
             i = i.wrapping_add(1);
         }
 
-        i = 0 as uint32_t;
+        i = 0;
 
         while i < n_gc_threads {
             if !*idle_cap.offset(i as isize) {
                 thread = *gc_threads.offset(i as isize);
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-                    trace_(
-                        b"thread %d:\0" as *const u8 as *const c_char as *mut c_char,
-                        i,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+                    trace_(c"thread %d:".as_ptr(), i);
                 }
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
                     trace_(
-                        b"   copied           %ld\0" as *const u8 as *const c_char as *mut c_char,
+                        c"   copied           %ld".as_ptr(),
                         (*thread).copied.wrapping_mul(size_of::<W_>() as W_),
                     );
                 }
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
                     trace_(
-                        b"   scanned          %ld\0" as *const u8 as *const c_char as *mut c_char,
+                        c"   scanned          %ld".as_ptr(),
                         (*thread).scanned.wrapping_mul(size_of::<W_>() as W_),
                     );
                 }
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-                    trace_(
-                        b"   any_work         %ld\0" as *const u8 as *const c_char as *mut c_char,
-                        (*thread).any_work,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+                    trace_(c"   any_work         %ld".as_ptr(), (*thread).any_work);
                 }
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-                    trace_(
-                        b"   scav_find_work %ld\0" as *const u8 as *const c_char as *mut c_char,
-                        (*thread).scav_find_work,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+                    trace_(c"   scav_find_work %ld".as_ptr(), (*thread).scav_find_work);
                 }
 
                 any_work = any_work.wrapping_add((*thread).any_work as StgWord);
@@ -656,13 +618,13 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
 
                 par_balanced_copied_acc = par_balanced_copied_acc.wrapping_add(
                     ({
-                        let mut _a: W_ = ((other_active_threads + 1 as c_int) as W_)
+                        let mut _a: W_ = ((other_active_threads + 1 as i32) as W_)
                             .wrapping_mul((*thread).copied);
 
                         let mut _b: W_ = copied as W_;
 
                         if _a <= _b { _a } else { _b as W_ }
-                    }) as uint64_t,
+                    }) as u64,
                 );
             }
 
@@ -670,15 +632,15 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         }
 
         par_balanced_copied = par_balanced_copied_acc
-            .wrapping_sub(copied as uint64_t)
-            .wrapping_add((other_active_threads / 2 as c_int) as uint64_t)
-            .wrapping_div(other_active_threads as uint64_t)
-            as StgWord;
+            .wrapping_sub(copied as u64)
+            .wrapping_add((other_active_threads / 2 as i32) as u64)
+            .wrapping_div(other_active_threads as u64) as StgWord;
     } else {
         copied = (copied as W_).wrapping_add((*(&raw mut the_gc_thread as *mut gc_thread)).copied)
-            as c_long as c_long;
+            as i64 as i64;
         any_work = any_work
             .wrapping_add((*(&raw mut the_gc_thread as *mut gc_thread)).any_work as StgWord);
+
         scav_find_work = scav_find_work
             .wrapping_add((*(&raw mut the_gc_thread as *mut gc_thread)).scav_find_work as StgWord);
 
@@ -687,9 +649,9 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         );
     }
 
-    live_words = 0 as StgWord;
-    live_blocks = 0 as StgWord;
-    g = 0 as uint32_t;
+    live_words = 0;
+    live_blocks = 0;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         if g == N {
@@ -702,11 +664,11 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
             }
         }
 
-        if g > 0 as uint32_t {
-            let mut mut_list_size: W_ = 0 as W_;
-            n = 0 as uint32_t;
+        if g > 0 {
+            let mut mut_list_size: W_ = 0;
+            n = 0;
 
-            while n < getNumCapabilities() as uint32_t {
+            while n < getNumCapabilities() as u32 {
                 mut_list_size = (mut_list_size as StgWord).wrapping_add(countOccupied(
                     *(*getCapability(n)).mut_lists.offset(g as isize),
                 )) as W_ as W_;
@@ -714,15 +676,13 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
                 n = n.wrapping_add(1);
             }
 
-            copied = (copied as W_).wrapping_add(mut_list_size) as c_long as c_long;
+            copied = (copied as W_).wrapping_add(mut_list_size) as i64 as i64;
 
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
                 trace_(
-                    b"mut_list_size: %lu (%d vars, %d arrays, %d MVARs, %d TVARs, %d TVAR_WATCH_QUEUEs, %d TREC_CHUNKs, %d TREC_HEADERs, %d others)\0"
-                        as *const u8 as *const c_char
-                        as *mut c_char,
-                    mut_list_size.wrapping_mul(size_of::<W_>() as W_)
-                        as c_ulong,
+                    c"mut_list_size: %lu (%d vars, %d arrays, %d MVARs, %d TVARs, %d TVAR_WATCH_QUEUEs, %d TREC_CHUNKs, %d TREC_HEADERs, %d others)"
+                        .as_ptr(),
+                    mut_list_size.wrapping_mul(size_of::<W_>() as W_) as u64,
                     mutlist_scav_stats.n_MUTVAR,
                     mutlist_scav_stats.n_MUTARR,
                     mutlist_scav_stats.n_MVAR,
@@ -739,7 +699,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         let mut prev = null_mut::<bdescr>();
         r#gen = generations.offset(g as isize) as *mut generation;
 
-        if g <= N && !(RtsFlags.GcFlags.useNonmoving as c_int != 0 && r#gen == oldest_gen) {
+        if g <= N && !(RtsFlags.GcFlags.useNonmoving as i32 != 0 && r#gen == oldest_gen) {
             if (*r#gen).mark != 0 {
                 if !(*r#gen).old_blocks.is_null() {
                     prev = null_mut::<bdescr>();
@@ -748,7 +708,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
                     while !bd.is_null() {
                         next = (*bd).link as *mut bdescr;
 
-                        if (*bd).flags as c_int & BF_MARKED == 0 {
+                        if (*bd).flags as i32 & BF_MARKED == 0 {
                             if prev.is_null() {
                                 (*r#gen).old_blocks = next;
                             } else {
@@ -761,10 +721,11 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
                             (*r#gen).n_words = (*r#gen)
                                 .n_words
                                 .wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).start)
-                                    as c_long
+                                    as i64
                                     as memcount);
-                            (*bd).flags = ((*bd).flags as c_int & !BF_MARKED) as StgWord16;
-                            (*bd).flags = ((*bd).flags as c_int | BF_EVACUATED) as StgWord16;
+
+                            (*bd).flags = ((*bd).flags as i32 & !BF_MARKED) as StgWord16;
+                            (*bd).flags = ((*bd).flags as i32 | BF_EVACUATED) as StgWord16;
                             prev = bd;
                         }
 
@@ -779,32 +740,26 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
 
                 (*r#gen).n_blocks = (*r#gen).n_blocks.wrapping_add((*r#gen).n_old_blocks);
 
-                if (countBlocks((*r#gen).blocks) == (*r#gen).n_blocks) as c_int as c_long != 0 {
+                if (countBlocks((*r#gen).blocks) == (*r#gen).n_blocks) as i32 as i64 != 0 {
                 } else {
-                    _assertFail(
-                        b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                        765 as c_uint,
-                    );
+                    _assertFail(c"rts/sm/GC.c".as_ptr(), 765);
                 }
 
-                if (countOccupied((*r#gen).blocks) == (*r#gen).n_words) as c_int as c_long != 0 {
+                if (countOccupied((*r#gen).blocks) == (*r#gen).n_words) as i32 as i64 != 0 {
                 } else {
-                    _assertFail(
-                        b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                        766 as c_uint,
-                    );
+                    _assertFail(c"rts/sm/GC.c".as_ptr(), 766);
                 }
             } else {
                 freeChain((*r#gen).old_blocks);
             }
 
             (*r#gen).old_blocks = null_mut::<bdescr>();
-            (*r#gen).n_old_blocks = 0 as memcount;
+            (*r#gen).n_old_blocks = 0;
             freeChain((*r#gen).large_objects);
             (*r#gen).large_objects = (*r#gen).scavenged_large_objects;
             (*r#gen).n_large_blocks = (*r#gen).n_scavenged_large_blocks;
             (*r#gen).n_large_words = countOccupied((*r#gen).large_objects) as memcount;
-            (*r#gen).n_new_large_words = 0 as memcount;
+            (*r#gen).n_new_large_words = 0;
             bd = (*r#gen).compact_objects;
 
             while !bd.is_null() {
@@ -825,11 +780,10 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
             while !bd.is_null() {
                 next = (*bd).link as *mut bdescr;
                 dbl_link_onto(bd, &raw mut (*r#gen).large_objects);
-                (*r#gen).n_large_words =
-                    (*r#gen)
-                        .n_large_words
-                        .wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).start) as c_long
-                            as memcount);
+                (*r#gen).n_large_words = (*r#gen).n_large_words.wrapping_add(
+                    (*bd).c2rust_unnamed.free.offset_from((*bd).start) as i64 as memcount,
+                );
+
                 bd = next;
             }
 
@@ -849,34 +803,26 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
                 .wrapping_add((*r#gen).n_live_compact_blocks);
         }
 
-        if (countBlocks((*r#gen).large_objects) == (*r#gen).n_large_blocks) as c_int as c_long != 0
-        {
+        if (countBlocks((*r#gen).large_objects) == (*r#gen).n_large_blocks) as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                827 as c_uint,
-            );
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 827);
         }
 
-        if (countOccupied((*r#gen).large_objects) == (*r#gen).n_large_words) as c_int as c_long != 0
-        {
+        if (countOccupied((*r#gen).large_objects) == (*r#gen).n_large_words) as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                828 as c_uint,
-            );
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 828);
         }
 
         (*r#gen).scavenged_large_objects = null_mut::<bdescr>();
-        (*r#gen).n_scavenged_large_blocks = 0 as memcount;
+        (*r#gen).n_scavenged_large_blocks = 0;
         (*r#gen).live_compact_objects = null_mut::<bdescr>();
-        (*r#gen).n_live_compact_blocks = 0 as memcount;
+        (*r#gen).n_live_compact_blocks = 0;
         live_words = live_words.wrapping_add(genLiveWords(r#gen));
         live_blocks = live_blocks.wrapping_add(genLiveBlocks(r#gen));
 
-        let mut i_0: uint32_t = 0 as uint32_t;
+        let mut i_0: u32 = 0;
 
-        while i_0 < getNumCapabilities() as uint32_t {
+        while i_0 < getNumCapabilities() as u32 {
             live_words = live_words.wrapping_add(gcThreadLiveWords(i_0, (*r#gen).no));
             live_blocks = live_blocks.wrapping_add(gcThreadLiveBlocks(i_0, (*r#gen).no));
             i_0 = i_0.wrapping_add(1);
@@ -886,11 +832,11 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
     }
 
     if RtsFlags.GcFlags.useNonmoving {
-        n = 0 as uint32_t;
+        n = 0;
 
-        while n < getNumCapabilities() as uint32_t {
+        while n < getNumCapabilities() as u32 {
             nonmovingAddUpdRemSetBlocks(
-                &raw mut (*(getCapability as unsafe extern "C" fn(uint32_t) -> *mut Capability)(n))
+                &raw mut (*(getCapability as unsafe extern "C" fn(c_uint) -> *mut Capability)(n))
                     .upd_rem_set,
             );
 
@@ -898,35 +844,26 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         }
     }
 
-    if (*oldest_gen).scavenged_large_objects.is_null() as c_int as c_long != 0 {
+    if (*oldest_gen).scavenged_large_objects.is_null() as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            872 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 872);
     }
 
-    if RtsFlags.GcFlags.useNonmoving as c_int != 0 && major_gc as c_int != 0 {
-        let mut concurrent = r#false != 0;
+    if RtsFlags.GcFlags.useNonmoving as i32 != 0 && major_gc as i32 != 0 {
+        let mut concurrent = false;
 
         if ((*oldest_gen).old_threads
-            == &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO) as c_int
-            as c_long
+            == &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO) as i32
+            as i64
             != 0
         {
         } else {
-            _assertFail(
-                b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                880 as c_uint,
-            );
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 880);
         }
 
-        if (*oldest_gen).old_weak_ptr_list.is_null() as c_int as c_long != 0 {
+        if (*oldest_gen).old_weak_ptr_list.is_null() as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                887 as c_uint,
-            );
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 887);
         }
 
         nonmovingAddUpdRemSetBlocks(
@@ -940,17 +877,14 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         );
     }
 
-    if major_gc as c_int != 0
-        && RtsFlags.GcFlags.generations > 1 as uint32_t
-        && !RtsFlags.GcFlags.useNonmoving
-    {
+    if major_gc as i32 != 0 && RtsFlags.GcFlags.generations > 1 && !RtsFlags.GcFlags.useNonmoving {
         resizeGenerations();
     }
 
     if !mark_stack_top_bd.is_null() {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
             trace_(
-                b"mark stack: %d blocks\0" as *const u8 as *const c_char as *mut c_char,
+                c"mark stack: %d blocks".as_ptr(),
                 countBlocks(mark_stack_top_bd),
             );
         }
@@ -958,7 +892,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         freeChain(mark_stack_top_bd);
     }
 
-    g = 0 as uint32_t;
+    g = 0;
 
     while g <= N {
         r#gen = generations.offset(g as isize) as *mut generation;
@@ -974,14 +908,14 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
     resize_nursery();
     resetNurseries();
 
-    if major_gc as c_int != 0 && !RtsFlags.GcFlags.useNonmoving {
+    if major_gc as i32 != 0 && !RtsFlags.GcFlags.useNonmoving {
         gcCAFs();
     }
 
     updateStableNameTable(major_gc);
     stablePtrUnlock();
 
-    if major_gc as c_int != 0 && !RtsFlags.GcFlags.useNonmoving {
+    if major_gc as i32 != 0 && !RtsFlags.GcFlags.useNonmoving {
         checkUnload();
     }
 
@@ -989,14 +923,14 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
 
     if RtsFlags.DebugFlags.sanity {
         checkSanity(
-            1 as c_int != 0,
-            major_gc as c_int != 0 && !RtsFlags.GcFlags.useNonmoving,
+            1 != 0,
+            major_gc as i32 != 0 && !RtsFlags.GcFlags.useNonmoving,
         );
     }
 
     if config.do_heap_census {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-            trace_(b"performing heap census\0" as *const u8 as *const c_char as *mut c_char);
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+            trace_(c"performing heap census".as_ptr());
         }
 
         heapCensus(mut_time);
@@ -1004,7 +938,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
 
     if performTickySample {
         emitTickyCounterSamples();
-        performTickySample = 0 as c_int != 0;
+        performTickySample = 0 != 0;
     }
 
     resurrectThreads(resurrected_threads);
@@ -1017,10 +951,10 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         let mut need: W_ = 0;
         let mut got: W_ = 0;
         let mut extra_needed: W_ = 0;
-        let mut i_1: uint32_t = 0;
-        need_copied_live = 0 as W_;
-        need_uncopied_live = 0 as W_;
-        i_1 = 0 as uint32_t;
+        let mut i_1: u32 = 0;
+        need_copied_live = 0;
+        need_uncopied_live = 0;
+        i_1 = 0;
 
         while i_1 < RtsFlags.GcFlags.generations {
             need_copied_live = (need_copied_live as StgWord).wrapping_add(genLiveCopiedWords(
@@ -1045,16 +979,15 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
             & !BLOCK_MASK as W_)
             .wrapping_div(BLOCK_SIZE_W as W_);
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
             trace_(
-                b"(before) copied_live: %d; uncopied_live: %d\0" as *const u8 as *const c_char
-                    as *mut c_char,
+                c"(before) copied_live: %d; uncopied_live: %d".as_ptr(),
                 need_copied_live,
                 need_uncopied_live,
             );
         }
 
-        extra_needed = 0 as W_;
+        extra_needed = 0;
 
         if RtsFlags.GcFlags.minOldGenSize as W_ >= need_copied_live.wrapping_add(need_uncopied_live)
         {
@@ -1062,42 +995,38 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
                 .wrapping_sub(need_copied_live.wrapping_add(need_uncopied_live));
         }
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
             trace_(
-                b"(minOldGen: %d; extra_needed: %d\0" as *const u8 as *const c_char as *mut c_char,
+                c"(minOldGen: %d; extra_needed: %d".as_ptr(),
                 RtsFlags.GcFlags.minOldGenSize,
                 extra_needed,
             );
         }
 
-        if (*oldest_gen).compact != 0 || RtsFlags.GcFlags.useNonmoving as c_int != 0 {
+        if (*oldest_gen).compact != 0 || RtsFlags.GcFlags.useNonmoving as i32 != 0 {
             need_uncopied_live = need_uncopied_live.wrapping_add(extra_needed);
         } else {
             need_copied_live = need_copied_live.wrapping_add(extra_needed);
         }
 
         if (need_uncopied_live.wrapping_add(need_copied_live)
-            >= RtsFlags.GcFlags.minOldGenSize as W_) as c_int as c_long
+            >= RtsFlags.GcFlags.minOldGenSize as W_) as i32 as i64
             != 0
         {
         } else {
-            _assertFail(
-                b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                1042 as c_uint,
-            );
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1042);
         }
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
             trace_(
-                b"(after) copied_live: %d; uncopied_live: %d\0" as *const u8 as *const c_char
-                    as *mut c_char,
+                c"(after) copied_live: %d; uncopied_live: %d".as_ptr(),
                 need_copied_live,
                 need_uncopied_live,
             );
         }
 
-        need_prealloc = 0 as W_;
-        i_1 = 0 as uint32_t;
+        need_prealloc = 0;
+        i_1 = 0;
 
         while i_1 < n_nurseries {
             need_prealloc = (need_prealloc as StgWord)
@@ -1110,25 +1039,25 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         need_prealloc = need_prealloc.wrapping_add(countAllocdBlocks(exec_block));
         need_prealloc = need_prealloc.wrapping_add(arenaBlocks() as W_);
 
-        consec_idle_gcs = if config.overflow_gc as c_int != 0 {
-            0 as c_int
+        consec_idle_gcs = if config.overflow_gc as i32 != 0 {
+            0
         } else {
-            consec_idle_gcs + 1 as c_int
+            consec_idle_gcs + 1
         };
 
-        let mut scaled_factor = if RtsFlags.GcFlags.returnDecayFactor > 0 as c_int as c_double {
+        let mut scaled_factor = if RtsFlags.GcFlags.returnDecayFactor > 0 {
             RtsFlags.GcFlags.oldGenFactor
                 / pow(
-                    2 as c_int as c_double,
-                    consec_idle_gcs as c_float as c_double / RtsFlags.GcFlags.returnDecayFactor,
+                    2,
+                    consec_idle_gcs as f32 as f64 / RtsFlags.GcFlags.returnDecayFactor,
                 )
         } else {
             RtsFlags.GcFlags.oldGenFactor
         };
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
             trace_(
-                b"factors: %f %d %f\0" as *const u8 as *const c_char as *mut c_char,
+                c"factors: %f %d %f".as_ptr(),
                 RtsFlags.GcFlags.oldGenFactor,
                 consec_idle_gcs,
                 scaled_factor,
@@ -1138,57 +1067,56 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         let mut unavoidable_copied_need_factor = if (*oldest_gen).compact != 0 {
             1.2f64
         } else {
-            2 as c_int as c_double
+            2
         };
 
         let mut unavoidable_uncopied_need_factor = 1.2f64;
         let mut scaled_needed: W_ = ((scaled_factor + unavoidable_copied_need_factor)
-            * need_copied_live as c_double
-            + (scaled_factor + unavoidable_uncopied_need_factor) * need_uncopied_live as c_double)
+            * need_copied_live as f64
+            + (scaled_factor + unavoidable_uncopied_need_factor) * need_uncopied_live as f64)
             as W_;
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
             trace_(
-                b"factors_2: %f %f\0" as *const u8 as *const c_char as *mut c_char,
-                (scaled_factor + unavoidable_copied_need_factor) * need_copied_live as c_double,
-                (scaled_factor + unavoidable_uncopied_need_factor) * need_uncopied_live as c_double,
+                c"factors_2: %f %f".as_ptr(),
+                (scaled_factor + unavoidable_copied_need_factor) * need_copied_live as f64,
+                (scaled_factor + unavoidable_uncopied_need_factor) * need_uncopied_live as f64,
             );
         }
 
         need = need_prealloc.wrapping_add(scaled_needed);
 
         need = ({
-            let mut _a: uint32_t = RtsFlags.GcFlags.heapSizeSuggestion as uint32_t;
-            let mut _b: uint32_t = need as uint32_t;
+            let mut _a: u32 = RtsFlags.GcFlags.heapSizeSuggestion as u32;
+            let mut _b: u32 = need as u32;
 
-            if _a <= _b { _b } else { _a as uint32_t }
+            if _a <= _b { _b } else { _a as u32 }
         }) as W_;
 
-        if RtsFlags.GcFlags.maxHeapSize != 0 as uint32_t {
+        if RtsFlags.GcFlags.maxHeapSize != 0 {
             need = ({
-                let mut _a: uint32_t = RtsFlags.GcFlags.maxHeapSize as uint32_t;
-                let mut _b: uint32_t = need as uint32_t;
+                let mut _a: u32 = RtsFlags.GcFlags.maxHeapSize as u32;
+                let mut _b: u32 = need as u32;
 
-                if _a <= _b { _a } else { _b as uint32_t }
+                if _a <= _b { _a } else { _b as u32 }
             }) as W_;
         }
 
         need = (1 as W_).wrapping_add(
             ((need
                 .wrapping_sub(
-                    (((1 as c_ulong) << 20 as c_int) as W_)
+                    (((1 as u64) << 20 as i32) as W_)
                         .wrapping_sub(
-                            ((0x40 as c_ulong).wrapping_mul(
-                                ((1 as c_ulong) << 20 as c_int)
-                                    .wrapping_div((1 as c_ulong) << 12 as c_int),
+                            ((0x40 as u64).wrapping_mul(
+                                ((1 as u64) << 20 as i32).wrapping_div((1 as u64) << 12 as i32),
                             ) as W_)
-                                .wrapping_add(((1 as c_ulong) << 12 as c_int) as W_)
+                                .wrapping_add(((1 as u64) << 12 as i32) as W_)
                                 .wrapping_sub(1 as W_)
-                                & !((1 as c_ulong) << 12 as c_int).wrapping_sub(1 as c_ulong) as W_,
+                                & !((1 as u64) << 12 as i32).wrapping_sub(1 as u64) as W_,
                         )
-                        .wrapping_div(((1 as c_ulong) << 12 as c_int) as W_),
+                        .wrapping_div(((1 as u64) << 12 as i32) as W_),
                 )
-                .wrapping_mul(((1 as c_ulong) << 12 as c_int) as W_)
+                .wrapping_mul(((1 as u64) << 12 as i32) as W_)
                 .wrapping_add(MBLOCK_SIZE as W_)
                 .wrapping_sub(1 as W_)
                 & !MBLOCK_MASK as W_) as *mut c_void as W_)
@@ -1197,44 +1125,38 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
 
         got = mblocks_allocated;
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-            trace_(
-                b"Returning: %d %d\0" as *const u8 as *const c_char as *mut c_char,
-                got,
-                need,
-            );
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+            trace_(c"Returning: %d %d".as_ptr(), got, need);
         }
 
-        let mut returned: uint32_t = 0 as uint32_t;
+        let mut returned: u32 = 0;
 
         if got > need {
-            returned = returnMemoryToOS(got.wrapping_sub(need) as uint32_t);
+            returned = returnMemoryToOS(got.wrapping_sub(need) as u32);
         }
 
-        traceEventMemReturn(cap, got as uint32_t, need as uint32_t, returned);
+        traceEventMemReturn(cap, got as u32, need as u32, returned);
 
         let mut after: W_ = got.wrapping_sub(returned as W_);
 
-        if RtsFlags.GcFlags.maxHeapSize != 0 as uint32_t
+        if RtsFlags.GcFlags.maxHeapSize != 0
             && after
                 > (1 as W_).wrapping_add(
                     (((RtsFlags.GcFlags.maxHeapSize as W_)
                         .wrapping_sub(
-                            (((1 as c_ulong) << 20 as c_int) as W_)
+                            (((1 as u64) << 20 as i32) as W_)
                                 .wrapping_sub(
-                                    ((0x40 as c_ulong).wrapping_mul(
-                                        ((1 as c_ulong) << 20 as c_int)
-                                            .wrapping_div((1 as c_ulong) << 12 as c_int),
+                                    ((0x40 as u64).wrapping_mul(
+                                        ((1 as u64) << 20 as i32)
+                                            .wrapping_div((1 as u64) << 12 as i32),
                                     ) as W_)
-                                        .wrapping_add(((1 as c_ulong) << 12 as c_int) as W_)
+                                        .wrapping_add(((1 as u64) << 12 as i32) as W_)
                                         .wrapping_sub(1 as W_)
-                                        & !((1 as c_ulong) << 12 as c_int)
-                                            .wrapping_sub(1 as c_ulong)
-                                            as W_,
+                                        & !((1 as u64) << 12 as i32).wrapping_sub(1 as u64) as W_,
                                 )
-                                .wrapping_div(((1 as c_ulong) << 12 as c_int) as W_),
+                                .wrapping_div(((1 as u64) << 12 as i32) as W_),
                         )
-                        .wrapping_mul(((1 as c_ulong) << 12 as c_int) as W_)
+                        .wrapping_mul(((1 as u64) << 12 as i32) as W_)
                         .wrapping_add(MBLOCK_SIZE as W_)
                         .wrapping_sub(1 as W_)
                         & !MBLOCK_MASK as W_) as *mut c_void as W_)
@@ -1276,29 +1198,26 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
 }
 
 unsafe fn heapOverflow() {
-    heap_overflow = r#true != 0;
+    heap_overflow = true;
 }
 
-unsafe fn new_gc_thread(mut n: uint32_t, mut t: *mut gc_thread) {
-    let mut g: uint32_t = 0;
+unsafe fn new_gc_thread(mut n: u32, mut t: *mut gc_thread) {
+    let mut g: u32 = 0;
     let mut ws = null_mut::<gen_workspace>();
     (*t).cap = getCapability(n);
     (*t).thread_index = n;
     (*t).free_blocks = null_mut::<bdescr>();
-    (*t).gc_count = 0 as W_;
+    (*t).gc_count = 0;
     init_gc_thread(t);
-    g = 0 as uint32_t;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         ws = (&raw mut (*t).gens as *mut gen_workspace).offset(g as isize) as *mut gen_workspace;
         (*ws).0.r#gen = generations.offset(g as isize) as *mut generation;
 
-        if (g == (*(*ws).0.r#gen).no) as c_int as c_long != 0 {
+        if (g == (*(*ws).0.r#gen).no) as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                1195 as c_uint,
-            );
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1195);
         }
 
         (*ws).0.my_gct = t as *mut gc_thread_;
@@ -1311,49 +1230,46 @@ unsafe fn new_gc_thread(mut n: uint32_t, mut t: *mut gc_thread) {
         (*ws).0.todo_bd = bd;
         (*ws).0.todo_free = (*bd).c2rust_unnamed.free;
         (*ws).0.todo_lim = (*bd).start.offset(BLOCK_SIZE_W as isize);
-        (*ws).0.todo_q = newWSDeque(128 as uint32_t);
+        (*ws).0.todo_q = newWSDeque(128);
         (*ws).0.todo_overflow = null_mut::<bdescr>();
-        (*ws).0.n_todo_overflow = 0 as uint32_t;
+        (*ws).0.n_todo_overflow = 0;
         (*ws).0.todo_large_objects = null_mut::<bdescr>();
         (*ws).0.todo_seg = END_NONMOVING_TODO_LIST as *mut NonmovingSegment;
         (*ws).0.part_list = null_mut::<bdescr>();
-        (*ws).0.n_part_blocks = 0 as StgWord;
-        (*ws).0.n_part_words = 0 as StgWord;
+        (*ws).0.n_part_blocks = 0;
+        (*ws).0.n_part_words = 0;
         (*ws).0.scavd_list = null_mut::<bdescr>();
-        (*ws).0.n_scavd_blocks = 0 as StgWord;
-        (*ws).0.n_scavd_words = 0 as StgWord;
+        (*ws).0.n_scavd_blocks = 0;
+        (*ws).0.n_scavd_words = 0;
         g = g.wrapping_add(1);
     }
 }
 
-unsafe fn initGcThreads(mut from: uint32_t, mut to: uint32_t) {
-    if (from == 0 as uint32_t && to == 1 as uint32_t) as c_int as c_long != 0 {
+unsafe fn initGcThreads(mut from: u32, mut to: u32) {
+    if (from == 0 && to == 1) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            1263 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1263);
     }
 
     gc_threads = stgMallocBytes(
-        size_of::<*mut gc_thread>() as size_t,
-        b"alloc_gc_threads\0" as *const u8 as *const c_char as *mut c_char,
+        size_of::<*mut gc_thread>() as usize,
+        c"alloc_gc_threads".as_ptr(),
     ) as *mut *mut gc_thread;
 
-    let ref mut fresh11 = *gc_threads.offset(0 as c_int as isize);
+    let ref mut fresh11 = *gc_threads.offset(0);
     *fresh11 = &raw mut the_gc_thread as *mut gc_thread;
-    new_gc_thread(0 as uint32_t, *gc_threads.offset(0 as c_int as isize));
+    new_gc_thread(0, *gc_threads.offset(0));
 }
 
 unsafe fn freeGcThreads() {
-    let mut g: uint32_t = 0;
+    let mut g: u32 = 0;
 
     if !gc_threads.is_null() {
-        g = 0 as uint32_t;
+        g = 0;
 
         while g < RtsFlags.GcFlags.generations {
             freeWSDeque(
-                (*(&raw mut (**gc_threads.offset(0 as c_int as isize)).gens as *mut gen_workspace)
+                (*(&raw mut (**gc_threads.offset(0)).gens as *mut gen_workspace)
                     .offset(g as isize))
                 .0
                 .todo_q,
@@ -1369,47 +1285,41 @@ unsafe fn freeGcThreads() {
 
 unsafe fn inc_running() -> StgWord {
     let mut new: StgWord = 0;
-    new = atomic_inc(&raw mut gc_running_threads as StgVolatilePtr, 1 as StgWord);
+    new = atomic_inc(&raw mut gc_running_threads as StgVolatilePtr, 1);
 
     return new;
 }
 
 unsafe fn dec_running() -> StgWord {
-    if (gc_running_threads != 0 as StgWord) as c_int as c_long != 0 {
+    if (gc_running_threads != 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            1322 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1322);
     }
 
-    let mut r = atomic_dec(&raw mut gc_running_threads as StgVolatilePtr, 1 as StgWord);
+    let mut r = atomic_dec(&raw mut gc_running_threads as StgVolatilePtr, 1);
 
     return r;
 }
 
 unsafe fn scavenge_until_all_done() {
-    let mut r: uint32_t = 0;
+    let mut r: u32 = 0;
     scavenge_loop();
     collect_gct_blocks();
-    r = dec_running() as uint32_t;
+    r = dec_running() as u32;
     traceEventGcIdle((*(&raw mut the_gc_thread as *mut gc_thread)).cap);
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-        trace_(
-            b"%d GC threads still running\0" as *const u8 as *const c_char as *mut c_char,
-            r,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+        trace_(c"%d GC threads still running".as_ptr(), r);
     }
 
     traceEventGcDone((*(&raw mut the_gc_thread as *mut gc_thread)).cap);
 }
 
-unsafe fn wakeup_gc_threads(mut me: uint32_t, mut idle_cap: *mut bool) {}
+unsafe fn wakeup_gc_threads(mut me: u32, mut idle_cap: *mut bool) {}
 
-unsafe fn shutdown_gc_threads(mut me: uint32_t, mut idle_cap: *mut bool) {}
+unsafe fn shutdown_gc_threads(mut me: u32, mut idle_cap: *mut bool) {}
 
-unsafe fn stash_mut_list(mut cap: *mut Capability, mut gen_no: uint32_t) {
+unsafe fn stash_mut_list(mut cap: *mut Capability, mut gen_no: u32) {
     let ref mut fresh7 = *(*cap).saved_mut_lists.offset(gen_no as isize);
     *fresh7 = *(*cap).mut_lists.offset(gen_no as isize);
 
@@ -1418,25 +1328,25 @@ unsafe fn stash_mut_list(mut cap: *mut Capability, mut gen_no: uint32_t) {
 }
 
 unsafe fn prepare_collected_gen(mut r#gen: *mut generation) {
-    let mut i: uint32_t = 0;
-    let mut g: uint32_t = 0;
-    let mut n: uint32_t = 0;
+    let mut i: u32 = 0;
+    let mut g: u32 = 0;
+    let mut n: u32 = 0;
     let mut ws = null_mut::<gen_workspace>();
     let mut bd = null_mut::<bdescr>();
     let mut next = null_mut::<bdescr>();
     g = (*r#gen).no;
 
-    if RtsFlags.GcFlags.useNonmoving as c_int != 0 && g == (*oldest_gen).no {
-        i = 0 as uint32_t;
+    if RtsFlags.GcFlags.useNonmoving as i32 != 0 && g == (*oldest_gen).no {
+        i = 0;
 
-        while i < getNumCapabilities() as uint32_t {
+        while i < getNumCapabilities() as u32 {
             stash_mut_list(getCapability(i), g);
             i = i.wrapping_add(1);
         }
-    } else if g != 0 as uint32_t {
-        i = 0 as uint32_t;
+    } else if g != 0 {
+        i = 0;
 
-        while i < getNumCapabilities() as uint32_t {
+        while i < getNumCapabilities() as u32 {
             let mut old = *(*getCapability(i)).mut_lists.offset(g as isize);
             freeChain(old);
 
@@ -1449,61 +1359,46 @@ unsafe fn prepare_collected_gen(mut r#gen: *mut generation) {
 
     r#gen = generations.offset(g as isize) as *mut generation;
 
-    if ((*r#gen).no == g) as c_int as c_long != 0 {
+    if ((*r#gen).no == g) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            1693 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1693);
     }
 
     (*r#gen).old_threads = (*r#gen).threads;
     (*r#gen).threads = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
 
-    if !(RtsFlags.GcFlags.useNonmoving as c_int != 0 && g == (*oldest_gen).no) {
+    if !(RtsFlags.GcFlags.useNonmoving as i32 != 0 && g == (*oldest_gen).no) {
         (*r#gen).old_blocks = (*r#gen).blocks;
         (*r#gen).n_old_blocks = (*r#gen).n_blocks;
         (*r#gen).blocks = null_mut::<bdescr>();
-        (*r#gen).n_blocks = 0 as memcount;
-        (*r#gen).n_words = 0 as memcount;
-        (*r#gen).live_estimate = 0 as memcount;
+        (*r#gen).n_blocks = 0;
+        (*r#gen).n_words = 0;
+        (*r#gen).live_estimate = 0;
     }
 
-    if (*r#gen).scavenged_large_objects.is_null() as c_int as c_long != 0 {
+    if (*r#gen).scavenged_large_objects.is_null() as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            1713 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1713);
     }
 
-    if ((*r#gen).n_scavenged_large_blocks == 0 as memcount) as c_int as c_long != 0 {
+    if ((*r#gen).n_scavenged_large_blocks == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            1714 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1714);
     }
 
-    if (*r#gen).live_compact_objects.is_null() as c_int as c_long != 0 {
+    if (*r#gen).live_compact_objects.is_null() as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            1715 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1715);
     }
 
-    if ((*r#gen).n_live_compact_blocks == 0 as memcount) as c_int as c_long != 0 {
+    if ((*r#gen).n_live_compact_blocks == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            1716 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1716);
     }
 
-    n = 0 as uint32_t;
+    n = 0;
 
-    while n < getNumCapabilities() as uint32_t {
+    while n < getNumCapabilities() as u32 {
         ws = (&raw mut (**gc_threads.offset(n as isize)).gens as *mut gen_workspace)
             .offset((*r#gen).no as isize) as *mut gen_workspace;
         bd = (*ws).0.part_list;
@@ -1517,31 +1412,22 @@ unsafe fn prepare_collected_gen(mut r#gen: *mut generation) {
         }
 
         (*ws).0.part_list = null_mut::<bdescr>();
-        (*ws).0.n_part_blocks = 0 as StgWord;
-        (*ws).0.n_part_words = 0 as StgWord;
+        (*ws).0.n_part_blocks = 0;
+        (*ws).0.n_part_words = 0;
 
-        if (*ws).0.scavd_list.is_null() as c_int as c_long != 0 {
+        if (*ws).0.scavd_list.is_null() as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                1733 as c_uint,
-            );
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1733);
         }
 
-        if ((*ws).0.n_scavd_blocks == 0 as StgWord) as c_int as c_long != 0 {
+        if ((*ws).0.n_scavd_blocks == 0) as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                1734 as c_uint,
-            );
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1734);
         }
 
-        if ((*ws).0.n_scavd_words == 0 as StgWord) as c_int as c_long != 0 {
+        if ((*ws).0.n_scavd_words == 0) as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                1735 as c_uint,
-            );
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1735);
         }
 
         if (*ws).0.todo_free != (*(*ws).0.todo_bd).start {
@@ -1551,7 +1437,7 @@ unsafe fn prepare_collected_gen(mut r#gen: *mut generation) {
             (*r#gen).n_old_blocks = (*r#gen)
                 .n_old_blocks
                 .wrapping_add((*(*ws).0.todo_bd).blocks as memcount);
-            alloc_todo_block(ws, 0 as uint32_t);
+            alloc_todo_block(ws, 0);
         }
 
         n = n.wrapping_add(1);
@@ -1560,21 +1446,21 @@ unsafe fn prepare_collected_gen(mut r#gen: *mut generation) {
     bd = (*r#gen).old_blocks;
 
     while !bd.is_null() {
-        (*bd).flags = ((*bd).flags as c_int & !BF_EVACUATED) as StgWord16;
+        (*bd).flags = ((*bd).flags as i32 & !BF_EVACUATED) as StgWord16;
         bd = (*bd).link as *mut bdescr;
     }
 
     bd = (*r#gen).large_objects;
 
     while !bd.is_null() {
-        (*bd).flags = ((*bd).flags as c_int & !BF_EVACUATED) as StgWord16;
+        (*bd).flags = ((*bd).flags as i32 & !BF_EVACUATED) as StgWord16;
         bd = (*bd).link as *mut bdescr;
     }
 
     bd = (*r#gen).compact_objects;
 
     while !bd.is_null() {
-        (*bd).flags = ((*bd).flags as c_int & !BF_EVACUATED) as StgWord16;
+        (*bd).flags = ((*bd).flags as i32 & !BF_EVACUATED) as StgWord16;
         bd = (*bd).link as *mut bdescr;
     }
 
@@ -1589,7 +1475,7 @@ unsafe fn prepare_collected_gen(mut r#gen: *mut generation) {
                 (BITS_PER_BYTE as usize).wrapping_mul(size_of::<W_>() as usize) as memcount,
             ) as StgWord;
 
-        if bitmap_size > 0 as StgWord {
+        if bitmap_size > 0 {
             bitmap_bdescr = allocGroup(
                 (bitmap_size
                     .wrapping_add(BLOCK_SIZE as W_)
@@ -1601,15 +1487,11 @@ unsafe fn prepare_collected_gen(mut r#gen: *mut generation) {
             (*r#gen).bitmap = bitmap_bdescr;
             bitmap = (*bitmap_bdescr).start as *mut StgWord;
 
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-                trace_(
-                    b"bitmap_size: %d, bitmap: %p\0" as *const u8 as *const c_char as *mut c_char,
-                    bitmap_size,
-                    bitmap,
-                );
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+                trace_(c"bitmap_size: %d, bitmap: %p".as_ptr(), bitmap_size, bitmap);
             }
 
-            memset(bitmap as *mut c_void, 0 as c_int, bitmap_size as size_t);
+            memset(bitmap as *mut c_void, 0, bitmap_size as usize);
             bd = (*r#gen).old_blocks;
 
             while !bd.is_null() {
@@ -1619,11 +1501,11 @@ unsafe fn prepare_collected_gen(mut r#gen: *mut generation) {
                         (BITS_PER_BYTE as usize).wrapping_mul(size_of::<W_>() as usize),
                     ) as isize);
 
-                if (*bd).flags as c_int & BF_FRAGMENTED == 0 {
-                    (*bd).flags = ((*bd).flags as c_int | BF_MARKED) as StgWord16;
+                if (*bd).flags as i32 & BF_FRAGMENTED == 0 {
+                    (*bd).flags = ((*bd).flags as i32 | BF_MARKED) as StgWord16;
                 }
 
-                (*bd).flags = ((*bd).flags as c_int & !BF_SWEPT) as StgWord16;
+                (*bd).flags = ((*bd).flags as i32 & !BF_SWEPT) as StgWord16;
                 bd = (*bd).link as *mut bdescr;
             }
         }
@@ -1631,46 +1513,37 @@ unsafe fn prepare_collected_gen(mut r#gen: *mut generation) {
 }
 
 unsafe fn prepare_uncollected_gen(mut r#gen: *mut generation) {
-    let mut i: uint32_t = 0;
+    let mut i: u32 = 0;
 
-    if ((*r#gen).no > 0 as uint32_t) as c_int as c_long != 0 {
+    if ((*r#gen).no > 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            1814 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1814);
     }
 
-    i = 0 as uint32_t;
+    i = 0;
 
-    while i < getNumCapabilities() as uint32_t {
+    while i < getNumCapabilities() as u32 {
         stash_mut_list(getCapability(i), (*r#gen).no);
         i = i.wrapping_add(1);
     }
 
-    if (*r#gen).scavenged_large_objects.is_null() as c_int as c_long != 0 {
+    if (*r#gen).scavenged_large_objects.is_null() as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            1823 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1823);
     }
 
-    if ((*r#gen).n_scavenged_large_blocks == 0 as memcount) as c_int as c_long != 0 {
+    if ((*r#gen).n_scavenged_large_blocks == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-            1824 as c_uint,
-        );
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1824);
     };
 }
 
 unsafe fn collect_gct_blocks() {
-    let mut g: uint32_t = 0;
+    let mut g: u32 = 0;
     let mut ws = null_mut::<gen_workspace>();
     let mut bd = null_mut::<bdescr>();
     let mut prev = null_mut::<bdescr>();
-    g = 0 as uint32_t;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         ws = (&raw mut (*(&raw mut the_gc_thread as *mut gc_thread)).gens as *mut gen_workspace)
@@ -1679,22 +1552,16 @@ unsafe fn collect_gct_blocks() {
         if !(*ws).0.scavd_list.is_null() {
             if (*(&raw mut the_gc_thread as *mut gc_thread))
                 .scan_bd
-                .is_null() as c_int as c_long
+                .is_null() as i32 as i64
                 != 0
             {
             } else {
-                _assertFail(
-                    b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                    1848 as c_uint,
-                );
+                _assertFail(c"rts/sm/GC.c".as_ptr(), 1848);
             }
 
-            if (countBlocks((*ws).0.scavd_list) == (*ws).0.n_scavd_blocks) as c_int as c_long != 0 {
+            if (countBlocks((*ws).0.scavd_list) == (*ws).0.n_scavd_blocks) as i32 as i64 != 0 {
             } else {
-                _assertFail(
-                    b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                    1849 as c_uint,
-                );
+                _assertFail(c"rts/sm/GC.c".as_ptr(), 1849);
             }
 
             prev = null_mut::<bdescr>();
@@ -1717,8 +1584,8 @@ unsafe fn collect_gct_blocks() {
                 .wrapping_add((*ws).0.n_scavd_words)
                 as memcount as memcount;
             (*ws).0.scavd_list = null_mut::<bdescr>();
-            (*ws).0.n_scavd_blocks = 0 as StgWord;
-            (*ws).0.n_scavd_words = 0 as StgWord;
+            (*ws).0.n_scavd_blocks = 0;
+            (*ws).0.n_scavd_words = 0;
         }
 
         g = g.wrapping_add(1);
@@ -1728,29 +1595,28 @@ unsafe fn collect_gct_blocks() {
 unsafe fn collect_pinned_object_blocks() {
     let use_nonmoving = RtsFlags.GcFlags.useNonmoving;
 
-    let r#gen = if use_nonmoving as c_int != 0 && major_gc as c_int != 0 {
+    let r#gen = if use_nonmoving as i32 != 0 && major_gc as i32 != 0 {
         oldest_gen
     } else {
         g0
     };
 
-    let mut n: uint32_t = 0 as uint32_t;
+    let mut n: u32 = 0;
 
-    while n < getNumCapabilities() as uint32_t {
+    while n < getNumCapabilities() as u32 {
         let mut last = null_mut::<bdescr>();
 
-        if use_nonmoving as c_int != 0 && r#gen == oldest_gen {
+        if use_nonmoving as i32 != 0 && r#gen == oldest_gen {
             let mut bd = (*getCapability(n)).pinned_object_blocks;
 
             while !bd.is_null() {
-                (*bd).flags = ((*bd).flags as c_int | BF_NONMOVING) as StgWord16;
+                (*bd).flags = ((*bd).flags as i32 | BF_NONMOVING) as StgWord16;
                 (*bd).r#gen = oldest_gen as *mut generation_;
                 (*bd).gen_no = (*oldest_gen).no as StgWord16;
-                (*oldest_gen).n_large_words =
-                    (*oldest_gen)
-                        .n_large_words
-                        .wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).start) as c_long
-                            as memcount);
+                (*oldest_gen).n_large_words = (*oldest_gen).n_large_words.wrapping_add(
+                    (*bd).c2rust_unnamed.free.offset_from((*bd).start) as i64 as memcount,
+                );
+
                 (*oldest_gen).n_large_blocks = (*oldest_gen)
                     .n_large_blocks
                     .wrapping_add((*bd).blocks as memcount);
@@ -1788,15 +1654,15 @@ unsafe fn init_gc_thread(mut t: *mut gc_thread) {
     (*t).scavenged_static_objects = static_flag as StgWord as *mut StgClosure;
     (*t).scan_bd = null_mut::<bdescr>();
     (*t).mut_lists = (*(*t).cap).mut_lists;
-    (*t).evac_gen_no = 0 as uint32_t;
-    (*t).failed_to_evac = r#false != 0;
-    (*t).eager_promotion = r#true != 0;
-    (*t).thunk_selector_depth = 0 as W_;
-    (*t).copied = 0 as W_;
-    (*t).scanned = 0 as W_;
-    (*t).any_work = 0 as W_;
-    (*t).scav_find_work = 0 as W_;
-    (*t).max_n_todo_overflow = 0 as W_;
+    (*t).evac_gen_no = 0;
+    (*t).failed_to_evac = false;
+    (*t).eager_promotion = true;
+    (*t).thunk_selector_depth = 0;
+    (*t).copied = 0;
+    (*t).scanned = 0;
+    (*t).any_work = 0;
+    (*t).scav_find_work = 0;
+    (*t).max_n_todo_overflow = 0;
 }
 
 unsafe fn mark_root(mut user: *mut c_void, mut root: *mut *mut StgClosure) {
@@ -1804,7 +1670,7 @@ unsafe fn mark_root(mut user: *mut c_void, mut root: *mut *mut StgClosure) {
 }
 
 unsafe fn resizeGenerations() {
-    let mut g: uint32_t = 0;
+    let mut g: u32 = 0;
     let mut live: W_ = 0;
     let mut size: W_ = 0;
     let mut min_alloc: W_ = 0;
@@ -1812,7 +1678,7 @@ unsafe fn resizeGenerations() {
     let max: W_ = RtsFlags.GcFlags.maxHeapSize as W_;
     let gens: W_ = RtsFlags.GcFlags.generations as W_;
 
-    if (*oldest_gen).live_estimate != 0 as memcount {
+    if (*oldest_gen).live_estimate != 0 {
         words = (*oldest_gen).live_estimate as W_;
     } else {
         words = (*oldest_gen).n_words as W_;
@@ -1826,18 +1692,14 @@ unsafe fn resizeGenerations() {
         .wrapping_add((*oldest_gen).n_compact_blocks as W_);
 
     size = ({
-        let mut _a = live as c_double * RtsFlags.GcFlags.oldGenFactor as c_double;
-        let mut _b = RtsFlags.GcFlags.minOldGenSize as c_double;
+        let mut _a = live as f64 * RtsFlags.GcFlags.oldGenFactor as f64;
+        let mut _b = RtsFlags.GcFlags.minOldGenSize as f64;
 
-        if _a <= _b {
-            _b as c_double
-        } else {
-            _a as c_double
-        }
+        if _a <= _b { _b as f64 } else { _a as f64 }
     }) as W_;
 
     if RtsFlags.GcFlags.heapSizeSuggestionAuto {
-        if max > 0 as W_ {
+        if max > 0 {
             RtsFlags.GcFlags.heapSizeSuggestion = ({
                 let _a: W_ = max as W_;
                 let _b: W_ = size as W_;
@@ -1847,50 +1709,43 @@ unsafe fn resizeGenerations() {
                 } else {
                     _b as W_
                 }
-            }) as uint32_t;
+            }) as u32;
         } else {
-            RtsFlags.GcFlags.heapSizeSuggestion = size as uint32_t;
+            RtsFlags.GcFlags.heapSizeSuggestion = size as u32;
         }
     }
 
     min_alloc = ({
-        let mut _a =
-            RtsFlags.GcFlags.pcFreeHeap as c_double * max as c_double / 200 as c_int as c_double;
-
+        let mut _a = RtsFlags.GcFlags.pcFreeHeap as f64 * max as f64 / 200;
         let mut _b = (RtsFlags.GcFlags.minAllocAreaSize as W_)
-            .wrapping_mul(getNumCapabilities() as W_) as c_double;
+            .wrapping_mul(getNumCapabilities() as W_) as f64;
 
-        if _a <= _b {
-            _b as c_double
-        } else {
-            _a as c_double
-        }
+        if _a <= _b { _b as f64 } else { _a as f64 }
     }) as W_;
 
     if !RtsFlags.GcFlags.useNonmoving
-        && (RtsFlags.GcFlags.compact as c_int != 0
-            || max > 0 as W_
-                && (*oldest_gen).n_blocks as c_double
-                    > RtsFlags.GcFlags.compactThreshold * max as c_double
-                        / 100 as c_int as c_double)
+        && (RtsFlags.GcFlags.compact as i32 != 0
+            || max > 0
+                && (*oldest_gen).n_blocks as f64
+                    > RtsFlags.GcFlags.compactThreshold * max as f64 / 100)
     {
-        (*oldest_gen).mark = 1 as c_int;
-        (*oldest_gen).compact = 1 as c_int;
+        (*oldest_gen).mark = 1;
+        (*oldest_gen).compact = 1;
     } else {
-        (*oldest_gen).mark = 0 as c_int;
-        (*oldest_gen).compact = 0 as c_int;
+        (*oldest_gen).mark = 0;
+        (*oldest_gen).compact = 0;
     }
 
     if RtsFlags.GcFlags.sweep {
-        (*oldest_gen).mark = 1 as c_int;
+        (*oldest_gen).mark = 1;
     }
 
-    if max != 0 as W_ {
+    if max != 0 {
         if max < min_alloc {
             heapOverflow();
         }
 
-        if (*oldest_gen).compact != 0 || RtsFlags.GcFlags.useNonmoving as c_int != 0 {
+        if (*oldest_gen).compact != 0 || RtsFlags.GcFlags.useNonmoving as i32 != 0 {
             if size
                 .wrapping_add(
                     size.wrapping_sub(1 as W_)
@@ -1922,7 +1777,7 @@ unsafe fn resizeGenerations() {
         }
     }
 
-    g = 0 as uint32_t;
+    g = 0;
 
     while (g as W_) < gens {
         (*generations.offset(g as isize)).max_blocks = size as memcount;
@@ -1934,40 +1789,37 @@ unsafe fn resize_nursery() {
     let min_nursery: StgWord = (RtsFlags.GcFlags.minAllocAreaSize as StgWord)
         .wrapping_mul(getNumCapabilities() as StgWord);
 
-    if RtsFlags.GcFlags.generations == 1 as uint32_t {
+    if RtsFlags.GcFlags.generations == 1 {
         let mut blocks: W_ = 0;
-        blocks = (*generations.offset(0 as c_int as isize)).n_blocks as W_;
+        blocks = (*generations.offset(0)).n_blocks as W_;
 
-        if RtsFlags.GcFlags.maxHeapSize != 0 as uint32_t
-            && blocks as c_double * RtsFlags.GcFlags.oldGenFactor * 2 as c_int as c_double
-                > RtsFlags.GcFlags.maxHeapSize as c_double
+        if RtsFlags.GcFlags.maxHeapSize != 0
+            && blocks as f64 * RtsFlags.GcFlags.oldGenFactor * 2
+                > RtsFlags.GcFlags.maxHeapSize as f64
         {
-            let mut adjusted_blocks: c_long = 0;
-            let mut pc_free: c_int = 0;
+            let mut adjusted_blocks: i64 = 0;
+            let mut pc_free: i32 = 0;
             adjusted_blocks = (RtsFlags.GcFlags.maxHeapSize as W_)
-                .wrapping_sub((2 as W_).wrapping_mul(blocks))
-                as c_long;
+                .wrapping_sub((2 as W_).wrapping_mul(blocks)) as i64;
 
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
                 trace_(
-                    b"near maximum heap size of 0x%x blocks, blocks = %d, adjusted to %ld\0"
-                        as *const u8 as *const c_char as *mut c_char,
+                    c"near maximum heap size of 0x%x blocks, blocks = %d, adjusted to %ld".as_ptr(),
                     RtsFlags.GcFlags.maxHeapSize,
                     blocks,
                     adjusted_blocks,
                 );
             }
 
-            pc_free =
-                (adjusted_blocks * 100 as c_long / RtsFlags.GcFlags.maxHeapSize as c_long) as c_int;
+            pc_free = (adjusted_blocks * 100 / RtsFlags.GcFlags.maxHeapSize as i64) as i32;
 
-            if (pc_free as c_double) < RtsFlags.GcFlags.pcFreeHeap {
+            if (pc_free as f64) < RtsFlags.GcFlags.pcFreeHeap {
                 heapOverflow();
             }
 
             blocks = adjusted_blocks as W_;
         } else {
-            blocks = (blocks as c_double * RtsFlags.GcFlags.oldGenFactor) as W_;
+            blocks = (blocks as f64 * RtsFlags.GcFlags.oldGenFactor) as W_;
 
             if blocks < min_nursery {
                 blocks = min_nursery as W_;
@@ -1976,22 +1828,21 @@ unsafe fn resize_nursery() {
 
         resizeNurseries(blocks as StgWord);
     } else if RtsFlags.GcFlags.heapSizeSuggestion != 0 {
-        let mut blocks_0: c_long = 0;
+        let mut blocks_0: i64 = 0;
         let mut needed: StgWord = 0;
-        calcNeeded(r#false != 0, &raw mut needed);
+        calcNeeded(false, &raw mut needed);
 
-        if N == 0 as uint32_t {
+        if N == 0 {
             g0_pcnt_kept = ((copied as usize)
                 .wrapping_div(BLOCK_SIZE_W.wrapping_sub(10 as usize))
                 .wrapping_mul(100 as usize) as StgWord)
                 .wrapping_div(countNurseryBlocks()) as W_;
         }
 
-        blocks_0 = (RtsFlags.GcFlags.heapSizeSuggestion as c_long - needed as c_long)
-            * 100 as c_long
-            / (100 as c_long + g0_pcnt_kept as c_long);
-        if blocks_0 < min_nursery as c_long {
-            blocks_0 = min_nursery as c_long;
+        blocks_0 = (RtsFlags.GcFlags.heapSizeSuggestion as i64 - needed as i64) * 100
+            / (100 + g0_pcnt_kept as i64);
+        if blocks_0 < min_nursery as i64 {
+            blocks_0 = min_nursery as i64;
         }
 
         resizeNurseries(blocks_0 as StgWord);
@@ -2001,29 +1852,21 @@ unsafe fn resize_nursery() {
 }
 
 unsafe fn gcCAFs() {
-    let mut i: uint32_t = 0 as uint32_t;
+    let mut i: u32 = 0;
     let mut prev = null_mut::<StgIndStatic>();
     let mut p = debug_caf_list;
 
     while p != END_OF_CAF_LIST as *mut StgIndStatic {
         let mut info = get_itbl(p as *mut StgClosure);
 
-        if ((*info).r#type == 28 as StgHalfWord) as c_int as c_long != 0 {
+        if ((*info).r#type == 28) as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"rts/sm/GC.c\0" as *const u8 as *const c_char,
-                2215 as c_uint,
-            );
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 2215);
         }
 
-        if (*p).static_link as StgWord & STATIC_BITS as StgWord | prev_static_flag as StgWord
-            != 3 as StgWord
-        {
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gccafs as c_long != 0 {
-                trace_(
-                    b"CAF gc'd at %p\0" as *const u8 as *const c_char as *mut c_char,
-                    p,
-                );
+        if (*p).static_link as StgWord & STATIC_BITS as StgWord | prev_static_flag as StgWord != 3 {
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gccafs as i64 != 0 {
+                trace_(c"CAF gc'd at %p".as_ptr(), p);
             }
 
             SET_INFO(p as *mut StgClosure, &raw const stg_GCD_CAF_info);
@@ -2041,11 +1884,8 @@ unsafe fn gcCAFs() {
         p = (*p).saved_info as *mut StgIndStatic;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gccafs as c_long != 0 {
-        trace_(
-            b"%d CAFs live\0" as *const u8 as *const c_char as *mut c_char,
-            i,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gccafs as i64 != 0 {
+        trace_(c"%d CAFs live".as_ptr(), i);
     }
 }
 

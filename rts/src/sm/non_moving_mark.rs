@@ -76,7 +76,7 @@ pub(crate) struct MarkQueue_ {
     pub(crate) top: *mut MarkQueueBlock,
     pub(crate) is_upd_rem_set: bool,
     pub(crate) prefetch_queue: [MarkQueueEnt; 5],
-    pub(crate) prefetch_head: uint8_t,
+    pub(crate) prefetch_head: u8,
 }
 
 /// cbindgen:no-export
@@ -109,33 +109,32 @@ pub(crate) struct C2RustUnnamed_5 {
 
 /// cbindgen:no-export
 pub(crate) struct MarkQueueBlock {
-    pub(crate) head: uint32_t,
+    pub(crate) head: u32,
     pub(crate) entries: [MarkQueueEnt; 0],
 }
 
 pub(crate) const MARK_CLOSURE: EntryType = 1;
 
-pub(crate) type EntryType = c_uint;
+pub(crate) type EntryType = u32;
 
 pub(crate) const MARK_ARRAY: EntryType = 2;
 
 pub(crate) const NULL_ENTRY: EntryType = 0;
 
-pub(crate) type MarkBudget = int64_t;
+pub(crate) type MarkBudget = i64;
 
 #[inline]
 pub(crate) unsafe fn nonmovingMarkQueueEntryType(mut ent: *mut MarkQueueEnt) -> EntryType {
-    let mut tag: uintptr_t =
-        (*ent).c2rust_unnamed.null_entry.p as uintptr_t & TAG_MASK as uintptr_t;
+    let mut tag: usize = (*ent).c2rust_unnamed.null_entry.p as usize & TAG_MASK as usize;
 
     return tag as EntryType;
 }
 
-pub(crate) const MARK_PREFETCH_QUEUE_DEPTH: c_int = 5 as c_int;
+pub(crate) const MARK_PREFETCH_QUEUE_DEPTH: i32 = 5;
 
-pub(crate) const UNLIMITED_MARK_BUDGET: c_longlong = INT64_MIN;
+pub(crate) const UNLIMITED_MARK_BUDGET: i64 = INT64_MIN;
 
-pub(crate) const MARK_QUEUE_BLOCKS: c_int = 16 as c_int;
+pub(crate) const MARK_QUEUE_BLOCKS: i32 = 16;
 
 pub(crate) const MARK_QUEUE_BLOCK_ENTRIES: usize = (MARK_QUEUE_BLOCKS as usize)
     .wrapping_mul(BLOCK_SIZE as usize)
@@ -150,51 +149,50 @@ pub(crate) unsafe fn nonmovingMarkUnlimitedBudget(mut queue: *mut MarkQueue_) {
 
 #[inline]
 pub(crate) unsafe fn markQueueIsEmpty(mut q: *mut MarkQueue) -> bool {
-    return (*q).blocks.is_null()
-        || (*(*q).top).head == 0 as uint32_t && (*(*q).blocks).link.is_null();
+    return (*q).blocks.is_null() || (*(*q).top).head == 0 && (*(*q).blocks).link.is_null();
 }
 
-const MARK_ARRAY_CHUNK_LENGTH: c_int = 128 as c_int;
+const MARK_ARRAY_CHUNK_LENGTH: i32 = 128;
 
-static mut nonmoving_large_objects: *mut bdescr = null::<bdescr>() as *mut bdescr;
+static mut nonmoving_large_objects: *mut bdescr = null_mut::<bdescr>();
 
-static mut nonmoving_marked_large_objects: *mut bdescr = null::<bdescr>() as *mut bdescr;
+static mut nonmoving_marked_large_objects: *mut bdescr = null_mut::<bdescr>();
 
-static mut n_nonmoving_large_blocks: memcount = 0 as memcount;
+static mut n_nonmoving_large_blocks: memcount = 0;
 
-static mut n_nonmoving_marked_large_blocks: memcount = 0 as memcount;
+static mut n_nonmoving_marked_large_blocks: memcount = 0;
 
-static mut nonmoving_large_words: memcount = 0 as memcount;
+static mut nonmoving_large_words: memcount = 0;
 
-static mut nonmoving_compact_words: memcount = 0 as memcount;
+static mut nonmoving_compact_words: memcount = 0;
 
-static mut nonmoving_compact_objects: *mut bdescr = null::<bdescr>() as *mut bdescr;
+static mut nonmoving_compact_objects: *mut bdescr = null_mut::<bdescr>();
 
-static mut nonmoving_marked_compact_objects: *mut bdescr = null::<bdescr>() as *mut bdescr;
+static mut nonmoving_marked_compact_objects: *mut bdescr = null_mut::<bdescr>();
 
-static mut n_nonmoving_compact_blocks: memcount = 0 as memcount;
+static mut n_nonmoving_compact_blocks: memcount = 0;
 
-static mut n_nonmoving_marked_compact_blocks: memcount = 0 as memcount;
+static mut n_nonmoving_marked_compact_blocks: memcount = 0;
 
 static mut nonmoving_old_threads: *mut StgTSO = unsafe {
     &raw const stg_END_TSO_QUEUE_closure as *mut StgClosure as *mut c_void as *mut StgTSO
 };
 
-static mut nonmoving_old_weak_ptr_list: *mut StgWeak = null::<StgWeak>() as *mut StgWeak;
+static mut nonmoving_old_weak_ptr_list: *mut StgWeak = null_mut::<StgWeak>();
 
 static mut nonmoving_threads: *mut StgTSO = unsafe {
     &raw const stg_END_TSO_QUEUE_closure as *mut StgClosure as *mut c_void as *mut StgTSO
 };
 
-static mut nonmoving_weak_ptr_list: *mut StgWeak = null::<StgWeak>() as *mut StgWeak;
+static mut nonmoving_weak_ptr_list: *mut StgWeak = null_mut::<StgWeak>();
 
-static mut upd_rem_set_block_list: *mut bdescr = null::<bdescr>() as *mut bdescr;
+static mut upd_rem_set_block_list: *mut bdescr = null_mut::<bdescr>();
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
-pub static mut nonmoving_write_barrier_enabled: StgWord = r#false as StgWord;
+pub static mut nonmoving_write_barrier_enabled: StgWord = false;
 
-static mut current_mark_queue: *mut MarkQueue = null::<MarkQueue>() as *mut MarkQueue;
+static mut current_mark_queue: *mut MarkQueue = null_mut::<MarkQueue>();
 
 unsafe fn nonmovingMarkInit() {}
 
@@ -218,7 +216,7 @@ unsafe fn nonmovingAddUpdRemSetBlocks_lock(mut rset: *mut MarkQueue) {
 
     nonmovingAddUpdRemSetBlocks_(rset);
     init_mark_queue_(rset);
-    (*rset).is_upd_rem_set = r#true != 0;
+    (*rset).is_upd_rem_set = true;
 }
 
 unsafe fn nonmovingAddUpdRemSetBlocks(mut rset: *mut UpdRemSet) {
@@ -228,7 +226,7 @@ unsafe fn nonmovingAddUpdRemSetBlocks(mut rset: *mut UpdRemSet) {
 
     nonmovingAddUpdRemSetBlocks_(&raw mut (*rset).queue);
     init_mark_queue_(&raw mut (*rset).queue);
-    (*rset).queue.is_upd_rem_set = r#true != 0;
+    (*rset).queue.is_upd_rem_set = true;
 }
 
 #[inline]
@@ -241,7 +239,7 @@ unsafe fn push(mut q: *mut MarkQueue, mut ent: *const MarkQueueEnt) {
             (*bd).link = (*q).blocks as *mut bdescr_;
             (*q).blocks = bd;
             (*q).top = (*bd).start as *mut MarkQueueBlock;
-            (*(*q).top).head = 0 as uint32_t;
+            (*(*q).top).head = 0;
         }
     }
 
@@ -259,13 +257,13 @@ unsafe fn markQueuePushClosureGC(mut q: *mut MarkQueue, mut p: *mut StgClosure) 
         (*bd).link = (*q).blocks as *mut bdescr_;
         (*q).blocks = bd;
         (*q).top = (*bd).start as *mut MarkQueueBlock;
-        (*(*q).top).head = 0 as uint32_t;
+        (*(*q).top).head = 0;
     }
 
     let mut ent = MarkQueueEnt {
         c2rust_unnamed: C2RustUnnamed_2 {
             mark_closure: C2RustUnnamed_4 {
-                p: TAG_CLOSURE(MARK_CLOSURE as c_int as StgWord, UNTAG_CLOSURE(p)),
+                p: TAG_CLOSURE(MARK_CLOSURE as i32 as StgWord, UNTAG_CLOSURE(p)),
                 origin: null_mut::<*mut StgClosure>(),
             },
         },
@@ -284,7 +282,7 @@ unsafe fn push_closure(
     let mut ent = MarkQueueEnt {
         c2rust_unnamed: C2RustUnnamed_2 {
             mark_closure: C2RustUnnamed_4 {
-                p: TAG_CLOSURE(MARK_CLOSURE as c_int as StgWord, UNTAG_CLOSURE(p)),
+                p: TAG_CLOSURE(MARK_CLOSURE as i32 as StgWord, UNTAG_CLOSURE(p)),
                 origin: origin,
             },
         },
@@ -309,7 +307,7 @@ unsafe fn push_array(
         c2rust_unnamed: C2RustUnnamed_2 {
             mark_array: C2RustUnnamed_3 {
                 array: TAG_CLOSURE(
-                    MARK_ARRAY as c_int as StgWord,
+                    MARK_ARRAY as i32 as StgWord,
                     UNTAG_CLOSURE(array as *mut StgClosure),
                 ) as *const StgMutArrPtrs,
                 start_index: start_index,
@@ -326,7 +324,7 @@ unsafe fn push_thunk_srt(mut q: *mut MarkQueue, mut info: *const StgInfoTable) {
     if (*thunk_info).i.srt != 0 {
         push_closure(
             q,
-            (thunk_info.offset(1 as c_int as isize) as StgWord)
+            (thunk_info.offset(1 as i32 as isize) as StgWord)
                 .wrapping_add((*thunk_info).i.srt as StgWord) as *mut StgClosure,
             null_mut::<*mut StgClosure>(),
         );
@@ -339,7 +337,7 @@ unsafe fn push_fun_srt(mut q: *mut MarkQueue, mut info: *const StgInfoTable) {
     if (*fun_info).i.srt != 0 {
         push_closure(
             q,
-            (fun_info.offset(1 as c_int as isize) as StgWord)
+            (fun_info.offset(1 as i32 as isize) as StgWord)
                 .wrapping_add((*fun_info).i.srt as StgWord) as *mut StgClosure,
             null_mut::<*mut StgClosure>(),
         );
@@ -348,9 +346,9 @@ unsafe fn push_fun_srt(mut q: *mut MarkQueue, mut info: *const StgInfoTable) {
 
 unsafe fn check_in_nonmoving_heap(mut p: *mut StgClosure) -> bool {
     if p as W_ >= mblock_address_space.0.begin && (p as W_) < mblock_address_space.0.end {
-        return block_get_flags(Bdescr(p as StgPtr)) as c_int & BF_NONMOVING != 0;
+        return block_get_flags(Bdescr(p as StgPtr)) as i32 & BF_NONMOVING != 0;
     } else {
-        return r#true != 0;
+        return true;
     };
 }
 
@@ -381,7 +379,7 @@ unsafe fn updateRemembSetPushThunkEager(
         15 | 16 | 17 | 18 | 19 | 20 => {
             push_thunk_srt(queue, &raw const (*info).i);
 
-            let mut i: StgWord = 0 as StgWord;
+            let mut i: StgWord = 0;
 
             while i < (*info).i.layout.payload.ptrs as StgWord {
                 if check_in_nonmoving_heap(
@@ -431,8 +429,7 @@ unsafe fn updateRemembSetPushThunkEager(
         }
         _ => {
             barf(
-                b"updateRemembSetPushThunk: invalid thunk pushed: p=%p, type=%d\0" as *const u8
-                    as *const c_char,
+                c"updateRemembSetPushThunk: invalid thunk pushed: p=%p, type=%d".as_ptr(),
                 thunk,
                 (*info).i.r#type,
             );
@@ -474,24 +471,24 @@ unsafe fn needs_upd_rem_set_mark(mut p: *mut StgClosure) -> bool {
     let mut flags = block_get_flags(bd);
 
     if (*bd).r#gen != oldest_gen {
-        return r#false != 0;
-    } else if flags as c_int & BF_LARGE != 0 {
-        if flags as c_int & BF_NONMOVING_SWEEPING == 0 {
-            return r#false != 0;
+        return false;
+    } else if flags as i32 & BF_LARGE != 0 {
+        if flags as i32 & BF_NONMOVING_SWEEPING == 0 {
+            return false;
         } else {
-            return flags as c_int & BF_MARKED == 0;
+            return flags as i32 & BF_MARKED == 0;
         }
     } else {
         let mut seg = nonmovingGetSegment(p as StgPtr);
         let mut block_idx = nonmovingGetBlockIdx(p as StgPtr);
 
-        return nonmovingGetMark(seg, block_idx) as c_int != nonmovingMarkEpoch as c_int;
+        return nonmovingGetMark(seg, block_idx) as i32 != nonmovingMarkEpoch as i32;
     };
 }
 
 unsafe fn finish_upd_rem_set_mark_large(mut bd: *mut bdescr) {
-    if block_get_flags(bd) as c_int & BF_MARKED == 0 {
-        block_set_flag(bd, BF_MARKED as uint16_t);
+    if block_get_flags(bd) as i32 & BF_MARKED == 0 {
+        block_set_flag(bd, BF_MARKED as u16);
         dbl_link_remove(bd, &raw mut nonmoving_large_objects);
         dbl_link_onto(bd, &raw mut nonmoving_marked_large_objects);
         n_nonmoving_large_blocks = n_nonmoving_large_blocks.wrapping_sub((*bd).blocks as memcount);
@@ -504,7 +501,7 @@ unsafe fn finish_upd_rem_set_mark_large(mut bd: *mut bdescr) {
 unsafe fn finish_upd_rem_set_mark(mut p: *mut StgClosure) {
     let mut bd = Bdescr(p as StgPtr);
 
-    if block_get_flags(bd) as c_int & BF_LARGE != 0 {
+    if block_get_flags(bd) as i32 & BF_LARGE != 0 {
         finish_upd_rem_set_mark_large(bd);
     } else {
         let mut seg = nonmovingGetSegment(p as StgPtr);
@@ -515,11 +512,8 @@ unsafe fn finish_upd_rem_set_mark(mut p: *mut StgClosure) {
 
 unsafe fn updateRemembSetPushTSO(mut cap: *mut Capability, mut tso: *mut StgTSO) {
     if needs_upd_rem_set_mark(tso as *mut StgClosure) {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as c_long != 0 {
-            trace_(
-                b"upd_rem_set: TSO %p\0" as *const u8 as *const c_char as *mut c_char,
-                tso,
-            );
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as i64 != 0 {
+            trace_(c"upd_rem_set: TSO %p".as_ptr(), tso);
         }
 
         trace_tso(&raw mut (*cap).upd_rem_set.queue, tso);
@@ -535,14 +529,11 @@ unsafe fn updateRemembSetPushStack(mut cap: *mut Capability, mut stack: *mut Stg
             &raw mut (*stack).marking,
             marking,
             nonmovingMarkEpoch as StgWord8,
-        ) as c_int
-            != nonmovingMarkEpoch as c_int
+        ) as i32
+            != nonmovingMarkEpoch as i32
         {
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as c_long != 0 {
-                trace_(
-                    b"upd_rem_set: STACK %p\0" as *const u8 as *const c_char as *mut c_char,
-                    (*stack).sp,
-                );
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as i64 != 0 {
+                trace_(c"upd_rem_set: STACK %p".as_ptr(), (*stack).sp);
             }
 
             trace_stack(&raw mut (*cap).upd_rem_set.queue, stack);
@@ -606,7 +597,7 @@ unsafe fn markQueuePop_(mut q: *mut MarkQueue) -> MarkQueueEnt {
     loop {
         top = (*q).top;
 
-        if (*top).head == 0 as uint32_t {
+        if (*top).head == 0 {
             if (*(*q).blocks).link.is_null() {
                 let mut none = MarkQueueEnt {
                     c2rust_unnamed: C2RustUnnamed_2 {
@@ -633,33 +624,33 @@ unsafe fn markQueuePop_(mut q: *mut MarkQueue) -> MarkQueueEnt {
 }
 
 unsafe fn markQueuePop(mut q: *mut MarkQueue) -> MarkQueueEnt {
-    let mut i = (*q).prefetch_head as c_uint;
+    let mut i = (*q).prefetch_head as u32;
 
     's_3: while nonmovingMarkQueueEntryType(
         (&raw mut (*q).prefetch_queue as *mut MarkQueueEnt).offset(i as isize) as *mut MarkQueueEnt,
-    ) as c_uint
-        == NULL_ENTRY as c_int as c_uint
+    ) as u32
+        == NULL_ENTRY as i32 as u32
     {
         let mut new = markQueuePop_(q);
 
-        if nonmovingMarkQueueEntryType(&raw mut new) as c_uint == NULL_ENTRY as c_int as c_uint {
+        if nonmovingMarkQueueEntryType(&raw mut new) as u32 == NULL_ENTRY as i32 as u32 {
             let mut j = i
-                .wrapping_add(1 as c_uint)
-                .wrapping_rem(MARK_PREFETCH_QUEUE_DEPTH as c_uint);
+                .wrapping_add(1 as u32)
+                .wrapping_rem(MARK_PREFETCH_QUEUE_DEPTH as u32);
 
             while j != i {
                 if nonmovingMarkQueueEntryType(
                     (&raw mut (*q).prefetch_queue as *mut MarkQueueEnt).offset(j as isize)
                         as *mut MarkQueueEnt,
-                ) as c_uint
-                    != NULL_ENTRY as c_int as c_uint
+                ) as u32
+                    != NULL_ENTRY as i32 as u32
                 {
                     i = j;
                     break 's_3;
                 } else {
                     j = j
-                        .wrapping_add(1 as c_uint)
-                        .wrapping_rem(MARK_PREFETCH_QUEUE_DEPTH as c_uint);
+                        .wrapping_add(1 as u32)
+                        .wrapping_rem(MARK_PREFETCH_QUEUE_DEPTH as u32);
                 }
             }
 
@@ -673,14 +664,14 @@ unsafe fn markQueuePop(mut q: *mut MarkQueue) -> MarkQueueEnt {
             Bdescr(new.c2rust_unnamed.mark_closure.p as StgPtr);
             (*q).prefetch_queue[i as usize] = new;
             i = i
-                .wrapping_add(1 as c_uint)
-                .wrapping_rem(MARK_PREFETCH_QUEUE_DEPTH as c_uint);
+                .wrapping_add(1 as u32)
+                .wrapping_rem(MARK_PREFETCH_QUEUE_DEPTH as u32);
         }
     }
 
     let mut ret = (*q).prefetch_queue[i as usize];
     (*q).prefetch_queue[i as usize].c2rust_unnamed.null_entry.p = NULL;
-    (*q).prefetch_head = i as uint8_t;
+    (*q).prefetch_head = i as u8;
 
     return ret;
 }
@@ -689,25 +680,25 @@ unsafe fn init_mark_queue_(mut queue: *mut MarkQueue) {
     let mut bd = allocGroup(MARK_QUEUE_BLOCKS as W_);
     (*queue).blocks = bd;
     (*queue).top = (*bd).start as *mut MarkQueueBlock;
-    (*(*queue).top).head = 0 as uint32_t;
+    (*(*queue).top).head = 0;
 
     memset(
         &raw mut (*queue).prefetch_queue as *mut c_void,
-        0 as c_int,
-        size_of::<[MarkQueueEnt; 5]>() as size_t,
+        0,
+        size_of::<[MarkQueueEnt; 5]>() as usize,
     );
 
-    (*queue).prefetch_head = 0 as uint8_t;
+    (*queue).prefetch_head = 0;
 }
 
 unsafe fn initMarkQueue(mut queue: *mut MarkQueue) {
     init_mark_queue_(queue);
-    (*queue).is_upd_rem_set = r#false != 0;
+    (*queue).is_upd_rem_set = false;
 }
 
 unsafe fn nonmovingInitUpdRemSet(mut rset: *mut UpdRemSet) {
     init_mark_queue_(&raw mut (*rset).queue);
-    (*rset).queue.is_upd_rem_set = r#true != 0;
+    (*rset).queue.is_upd_rem_set = true;
 }
 
 unsafe fn freeMarkQueue(mut queue: *mut MarkQueue) {
@@ -717,7 +708,7 @@ unsafe fn freeMarkQueue(mut queue: *mut MarkQueue) {
 unsafe fn trace_trec_chunk(mut queue: *mut MarkQueue, mut chunk: *mut StgTRecChunk) {
     markQueuePushClosure_(queue, chunk as *mut StgClosure);
 
-    let mut i: StgWord = 0 as StgWord;
+    let mut i: StgWord = 0;
 
     while i < (*chunk).next_entry_idx {
         let mut ent: *mut TRecEntry =
@@ -792,13 +783,13 @@ unsafe fn trace_small_bitmap(
     mut size: StgWord,
     mut bitmap: StgWord,
 ) {
-    while size > 0 as StgWord {
-        if bitmap & 1 as StgWord == 0 as StgWord {
+    while size > 0 {
+        if bitmap & 1 == 0 {
             markQueuePushClosure(queue, *p, null_mut::<*mut StgClosure>());
         }
 
         p = p.offset(1);
-        bitmap = bitmap >> 1 as c_int;
+        bitmap = bitmap >> 1;
         size = size.wrapping_sub(1);
     }
 }
@@ -823,7 +814,7 @@ unsafe fn trace_PAP_payload(
             trace_large_bitmap(
                 queue,
                 payload,
-                (fun_info.offset(1 as c_int as isize) as StgWord)
+                (fun_info.offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                     as *mut StgLargeBitmap,
                 size,
@@ -845,7 +836,6 @@ unsafe fn trace_PAP_payload(
             bitmap = *(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 >> BITMAP_BITS_SHIFT;
-
             current_block_7 = 4348410881353642614;
         }
     }
@@ -875,7 +865,7 @@ unsafe fn mark_arg_block(
             current_block_8 = 9372144099661896856;
         }
         1 => {
-            size = (*((fun_info.offset(1 as c_int as isize) as StgWord)
+            size = (*((fun_info.offset(1 as i32 as isize) as StgWord)
                 .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                 as *mut StgLargeBitmap))
                 .size;
@@ -883,7 +873,7 @@ unsafe fn mark_arg_block(
             trace_large_bitmap(
                 queue,
                 p as *mut *mut StgClosure,
-                (fun_info.offset(1 as c_int as isize) as StgWord)
+                (fun_info.offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                     as *mut StgLargeBitmap,
                 size,
@@ -896,7 +886,6 @@ unsafe fn mark_arg_block(
             bitmap = *(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 >> BITMAP_BITS_SHIFT;
-
             size = *(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 & BITMAP_SIZE_MASK as StgWord;
@@ -923,7 +912,6 @@ unsafe fn trace_stack_(mut queue: *mut MarkQueue, mut sp: StgPtr, mut spBottom: 
             33 => {
                 let mut frame = sp as *mut StgUpdateFrame;
                 markQueuePushClosure_(queue, (*frame).updatee);
-
                 sp = sp.offset(
                     (size_of::<StgUpdateFrame>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
@@ -962,7 +950,7 @@ unsafe fn trace_stack_(mut queue: *mut MarkQueue, mut sp: StgPtr, mut spBottom: 
             }
             31 => {
                 let mut size_1: StgWord = 0;
-                size_1 = (*(((&raw const (*info).i).offset(1 as c_int as isize) as StgWord)
+                size_1 = (*(((&raw const (*info).i).offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*info).i.layout.large_bitmap_offset as StgWord)
                     as *mut StgLargeBitmap))
                     .size;
@@ -971,7 +959,7 @@ unsafe fn trace_stack_(mut queue: *mut MarkQueue, mut sp: StgPtr, mut spBottom: 
                 trace_large_bitmap(
                     queue,
                     sp as *mut *mut StgClosure,
-                    ((&raw const (*info).i).offset(1 as c_int as isize) as StgWord)
+                    ((&raw const (*info).i).offset(1 as i32 as isize) as StgWord)
                         .wrapping_add((*info).i.layout.large_bitmap_offset as StgWord)
                         as *mut StgLargeBitmap,
                     size_1,
@@ -993,9 +981,8 @@ unsafe fn trace_stack_(mut queue: *mut MarkQueue, mut sp: StgPtr, mut spBottom: 
             }
             _ => {
                 barf(
-                    b"trace_stack: weird activation record found on stack: %d\0" as *const u8
-                        as *const c_char,
-                    (*info).i.r#type as c_int,
+                    c"trace_stack: weird activation record found on stack: %d".as_ptr(),
+                    (*info).i.r#type as i32,
                 );
             }
         }
@@ -1003,7 +990,7 @@ unsafe fn trace_stack_(mut queue: *mut MarkQueue, mut sp: StgPtr, mut spBottom: 
         if (*info).i.srt != 0 {
             markQueuePushClosure_(
                 queue,
-                (info.offset(1 as c_int as isize) as StgWord).wrapping_add((*info).i.srt as StgWord)
+                (info.offset(1 as i32 as isize) as StgWord).wrapping_add((*info).i.srt as StgWord)
                     as *mut StgClosure,
             );
         }
@@ -1023,10 +1010,10 @@ unsafe fn bump_static_flag(mut link_field: *mut *mut StgClosure, mut q: *mut Stg
     let mut link: StgWord = *link_field as StgWord;
 
     if link & STATIC_BITS as StgWord == static_flag as StgWord {
-        needs_marking = r#false != 0;
+        needs_marking = false;
     } else {
         *link_field = (link & !STATIC_BITS as StgWord | static_flag as StgWord) as *mut StgClosure;
-        needs_marking = r#true != 0;
+        needs_marking = true;
     }
 
     return needs_marking;
@@ -1040,9 +1027,9 @@ unsafe fn mark_closure(
     let mut bd: *mut bdescr = null_mut::<bdescr>();
     let mut p_next: *mut StgClosure = null_mut::<StgClosure>();
     let mut tag: StgWord = 0;
-    let mut flags: uint16_t = 0;
+    let mut flags: u16 = 0;
     let mut info_0: *const StgInfoTable = null::<StgInfoTable>();
-    let mut bd_flags: uint16_t = 0;
+    let mut bd_flags: u16 = 0;
     let mut current_block: u64;
     let mut p = p0 as *mut StgClosure;
 
@@ -1065,10 +1052,9 @@ unsafe fn mark_closure(
 
             match r#type {
                 21 => {
-                    if (*info).srt != 0 as StgSRTField {
+                    if (*info).srt != 0 {
                         if bump_static_flag(
-                            (&raw mut (*p).payload as *mut *mut StgClosure_)
-                                .offset(1 as c_int as isize)
+                            (&raw mut (*p).payload as *mut *mut StgClosure_).offset(1)
                                 as *mut *mut StgClosure,
                             p,
                         ) {
@@ -1079,13 +1065,11 @@ unsafe fn mark_closure(
                     break;
                 }
                 14 => {
-                    if (*info).srt != 0 as StgSRTField
-                        || (*info).layout.payload.ptrs != 0 as StgHalfWord
-                    {
+                    if (*info).srt != 0 || (*info).layout.payload.ptrs != 0 {
                         if bump_static_flag(STATIC_LINK(info, p), p) {
                             markQueuePushFunSrt(queue, info);
 
-                            let mut i: StgHalfWord = 0 as StgHalfWord;
+                            let mut i: StgHalfWord = 0;
 
                             while i < (*info).layout.payload.ptrs {
                                 markQueuePushClosure(
@@ -1108,7 +1092,7 @@ unsafe fn mark_closure(
                 }
                 28 => {
                     if bump_static_flag(
-                        (&raw mut (*p).payload as *mut *mut StgClosure_).offset(1 as c_int as isize)
+                        (&raw mut (*p).payload as *mut *mut StgClosure_).offset(1)
                             as *mut *mut StgClosure,
                         p,
                     ) {
@@ -1123,7 +1107,7 @@ unsafe fn mark_closure(
                 }
                 1 | 2 | 4 | 5 => {
                     if bump_static_flag(STATIC_LINK(info, p), p) {
-                        let mut i_0: StgHalfWord = 0 as StgHalfWord;
+                        let mut i_0: StgHalfWord = 0;
 
                         while i_0 < (*info).layout.payload.ptrs {
                             markQueuePushClosure(
@@ -1146,9 +1130,8 @@ unsafe fn mark_closure(
                 58 => while (*p).header.info == &raw const stg_WHITEHOLE_info {},
                 _ => {
                     barf(
-                        b"mark_closure(static): strange closure type %d\0" as *const u8
-                            as *const c_char,
-                        (*info).r#type as c_int,
+                        c"mark_closure(static): strange closure type %d".as_ptr(),
+                        (*info).r#type as i32,
                     );
                 }
             }
@@ -1159,18 +1142,18 @@ unsafe fn mark_closure(
                 break;
             }
 
-            flags = block_get_flags(bd) as uint16_t;
+            flags = block_get_flags(bd) as u16;
 
-            if flags as c_int & (BF_COMPACT | BF_NONMOVING) != 0 {
-                if flags as c_int & BF_COMPACT != 0 {
+            if flags as i32 & (BF_COMPACT | BF_NONMOVING) != 0 {
+                if flags as i32 & BF_COMPACT != 0 {
                     let mut str = objectGetCompact(p);
                     bd = Bdescr(str as StgPtr);
 
-                    if flags as c_int & BF_NONMOVING_SWEEPING == 0 {
+                    if flags as i32 & BF_NONMOVING_SWEEPING == 0 {
                         return;
                     }
 
-                    if flags as c_int & BF_MARKED == 0 {
+                    if flags as i32 & BF_MARKED == 0 {
                         dbl_link_remove(bd, &raw mut nonmoving_compact_objects);
                         dbl_link_onto(bd, &raw mut nonmoving_marked_compact_objects);
 
@@ -1183,17 +1166,17 @@ unsafe fn mark_closure(
                         n_nonmoving_marked_compact_blocks =
                             (n_nonmoving_marked_compact_blocks as StgWord).wrapping_add(blocks)
                                 as memcount as memcount;
-                        block_set_flag(bd, BF_MARKED as uint16_t);
+                        block_set_flag(bd, BF_MARKED as u16);
                     }
 
                     break;
                 } else {
-                    if flags as c_int & BF_LARGE != 0 {
-                        if flags as c_int & BF_NONMOVING_SWEEPING == 0 {
+                    if flags as i32 & BF_LARGE != 0 {
+                        if flags as i32 & BF_NONMOVING_SWEEPING == 0 {
                             break;
                         }
 
-                        if flags as c_int & BF_MARKED != 0 {
+                        if flags as i32 & BF_MARKED != 0 {
                             break;
                         }
                     } else {
@@ -1201,7 +1184,7 @@ unsafe fn mark_closure(
                         let mut block_idx = nonmovingGetBlockIdx(p as StgPtr);
                         let mut mark = nonmovingGetMark(seg, block_idx);
 
-                        if mark as c_int == nonmovingMarkEpoch as c_int {
+                        if mark as i32 == nonmovingMarkEpoch as i32 {
                             break;
                         }
 
@@ -1210,7 +1193,7 @@ unsafe fn mark_closure(
                             (*nonmovingSegmentInfo(seg)).next_free_snap as nonmoving_block_idx,
                         ) as *mut StgClosure;
 
-                        if p >= snapshot_loc && mark as c_int == 0 as c_int {
+                        if p >= snapshot_loc && mark as i32 == 0 {
                             break;
                         }
                     }
@@ -1234,6 +1217,7 @@ unsafe fn mark_closure(
                             );
 
                             markQueuePushClosure(queue, (*mvar).value, &raw mut (*mvar).value);
+
                             current_block = 2413388577390654262;
                         }
                         41 => {
@@ -1258,22 +1242,18 @@ unsafe fn mark_closure(
 
                             markQueuePushClosure(
                                 queue,
-                                *(&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(1 as c_int as isize)
+                                *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(1)
                                     as *mut StgClosure,
-                                (&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(1 as c_int as isize)
+                                (&raw mut (*p).payload as *mut *mut StgClosure_).offset(1)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
 
                             markQueuePushClosure(
                                 queue,
-                                *(&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut StgClosure,
-                                (&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
@@ -1286,22 +1266,18 @@ unsafe fn mark_closure(
 
                             markQueuePushClosure(
                                 queue,
-                                *(&raw mut (*thunk).payload as *mut *mut StgClosure_)
-                                    .offset(1 as c_int as isize)
+                                *(&raw mut (*thunk).payload as *mut *mut StgClosure_).offset(1)
                                     as *mut StgClosure,
-                                (&raw mut (*thunk).payload as *mut *mut StgClosure_)
-                                    .offset(1 as c_int as isize)
+                                (&raw mut (*thunk).payload as *mut *mut StgClosure_).offset(1)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
 
                             markQueuePushClosure(
                                 queue,
-                                *(&raw mut (*thunk).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                *(&raw mut (*thunk).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut StgClosure,
-                                (&raw mut (*thunk).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                (&raw mut (*thunk).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
@@ -1311,22 +1287,18 @@ unsafe fn mark_closure(
                         4 => {
                             markQueuePushClosure(
                                 queue,
-                                *(&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(1 as c_int as isize)
+                                *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(1)
                                     as *mut StgClosure,
-                                (&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(1 as c_int as isize)
+                                (&raw mut (*p).payload as *mut *mut StgClosure_).offset(1)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
 
                             markQueuePushClosure(
                                 queue,
-                                *(&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut StgClosure,
-                                (&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
@@ -1339,10 +1311,9 @@ unsafe fn mark_closure(
                             markQueuePushClosure(
                                 queue,
                                 *(&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
-                                    as *mut StgClosure,
+                                    .offset(0) as *mut StgClosure,
                                 (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                    .offset(0)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
@@ -1354,11 +1325,9 @@ unsafe fn mark_closure(
 
                             markQueuePushClosure(
                                 queue,
-                                *(&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut StgClosure,
-                                (&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
@@ -1368,11 +1337,9 @@ unsafe fn mark_closure(
                         2 => {
                             markQueuePushClosure(
                                 queue,
-                                *(&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut StgClosure,
-                                (&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
@@ -1401,10 +1368,9 @@ unsafe fn mark_closure(
                             markQueuePushClosure(
                                 queue,
                                 *(&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
-                                    as *mut StgClosure,
+                                    .offset(0) as *mut StgClosure,
                                 (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                    .offset(0)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
@@ -1416,11 +1382,9 @@ unsafe fn mark_closure(
 
                             markQueuePushClosure(
                                 queue,
-                                *(&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut StgClosure,
-                                (&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
@@ -1430,11 +1394,9 @@ unsafe fn mark_closure(
                         5 => {
                             markQueuePushClosure(
                                 queue,
-                                *(&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut StgClosure,
-                                (&raw mut (*p).payload as *mut *mut StgClosure_)
-                                    .offset(0 as c_int as isize)
+                                (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0)
                                     as *mut *mut StgClosure_
                                     as *mut *mut StgClosure,
                             );
@@ -1448,7 +1410,7 @@ unsafe fn mark_closure(
                         15 => {
                             markQueuePushThunkSrt(queue, info_0);
 
-                            let mut i_1: StgWord = 0 as StgWord;
+                            let mut i_1: StgWord = 0;
 
                             while i_1 < (*info_0).layout.payload.ptrs as StgWord {
                                 let mut field: *mut *mut StgClosure =
@@ -1504,9 +1466,10 @@ unsafe fn mark_closure(
                         38 => {
                             let mut ind = p as *mut StgInd;
                             let mut indirectee = (*ind).indirectee;
+
                             markQueuePushClosure(queue, indirectee, &raw mut (*ind).indirectee);
 
-                            if !(GET_CLOSURE_TAG(indirectee) == 0 as StgWord || origin.is_null()) {
+                            if !(GET_CLOSURE_TAG(indirectee) == 0 || origin.is_null()) {
                                 p_next = indirectee;
                             }
 
@@ -1547,7 +1510,9 @@ unsafe fn mark_closure(
                         }
                         22 => {
                             let mut sel = p as *mut StgSelector;
+
                             markQueuePushClosure(queue, (*sel).selectee, &raw mut (*sel).selectee);
+
                             nonmoving_eval_thunk_selector(queue, sel, origin);
                             current_block = 2413388577390654262;
                         }
@@ -1579,6 +1544,7 @@ unsafe fn mark_closure(
                         }
                         24 => {
                             let mut ap_0 = p as *mut StgAP;
+
                             markQueuePushClosure(queue, (*ap_0).fun, &raw mut (*ap_0).fun);
 
                             trace_PAP_payload(
@@ -1591,12 +1557,12 @@ unsafe fn mark_closure(
                             current_block = 2413388577390654262;
                         }
                         43 | 44 | 46 | 45 => {
-                            markQueuePushArray(queue, p as *mut StgMutArrPtrs, 0 as StgWord);
+                            markQueuePushArray(queue, p as *mut StgMutArrPtrs, 0);
                             current_block = 2413388577390654262;
                         }
                         59 | 60 | 62 | 61 => {
                             let mut arr = p as *mut StgSmallMutArrPtrs;
-                            let mut i_3: StgWord = 0 as StgWord;
+                            let mut i_3: StgWord = 0;
 
                             while i_3 < (*arr).ptrs {
                                 let mut field_1: *mut *mut StgClosure = (&raw mut (*arr).payload
@@ -1621,8 +1587,8 @@ unsafe fn mark_closure(
                                 &raw mut (*stack).marking,
                                 marking,
                                 nonmovingMarkEpoch as StgWord8,
-                            ) as c_int
-                                != nonmovingMarkEpoch as c_int)
+                            ) as i32
+                                != nonmovingMarkEpoch as i32)
                             {
                                 break;
                             }
@@ -1631,7 +1597,7 @@ unsafe fn mark_closure(
                             current_block = 2413388577390654262;
                         }
                         51 => {
-                            let mut p_idx: StgHalfWord = 0 as StgHalfWord;
+                            let mut p_idx: StgHalfWord = 0;
 
                             while p_idx < (*info_0).layout.payload.ptrs {
                                 let mut field_2: *mut *mut StgClosure = (&raw mut (*p).payload
@@ -1649,7 +1615,6 @@ unsafe fn mark_closure(
                                 == &raw const stg_WHITEHOLE_info as *mut StgInfoTable
                             {
                             }
-
                             continue;
                         }
                         3 | 6 | 42 | 54 | 63 => {
@@ -1669,8 +1634,8 @@ unsafe fn mark_closure(
                         }
                         _ => {
                             barf(
-                                b"mark_closure: unimplemented/strange closure type %d @ %p\0"
-                                    as *const u8 as *const c_char,
+                                c"mark_closure: unimplemented/strange closure type %d @ %p"
+                                    .as_ptr(),
                                 (*info_0).r#type,
                                 p,
                             );
@@ -1679,7 +1644,7 @@ unsafe fn mark_closure(
 
                     match current_block {
                         4751196792806374320 => {
-                            let mut i_2: StgWord = 0 as StgWord;
+                            let mut i_2: StgWord = 0;
 
                             while i_2 < (*info_0).layout.payload.ptrs as StgWord {
                                 let mut field_0: *mut *mut StgClosure = (&raw mut (*p).payload
@@ -1695,21 +1660,20 @@ unsafe fn mark_closure(
 
                     bd_flags = block_get_flags(bd);
 
-                    if bd_flags as c_int & BF_LARGE != 0 {
-                        if bd_flags as c_int & BF_MARKED == 0 {
+                    if bd_flags as i32 & BF_LARGE != 0 {
+                        if bd_flags as i32 & BF_MARKED == 0 {
                             dbl_link_remove(bd, &raw mut nonmoving_large_objects);
                             dbl_link_onto(bd, &raw mut nonmoving_marked_large_objects);
                             n_nonmoving_large_blocks =
                                 n_nonmoving_large_blocks.wrapping_sub((*bd).blocks as memcount);
                             n_nonmoving_marked_large_blocks = n_nonmoving_marked_large_blocks
                                 .wrapping_add((*bd).blocks as memcount);
-                            block_set_flag(bd, BF_MARKED as uint16_t);
+                            block_set_flag(bd, BF_MARKED as u16);
                         }
-                    } else if bd_flags as c_int & BF_NONMOVING != 0 {
+                    } else if bd_flags as i32 & BF_NONMOVING != 0 {
                         let mut seg_0 = nonmovingGetSegment(p as StgPtr);
                         let mut block_idx_0 = nonmovingGetBlockIdx(p as StgPtr);
                         nonmovingSetMark(seg_0, block_idx_0);
-
                         nonmoving_segment_live_words = nonmoving_segment_live_words.wrapping_add(
                             (nonmovingSegmentBlockSize(seg_0) as usize)
                                 .wrapping_div(size_of::<W_>() as usize)
@@ -1723,20 +1687,17 @@ unsafe fn mark_closure(
 
                     p = p_next;
                 }
-            } else if (*bd).flags as c_int & BF_PINNED != 0 {
+            } else if (*bd).flags as i32 & BF_PINNED != 0 {
                 return;
             } else {
-                barf(
-                    b"Strange closure in nonmoving mark: %p\0" as *const u8 as *const c_char,
-                    p,
-                );
+                barf(c"Strange closure in nonmoving mark: %p".as_ptr(), p);
             }
         }
     }
 
     if !origin.is_null()
         && (!(p as W_ >= mblock_address_space.0.begin && (p as W_) < mblock_address_space.0.end)
-            || block_get_flags(bd) as c_int & BF_NONMOVING != 0)
+            || block_get_flags(bd) as i32 & BF_NONMOVING != 0)
     {
         if UNTAG_CLOSURE(p0 as *mut StgClosure) != p && *origin == p0 as *mut StgClosure {
             cas(
@@ -1751,24 +1712,24 @@ unsafe fn mark_closure(
 unsafe fn nonmovingMark(mut budget: *mut MarkBudget, mut queue: *mut MarkQueue) {
     traceConcMarkBegin();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as c_long != 0 {
-        trace_(b"Starting mark pass\0" as *const u8 as *const c_char as *mut c_char);
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as i64 != 0 {
+        trace_(c"Starting mark pass".as_ptr());
     }
 
-    let mut count: uint64_t = 0 as uint64_t;
+    let mut count: u64 = 0;
 
     loop {
         count = count.wrapping_add(1);
 
-        if *budget == 0 as MarkBudget {
+        if *budget == 0 {
             return;
         } else if *budget != UNLIMITED_MARK_BUDGET as MarkBudget {
-            *budget -= 1 as MarkBudget;
+            *budget -= 1;
         }
 
         let mut ent = markQueuePop(queue);
 
-        match nonmovingMarkQueueEntryType(&raw mut ent) as c_uint {
+        match nonmovingMarkQueueEntryType(&raw mut ent) as u32 {
             1 => {
                 mark_closure(
                     queue,
@@ -1806,12 +1767,8 @@ unsafe fn nonmovingMark(mut budget: *mut MarkBudget, mut queue: *mut MarkQueue) 
                     upd_rem_set_block_list = null_mut::<bdescr>();
                     freeGroup(old);
                 } else {
-                    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as c_long != 0 {
-                        trace_(
-                            b"Finished mark pass: %d\0" as *const u8 as *const c_char
-                                as *mut c_char,
-                            count,
-                        );
+                    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as i64 != 0 {
+                        trace_(c"Finished mark pass: %d".as_ptr(), count);
                     }
 
                     traceConcMarkEnd(count as StgWord32);
@@ -1825,48 +1782,46 @@ unsafe fn nonmovingMark(mut budget: *mut MarkBudget, mut queue: *mut MarkQueue) 
 
 unsafe fn nonmovingIsAlive(mut p: *mut StgClosure) -> bool {
     if !(p as W_ >= mblock_address_space.0.begin && (p as W_) < mblock_address_space.0.end) {
-        return r#true != 0;
+        return true;
     }
 
     let mut bd = Bdescr(p as StgPtr);
     let mut bd_flags = block_get_flags(bd);
 
-    if bd_flags as c_int & (BF_COMPACT | BF_LARGE) != 0 {
-        if bd_flags as c_int & BF_COMPACT != 0 {
+    if bd_flags as i32 & (BF_COMPACT | BF_LARGE) != 0 {
+        if bd_flags as i32 & BF_COMPACT != 0 {
             let mut str = objectGetCompact(p);
             bd = Bdescr(str as StgPtr);
         }
 
-        return bd_flags as c_int & BF_NONMOVING_SWEEPING == 0 as c_int
-            || bd_flags as c_int & BF_MARKED != 0 as c_int;
+        return bd_flags as i32 & BF_NONMOVING_SWEEPING == 0 || bd_flags as i32 & BF_MARKED != 0;
     } else {
         let mut seg = nonmovingGetSegment(p as StgPtr);
         let mut i = nonmovingGetBlockIdx(p as StgPtr);
         let mut mark = nonmovingGetMark(seg, i);
 
-        if i as c_int >= (*nonmovingSegmentInfo(seg)).next_free_snap as c_int {
-            return mark as c_int == nonmovingMarkEpoch as c_int || mark as c_int == 0 as c_int;
+        if i as i32 >= (*nonmovingSegmentInfo(seg)).next_free_snap as i32 {
+            return mark as i32 == nonmovingMarkEpoch as i32 || mark as i32 == 0;
         } else {
-            return mark as c_int == nonmovingMarkEpoch as c_int;
+            return mark as i32 == nonmovingMarkEpoch as i32;
         }
     };
 }
 
 unsafe fn nonmovingIsNowAlive(mut p: *mut StgClosure) -> bool {
     if !(p as W_ >= mblock_address_space.0.begin && (p as W_) < mblock_address_space.0.end) {
-        return r#true != 0;
+        return true;
     }
 
     let mut bd = Bdescr(p as StgPtr);
-    let flags = block_get_flags(bd) as uint16_t;
+    let flags = block_get_flags(bd) as u16;
 
-    if flags as c_int & BF_LARGE != 0 {
-        if flags as c_int & BF_PINNED != 0 && flags as c_int & BF_NONMOVING == 0 {
-            return r#true != 0;
+    if flags as i32 & BF_LARGE != 0 {
+        if flags as i32 & BF_PINNED != 0 && flags as i32 & BF_NONMOVING == 0 {
+            return true;
         }
 
-        return flags as c_int & BF_NONMOVING_SWEEPING == 0 as c_int
-            || flags as c_int & BF_MARKED != 0 as c_int;
+        return flags as i32 & BF_NONMOVING_SWEEPING == 0 || flags as i32 & BF_MARKED != 0;
     } else {
         let mut seg = nonmovingGetSegment(p as StgPtr);
 
@@ -1875,8 +1830,8 @@ unsafe fn nonmovingIsNowAlive(mut p: *mut StgClosure) -> bool {
             (*nonmovingSegmentInfo(seg)).next_free_snap as nonmoving_block_idx,
         ) as *mut StgClosure;
 
-        if p >= snapshot_loc && nonmovingGetClosureMark(p as StgPtr) as c_int == 0 as c_int {
-            return r#true != 0;
+        if p >= snapshot_loc && nonmovingGetClosureMark(p as StgPtr) as i32 == 0 {
+            return true;
         } else {
             return nonmovingClosureMarkedThisCycle(p as StgPtr);
         }
@@ -1902,7 +1857,7 @@ unsafe fn is_nonmoving_weak(mut weak: *mut StgWeak) -> bool {
 
     while !w.is_null() {
         if w == weak {
-            return r#true != 0;
+            return true;
         }
 
         w = (*w).link as *mut StgWeak;
@@ -1912,17 +1867,17 @@ unsafe fn is_nonmoving_weak(mut weak: *mut StgWeak) -> bool {
 
     while !w_0.is_null() {
         if w_0 == weak {
-            return r#true != 0;
+            return true;
         }
 
         w_0 = (*w_0).link as *mut StgWeak;
     }
 
-    return r#false != 0;
+    return false;
 }
 
 unsafe fn nonmovingTidyWeaks(mut queue: *mut MarkQueue_) -> bool {
-    let mut did_work = r#false != 0;
+    let mut did_work = false;
     let mut last_w: *mut *mut StgWeak = &raw mut nonmoving_old_weak_ptr_list;
     let mut next_w = null_mut::<StgWeak>();
     let mut w = nonmoving_old_weak_ptr_list;
@@ -1935,11 +1890,11 @@ unsafe fn nonmovingTidyWeaks(mut queue: *mut MarkQueue_) -> bool {
             let mut key_bd = Bdescr((*w).key as StgPtr);
             let mut key_in_nonmoving = (*w).key as W_ >= mblock_address_space.0.begin
                 && ((*w).key as W_) < mblock_address_space.0.end
-                && block_get_flags(key_bd) as c_int & BF_NONMOVING != 0;
+                && block_get_flags(key_bd) as i32 & BF_NONMOVING != 0;
 
-            if !key_in_nonmoving || nonmovingIsNowAlive((*w).key) as c_int != 0 {
+            if !key_in_nonmoving || nonmovingIsNowAlive((*w).key) as i32 != 0 {
                 nonmovingMarkLiveWeak(queue, w);
-                did_work = r#true != 0;
+                did_work = true;
                 *last_w = (*w).link as *mut StgWeak;
                 next_w = (*w).link as *mut StgWeak;
                 (*w).link = nonmoving_weak_ptr_list as *mut _StgWeak;
@@ -2013,7 +1968,7 @@ unsafe fn nonmovingResurrectThreads(
     while t != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO {
         next = (*t).global_link as *mut StgTSO;
 
-        match (*t).what_next as c_int {
+        match (*t).what_next as i32 {
             ThreadKilled | ThreadComplete => {}
             _ => {
                 markQueuePushClosure_(queue as *mut MarkQueue, t as *mut StgClosure);

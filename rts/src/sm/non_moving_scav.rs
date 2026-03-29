@@ -43,7 +43,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
     match (*info).r#type {
         39 | 40 => {
             let mut mvar = p as *mut StgMVar;
-            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
             evacuate(&raw mut (*mvar).head as *mut *mut StgClosure);
             evacuate(&raw mut (*mvar).tail as *mut *mut StgClosure);
             evacuate(&raw mut (*mvar).value);
@@ -80,7 +80,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
         }
         41 => {
             let mut tvar = p as *mut StgTVar;
-            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
             evacuate(&raw mut (*tvar).current_value);
             evacuate(&raw mut (*tvar).first_watch_queue_entry as *mut *mut StgClosure);
             (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = saved_eager_promotion;
@@ -111,13 +111,13 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
             scavenge_fun_srt(info);
 
             evacuate(
-                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                    .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(1)
+                    as *mut *mut StgClosure,
             );
 
             evacuate(
-                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
 
             current_block = 2838755337219234678;
@@ -126,26 +126,26 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
             scavenge_thunk_srt(info);
 
             evacuate(
-                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                    .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(1)
+                    as *mut *mut StgClosure,
             );
 
             evacuate(
-                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
 
             current_block = 2838755337219234678;
         }
         4 => {
             evacuate(
-                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                    .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(1)
+                    as *mut *mut StgClosure,
             );
 
             evacuate(
-                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
 
             current_block = 2838755337219234678;
@@ -154,8 +154,8 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
             scavenge_thunk_srt(info);
 
             evacuate(
-                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
 
             current_block = 2838755337219234678;
@@ -187,8 +187,8 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
             scavenge_thunk_srt(info);
 
             evacuate(
-                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
 
             current_block = 2838755337219234678;
@@ -220,7 +220,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
         }
         49 => {
             let mut weak = p as *mut StgWeak;
-            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = true;
             evacuate(&raw mut (*weak).key);
             (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = saved_eager_promotion;
             current_block = 6560072651652764009;
@@ -237,7 +237,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
         }
         47 | 48 => {
             let mut mv = p as *mut StgMutVar;
-            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
             evacuate(&raw mut (*mv).var);
             (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = saved_eager_promotion;
 
@@ -258,7 +258,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
         }
         37 => {
             let mut bq = p as *mut StgBlockingQueue;
-            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
             evacuate(&raw mut (*bq).bh);
             evacuate(&raw mut (*bq).owner as *mut *mut StgClosure);
             evacuate(&raw mut (*bq).queue as *mut *mut StgClosure);
@@ -302,7 +302,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
             current_block = 2838755337219234678;
         }
         43 | 44 => {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
             scavenge_mut_arr_ptrs(p as *mut StgMutArrPtrs);
             (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = saved_eager_promotion;
 
@@ -312,7 +312,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
                 (*q).header.info = &raw const stg_MUT_ARR_PTRS_CLEAN_info;
             }
 
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
             current_block = 2838755337219234678;
         }
         46 | 45 => {
@@ -329,7 +329,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
         59 | 60 => {
             let mut next =
                 p.offset(small_mut_arr_ptrs_sizeW(p as *mut StgSmallMutArrPtrs) as isize);
-            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
             p = &raw mut (*(p as *mut StgSmallMutArrPtrs)).payload as *mut *mut StgClosure as P_
                 as StgPtr;
 
@@ -346,7 +346,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
                 (*q).header.info = &raw const stg_SMALL_MUT_ARR_PTRS_CLEAN_info;
             }
 
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
             current_block = 2838755337219234678;
         }
         62 | 61 => {
@@ -374,7 +374,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
         }
         53 => {
             let mut stack = p as *mut StgStack;
-            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
 
             scavenge_stack(
                 (*stack).sp,
@@ -390,7 +390,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
             let mut end_1 = (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_
                 as P_)
                 .offset((*info).layout.payload.ptrs as isize);
-            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
             p = &raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_ as P_ as StgPtr;
 
             while p < end_1 {
@@ -399,18 +399,17 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
             }
 
             (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = saved_eager_promotion;
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
             current_block = 2838755337219234678;
         }
         54 => {
             let mut i: StgWord = 0;
             let mut tc = p as *mut StgTRecChunk;
-            let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                .offset(0 as c_int as isize)
-                as *mut TRecEntry;
-            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+            let mut e: *mut TRecEntry =
+                (&raw mut (*tc).entries as *mut TRecEntry).offset(0) as *mut TRecEntry;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
             evacuate(&raw mut (*tc).prev_chunk as *mut *mut StgClosure);
-            i = 0 as StgWord;
+            i = 0;
 
             while i < (*tc).next_entry_idx {
                 evacuate(&raw mut (*e).tvar as *mut *mut StgClosure);
@@ -421,7 +420,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
             }
 
             (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = saved_eager_promotion;
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
             current_block = 2838755337219234678;
         }
         27 | 38 | 28 => {
@@ -438,8 +437,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
         }
         _ => {
             barf(
-                b"nonmoving scavenge: unimplemented/strange closure type %d @ %p\0" as *const u8
-                    as *const c_char,
+                c"nonmoving scavenge: unimplemented/strange closure type %d @ %p".as_ptr(),
                 (*info).r#type,
                 p,
             );
@@ -460,23 +458,22 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
         }
         9950438711237080959 => {
             evacuate(
-                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
         }
         9388465124476958454 => {
             evacuate(
-                (&raw mut (*q).payload as *mut *mut StgClosure_).offset(0 as c_int as isize)
-                    as *mut *mut StgClosure,
+                (&raw mut (*q).payload as *mut *mut StgClosure_).offset(0) as *mut *mut StgClosure
             );
         }
         _ => {}
     }
 
     if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
-        (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+        (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
 
-        if (*oldest_gen).no > 0 as uint32_t {
+        if (*oldest_gen).no > 0 {
             recordMutableGen_GC(q, (*oldest_gen).no);
         }
     }
@@ -485,7 +482,7 @@ unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
 unsafe fn scavengeNonmovingSegment(mut seg: *mut NonmovingSegment) {
     let blk_size: StgWord = nonmovingSegmentBlockSize(seg) as StgWord;
     (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = (*oldest_gen).no;
-    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
 
     let mut seg_block = Bdescr(seg as StgPtr);
     let mut scan = (*seg_block).u.scan;
@@ -502,11 +499,11 @@ unsafe fn scavengeNonmovingSegment(mut seg: *mut NonmovingSegment) {
     while scan < scan_end {
         let mut p = scan as *mut StgClosure;
 
-        if nonmovingGetMark(seg, p_idx) as c_int == 0 as c_int {
+        if nonmovingGetMark(seg, p_idx) as i32 == 0 {
             nonmovingScavengeOne(p);
         }
 
-        scan = (scan as *mut uint8_t).offset(blk_size as isize) as StgPtr;
+        scan = (scan as *mut u8).offset(blk_size as isize) as StgPtr;
         p_idx = p_idx.wrapping_add(1);
     }
 }

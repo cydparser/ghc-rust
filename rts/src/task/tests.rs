@@ -7,8 +7,8 @@ fn test_rts_setInCallCapability() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let preferred_capability: c_int = Arbitrary::arbitrary(g);
-        let affinity: c_int = Arbitrary::arbitrary(g);
+        let preferred_capability: i32 = Arbitrary::arbitrary(g);
+        let affinity: i32 = Arbitrary::arbitrary(g);
         unsafe { rts_setInCallCapability(preferred_capability, affinity) };
         todo!()
     };
@@ -21,7 +21,7 @@ fn test_rts_setInCallCapability() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_rts_setInCallCapability(preferred_capability: c_int, affinity: c_int) -> bool {
+fn equivalent_rts_setInCallCapability(preferred_capability: i32, affinity: i32) -> bool {
     let expected = {
         unsafe { sys::rts_setInCallCapability(preferred_capability, affinity) };
         todo!()
@@ -42,7 +42,7 @@ fn test_rts_pinThreadToNumaNode() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let node: c_int = Arbitrary::arbitrary(g);
+        let node: i32 = Arbitrary::arbitrary(g);
         unsafe { rts_pinThreadToNumaNode(node) };
         todo!()
     };
@@ -55,7 +55,7 @@ fn test_rts_pinThreadToNumaNode() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_rts_pinThreadToNumaNode(node: c_int) -> bool {
+fn equivalent_rts_pinThreadToNumaNode(node: i32) -> bool {
     let expected = {
         unsafe { sys::rts_pinThreadToNumaNode(node) };
         todo!()

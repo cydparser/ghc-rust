@@ -20,7 +20,7 @@ unsafe fn cloneStackChunk(
     let mut spOffset: StgWord = (*stack)
         .sp
         .offset_from(&raw const (*stack).stack as *const StgWord)
-        as c_long as StgWord;
+        as i64 as StgWord;
 
     let mut closureSizeBytes: StgWord = (size_of::<StgStack>() as usize)
         .wrapping_add(((*stack).stack_size as usize).wrapping_mul(size_of::<StgWord>() as usize))
@@ -37,12 +37,12 @@ unsafe fn cloneStackChunk(
     memcpy(
         newStackClosure as *mut c_void,
         stack as *const c_void,
-        closureSizeBytes as size_t,
+        closureSizeBytes as usize,
     );
 
     (*newStackClosure).sp =
         (&raw mut (*newStackClosure).stack as *mut StgWord).offset(spOffset as isize) as StgPtr;
-    (*newStackClosure).dirty = 0 as StgWord8;
+    (*newStackClosure).dirty = 0;
 
     return newStackClosure;
 }
@@ -78,8 +78,5 @@ unsafe fn cloneStack(mut capability: *mut Capability, mut stack: *const StgStack
 }
 
 unsafe fn sendCloneStackMessage(mut tso: *mut StgTSO, mut mvar: HsStablePtr) -> ! {
-    barf(
-        b"Sending CloneStackMessages is only available in threaded RTS!\0" as *const u8
-            as *const c_char,
-    );
+    barf(c"Sending CloneStackMessages is only available in threaded RTS!".as_ptr());
 }

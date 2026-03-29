@@ -11,8 +11,8 @@ use crate::rts_utils::{stgFree, stgMallocBytes};
 
 /// cbindgen:no-export
 struct OCSectionIndices {
-    capacity: c_int,
-    n_sections: c_int,
+    capacity: i32,
+    n_sections: i32,
     sorted: bool,
     unloaded: bool,
     indices: *mut OCSectionIndex,
@@ -25,22 +25,21 @@ struct OCSectionIndex {
     oc: *mut ObjectCode,
 }
 
-static mut object_code_mark_bit: uint8_t = 0 as uint8_t;
+static mut object_code_mark_bit: u8 = 0;
 
-static mut objects: *mut ObjectCode = null::<ObjectCode>() as *mut ObjectCode;
+static mut objects: *mut ObjectCode = null_mut::<ObjectCode>();
 
-static mut old_objects: *mut ObjectCode = null::<ObjectCode>() as *mut ObjectCode;
+static mut old_objects: *mut ObjectCode = null_mut::<ObjectCode>();
 
-static mut n_unloaded_objects: c_int = 0 as c_int;
+static mut n_unloaded_objects: i32 = 0;
 
-static mut loaded_objects: *mut ObjectCode = null::<ObjectCode>() as *mut ObjectCode;
+static mut loaded_objects: *mut ObjectCode = null_mut::<ObjectCode>();
 
-static mut global_s_indices: *mut OCSectionIndices =
-    null::<OCSectionIndices>() as *mut OCSectionIndices;
+static mut global_s_indices: *mut OCSectionIndices = null_mut::<OCSectionIndices>();
 
 unsafe fn tryToUnload() -> bool {
-    if RtsFlags.ProfFlags.doHeapProfile != NO_HEAP_PROFILING as uint32_t {
-        return r#false != 0;
+    if RtsFlags.ProfFlags.doHeapProfile != NO_HEAP_PROFILING as u32 {
+        return false;
     }
 
     return !global_s_indices.is_null();
@@ -48,19 +47,19 @@ unsafe fn tryToUnload() -> bool {
 
 unsafe fn createOCSectionIndices() -> *mut OCSectionIndices {
     let mut s_indices = stgMallocBytes(
-        size_of::<OCSectionIndices>() as size_t,
-        b"OCSectionIndices\0" as *const u8 as *const c_char as *mut c_char,
+        size_of::<OCSectionIndices>() as usize,
+        c"OCSectionIndices".as_ptr(),
     ) as *mut OCSectionIndices;
 
-    let mut capacity = 1024 as c_int;
+    let mut capacity = 1024;
     (*s_indices).capacity = capacity;
-    (*s_indices).n_sections = 0 as c_int;
-    (*s_indices).sorted = r#true != 0;
-    (*s_indices).unloaded = r#false != 0;
+    (*s_indices).n_sections = 0;
+    (*s_indices).sorted = true;
+    (*s_indices).unloaded = false;
 
     (*s_indices).indices = stgMallocBytes(
-        (capacity as size_t).wrapping_mul(size_of::<OCSectionIndex>() as size_t),
-        b"OCSectionIndices::indices\0" as *const u8 as *const c_char as *mut c_char,
+        (capacity as usize).wrapping_mul(size_of::<OCSectionIndex>() as usize),
+        c"OCSectionIndices::indices".as_ptr(),
     ) as *mut OCSectionIndex;
 
     return s_indices;
@@ -80,20 +79,20 @@ unsafe fn exitUnloadCheck() {
     global_s_indices = null_mut::<OCSectionIndices>();
 }
 
-unsafe fn cmpSectionIndex(mut indexa: *const c_void, mut indexb: *const c_void) -> c_int {
+unsafe fn cmpSectionIndex(mut indexa: *const c_void, mut indexb: *const c_void) -> i32 {
     let mut s1: W_ = (*(indexa as *mut OCSectionIndex)).start;
     let mut s2: W_ = (*(indexb as *mut OCSectionIndex)).start;
 
     if s1 < s2 {
-        return -(1 as c_int);
+        return -1;
     } else if s1 > s2 {
-        return 1 as c_int;
+        return 1;
     }
 
-    return 0 as c_int;
+    return 0;
 }
 
-unsafe fn reserveOCSectionIndices(mut s_indices: *mut OCSectionIndices, mut len: c_int) {
+unsafe fn reserveOCSectionIndices(mut s_indices: *mut OCSectionIndices, mut len: i32) {
     let mut current_capacity = (*s_indices).capacity;
     let mut current_len = (*s_indices).n_sections;
 
@@ -101,15 +100,15 @@ unsafe fn reserveOCSectionIndices(mut s_indices: *mut OCSectionIndices, mut len:
         return;
     }
 
-    let mut new_capacity = (1 as c_int) << ceil(log2((current_len + len) as c_double)) as c_int;
+    let mut new_capacity = 1 << ceil(log2((current_len + len) as f64)) as i32;
     let mut old_indices = (*s_indices).indices;
 
     let mut new_indices = stgMallocBytes(
-        (new_capacity as size_t).wrapping_mul(size_of::<OCSectionIndex>() as size_t),
-        b"reserveOCSectionIndices\0" as *const u8 as *const c_char as *mut c_char,
+        (new_capacity as usize).wrapping_mul(size_of::<OCSectionIndex>() as usize),
+        c"reserveOCSectionIndices".as_ptr(),
     ) as *mut OCSectionIndex;
 
-    let mut i = 0 as c_int;
+    let mut i = 0;
 
     while i < current_len {
         *new_indices.offset(i as isize) = *old_indices.offset(i as isize);
@@ -122,10 +121,10 @@ unsafe fn reserveOCSectionIndices(mut s_indices: *mut OCSectionIndices, mut len:
 }
 
 unsafe fn insertOCSectionIndices(mut oc: *mut ObjectCode) {
-    (*global_s_indices).sorted = r#false != 0;
+    (*global_s_indices).sorted = false;
 
-    if (*oc).r#type as c_uint == DYNAMIC_OBJECT as c_int as c_uint {
-        let mut n_ranges = 0 as c_int;
+    if (*oc).r#type as u32 == DYNAMIC_OBJECT as i32 as u32 {
+        let mut n_ranges = 0;
         let mut ncr = (*oc).nc_ranges;
 
         while !ncr.is_null() {
@@ -153,12 +152,10 @@ unsafe fn insertOCSectionIndices(mut oc: *mut ObjectCode) {
         reserveOCSectionIndices(global_s_indices, (*oc).n_sections);
 
         let mut s_i_0 = (*global_s_indices).n_sections;
-        let mut i = 0 as c_int;
+        let mut i = 0;
 
         while i < (*oc).n_sections {
-            if (*(*oc).sections.offset(i as isize)).kind as c_uint
-                != SECTIONKIND_OTHER as c_int as c_uint
-            {
+            if (*(*oc).sections.offset(i as isize)).kind as u32 != SECTIONKIND_OTHER as i32 as u32 {
                 let mut ent_0: *mut OCSectionIndex =
                     (*global_s_indices).indices.offset(s_i_0 as isize) as *mut OCSectionIndex;
                 (*ent_0).start = (*(*oc).sections.offset(i as isize)).start as W_;
@@ -183,18 +180,16 @@ unsafe fn insertOCSectionIndices(mut oc: *mut ObjectCode) {
 }
 
 unsafe fn removeOCSectionIndices(mut s_indices: *mut OCSectionIndices, mut oc: *mut ObjectCode) {
-    (*s_indices).unloaded = r#true != 0;
+    (*s_indices).unloaded = true;
 
-    let mut i = 0 as c_int;
+    let mut i = 0;
 
     while i < (*oc).n_sections {
-        if (*(*oc).sections.offset(i as isize)).kind as c_uint
-            != SECTIONKIND_OTHER as c_int as c_uint
-        {
+        if (*(*oc).sections.offset(i as isize)).kind as u32 != SECTIONKIND_OTHER as i32 as u32 {
             let mut section_idx =
                 findSectionIdx(s_indices, (*(*oc).sections.offset(i as isize)).start);
 
-            if section_idx != -(1 as c_int) {
+            if section_idx != -1 {
                 let ref mut fresh5 = (*(*s_indices).indices.offset(section_idx as isize)).oc;
                 *fresh5 = null_mut::<ObjectCode>();
             }
@@ -211,12 +206,12 @@ unsafe fn sortOCSectionIndices(mut s_indices: *mut OCSectionIndices) {
 
     qsort(
         (*s_indices).indices as *mut c_void,
-        (*s_indices).n_sections as size_t,
-        size_of::<OCSectionIndex>() as size_t,
+        (*s_indices).n_sections as usize,
+        size_of::<OCSectionIndex>() as usize,
         Some(cmpSectionIndex as unsafe extern "C" fn(*const c_void, *const c_void) -> c_int),
     );
 
-    (*s_indices).sorted = r#true != 0;
+    (*s_indices).sorted = true;
 }
 
 unsafe fn removeRemovedOCSections(mut s_indices: *mut OCSectionIndices) {
@@ -224,8 +219,8 @@ unsafe fn removeRemovedOCSections(mut s_indices: *mut OCSectionIndices) {
         return;
     }
 
-    let mut next_free_idx = 0 as c_int;
-    let mut i = 0 as c_int;
+    let mut next_free_idx = 0;
+    let mut i = 0;
 
     while i < (*s_indices).n_sections {
         if !(*(*s_indices).indices.offset(i as isize)).oc.is_null() {
@@ -242,25 +237,25 @@ unsafe fn removeRemovedOCSections(mut s_indices: *mut OCSectionIndices) {
     }
 
     (*s_indices).n_sections = next_free_idx;
-    (*s_indices).unloaded = r#true != 0;
+    (*s_indices).unloaded = true;
 }
 
-unsafe fn findSectionIdx(mut s_indices: *mut OCSectionIndices, mut addr: *const c_void) -> c_int {
+unsafe fn findSectionIdx(mut s_indices: *mut OCSectionIndices, mut addr: *const c_void) -> i32 {
     let mut w_addr: W_ = addr as W_;
 
-    if (*s_indices).n_sections <= 0 as c_int {
-        return -(1 as c_int);
+    if (*s_indices).n_sections <= 0 {
+        return -1;
     }
 
-    if w_addr < (*(*s_indices).indices.offset(0 as c_int as isize)).start {
-        return -(1 as c_int);
+    if w_addr < (*(*s_indices).indices.offset(0)).start {
+        return -1;
     }
 
-    let mut left = 0 as c_int;
+    let mut left = 0;
     let mut right = (*s_indices).n_sections;
 
-    while (left + 1 as c_int) < right {
-        let mut mid = (left + right) / 2 as c_int;
+    while (left + 1) < right {
+        let mut mid = (left + right) / 2;
         let mut w_mid: W_ = (*(*s_indices).indices.offset(mid as isize)).start;
 
         if w_mid <= w_addr {
@@ -274,13 +269,13 @@ unsafe fn findSectionIdx(mut s_indices: *mut OCSectionIndices, mut addr: *const 
         return left;
     }
 
-    return -(1 as c_int);
+    return -1;
 }
 
 unsafe fn findOC(mut s_indices: *mut OCSectionIndices, mut addr: *const c_void) -> *mut ObjectCode {
     let mut oc_idx = findSectionIdx(s_indices, addr);
 
-    if oc_idx == -(1 as c_int) {
+    if oc_idx == -1 {
         return null_mut::<ObjectCode>();
     }
 
@@ -296,7 +291,7 @@ unsafe fn markObjectLive(
 
     if xchg(&raw mut (*oc).mark, object_code_mark_bit as StgWord) == object_code_mark_bit as StgWord
     {
-        return r#true != 0;
+        return true;
     }
 
     if !(*oc).prev.is_null() {
@@ -324,7 +319,7 @@ unsafe fn markObjectLive(
         Some(markObjectLive as unsafe extern "C" fn(*mut c_void, StgWord, *const c_void) -> bool),
     );
 
-    return r#true != 0;
+    return true;
 }
 
 unsafe fn markObjectCode(mut addr: *const c_void) {
@@ -341,16 +336,16 @@ unsafe fn markObjectCode(mut addr: *const c_void) {
 
 unsafe fn prepareUnloadCheck() -> bool {
     if !tryToUnload() {
-        return r#false != 0;
+        return false;
     }
 
     removeRemovedOCSections(global_s_indices);
     sortOCSectionIndices(global_s_indices);
-    object_code_mark_bit = !(object_code_mark_bit as c_int) as uint8_t;
+    object_code_mark_bit = !(object_code_mark_bit as i32) as u8;
     old_objects = objects;
     objects = null_mut::<ObjectCode>();
 
-    return r#true != 0;
+    return true;
 }
 
 unsafe fn checkUnload() {
@@ -372,7 +367,7 @@ unsafe fn checkUnload() {
             if (*oc_0).unloadable {
                 removeOCSectionIndices(s_indices, oc_0);
                 freeObjectCode(oc_0);
-                n_unloaded_objects -= 1 as c_int;
+                n_unloaded_objects -= 1;
             } else {
                 (*oc_0).next = objects as *mut _ObjectCode;
                 objects = oc_0;

@@ -3,12 +3,12 @@ use crate::ffi::rts::ipe::registerInfoProvList;
 use crate::ffi::rts_api::{rts_lock, rts_unlock};
 use crate::prelude::*;
 
-unsafe fn main_0(mut argc: c_int, mut argv: *mut *mut c_char) -> c_int {
+unsafe fn main_0(mut argc: i32, mut argv: *mut *mut c_char) -> i32 {
     hs_init(&raw mut argc, &raw mut argv);
 
     let mut cap = rts_lock();
-    let mut list1 = makeAnyProvEntries(cap, 0 as c_int, 10 as c_int);
-    let mut list2 = makeAnyProvEntries(cap, 0 as c_int, 10 as c_int);
+    let mut list1 = makeAnyProvEntries(cap, 0, 10);
+    let mut list2 = makeAnyProvEntries(cap, 0, 10);
     registerInfoProvList(list1);
     registerInfoProvList(list2);
     dumpIPEToEventLog();
@@ -35,7 +35,7 @@ fn main() {
 
     unsafe {
         ::std::process::exit(main_0(
-            (args_ptrs.len() - 1) as c_int,
+            (args_ptrs.len() - 1) as i32,
             args_ptrs.as_mut_ptr() as *mut *mut c_char,
         ) as i32)
     }

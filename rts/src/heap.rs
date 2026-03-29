@@ -33,29 +33,29 @@ unsafe fn heap_view_closure_ptrs_in_large_bitmap(
     mut nptrs: *mut StgWord,
     mut p: *mut *mut StgClosure,
     mut large_bitmap: *mut StgLargeBitmap,
-    mut size: uint32_t,
+    mut size: u32,
 ) {
-    let mut i: uint32_t = 0;
-    let mut j: uint32_t = 0;
-    let mut b: uint32_t = 0;
+    let mut i: u32 = 0;
+    let mut j: u32 = 0;
+    let mut b: u32 = 0;
     let mut bitmap: StgWord = 0;
-    b = 0 as uint32_t;
-    i = 0 as uint32_t;
+    b = 0;
+    i = 0;
 
     while i < size {
         bitmap = *(&raw mut (*large_bitmap).bitmap as *mut StgWord).offset(b as isize);
 
         j = ({
-            let mut _a: uint32_t = (size as uint32_t).wrapping_sub(i as uint32_t);
-            let mut _b: uint32_t = (8 as usize).wrapping_mul(size_of::<W_>() as usize) as uint32_t;
+            let mut _a: u32 = (size as u32).wrapping_sub(i as u32);
+            let mut _b: u32 = (8 as usize).wrapping_mul(size_of::<W_>() as usize) as u32;
 
-            if _a <= _b { _a } else { _b as uint32_t }
+            if _a <= _b { _a } else { _b as u32 }
         });
 
         i = i.wrapping_add(j);
 
-        while j > 0 as uint32_t {
-            if bitmap & 1 as StgWord == 0 as StgWord {
+        while j > 0 {
+            if bitmap & 1 == 0 {
                 let fresh68 = *nptrs;
                 *nptrs = (*nptrs).wrapping_add(1);
 
@@ -63,7 +63,7 @@ unsafe fn heap_view_closure_ptrs_in_large_bitmap(
                 *fresh69 = *p;
             }
 
-            bitmap = bitmap >> 1 as c_int;
+            bitmap = bitmap >> 1;
             j = j.wrapping_sub(1);
             p = p.offset(1);
         }
@@ -96,10 +96,10 @@ unsafe fn heap_view_closure_ptrs_in_pap_payload(
                 ptrs,
                 nptrs,
                 payload,
-                (fun_info.offset(1 as c_int as isize) as StgWord)
+                (fun_info.offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                     as *mut StgLargeBitmap,
-                size as uint32_t,
+                size as u32,
             );
 
             current_block_12 = 10048703153582371463;
@@ -110,7 +110,7 @@ unsafe fn heap_view_closure_ptrs_in_pap_payload(
                 nptrs,
                 payload,
                 &raw mut (*(fun as *mut StgBCO)).bitmap as *mut StgWord as *mut StgLargeBitmap,
-                size as uint32_t,
+                size as u32,
             );
 
             current_block_12 = 10048703153582371463;
@@ -119,15 +119,14 @@ unsafe fn heap_view_closure_ptrs_in_pap_payload(
             bitmap = *(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 >> BITMAP_BITS_SHIFT;
-
             current_block_12 = 1602666671127177107;
         }
     }
 
     match current_block_12 {
         1602666671127177107 => {
-            while size > 0 as StgWord {
-                if bitmap & 1 as StgWord == 0 as StgWord {
+            while size > 0 {
+                if bitmap & 1 == 0 {
                     let fresh66 = *nptrs;
                     *nptrs = (*nptrs).wrapping_add(1);
 
@@ -135,7 +134,7 @@ unsafe fn heap_view_closure_ptrs_in_pap_payload(
                     *fresh67 = *p;
                 }
 
-                bitmap = bitmap >> 1 as c_int;
+                bitmap = bitmap >> 1;
                 p = p.offset(1);
                 size = size.wrapping_sub(1);
             }
@@ -153,12 +152,12 @@ pub unsafe extern "C" fn collect_pointers(
 ) -> StgWord {
     let mut end = null_mut::<*mut StgClosure>();
     let mut info = get_itbl(closure);
-    let mut nptrs: StgWord = 0 as StgWord;
+    let mut nptrs: StgWord = 0;
     let mut i: StgWord = 0;
 
     match (*info).r#type {
         0 => {
-            barf(b"Invalid Object\0" as *const u8 as *const c_char);
+            barf(c"Invalid Object".as_ptr());
         }
         2 | 3 | 4 | 5 | 6 | 1 | 7 | 50 | 8 | 9 | 10 | 12 | 11 | 13 | 14 => {
             end = (&raw mut (*closure).payload as *mut *mut StgClosure_)
@@ -263,7 +262,7 @@ pub unsafe extern "C" fn collect_pointers(
             *fresh21 = (*(closure as *mut StgInd)).indirectee;
         }
         43 | 44 | 46 | 45 => {
-            i = 0 as StgWord;
+            i = 0;
 
             while i < (*(closure as *mut StgMutArrPtrs)).ptrs {
                 let fresh22 = nptrs;
@@ -277,7 +276,7 @@ pub unsafe extern "C" fn collect_pointers(
             }
         }
         59 | 60 | 62 | 61 => {
-            i = 0 as StgWord;
+            i = 0;
 
             while i < (*(closure as *mut StgSmallMutArrPtrs)).ptrs {
                 let fresh24 = nptrs;
@@ -425,7 +424,7 @@ pub unsafe extern "C" fn collect_pointers(
         _ => {
             fprintf(
                 __stderrp,
-                b"closurePtrs: Cannot handle type %s yet\n\0" as *const u8 as *const c_char,
+                c"closurePtrs: Cannot handle type %s yet\n".as_ptr(),
                 *(&raw mut closure_type_names as *mut *const c_char)
                     .offset((*info).r#type as isize),
             );
@@ -442,20 +441,20 @@ unsafe fn heap_view_closurePtrs(
     let mut size = heap_view_closureSize(closure);
 
     let mut ptrs = stgMallocBytes(
-        (size_of::<*mut StgClosure>() as StgWord).wrapping_mul(size) as size_t,
-        b"heap_view_closurePtrs\0" as *const u8 as *const c_char as *mut c_char,
+        (size_of::<*mut StgClosure>() as StgWord).wrapping_mul(size) as usize,
+        c"heap_view_closurePtrs".as_ptr(),
     ) as *mut *mut StgClosure;
 
     let mut nptrs = collect_pointers(closure, ptrs as *mut *mut StgClosure);
     let mut arr = allocateMutArrPtrs(cap, nptrs, (*cap).r.rCCCS as *mut CostCentreStack);
 
-    if !((arr == null_mut::<c_void>() as *mut StgMutArrPtrs) as c_int as c_long != 0) {
+    if !((arr == null_mut::<c_void>() as *mut StgMutArrPtrs) as i32 as i64 != 0) {
         SET_INFO(
             arr as *mut StgClosure,
             &raw const stg_MUT_ARR_PTRS_FROZEN_CLEAN_info,
         );
 
-        let mut i: StgWord = 0 as StgWord;
+        let mut i: StgWord = 0;
 
         while i < nptrs {
             let ref mut fresh1 =

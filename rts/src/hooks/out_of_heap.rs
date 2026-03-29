@@ -6,26 +6,25 @@ use crate::prelude::*;
 use crate::rts_flags::rtsConfig;
 
 unsafe fn OutOfHeapHook(mut request_size: W_, mut heap_size: W_) {
-    if heap_size > 0 as W_ {
-        errorBelch(b"Heap exhausted;\0" as *const u8 as *const c_char);
+    if heap_size > 0 {
+        errorBelch(c"Heap exhausted;".as_ptr());
 
         errorBelch(
-            b"Current maximum heap size is %llu bytes (%llu MB).\0" as *const u8 as *const c_char,
+            c"Current maximum heap size is %llu bytes (%llu MB).".as_ptr(),
             heap_size,
-            heap_size.wrapping_div((1024 as c_int * 1024 as c_int) as W_),
+            heap_size.wrapping_div((1024 as i32 * 1024 as i32) as W_),
         );
 
-        if rtsConfig.rts_opts_suggestions == r#true as HsBool {
-            if rtsConfig.rts_opts_enabled as c_uint == RtsOptsAll as c_int as c_uint {
-                errorBelch(b"Use `+RTS -M<size>' to increase it.\0" as *const u8 as *const c_char);
+        if rtsConfig.rts_opts_suggestions == true {
+            if rtsConfig.rts_opts_enabled as u32 == RtsOptsAll as i32 as u32 {
+                errorBelch(c"Use `+RTS -M<size>' to increase it.".as_ptr());
             } else {
                 errorBelch(
-                    b"Relink with -rtsopts and use `+RTS -M<size>' to increase it.\0" as *const u8
-                        as *const c_char,
+                    c"Relink with -rtsopts and use `+RTS -M<size>' to increase it.".as_ptr(),
                 );
             }
         }
     } else {
-        errorBelch(b"Out of memory\n\0" as *const u8 as *const c_char);
+        errorBelch(c"Out of memory\n".as_ptr());
     };
 }

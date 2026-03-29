@@ -156,13 +156,13 @@ fn equivalent_hs_spt_lookup(key: StgWord64) -> bool {
 fn test_hs_spt_keys() {
     let g = &mut Gen::new(100);
 
-    let actual: c_int = {
+    let actual: i32 = {
         let keys: StgPtr = todo!();
-        let szKeys: c_int = Arbitrary::arbitrary(g);
+        let szKeys: i32 = Arbitrary::arbitrary(g);
         unsafe { hs_spt_keys(&raw mut keys, szKeys) }
     };
 
-    let expected: c_int = todo!();
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -170,13 +170,13 @@ fn test_hs_spt_keys() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_hs_spt_keys(szKeys: c_int) -> bool {
-    let expected: c_int = {
+fn equivalent_hs_spt_keys(szKeys: i32) -> bool {
+    let expected: i32 = {
         let mut keys: StgPtr = todo!();
         unsafe { sys::hs_spt_keys(&raw mut keys, szKeys) }
     };
 
-    let actual: c_int = {
+    let actual: i32 = {
         let mut keys: StgPtr = todo!();
         unsafe { hs_spt_keys(&raw mut keys, szKeys) }
     };
@@ -188,8 +188,8 @@ fn equivalent_hs_spt_keys(szKeys: c_int) -> bool {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn test_hs_spt_key_count() {
-    let actual: c_int = { unsafe { hs_spt_key_count() } };
-    let expected: c_int = todo!();
+    let actual: i32 = { unsafe { hs_spt_key_count() } };
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -197,7 +197,7 @@ fn test_hs_spt_key_count() {
 #[test]
 #[ignore]
 fn equivalent_hs_spt_key_count() {
-    let expected: c_int = { unsafe { sys::hs_spt_key_count() } };
-    let actual: c_int = { unsafe { hs_spt_key_count() } };
+    let expected: i32 = { unsafe { sys::hs_spt_key_count() } };
+    let actual: i32 = { unsafe { hs_spt_key_count() } };
     assert_eq!(actual, expected);
 }

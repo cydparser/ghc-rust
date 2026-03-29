@@ -16,9 +16,9 @@ pub unsafe extern "C" fn hs_mulIntMayOflo(mut a: W_, mut b: W_) -> W_ {
             || b as I_ <= HALF_NEG_INT
             || b >= HALF_POS_INT as W_
         {
-            c = 1 as I_;
+            c = 1;
         } else {
-            c = 0 as I_;
+            c = 0;
         }
 
         c

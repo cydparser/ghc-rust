@@ -32,11 +32,11 @@ pub(crate) struct _CapIOManager {
     pub(crate) sleeping_queue: *mut StgTSO,
 }
 
-pub(crate) type IOManagerType = c_uint;
+pub(crate) type IOManagerType = u32;
 
 pub(crate) const IO_MANAGER_SELECT: IOManagerType = 0;
 
-pub(crate) type IOManagerAvailability = c_uint;
+pub(crate) type IOManagerAvailability = u32;
 
 pub(crate) const IOManagerUnrecognised: IOManagerAvailability = 2;
 
@@ -44,7 +44,7 @@ pub(crate) const IOManagerUnavailable: IOManagerAvailability = 1;
 
 pub(crate) const IOManagerAvailable: IOManagerAvailability = 0;
 
-pub(crate) type IOReadOrWrite = c_uint;
+pub(crate) type IOReadOrWrite = u32;
 
 pub(crate) const IOWrite: IOReadOrWrite = 1;
 
@@ -56,25 +56,25 @@ unsafe fn parseIOManagerFlag(
     mut iomgrstr: *const c_char,
     mut flag: *mut IO_MANAGER_FLAG,
 ) -> IOManagerAvailability {
-    if strcmp(b"select\0" as *const u8 as *const c_char, iomgrstr) == 0 as c_int {
+    if strcmp(c"select".as_ptr(), iomgrstr) == 0 {
         *flag = IO_MNGR_FLAG_SELECT;
 
         return IOManagerAvailable;
-    } else if strcmp(b"mio\0" as *const u8 as *const c_char, iomgrstr) == 0 as c_int {
+    } else if strcmp(c"mio".as_ptr(), iomgrstr) == 0 {
         return IOManagerUnavailable;
-    } else if strcmp(b"winio\0" as *const u8 as *const c_char, iomgrstr) == 0 as c_int {
+    } else if strcmp(c"winio".as_ptr(), iomgrstr) == 0 {
         return IOManagerUnavailable;
-    } else if strcmp(b"win32-legacy\0" as *const u8 as *const c_char, iomgrstr) == 0 as c_int {
+    } else if strcmp(c"win32-legacy".as_ptr(), iomgrstr) == 0 {
         return IOManagerUnavailable;
-    } else if strcmp(b"auto\0" as *const u8 as *const c_char, iomgrstr) == 0 as c_int {
+    } else if strcmp(c"auto".as_ptr(), iomgrstr) == 0 {
         *flag = IO_MNGR_FLAG_AUTO;
 
         return IOManagerAvailable;
-    } else if strcmp(b"native\0" as *const u8 as *const c_char, iomgrstr) == 0 as c_int {
+    } else if strcmp(c"native".as_ptr(), iomgrstr) == 0 {
         *flag = IO_MNGR_FLAG_AUTO;
 
         return IOManagerAvailable;
-    } else if strcmp(b"posix\0" as *const u8 as *const c_char, iomgrstr) == 0 as c_int {
+    } else if strcmp(c"posix".as_ptr(), iomgrstr) == 0 {
         *flag = IO_MNGR_FLAG_AUTO;
 
         return IOManagerAvailable;
@@ -84,7 +84,7 @@ unsafe fn parseIOManagerFlag(
 }
 
 unsafe fn selectIOManager() {
-    match RtsFlags.MiscFlags.ioManager as c_uint {
+    match RtsFlags.MiscFlags.ioManager as u32 {
         0 => {
             iomgr_type = IO_MANAGER_SELECT;
         }
@@ -93,43 +93,39 @@ unsafe fn selectIOManager() {
         }
         _ => {
             barf(
-                b"selectIOManager: %d\0" as *const u8 as *const c_char,
-                RtsFlags.MiscFlags.ioManager as c_uint,
+                c"selectIOManager: %d".as_ptr(),
+                RtsFlags.MiscFlags.ioManager as u32,
             );
         }
     };
 }
 
 unsafe fn showIOManager() -> *mut c_char {
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         0 => {
-            return b"select\0" as *const u8 as *const c_char as *mut c_char;
+            return c"select".as_ptr();
         }
         _ => {
-            barf(
-                b"showIOManager: %d\0" as *const u8 as *const c_char,
-                iomgr_type as c_uint,
-            );
+            barf(c"showIOManager: %d".as_ptr(), iomgr_type as u32);
         }
     };
 }
 
 unsafe fn initCapabilityIOManager(mut cap: *mut Capability) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as i64 != 0 {
         trace_(
-            b"initialising I/O manager %s for cap %d\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"initialising I/O manager %s for cap %d".as_ptr(),
             showIOManager(),
             (*cap).no,
         );
     }
 
     let mut iomgr = stgMallocBytes(
-        size_of::<CapIOManager>() as size_t,
-        b"initCapabilityIOManager\0" as *const u8 as *const c_char as *mut c_char,
+        size_of::<CapIOManager>() as usize,
+        c"initCapabilityIOManager".as_ptr(),
     ) as *mut CapIOManager;
 
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         0 => {
             (*iomgr).blocked_queue_hd =
                 &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
@@ -145,14 +141,11 @@ unsafe fn initCapabilityIOManager(mut cap: *mut Capability) {
 }
 
 unsafe fn initIOManager() {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as c_long != 0 {
-        trace_(
-            b"initialising %s I/O manager\0" as *const u8 as *const c_char as *mut c_char,
-            showIOManager(),
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as i64 != 0 {
+        trace_(c"initialising %s I/O manager".as_ptr(), showIOManager());
     }
 
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         0 => {
             getStablePtr((*ghc_hs_iface).blockedOnBadFD_closure as StgPtr);
         }
@@ -161,31 +154,31 @@ unsafe fn initIOManager() {
 }
 
 unsafe fn initIOManagerAfterFork(mut pcap: *mut *mut Capability) {
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         _ => {}
     };
 }
 
 unsafe fn notifyIOManagerCapabilitiesChanged(mut pcap: *mut *mut Capability) {
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         _ => {}
     };
 }
 
 unsafe fn stopIOManager() {
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         _ => {}
     };
 }
 
 unsafe fn exitIOManager(mut wait_threads: bool) {
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         _ => {}
     };
 }
 
 unsafe fn wakeupIOManager() {
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         _ => {}
     };
 }
@@ -195,10 +188,9 @@ unsafe fn markCapabilityIOManager(
     mut user: *mut c_void,
     mut cap: *mut Capability,
 ) {
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         0 => {
             let mut iomgr = (*cap).iomgr;
-
             evac.expect("non-null function pointer")(
                 user,
                 &raw mut (*iomgr).blocked_queue_hd as *mut c_void as *mut *mut StgClosure,
@@ -219,7 +211,7 @@ unsafe fn markCapabilityIOManager(
 }
 
 unsafe fn scavengeTSOIOManager(mut tso: *mut StgTSO) {
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         _ => {}
     };
 }
@@ -227,10 +219,10 @@ unsafe fn scavengeTSOIOManager(mut tso: *mut StgTSO) {
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn setIOManagerControlFd(mut cap_no: uint32_t, mut fd: c_int) {}
+pub unsafe extern "C" fn setIOManagerControlFd(mut cap_no: u32, mut fd: i32) {}
 
 unsafe fn anyPendingTimeoutsOrIO(mut cap: *mut Capability) -> bool {
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         0 => {
             let mut iomgr = (*cap).iomgr;
 
@@ -240,41 +232,37 @@ unsafe fn anyPendingTimeoutsOrIO(mut cap: *mut Capability) -> bool {
                     != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
         }
         _ => {
-            barf(b"anyPendingTimeoutsOrIO not implemented\0" as *const u8 as *const c_char);
+            barf(c"anyPendingTimeoutsOrIO not implemented".as_ptr());
         }
     };
 }
 
 unsafe fn pollCompletedTimeoutsOrIO(mut cap: *mut Capability) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as c_long != 0 {
-        trace_(
-            b"polling for completed IO or timeouts\0" as *const u8 as *const c_char as *mut c_char,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as i64 != 0 {
+        trace_(c"polling for completed IO or timeouts".as_ptr());
     }
 
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         0 => {
-            awaitCompletedTimeoutsOrIOSelect(cap, r#false != 0);
+            awaitCompletedTimeoutsOrIOSelect(cap, false);
         }
         _ => {
-            barf(b"pollCompletedTimeoutsOrIO not implemented\0" as *const u8 as *const c_char);
+            barf(c"pollCompletedTimeoutsOrIO not implemented".as_ptr());
         }
     };
 }
 
 unsafe fn awaitCompletedTimeoutsOrIO(mut cap: *mut Capability) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as c_long != 0 {
-        trace_(
-            b"waiting for completed IO or timeouts\0" as *const u8 as *const c_char as *mut c_char,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as i64 != 0 {
+        trace_(c"waiting for completed IO or timeouts".as_ptr());
     }
 
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         0 => {
-            awaitCompletedTimeoutsOrIOSelect(cap, r#true != 0);
+            awaitCompletedTimeoutsOrIOSelect(cap, true);
         }
         _ => {
-            barf(b"pollCompletedTimeoutsOrIO not implemented\0" as *const u8 as *const c_char);
+            barf(c"pollCompletedTimeoutsOrIO not implemented".as_ptr());
         }
     };
 }
@@ -285,23 +273,22 @@ unsafe fn syncIOWaitReady(
     mut rw: IOReadOrWrite,
     mut fd: HsInt,
 ) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as i64 != 0 {
         trace_(
-            b"thread %ld waiting for %s I/O readiness on fd %d\0" as *const u8 as *const c_char
-                as *mut c_char,
-            (*tso).id as c_long,
-            if rw as c_uint == IORead as c_int as c_uint {
-                b"read\0" as *const u8 as *const c_char
+            c"thread %ld waiting for %s I/O readiness on fd %d".as_ptr(),
+            (*tso).id as i64,
+            if rw as u32 == IORead as i32 as u32 {
+                c"read".as_ptr()
             } else {
-                b"write\0" as *const u8 as *const c_char
+                c"write".as_ptr()
             },
-            fd as c_int,
+            fd as i32,
         );
     }
 
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         0 => {
-            let mut why_blocked: StgWord = (if rw as c_uint == IORead as c_int as c_uint {
+            let mut why_blocked: StgWord = (if rw as u32 == IORead as i32 as u32 {
                 BlockedOnRead
             } else {
                 BlockedOnWrite
@@ -312,23 +299,17 @@ unsafe fn syncIOWaitReady(
             appendToIOBlockedQueue(cap, tso);
         }
         _ => {
-            barf(
-                b"waitRead# / waitWrite# not available for current I/O manager\0" as *const u8
-                    as *const c_char,
-            );
+            barf(c"waitRead# / waitWrite# not available for current I/O manager".as_ptr());
         }
     };
 }
 
 unsafe fn syncIOCancel(mut cap: *mut Capability, mut tso: *mut StgTSO) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as c_long != 0 {
-        trace_(
-            b"cancelling I/O for thread %ld\0" as *const u8 as *const c_char as *mut c_char,
-            (*tso).id as c_long,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as i64 != 0 {
+        trace_(c"cancelling I/O for thread %ld".as_ptr(), (*tso).id as i64);
     }
 
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         0 => {
             removeThreadFromDeQueue(
                 cap,
@@ -339,54 +320,54 @@ unsafe fn syncIOCancel(mut cap: *mut Capability, mut tso: *mut StgTSO) {
         }
         _ => {
             barf(
-                b"syncIOCancel not supported for I/O manager %d\0" as *const u8 as *const c_char,
-                iomgr_type as c_uint,
+                c"syncIOCancel not supported for I/O manager %d".as_ptr(),
+                iomgr_type as u32,
             );
         }
     };
 }
 
 unsafe fn syncDelay(mut cap: *mut Capability, mut tso: *mut StgTSO, mut us_delay: HsInt) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as i64 != 0 {
         trace_(
-            b"thread %ld waiting for %lld us\0" as *const u8 as *const c_char as *mut c_char,
+            c"thread %ld waiting for %lld us".as_ptr(),
             (*tso).id,
             us_delay,
         );
     }
 
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         0 => {
             let mut target = getDelayTarget(us_delay);
             (*tso).block_info.target = target as StgWord;
-            (*tso).why_blocked = 5 as StgWord32;
+            (*tso).why_blocked = 5;
             insertIntoSleepingQueue(cap, tso, target);
         }
         _ => {
             barf(
-                b"syncDelay not supported for I/O manager %d\0" as *const u8 as *const c_char,
-                iomgr_type as c_uint,
+                c"syncDelay not supported for I/O manager %d".as_ptr(),
+                iomgr_type as u32,
             );
         }
     };
 }
 
 unsafe fn syncDelayCancel(mut cap: *mut Capability, mut tso: *mut StgTSO) {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as i64 != 0 {
         trace_(
-            b"cancelling delay for thread %ld\0" as *const u8 as *const c_char as *mut c_char,
-            (*tso).id as c_long,
+            c"cancelling delay for thread %ld".as_ptr(),
+            (*tso).id as i64,
         );
     }
 
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         0 => {
             removeThreadFromQueue(cap, &raw mut (*(*cap).iomgr).sleeping_queue, tso);
         }
         _ => {
             barf(
-                b"syncDelayCancel not supported for I/O manager %d\0" as *const u8 as *const c_char,
-                iomgr_type as c_uint,
+                c"syncDelayCancel not supported for I/O manager %d".as_ptr(),
+                iomgr_type as u32,
             );
         }
     };
@@ -431,9 +412,9 @@ unsafe fn insertIntoSleepingQueue(
 }
 
 unsafe fn is_io_mng_native_p() -> bool {
-    match iomgr_type as c_uint {
+    match iomgr_type as u32 {
         _ => {}
     }
 
-    return r#false != 0;
+    return false;
 }

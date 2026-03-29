@@ -6,76 +6,64 @@ use crate::ffi::rts::{_assertFail, stg_exit};
 use crate::linker_internals::resolveSymbolAddr;
 use crate::prelude::*;
 
-const EH_UNWINDING: c_int = 0x2 as c_int;
+const EH_UNWINDING: i32 = 0x2;
 
 static mut __hs_handle: PVOID = NULL;
 
 static mut oldTopFilter: LPTOP_LEVEL_EXCEPTION_FILTER = None;
 
-unsafe fn __hs_exception_handler(mut exception_data: *mut _EXCEPTION_POINTERS) -> c_long {
-    let mut action = EXCEPTION_CONTINUE_SEARCH as c_long;
+unsafe fn __hs_exception_handler(mut exception_data: *mut _EXCEPTION_POINTERS) -> i64 {
+    let mut action = EXCEPTION_CONTINUE_SEARCH as i64;
     let mut exit_code = EXIT_FAILURE;
     let mut what: ULONG_PTR = 0;
-    fprintf(__stderrp, b"\n\0" as *const u8 as *const c_char);
+    fprintf(__stderrp, c"\n".as_ptr());
 
     if !exception_data.is_null()
         && !(*exception_data).ExceptionRecord.is_null()
-        && (*(*exception_data).ExceptionRecord).ExceptionFlags & EH_UNWINDING as DWORD == 0 as DWORD
+        && (*(*exception_data).ExceptionRecord).ExceptionFlags & EH_UNWINDING as DWORD == 0
     {
         match (*(*exception_data).ExceptionRecord).ExceptionCode {
             EXCEPTION_FLT_DIVIDE_BY_ZERO | EXCEPTION_INT_DIVIDE_BY_ZERO => {
-                fprintf(
-                    __stderrp,
-                    b"divide by zero\n\0" as *const u8 as *const c_char,
-                );
-
-                action = EXCEPTION_CONTINUE_EXECUTION as c_long;
+                fprintf(__stderrp, c"divide by zero\n".as_ptr());
+                action = EXCEPTION_CONTINUE_EXECUTION as i64;
                 exit_code = SIGFPE;
             }
             EXCEPTION_STACK_OVERFLOW => {
-                fprintf(
-                    __stderrp,
-                    b"C stack overflow in generated code\n\0" as *const u8 as *const c_char,
-                );
-
-                action = EXCEPTION_CONTINUE_EXECUTION as c_long;
+                fprintf(__stderrp, c"C stack overflow in generated code\n".as_ptr());
+                action = EXCEPTION_CONTINUE_EXECUTION as i64;
             }
             EXCEPTION_ACCESS_VIOLATION => {
-                if (*(*exception_data).ExceptionRecord).NumberParameters < 2 as DWORD {
+                if (*(*exception_data).ExceptionRecord).NumberParameters < 2 {
                     fprintf(
                         __stderrp,
-                        b"Access violation in generated code. Empty exception record.\0"
-                            as *const u8 as *const c_char,
+                        c"Access violation in generated code. Empty exception record.".as_ptr(),
                     );
                 } else {
-                    what = (*(*exception_data).ExceptionRecord).ExceptionInformation
-                        [0 as c_int as usize];
+                    what = (*(*exception_data).ExceptionRecord).ExceptionInformation[0];
 
                     fprintf(
                         __stderrp,
-                        b"Access violation in generated code when %s 0x%lx\n\0" as *const u8
-                            as *const c_char,
-                        if what == 0 as ULONG_PTR {
-                            b"reading\0" as *const u8 as *const c_char
-                        } else if what == 1 as ULONG_PTR {
-                            b"writing\0" as *const u8 as *const c_char
-                        } else if what == 8 as ULONG_PTR {
-                            b"executing data at\0" as *const u8 as *const c_char
+                        c"Access violation in generated code when %s 0x%lx\n".as_ptr(),
+                        if what == 0 {
+                            c"reading".as_ptr()
+                        } else if what == 1 {
+                            c"writing".as_ptr()
+                        } else if what == 8 {
+                            c"executing data at".as_ptr()
                         } else {
-                            b"?\0" as *const u8 as *const c_char
+                            c"?".as_ptr()
                         },
-                        (*(*exception_data).ExceptionRecord).ExceptionInformation
-                            [1 as c_int as usize] as uintptr_t,
+                        (*(*exception_data).ExceptionRecord).ExceptionInformation[1] as usize,
                     );
                 }
 
-                action = EXCEPTION_CONTINUE_EXECUTION as c_long;
+                action = EXCEPTION_CONTINUE_EXECUTION as i64;
                 exit_code = SIGSEGV;
             }
             _ => {}
         }
 
-        if EXCEPTION_CONTINUE_EXECUTION as c_long == action {
+        if EXCEPTION_CONTINUE_EXECUTION as i64 == action {
             fflush(__stderrp);
             hs_restoreConsoleCP();
             generateStack(exception_data as *mut EXCEPTION_POINTERS);
@@ -87,15 +75,15 @@ unsafe fn __hs_exception_handler(mut exception_data: *mut _EXCEPTION_POINTERS) -
     return action;
 }
 
-unsafe fn __hs_exception_filter(mut exception_data: *mut _EXCEPTION_POINTERS) -> c_long {
-    let mut result = EXCEPTION_CONTINUE_EXECUTION as c_long;
+unsafe fn __hs_exception_filter(mut exception_data: *mut _EXCEPTION_POINTERS) -> i64 {
+    let mut result = EXCEPTION_CONTINUE_EXECUTION as i64;
 
     if oldTopFilter.is_some() {
         result = Some(oldTopFilter.expect("non-null function pointer"))
-            .expect("non-null function pointer")(exception_data) as c_long;
+            .expect("non-null function pointer")(exception_data) as i64;
 
-        if EXCEPTION_CONTINUE_SEARCH as c_long == result {
-            result = EXCEPTION_CONTINUE_EXECUTION as c_long;
+        if EXCEPTION_CONTINUE_SEARCH as i64 == result {
+            result = EXCEPTION_CONTINUE_EXECUTION as i64;
         }
     }
 
@@ -110,27 +98,24 @@ unsafe fn __register_hs_exception_handler() {
     if __hs_handle.is_null() {
         fprintf(
             __stderrp,
-            b"\n TODO(rust): __hs_handle = AddVectoredContinueHandler(CALL_LAST, __hs_exception_handler);\n\0"
-                as *const u8 as *const c_char,
+            c"\n TODO(rust): __hs_handle = AddVectoredContinueHandler(CALL_LAST, __hs_exception_handler);\n"
+                .as_ptr(),
         );
 
-        if !__hs_handle.is_null() as c_int as c_long != 0 {
+        if !__hs_handle.is_null() as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"/Users/cyd/src/ghc/rts/win32/veh_excn.c\0" as *const u8 as *const c_char,
-                196 as c_uint,
-            );
+            _assertFail(c"/Users/cyd/src/ghc/rts/win32/veh_excn.c".as_ptr(), 196);
         }
 
         fprintf(
             __stderrp,
-            b"\n TODO(rust): oldTopFilter = SetUnhandledExceptionFilter (__hs_exception_filter);\n\0"
-                as *const u8 as *const c_char,
+            c"\n TODO(rust): oldTopFilter = SetUnhandledExceptionFilter (__hs_exception_filter);\n"
+                .as_ptr(),
         );
     } else {
         errorBelch(
-            b"There is no need to call __register_hs_exception_handler() twice, VEH handlers are global per process.\0"
-                as *const u8 as *const c_char,
+            c"There is no need to call __register_hs_exception_handler() twice, VEH handlers are global per process."
+                .as_ptr(),
         );
     };
 }
@@ -145,8 +130,8 @@ unsafe fn __unregister_hs_exception_handler() {
         __hs_handle = NULL as PVOID;
     } else {
         errorBelch(
-            b"__unregister_hs_exception_handler() called without havingcalled __register_hs_exception_handler() first.\0"
-                as *const u8 as *const c_char,
+            c"__unregister_hs_exception_handler() called without havingcalled __register_hs_exception_handler() first."
+                .as_ptr(),
         );
     };
 }
@@ -158,10 +143,12 @@ unsafe fn generateDump(mut pExceptionPointers: *mut EXCEPTION_POINTERS) {
 
     let mut szPath: [WCHAR; 260] = [0; 260];
     let mut szFileName: [WCHAR; 260] = [0; 260];
-    let szAppName = &raw const transmute::<[u8; 16], [c_int; 4]>(*b"g\0\0\0h\0\0\0c\0\0\0\0\0\0\0")
+
+    let szAppName = &raw const transmute::<[u8; 16], [i32; 4]>(*b"g\0\0\0h\0\0\0c\0\0\0\0\0\0\0")
         as *const WCHAR;
 
-    let szVersion = &raw const transmute::<[u8; 4], [c_int; 1]>(*b"\0\0\0\0") as *const WCHAR;
+    let szVersion = &raw const transmute::<[u8; 4], [i32; 1]>(*b"\0\0\0\0") as *const WCHAR;
+
     let mut dwBufferSize = MAX_PATH as DWORD;
     let mut hDumpFile = null_mut::<c_void>();
 
@@ -186,23 +173,23 @@ unsafe fn generateDump(mut pExceptionPointers: *mut EXCEPTION_POINTERS) {
     GetTempPathW(dwBufferSize, &raw mut szPath as LPWSTR);
 
     swprintf(
-        &raw mut szFileName as *mut wchar_t,
-        MAX_PATH as size_t,
+        &raw mut szFileName as *mut char,
+        MAX_PATH as usize,
         &raw const transmute::<
             [u8; 192],
-            [c_int; 48],
+            [i32; 48],
         >(
             *b"%\0\0\0l\0\0\0s\0\0\0%\0\0\0l\0\0\0s\0\0\0%\0\0\0l\0\0\0s\0\0\0-\0\0\0%\0\0\x000\0\0\x004\0\0\0d\0\0\0%\0\0\x000\0\0\x002\0\0\0d\0\0\0%\0\0\x000\0\0\x002\0\0\0d\0\0\0-\0\0\0%\0\0\x000\0\0\x002\0\0\0d\0\0\0%\0\0\x000\0\0\x002\0\0\0d\0\0\0%\0\0\x000\0\0\x002\0\0\0d\0\0\0-\0\0\0%\0\0\0l\0\0\0d\0\0\0-\0\0\0%\0\0\0l\0\0\0d\0\0\0.\0\0\0d\0\0\0m\0\0\0p\0\0\0\0\0\0\0",
-        ) as *const wchar_t,
+        ) as *const char,
         &raw mut szPath as *mut WCHAR,
         szAppName,
         szVersion,
-        stLocalTime.wYear as c_int,
-        stLocalTime.wMonth as c_int,
-        stLocalTime.wDay as c_int,
-        stLocalTime.wHour as c_int,
-        stLocalTime.wMinute as c_int,
-        stLocalTime.wSecond as c_int,
+        stLocalTime.wYear as i32,
+        stLocalTime.wMonth as i32,
+        stLocalTime.wDay as i32,
+        stLocalTime.wHour as i32,
+        stLocalTime.wMinute as i32,
+        stLocalTime.wSecond as i32,
         GetCurrentProcessId(),
         GetCurrentThreadId(),
     );
@@ -213,7 +200,7 @@ unsafe fn generateDump(mut pExceptionPointers: *mut EXCEPTION_POINTERS) {
         (FILE_SHARE_WRITE | FILE_SHARE_READ) as DWORD,
         null_mut::<_SECURITY_ATTRIBUTES>(),
         CREATE_ALWAYS as DWORD,
-        0 as DWORD,
+        0,
         null_mut::<c_void>(),
     );
 
@@ -225,10 +212,10 @@ unsafe fn generateDump(mut pExceptionPointers: *mut EXCEPTION_POINTERS) {
         GetCurrentProcess(),
         GetCurrentProcessId(),
         hDumpFile,
-        (MiniDumpNormal as c_int
-            | MiniDumpWithDataSegs as c_int
-            | MiniDumpWithThreadInfo as c_int
-            | MiniDumpWithCodeSegs as c_int) as MINIDUMP_TYPE,
+        (MiniDumpNormal as i32
+            | MiniDumpWithDataSegs as i32
+            | MiniDumpWithThreadInfo as i32
+            | MiniDumpWithCodeSegs as i32) as MINIDUMP_TYPE,
         &raw mut ExpParam,
         null_mut::<_MINIDUMP_USER_STREAM_INFORMATION>(),
         null_mut::<_MINIDUMP_CALLBACK_INFORMATION>(),
@@ -236,7 +223,7 @@ unsafe fn generateDump(mut pExceptionPointers: *mut EXCEPTION_POINTERS) {
 
     fprintf(
         __stderrp,
-        b"Crash dump created. Dump written to:\n\t%ls\0" as *const u8 as *const c_char,
+        c"Crash dump created. Dump written to:\n\t%ls".as_ptr(),
         &raw mut szFileName as *mut WCHAR,
     );
 }
@@ -250,7 +237,7 @@ unsafe fn generateStack(mut pExceptionPointers: *mut EXCEPTION_POINTERS) {
 
     let mut stackFrame = _tagSTACKFRAME64 {
         AddrPC: _tagADDRESS64 {
-            Offset: 0 as DWORD64,
+            Offset: 0,
             Segment: 0,
             Mode: AddrMode1616,
         },
@@ -308,28 +295,22 @@ unsafe fn generateStack(mut pExceptionPointers: *mut EXCEPTION_POINTERS) {
     stackFrame.AddrFrame.Mode = AddrModeFlat;
     stackFrame.AddrStack.Offset = (*context).Sp;
     stackFrame.AddrStack.Mode = AddrModeFlat;
-
     fprintf(
         __stderrp,
-        b"\n Attempting to reconstruct a stack trace...\n\n\0" as *const u8 as *const c_char,
+        c"\n Attempting to reconstruct a stack trace...\n\n".as_ptr(),
     );
 
-    if SymInitialize(GetCurrentProcess(), null::<CHAR>(), r#true) == 0 {
+    if SymInitialize(GetCurrentProcess(), null::<CHAR>(), true) == 0 {
         fprintf(
             __stderrp,
-            b"  \nNOTE: Symbols could not be loaded. Addresses may be unresolved.\n\n\0"
-                as *const u8 as *const c_char,
+            c"  \nNOTE: Symbols could not be loaded. Addresses may be unresolved.\n\n".as_ptr(),
         );
     }
 
-    let mut max_frames = 35 as c_int;
+    let mut max_frames = 35;
+    fprintf(__stderrp, c"   Frame\tCode address\n".as_ptr());
 
-    fprintf(
-        __stderrp,
-        b"   Frame\tCode address\n\0" as *const u8 as *const c_char,
-    );
-
-    let mut lastBp = 0 as DWORD64;
+    let mut lastBp = 0;
 
     while StackWalk64(
         machineType,
@@ -342,49 +323,44 @@ unsafe fn generateStack(mut pExceptionPointers: *mut EXCEPTION_POINTERS) {
         Some(SymGetModuleBase64 as unsafe extern "C" fn(HANDLE, DWORD64) -> DWORD64),
         None,
     ) != 0
-        && max_frames > 0 as c_int
+        && max_frames > 0
     {
-        if stackFrame.AddrPC.Offset == 0 as DWORD64 {
-            fprintf(__stderrp, b"Null address\n\0" as *const u8 as *const c_char);
+        if stackFrame.AddrPC.Offset == 0 {
+            fprintf(__stderrp, c"Null address\n".as_ptr());
             break;
         } else {
-            let mut buffer: [wchar_t; 1024] = [0; 1024];
-            let mut topSp: uintptr_t = 0 as uintptr_t;
+            let mut buffer: [char; 1024] = [0; 1024];
+            let mut topSp: usize = 0;
 
             fprintf(
                 __stderrp,
-                b" * 0x%lx\t%ls\n\0" as *const u8 as *const c_char,
-                stackFrame.AddrFrame.Offset as uintptr_t,
+                c" * 0x%lx\t%ls\n".as_ptr(),
+                stackFrame.AddrFrame.Offset as usize,
                 resolveSymbolAddr(
                     &raw mut buffer as *mut pathchar,
-                    1024 as c_int,
-                    stackFrame.AddrPC.Offset as intptr_t as *mut c_void,
+                    1024,
+                    stackFrame.AddrPC.Offset as isize as *mut c_void,
                     &raw mut topSp,
                 ),
             );
 
             if lastBp >= stackFrame.AddrFrame.Offset {
-                fprintf(
-                    __stderrp,
-                    b"Stack frame out of sequence...\n\0" as *const u8 as *const c_char,
-                );
-
+                fprintf(__stderrp, c"Stack frame out of sequence...\n".as_ptr());
                 break;
             } else {
                 lastBp = stackFrame.AddrFrame.Offset;
                 max_frames -= 1;
 
-                if max_frames == 0 as c_int {
+                if max_frames == 0 {
                     fprintf(
                         __stderrp,
-                        b"\n   ... (maximum recursion depth reached.)\n\0" as *const u8
-                            as *const c_char,
+                        c"\n   ... (maximum recursion depth reached.)\n".as_ptr(),
                     );
                 }
             }
         }
     }
 
-    fprintf(__stderrp, b"\n\0" as *const u8 as *const c_char);
+    fprintf(__stderrp, c"\n".as_ptr());
     fflush(__stderrp);
 }

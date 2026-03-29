@@ -165,17 +165,16 @@ pub unsafe extern "C" fn rts_mkChar(mut cap: *mut Capability, mut c: HsChar) -> 
     let mut p = null_mut::<StgClosure>();
 
     if c <= MAX_CHARLIKE as HsChar {
-        p = CHARLIKE_CLOSURE(c as c_int) as *mut StgClosure;
+        p = CHARLIKE_CLOSURE(c as i32) as *mut StgClosure;
     } else {
-        p = allocate(cap, CONSTR_sizeW(0 as uint32_t, 1 as uint32_t) as W_) as *mut StgClosure;
+        p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
         (*p).header.info = (*ghc_hs_iface).Czh_con_info;
 
-        let ref mut fresh0 =
-            *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0 as c_int as isize);
+        let ref mut fresh0 = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0);
         *fresh0 = c as StgWord as *mut StgClosure as *mut StgClosure_;
     }
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(compiler, testsuite)]
@@ -185,47 +184,47 @@ pub unsafe extern "C" fn rts_mkInt(mut cap: *mut Capability, mut i: HsInt) -> Ha
     let mut p = null_mut::<StgClosure>();
 
     if i >= MIN_INTLIKE as HsInt && i <= MAX_INTLIKE as HsInt {
-        p = INTLIKE_CLOSURE(i as c_int) as *mut StgClosure;
+        p = INTLIKE_CLOSURE(i as i32) as *mut StgClosure;
     } else {
-        p = allocate(cap, CONSTR_sizeW(0 as uint32_t, 1 as uint32_t) as W_) as *mut StgClosure;
+        p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
         (*p).header.info = (*ghc_hs_iface).Izh_con_info;
         *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgInt) = i as StgInt;
     }
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt8(mut cap: *mut Capability, mut i: HsInt8) -> HaskellObj {
-    let mut p = allocate(cap, CONSTR_sizeW(0 as uint32_t, 1 as uint32_t) as W_) as *mut StgClosure;
+    let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
     (*p).header.info = (*ghc_hs_iface).I8zh_con_info;
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgInt8) = i as StgInt8;
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt16(mut cap: *mut Capability, mut i: HsInt16) -> HaskellObj {
-    let mut p = allocate(cap, CONSTR_sizeW(0 as uint32_t, 1 as uint32_t) as W_) as *mut StgClosure;
+    let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
     (*p).header.info = (*ghc_hs_iface).I16zh_con_info;
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgInt16) = i as StgInt16;
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt32(mut cap: *mut Capability, mut i: HsInt32) -> HaskellObj {
-    let mut p = allocate(cap, CONSTR_sizeW(0 as uint32_t, 1 as uint32_t) as W_) as *mut StgClosure;
+    let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
     (*p).header.info = (*ghc_hs_iface).I32zh_con_info;
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgInt32) = i as StgInt32;
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
@@ -235,67 +234,67 @@ pub unsafe extern "C" fn rts_mkInt64(mut cap: *mut Capability, mut i: HsInt64) -
     let mut p = allocate(
         cap,
         CONSTR_sizeW(
-            0 as uint32_t,
+            0,
             (size_of::<StgInt64>() as usize)
                 .wrapping_add(size_of::<W_>() as usize)
                 .wrapping_sub(1 as usize)
-                .wrapping_div(size_of::<W_>() as usize) as uint32_t,
+                .wrapping_div(size_of::<W_>() as usize) as u32,
         ) as W_,
     ) as *mut StgClosure;
 
     (*p).header.info = (*ghc_hs_iface).I64zh_con_info;
 
     ASSIGN_Int64(
-        (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0 as c_int as isize)
-            as *mut *mut StgClosure_ as *mut W_,
+        (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0) as *mut *mut StgClosure_
+            as *mut W_,
         i as StgInt64,
     );
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord(mut cap: *mut Capability, mut i: HsWord) -> HaskellObj {
-    let mut p = allocate(cap, CONSTR_sizeW(0 as uint32_t, 1 as uint32_t) as W_) as *mut StgClosure;
+    let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
     (*p).header.info = (*ghc_hs_iface).Wzh_con_info;
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgWord) = i as StgWord;
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord8(mut cap: *mut Capability, mut w: HsWord8) -> HaskellObj {
-    let mut p = allocate(cap, CONSTR_sizeW(0 as uint32_t, 1 as uint32_t) as W_) as *mut StgClosure;
+    let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
     (*p).header.info = (*ghc_hs_iface).W8zh_con_info;
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgWord8) = w as StgWord8;
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord16(mut cap: *mut Capability, mut w: HsWord16) -> HaskellObj {
-    let mut p = allocate(cap, CONSTR_sizeW(0 as uint32_t, 1 as uint32_t) as W_) as *mut StgClosure;
+    let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
     (*p).header.info = (*ghc_hs_iface).W16zh_con_info;
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgWord16) = w as StgWord16;
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord32(mut cap: *mut Capability, mut w: HsWord32) -> HaskellObj {
-    let mut p = allocate(cap, CONSTR_sizeW(0 as uint32_t, 1 as uint32_t) as W_) as *mut StgClosure;
+    let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
     (*p).header.info = (*ghc_hs_iface).W32zh_con_info;
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgWord32) = w as StgWord32;
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
@@ -305,34 +304,34 @@ pub unsafe extern "C" fn rts_mkWord64(mut cap: *mut Capability, mut w: HsWord64)
     let mut p = allocate(
         cap,
         CONSTR_sizeW(
-            0 as uint32_t,
+            0,
             (size_of::<StgWord64>() as usize)
                 .wrapping_add(size_of::<W_>() as usize)
                 .wrapping_sub(1 as usize)
-                .wrapping_div(size_of::<W_>() as usize) as uint32_t,
+                .wrapping_div(size_of::<W_>() as usize) as u32,
         ) as W_,
     ) as *mut StgClosure;
 
     (*p).header.info = (*ghc_hs_iface).W64zh_con_info;
 
     ASSIGN_Word64(
-        (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0 as c_int as isize)
-            as *mut *mut StgClosure_ as *mut W_,
+        (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0) as *mut *mut StgClosure_
+            as *mut W_,
         w as StgWord64,
     );
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_mkFloat(mut cap: *mut Capability, mut f: HsFloat) -> HaskellObj {
-    let mut p = allocate(cap, CONSTR_sizeW(0 as uint32_t, 1 as uint32_t) as W_) as *mut StgClosure;
+    let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
     (*p).header.info = (*ghc_hs_iface).Fzh_con_info;
     ASSIGN_FLT(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut W_, f);
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
@@ -342,18 +341,18 @@ pub unsafe extern "C" fn rts_mkDouble(mut cap: *mut Capability, mut d: HsDouble)
     let mut p = allocate(
         cap,
         CONSTR_sizeW(
-            0 as uint32_t,
+            0,
             (size_of::<StgDouble>() as usize)
                 .wrapping_add(size_of::<W_>() as usize)
                 .wrapping_sub(1 as usize)
-                .wrapping_div(size_of::<W_>() as usize) as uint32_t,
+                .wrapping_div(size_of::<W_>() as usize) as u32,
         ) as W_,
     ) as *mut StgClosure;
 
     (*p).header.info = (*ghc_hs_iface).Dzh_con_info;
     ASSIGN_DBL(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut W_, d);
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
@@ -374,11 +373,10 @@ pub unsafe extern "C" fn rts_mkStablePtr(
 
     (*p).header.info = (*ghc_hs_iface).StablePtr_con_info;
 
-    let ref mut fresh3 =
-        *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0 as c_int as isize);
+    let ref mut fresh3 = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0);
     *fresh3 = s as *mut StgClosure as *mut StgClosure_;
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
@@ -396,11 +394,10 @@ pub unsafe extern "C" fn rts_mkPtr(mut cap: *mut Capability, mut a: HsPtr) -> Ha
 
     (*p).header.info = (*ghc_hs_iface).Ptr_con_info;
 
-    let ref mut fresh1 =
-        *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0 as c_int as isize);
+    let ref mut fresh1 = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0);
     *fresh1 = a as *mut StgClosure as *mut StgClosure_;
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(testsuite)]
@@ -418,11 +415,10 @@ pub unsafe extern "C" fn rts_mkFunPtr(mut cap: *mut Capability, mut a: HsFunPtr)
 
     (*p).header.info = (*ghc_hs_iface).FunPtr_con_info;
 
-    let ref mut fresh2 =
-        *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0 as c_int as isize);
+    let ref mut fresh2 = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0);
     *fresh2 = transmute::<HsFunPtr, *mut StgClosure>(a) as *mut StgClosure_;
 
-    return TAG_CLOSURE(1 as StgWord, p) as HaskellObj;
+    return TAG_CLOSURE(1, p) as HaskellObj;
 }
 
 #[ffi(compiler, ghc_lib, testsuite)]
@@ -430,9 +426,9 @@ pub unsafe extern "C" fn rts_mkFunPtr(mut cap: *mut Capability, mut a: HsFunPtr)
 #[instrument]
 pub unsafe extern "C" fn rts_mkBool(mut cap: *mut Capability, mut b: HsBool) -> HaskellObj {
     if b != 0 {
-        return TAG_CLOSURE(2 as StgWord, (*ghc_hs_iface).True_closure) as HaskellObj;
+        return TAG_CLOSURE(2, (*ghc_hs_iface).True_closure) as HaskellObj;
     } else {
-        return TAG_CLOSURE(1 as StgWord, (*ghc_hs_iface).False_closure) as HaskellObj;
+        return TAG_CLOSURE(1, (*ghc_hs_iface).False_closure) as HaskellObj;
     };
 }
 
@@ -468,12 +464,10 @@ pub unsafe extern "C" fn rts_apply(
 
     (*ap).header.info = &raw const stg_ap_2_upd_info as *mut StgInfoTable;
 
-    let ref mut fresh4 =
-        *(&raw mut (*ap).payload as *mut *mut StgClosure_).offset(0 as c_int as isize);
+    let ref mut fresh4 = *(&raw mut (*ap).payload as *mut *mut StgClosure_).offset(0);
     *fresh4 = f as *mut StgClosure_;
 
-    let ref mut fresh5 =
-        *(&raw mut (*ap).payload as *mut *mut StgClosure_).offset(1 as c_int as isize);
+    let ref mut fresh5 = *(&raw mut (*ap).payload as *mut *mut StgClosure_).offset(1);
     *fresh5 = arg as *mut StgClosure_;
 
     return ap as HaskellObj;
@@ -487,7 +481,7 @@ pub unsafe extern "C" fn rts_getChar(mut p: HaskellObj) -> HsChar {
         p as *mut StgClosure,
     ))
     .payload as *mut *mut StgClosure_)
-        .offset(0 as c_int as isize) as StgWord as HsChar;
+        .offset(0) as StgWord as HsChar;
 }
 
 #[ffi(testsuite)]
@@ -539,7 +533,7 @@ pub unsafe extern "C" fn rts_getInt64(mut p: HaskellObj) -> HsInt64 {
             p as *mut StgClosure,
         ))
         .payload as *mut *mut StgClosure_)
-            .offset(0 as c_int as isize) as *mut *mut StgClosure_ as *mut W_,
+            .offset(0) as *mut *mut StgClosure_ as *mut W_,
     ) as HsInt64;
 }
 
@@ -592,7 +586,7 @@ pub unsafe extern "C" fn rts_getWord64(mut p: HaskellObj) -> HsWord64 {
             p as *mut StgClosure,
         ))
         .payload as *mut *mut StgClosure_)
-            .offset(0 as c_int as isize) as *mut *mut StgClosure_ as *mut W_,
+            .offset(0) as *mut *mut StgClosure_ as *mut W_,
     ) as HsWord64;
 }
 
@@ -628,7 +622,7 @@ pub unsafe extern "C" fn rts_getStablePtr(mut p: HaskellObj) -> HsStablePtr {
         p as *mut StgClosure,
     ))
     .payload as *mut *mut StgClosure_)
-        .offset(0 as c_int as isize) as HsStablePtr;
+        .offset(0) as HsStablePtr;
 }
 
 #[ffi(testsuite)]
@@ -639,7 +633,7 @@ pub unsafe extern "C" fn rts_getPtr(mut p: HaskellObj) -> HsPtr {
         p as *mut StgClosure,
     ))
     .payload as *mut *mut StgClosure_)
-        .offset(0 as c_int as isize) as *mut Capability as HsPtr;
+        .offset(0) as *mut Capability as HsPtr;
 }
 
 #[ffi(testsuite)]
@@ -651,7 +645,7 @@ pub unsafe extern "C" fn rts_getFunPtr(mut p: HaskellObj) -> HsFunPtr {
             p as *mut StgClosure,
         ))
         .payload as *mut *mut StgClosure_)
-            .offset(0 as c_int as isize) as *mut c_void,
+            .offset(0) as *mut c_void,
     );
 }
 
@@ -661,24 +655,24 @@ pub unsafe extern "C" fn rts_getFunPtr(mut p: HaskellObj) -> HsFunPtr {
 pub unsafe extern "C" fn rts_getBool(mut p: HaskellObj) -> HsBool {
     let tag = GET_CLOSURE_TAG(p as *const StgClosure) as StgWord;
 
-    if tag > 0 as StgWord {
+    if tag > 0 {
         return tag.wrapping_sub(1 as StgWord) as HsBool;
     }
 
     let mut info = null::<StgInfoTable>();
     info = get_itbl(UNTAG_CONST_CLOSURE(p as *const StgClosure));
 
-    if (*info).srt == 0 as StgSRTField {
-        return 0 as HsBool;
+    if (*info).srt == 0 {
+        return 0;
     } else {
-        return 1 as HsBool;
+        return 1;
     };
 }
 
 #[inline]
 unsafe fn pushClosure(mut tso: *mut StgTSO, mut c: StgWord) {
     (*(*tso).stackobj).sp = (*(*tso).stackobj).sp.offset(-1);
-    *(*(*tso).stackobj).sp.offset(0 as c_int as isize) = c as StgWord;
+    *(*(*tso).stackobj).sp.offset(0) = c as StgWord;
 }
 
 #[ffi(ghc_lib)]
@@ -751,7 +745,7 @@ pub unsafe extern "C" fn rts_eval(
 pub unsafe extern "C" fn rts_eval_(
     mut cap: *mut *mut Capability,
     mut p: HaskellObj,
-    mut stack_size: c_uint,
+    mut stack_size: u32,
     mut ret: *mut HaskellObj,
 ) {
     let mut tso = null_mut::<StgTSO>();
@@ -794,7 +788,7 @@ pub unsafe extern "C" fn rts_inCall(
         p as *mut StgClosure,
     );
 
-    if (*(**cap).running_task).preferred_capability != -(1 as c_int) {
+    if (*(**cap).running_task).preferred_capability != -1 {
         (*tso).flags |= TSO_LOCKED as StgWord32;
     }
 
@@ -815,19 +809,17 @@ pub unsafe extern "C" fn rts_evalStableIOMain(
     let mut w = null_mut::<StgClosure>();
     let mut stat = NoStatus;
     p = deRefStablePtr(s as StgStablePtr) as *mut StgClosure;
-
     w = rts_apply(
         *cap,
         (*ghc_hs_iface).runMainIO_closure as HaskellObj,
         p as HaskellObj,
     ) as *mut StgClosure;
-
     tso = createStrictIOThread(*cap, RtsFlags.GcFlags.initialStkSize as W_, w);
     (*tso).flags |= (TSO_BLOCKEX | TSO_INTERRUPTIBLE) as StgWord32;
     scheduleWaitThread(tso, &raw mut r, cap);
     stat = rts_getSchedStatus(*cap);
 
-    if stat as c_uint == Success as c_int as c_uint && !ret.is_null() {
+    if stat as u32 == Success as i32 as u32 && !ret.is_null() {
         *ret = getStablePtr(r as StgPtr) as HsStablePtr;
     }
 }
@@ -850,7 +842,7 @@ pub unsafe extern "C" fn rts_evalStableIO(
     scheduleWaitThread(tso, &raw mut r, cap);
     stat = rts_getSchedStatus(*cap);
 
-    if stat as c_uint == Success as c_int as c_uint && !ret.is_null() {
+    if stat as u32 == Success as i32 as u32 && !ret.is_null() {
         *ret = getStablePtr(r as StgPtr) as HsStablePtr;
     }
 }
@@ -880,7 +872,7 @@ pub unsafe extern "C" fn rts_evalLazyIO(
 pub unsafe extern "C" fn rts_evalLazyIO_(
     mut cap: *mut *mut Capability,
     mut p: HaskellObj,
-    mut stack_size: c_uint,
+    mut stack_size: u32,
     mut ret: *mut HaskellObj,
 ) {
     let mut tso = null_mut::<StgTSO>();
@@ -894,37 +886,29 @@ pub unsafe extern "C" fn rts_evalLazyIO_(
 pub unsafe extern "C" fn rts_checkSchedStatus(mut site: *mut c_char, mut cap: *mut Capability) {
     let mut rc = (*(*(*cap).running_task).incall).rstat;
 
-    match rc as c_uint {
+    match rc as u32 {
         0 => {
-            errorBelch(
-                b"%s: no status, not ok\0" as *const u8 as *const c_char,
-                site,
-            );
-
+            errorBelch(c"%s: no status, not ok".as_ptr(), site);
             stg_exit(EXIT_FAILURE);
         }
         1 => return,
         2 => {
-            errorBelch(
-                b"%s: uncaught exception\0" as *const u8 as *const c_char,
-                site,
-            );
-
+            errorBelch(c"%s: uncaught exception".as_ptr(), site);
             stg_exit(EXIT_FAILURE);
         }
         3 => {
-            errorBelch(b"%s: interrupted\0" as *const u8 as *const c_char, site);
+            errorBelch(c"%s: interrupted".as_ptr(), site);
             stg_exit(EXIT_FAILURE);
         }
         4 => {
-            errorBelch(b"%s: out of memory\0" as *const u8 as *const c_char, site);
+            errorBelch(c"%s: out of memory".as_ptr(), site);
             stg_exit(EXIT_FAILURE);
         }
         _ => {
             errorBelch(
-                b"%s: SchedulerStatus code (%d) unknown\0" as *const u8 as *const c_char,
+                c"%s: SchedulerStatus code (%d) unknown".as_ptr(),
                 site,
-                rc as c_uint,
+                rc as u32,
             );
 
             stg_exit(EXIT_FAILURE);
@@ -949,8 +933,8 @@ pub unsafe extern "C" fn rts_lock() -> *mut Capability {
 
     if (*task).running_finalizers {
         errorBelch(
-            b"error: a C finalizer called back into Haskell.\n   This was previously allowed, but is disallowed in GHC 6.10.2 and later.\n   To create finalizers that may call back into Haskell, use\n   Foreign.Concurrent.newForeignPtr instead of Foreign.newForeignPtr.\0"
-                as *const u8 as *const c_char,
+            c"error: a C finalizer called back into Haskell.\n   This was previously allowed, but is disallowed in GHC 6.10.2 and later.\n   To create finalizers that may call back into Haskell, use\n   Foreign.Concurrent.newForeignPtr instead of Foreign.newForeignPtr."
+                .as_ptr(),
         );
 
         stg_exit(EXIT_FAILURE);
@@ -972,7 +956,7 @@ pub unsafe extern "C" fn rts_lock() -> *mut Capability {
 pub unsafe extern "C" fn rts_unlock(mut cap: *mut Capability) {
     let mut task = null_mut::<Task>();
     task = (*cap).running_task;
-    releaseCapability_(cap, r#false != 0);
+    releaseCapability_(cap, false);
     exitMyTask();
 
     if (*task).incall.is_null() {
@@ -991,10 +975,7 @@ pub unsafe extern "C" fn pauseTokenCapability(mut pauseToken: *mut PauseToken) -
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_pause() -> ! {
-    errorBelch(
-        b"Warning: Pausing the RTS is only possible for multithreaded RTS.\0" as *const u8
-            as *const c_char,
-    );
+    errorBelch(c"Warning: Pausing the RTS is only possible for multithreaded RTS.".as_ptr());
 
     stg_exit(EXIT_FAILURE);
 }
@@ -1003,10 +984,7 @@ pub unsafe extern "C" fn rts_pause() -> ! {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_resume(mut pauseToken: *mut PauseToken) -> ! {
-    errorBelch(
-        b"Warning: Resuming the RTS is only possible for multithreaded RTS.\0" as *const u8
-            as *const c_char,
-    );
+    errorBelch(c"Warning: Resuming the RTS is only possible for multithreaded RTS.".as_ptr());
 
     stg_exit(EXIT_FAILURE);
 }
@@ -1016,31 +994,24 @@ pub unsafe extern "C" fn rts_resume(mut pauseToken: *mut PauseToken) -> ! {
 #[instrument]
 pub unsafe extern "C" fn rts_isPaused() -> bool {
     errorBelch(
-        b"Warning: Pausing/Resuming the RTS is only possible for multithreaded RTS.\0" as *const u8
-            as *const c_char,
+        c"Warning: Pausing/Resuming the RTS is only possible for multithreaded RTS.".as_ptr(),
     );
 
-    return r#false != 0;
+    return false;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_listThreads(mut cb: ListThreadsCb, mut user: *mut c_void) {
-    errorBelch(
-        b"Warning: rts_listThreads is only possible for multithreaded RTS.\0" as *const u8
-            as *const c_char,
-    );
+    errorBelch(c"Warning: rts_listThreads is only possible for multithreaded RTS.".as_ptr());
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_listMiscRoots(mut cb: ListRootsCb, mut user: *mut c_void) {
-    errorBelch(
-        b"Warning: rts_listMiscRoots is only possible for multithreaded RTS.\0" as *const u8
-            as *const c_char,
-    );
+    errorBelch(c"Warning: rts_listMiscRoots is only possible for multithreaded RTS.".as_ptr());
 }
 
 unsafe fn rts_done() {
@@ -1050,11 +1021,11 @@ unsafe fn rts_done() {
 #[ffi(docs, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_try_putmvar(mut capability: c_int, mut mvar: HsStablePtr) {
+pub unsafe extern "C" fn hs_try_putmvar(mut capability: i32, mut mvar: HsStablePtr) {
     hs_try_putmvar_with_value(
         capability,
         mvar,
-        TAG_CLOSURE(1 as StgWord, (*ghc_hs_iface).Z0T_closure),
+        TAG_CLOSURE(1, (*ghc_hs_iface).Z0T_closure),
     );
 }
 
@@ -1062,7 +1033,7 @@ pub unsafe extern "C" fn hs_try_putmvar(mut capability: c_int, mut mvar: HsStabl
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_try_putmvar_with_value(
-    mut capability: c_int,
+    mut capability: i32,
     mut mvar: HsStablePtr,
     mut value: *mut StgClosure,
 ) {
@@ -1070,21 +1041,19 @@ pub unsafe extern "C" fn hs_try_putmvar_with_value(
     let mut cap = null_mut::<Capability>();
     let mut task_old_cap = null_mut::<Capability>();
 
-    if capability < 0 as c_int {
+    if capability < 0 {
         capability = (*task).preferred_capability;
 
-        if capability < 0 as c_int {
-            capability = 0 as c_int;
+        if capability < 0 {
+            capability = 0;
         }
     }
 
-    cap = getCapability((capability as uint32_t).wrapping_rem(enabled_capabilities));
-
+    cap = getCapability((capability as u32).wrapping_rem(enabled_capabilities));
     performTryPutMVar(
         cap,
         deRefStablePtr(mvar as StgStablePtr) as *mut StgMVar,
         value,
     );
-
     freeStablePtr(mvar as StgStablePtr);
 }

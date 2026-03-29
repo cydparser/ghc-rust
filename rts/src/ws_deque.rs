@@ -23,12 +23,12 @@ pub(crate) unsafe fn dequeElements(mut q: *mut WSDeque) -> StgInt {
     let mut b: StgWord = (*q).bottom as StgWord;
     let mut n: StgInt = b as StgInt - t as StgInt;
 
-    return if n > 0 as StgInt { n } else { 0 as StgInt };
+    return if n > 0 { n } else { 0 };
 }
 
 #[inline]
 pub(crate) unsafe fn looksEmptyWSDeque(mut q: *mut WSDeque) -> bool {
-    return dequeElements(q) <= 0 as StgInt;
+    return dequeElements(q) <= 0;
 }
 
 #[inline]
@@ -47,17 +47,17 @@ unsafe fn cas_top(mut q: *mut WSDeque, mut old: StgInt, mut new: StgInt) -> bool
 }
 
 unsafe fn roundUp2(mut val: StgWord) -> StgWord {
-    let mut rounded: StgWord = 1 as StgWord;
+    let mut rounded: StgWord = 1;
 
-    if val == 0 as StgWord {
-        barf(b"DeQue,roundUp2: invalid size 0 requested\0" as *const u8 as *const c_char);
+    if val == 0 {
+        barf(c"DeQue,roundUp2: invalid size 0 requested".as_ptr());
     }
 
     loop {
-        rounded = rounded << 1 as c_int;
-        val = val >> 1 as c_int;
+        rounded = rounded << 1;
+        val = val >> 1;
 
-        if !(0 as StgWord != val) {
+        if !(0 != val) {
             break;
         }
     }
@@ -65,25 +65,21 @@ unsafe fn roundUp2(mut val: StgWord) -> StgWord {
     return rounded;
 }
 
-unsafe fn newWSDeque(mut size: uint32_t) -> *mut WSDeque {
+unsafe fn newWSDeque(mut size: u32) -> *mut WSDeque {
     let mut realsize: StgWord = 0;
     let mut q = null_mut::<WSDeque>();
     realsize = roundUp2(size as StgWord);
-
-    q = stgMallocBytes(
-        size_of::<WSDeque>() as size_t,
-        b"newWSDeque\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut WSDeque;
+    q = stgMallocBytes(size_of::<WSDeque>() as usize, c"newWSDeque".as_ptr()) as *mut WSDeque;
 
     (*q).elements = stgMallocBytes(
-        realsize.wrapping_mul(size_of::<StgClosurePtr>() as StgWord) as size_t,
-        b"newWSDeque:data space\0" as *const u8 as *const c_char as *mut c_char,
+        realsize.wrapping_mul(size_of::<StgClosurePtr>() as StgWord) as usize,
+        c"newWSDeque:data space".as_ptr(),
     ) as *mut *mut c_void;
 
     (*q).size = realsize as StgInt;
     (*q).moduloSize = realsize.wrapping_sub(1 as StgWord);
-    (*q).top = 0 as StgInt;
-    (*q).bottom = 0 as StgInt;
+    (*q).top = 0;
+    (*q).bottom = 0;
 
     return q;
 }
@@ -94,7 +90,7 @@ unsafe fn freeWSDeque(mut q: *mut WSDeque) {
 }
 
 unsafe fn popWSDeque(mut q: *mut WSDeque) -> *mut c_void {
-    let mut b: StgInt = (*q).bottom - 1 as StgInt;
+    let mut b: StgInt = (*q).bottom - 1;
     (*q).bottom = b;
 
     let mut t: StgInt = (*q).top;
@@ -106,15 +102,15 @@ unsafe fn popWSDeque(mut q: *mut WSDeque) -> *mut c_void {
             .offset((b as StgWord & (*q).moduloSize) as isize);
 
         if t == b {
-            if !cas_top(q, t, t + 1 as StgInt) {
+            if !cas_top(q, t, t + 1) {
                 result = NULL;
             }
 
-            (*q).bottom = b + 1 as StgInt;
+            (*q).bottom = b + 1;
         }
     } else {
         result = NULL;
-        (*q).bottom = b + 1 as StgInt;
+        (*q).bottom = b + 1;
     }
 
     return result;
@@ -128,7 +124,7 @@ unsafe fn stealWSDeque_(mut q: *mut WSDeque) -> *mut c_void {
     if t < b {
         result = *(*q).elements.offset((t % (*q).size) as isize);
 
-        if !cas_top(q, t, t + 1 as StgInt) {
+        if !cas_top(q, t, t + 1) {
             return NULL;
         }
     }
@@ -154,15 +150,15 @@ unsafe fn pushWSDeque(mut q: *mut WSDeque, mut elem: *mut c_void) -> bool {
     let mut b: StgInt = (*q).bottom;
     let mut t: StgInt = (*q).top;
 
-    if b - t > (*q).size - 1 as StgInt {
-        return r#false != 0;
+    if b - t > (*q).size - 1 {
+        return false;
     }
 
     let ref mut fresh5 = *(*q)
         .elements
         .offset((b as StgWord & (*q).moduloSize) as isize);
     *fresh5 = elem;
-    (*q).bottom = b + 1 as StgInt;
+    (*q).bottom = b + 1;
 
-    return r#true != 0;
+    return true;
 }

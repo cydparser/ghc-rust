@@ -9,13 +9,12 @@ use crate::rts_utils::{stgFree, stgMallocBytes};
 
 unsafe fn copyErrmsg(mut errmsg_dest: *mut *mut c_char, mut errmsg: *mut c_char) {
     if errmsg.is_null() {
-        errmsg =
-            b"loadNativeObj_POSIX: unknown error\0" as *const u8 as *const c_char as *mut c_char;
+        errmsg = c"loadNativeObj_POSIX: unknown error".as_ptr();
     }
 
     *errmsg_dest = stgMallocBytes(
-        strlen(errmsg).wrapping_add(1 as size_t),
-        b"loadNativeObj_POSIX\0" as *const u8 as *const c_char as *mut c_char,
+        strlen(errmsg).wrapping_add(1 as usize),
+        c"loadNativeObj_POSIX".as_ptr(),
     ) as *mut c_char;
 
     strcpy(*errmsg_dest, errmsg);
@@ -38,7 +37,7 @@ unsafe fn loadNativeObj_POSIX(
     mut errmsg: *mut *mut c_char,
 ) -> *mut c_void {
     let mut load_now: bool = false;
-    let mut dlopen_mode: c_int = 0;
+    let mut dlopen_mode: i32 = 0;
     let mut nc = null_mut::<ObjectCode>();
     let mut hdl = null_mut::<c_void>();
     let mut retval = null_mut::<c_void>();
@@ -46,16 +45,13 @@ unsafe fn loadNativeObj_POSIX(
 
     let mut existing_oc = lookupObjectByPath(path);
 
-    if !existing_oc.is_null()
-        && (*existing_oc).status as c_uint != OBJECT_UNLOADED as c_int as c_uint
-    {
-        if (*existing_oc).r#type as c_uint == DYNAMIC_OBJECT as c_int as c_uint {
+    if !existing_oc.is_null() && (*existing_oc).status as u32 != OBJECT_UNLOADED as i32 as u32 {
+        if (*existing_oc).r#type as u32 == DYNAMIC_OBJECT as i32 as u32 {
             retval = (*existing_oc).dlopen_handle;
         } else {
             copyErrmsg(
                 errmsg,
-                b"loadNativeObj_POSIX: already loaded as non-dynamic object\0" as *const u8
-                    as *const c_char as *mut c_char,
+                c"loadNativeObj_POSIX: already loaded as non-dynamic object".as_ptr(),
             );
         }
     } else {
@@ -63,24 +59,22 @@ unsafe fn loadNativeObj_POSIX(
             DYNAMIC_OBJECT,
             path,
             null_mut::<c_char>(),
-            0 as c_int,
-            r#false != 0,
+            0,
+            false,
             null_mut::<pathchar>(),
-            0 as c_int,
+            0,
         );
 
         load_now = false;
-        load_now = r#false != 0;
+        load_now = false;
 
         loop {
             foreignExportsLoadingObject(nc);
-
-            dlopen_mode = if load_now as c_int != 0 {
+            dlopen_mode = if load_now as i32 != 0 {
                 RTLD_NOW
             } else {
                 RTLD_LAZY
             };
-
             hdl = dlopen(path, dlopen_mode | RTLD_LOCAL);
             (*nc).dlopen_handle = hdl;
             (*nc).status = OBJECT_READY;
@@ -88,14 +82,14 @@ unsafe fn loadNativeObj_POSIX(
 
             if hdl.is_null() {
                 if load_now {
-                    load_now = r#false != 0;
+                    load_now = false;
                 } else {
                     copyErrmsg(errmsg, dlerror());
                     break;
                 }
             } else {
                 (*nc).nc_ranges = null_mut::<NativeCodeRange>();
-                (*nc).unloadable = r#false != 0;
+                (*nc).unloadable = false;
                 insertOCSectionIndices(nc);
                 (*nc).next_loaded_object = loaded_objects as *mut _ObjectCode;
                 loaded_objects = nc;

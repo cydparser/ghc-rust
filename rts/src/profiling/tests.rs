@@ -52,8 +52,10 @@ fn test_mkCostCentre() {
         let mut label: c_char = Arbitrary::arbitrary(g);
         let mut module: c_char = Arbitrary::arbitrary(g);
         let mut srcloc: c_char = Arbitrary::arbitrary(g);
+
         let result: &CostCentre =
             unsafe { &*mkCostCentre(&raw mut label, &raw mut module, &raw mut srcloc) };
+
         todo!()
     };
 
@@ -86,8 +88,10 @@ fn equivalent_mkCostCentre(label: c_char, module: c_char, srcloc: c_char) -> boo
         let mut label = label;
         let mut module = module;
         let mut srcloc = srcloc;
+
         let result: &CostCentre =
             unsafe { &*mkCostCentre(&raw mut label, &raw mut module, &raw mut srcloc) };
+
         todo!()
     };
 
@@ -209,7 +213,9 @@ fn test_pushCostCentre() {
     let actual = {
         let arg1: CostCentreStack = todo!();
         let arg2: CostCentre = todo!();
+
         let result: &CostCentreStack = unsafe { &*pushCostCentre(&raw mut arg1, &raw mut arg2) };
+
         todo!()
     };
 
@@ -225,15 +231,19 @@ fn equivalent_pushCostCentre() {
     let expected = {
         let mut arg1: sys::CostCentreStack = todo!();
         let mut arg2: sys::CostCentre = todo!();
+
         let result: &CostCentreStack =
             unsafe { transmute(&*sys::pushCostCentre(&raw mut arg1, &raw mut arg2)) };
+
         todo!()
     };
 
     let actual = {
         let mut arg1: CostCentreStack = todo!();
         let mut arg2: CostCentre = todo!();
+
         let result: &CostCentreStack = unsafe { &*pushCostCentre(&raw mut arg1, &raw mut arg2) };
+
         todo!()
     };
     assert_eq!(actual, expected);

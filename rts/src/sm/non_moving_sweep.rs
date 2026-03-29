@@ -35,7 +35,7 @@ use crate::sm::non_moving_mark::{
 };
 use crate::stable_name::{SNT_size, freeSnEntry, stableNameLock, stableNameUnlock};
 
-type SweepResult = c_uint;
+type SweepResult = u32;
 
 const SEGMENT_FILLED: SweepResult = 2;
 
@@ -45,20 +45,21 @@ const SEGMENT_FREE: SweepResult = 0;
 
 unsafe fn nonmovingSweepSegment(mut seg: *mut NonmovingSegment) -> SweepResult {
     let blk_cnt: nonmoving_block_idx = nonmovingSegmentBlockCount(seg) as nonmoving_block_idx;
-    let mut found_free = r#false != 0;
-    let mut found_live = r#false != 0;
-    let mut i: nonmoving_block_idx = 0 as nonmoving_block_idx;
 
-    while (i as c_int) < blk_cnt as c_int {
-        if *(&raw mut (*seg).bitmap as *mut uint8_t).offset(i as isize) as c_int
-            == nonmovingMarkEpoch as c_int
+    let mut found_free = false;
+    let mut found_live = false;
+    let mut i: nonmoving_block_idx = 0;
+
+    while (i as i32) < blk_cnt as i32 {
+        if *(&raw mut (*seg).bitmap as *mut u8).offset(i as isize) as i32
+            == nonmovingMarkEpoch as i32
         {
-            found_live = r#true != 0;
+            found_live = true;
         } else {
-            *(&raw mut (*seg).bitmap as *mut uint8_t).offset(i as isize) = 0 as uint8_t;
+            *(&raw mut (*seg).bitmap as *mut u8).offset(i as isize) = 0;
 
             if !found_free {
-                found_free = r#true != 0;
+                found_free = true;
                 (*seg).next_free = i;
                 (*nonmovingSegmentInfo(seg)).next_free_snap = i as StgWord16;
 
@@ -67,12 +68,12 @@ unsafe fn nonmovingSweepSegment(mut seg: *mut NonmovingSegment) -> SweepResult {
             }
         }
 
-        if found_free as c_int != 0 && found_live as c_int != 0 {
-            while (i as c_uint) < nonmovingSegmentBlockCount(seg) {
-                if *(&raw mut (*seg).bitmap as *mut uint8_t).offset(i as isize) as c_int
-                    != nonmovingMarkEpoch as c_int
+        if found_free as i32 != 0 && found_live as i32 != 0 {
+            while (i as u32) < nonmovingSegmentBlockCount(seg) {
+                if *(&raw mut (*seg).bitmap as *mut u8).offset(i as isize) as i32
+                    != nonmovingMarkEpoch as i32
                 {
-                    *(&raw mut (*seg).bitmap as *mut uint8_t).offset(i as isize) = 0 as uint8_t;
+                    *(&raw mut (*seg).bitmap as *mut u8).offset(i as isize) = 0;
                 }
 
                 i = i.wrapping_add(1);
@@ -92,25 +93,25 @@ unsafe fn nonmovingSweepSegment(mut seg: *mut NonmovingSegment) -> SweepResult {
 }
 
 unsafe fn nonmovingClearSegment(mut seg: *mut NonmovingSegment) {
-    let mut end: size_t = (seg as size_t).wrapping_add(NONMOVING_SEGMENT_SIZE as size_t);
+    let mut end: usize = (seg as usize).wrapping_add(NONMOVING_SEGMENT_SIZE as usize);
 
     memset(
         &raw mut (*seg).bitmap as *mut c_void,
-        0 as c_int,
-        end.wrapping_sub(&raw mut (*seg).bitmap as size_t),
+        0,
+        end.wrapping_sub(&raw mut (*seg).bitmap as usize),
     );
 }
 
 unsafe fn nonmovingClearSegmentFreeBlocks(mut seg: *mut NonmovingSegment) {
     let mut block_size = nonmovingSegmentBlockSize(seg);
-    let mut p_idx = 0 as c_uint;
+    let mut p_idx = 0;
 
     while p_idx < nonmovingSegmentBlockCount(seg) {
-        if nonmovingGetMark(seg, p_idx as nonmoving_block_idx) as c_int == 0 as c_int {
+        if nonmovingGetMark(seg, p_idx as nonmoving_block_idx) as i32 == 0 {
             memset(
                 nonmovingSegmentGetBlock(seg, p_idx as nonmoving_block_idx),
-                0 as c_int,
-                block_size as size_t,
+                0,
+                block_size as usize,
             );
         }
 
@@ -125,7 +126,7 @@ unsafe fn nonmovingSweep() {
 
         let mut ret = nonmovingSweepSegment(seg);
 
-        match ret as c_uint {
+        match ret as u32 {
             0 => {
                 nonmovingPushFreeSegment(seg);
             }
@@ -137,8 +138,8 @@ unsafe fn nonmovingSweep() {
             }
             _ => {
                 barf(
-                    b"nonmovingSweep: weird sweep return: %d\n\0" as *const u8 as *const c_char,
-                    ret as c_uint,
+                    c"nonmovingSweep: weird sweep return: %d\n".as_ptr(),
+                    ret as u32,
                 );
             }
         }
@@ -166,14 +167,14 @@ unsafe fn is_closure_clean(mut p: *mut StgClosure) -> bool {
                     {
                         (*mvar).header.info = &raw const stg_MVAR_CLEAN_info;
 
-                        return r#true != 0;
+                        return true;
                     }
                 }
             }
 
             (*mvar).header.info = &raw const stg_MVAR_DIRTY_info;
 
-            return r#false != 0;
+            return false;
         }
         41 => {
             let mut tvar = p as *mut StgTVar;
@@ -190,13 +191,13 @@ unsafe fn is_closure_clean(mut p: *mut StgClosure) -> bool {
                 {
                     (*tvar).header.info = &raw const stg_TVAR_CLEAN_info;
 
-                    return r#true != 0;
+                    return true;
                 }
             }
 
             (*tvar).header.info = &raw const stg_TVAR_DIRTY_info;
 
-            return r#false != 0;
+            return false;
         }
         15 | 16 | 17 | 19 | 20 | 18 => {
             let mut end = (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_
@@ -210,13 +211,13 @@ unsafe fn is_closure_clean(mut p: *mut StgClosure) -> bool {
                     && (*q as *mut StgClosure as W_) < mblock_address_space.0.end)
                     || (*Bdescr(*q as StgPtr)).r#gen == oldest_gen)
                 {
-                    return r#false != 0;
+                    return false;
                 }
 
                 q = q.offset(1);
             }
 
-            return r#true != 0;
+            return true;
         }
         8 | 9 | 10 | 12 | 13 | 11 | 1 | 7 | 2 | 3 | 5 | 6 | 4 | 50 => {
             let mut end_0 = (&raw mut (*p).payload as *mut *mut StgClosure_ as StgPtr)
@@ -229,15 +230,15 @@ unsafe fn is_closure_clean(mut p: *mut StgClosure) -> bool {
                     && (*q_0 as *mut StgClosure as W_) < mblock_address_space.0.end)
                     || (*Bdescr(*q_0 as StgPtr)).r#gen == oldest_gen)
                 {
-                    return r#false != 0;
+                    return false;
                 }
 
                 q_0 = q_0.offset(1);
             }
 
-            return r#true != 0;
+            return true;
         }
-        49 => return r#false != 0,
+        49 => return false,
         47 | 48 => {
             if !(!((*(p as *mut StgMutVar)).var as W_ >= mblock_address_space.0.begin
                 && ((*(p as *mut StgMutVar)).var as W_) < mblock_address_space.0.end)
@@ -245,11 +246,11 @@ unsafe fn is_closure_clean(mut p: *mut StgClosure) -> bool {
             {
                 (*p).header.info = &raw const stg_MUT_VAR_DIRTY_info;
 
-                return r#false != 0;
+                return false;
             } else {
                 (*p).header.info = &raw const stg_MUT_VAR_CLEAN_info;
 
-                return r#true != 0;
+                return true;
             }
         }
         37 => {
@@ -273,7 +274,7 @@ unsafe fn is_closure_clean(mut p: *mut StgClosure) -> bool {
                         {
                             (*bq).header.info = &raw const stg_BLOCKING_QUEUE_CLEAN_info;
 
-                            return r#true != 0;
+                            return true;
                         }
                     }
                 }
@@ -281,22 +282,22 @@ unsafe fn is_closure_clean(mut p: *mut StgClosure) -> bool {
 
             (*bq).header.info = &raw const stg_BLOCKING_QUEUE_DIRTY_info;
 
-            return r#false != 0;
+            return false;
         }
         22 => {
             return !((*(p as *mut StgSelector)).selectee as W_ >= mblock_address_space.0.begin
                 && ((*(p as *mut StgSelector)).selectee as W_) < mblock_address_space.0.end)
                 || (*Bdescr((*(p as *mut StgSelector)).selectee as StgPtr)).r#gen == oldest_gen;
         }
-        42 => return r#true != 0,
-        _ => return r#false != 0,
+        42 => return true,
+        _ => return false,
     };
 }
 
 unsafe fn nonmovingSweepMutLists() {
-    let mut n: uint32_t = 0 as uint32_t;
+    let mut n: u32 = 0;
 
-    while n < getNumCapabilities() as uint32_t {
+    while n < getNumCapabilities() as u32 {
         let mut cap = getCapability(n);
         let mut old_mut_list = *(*cap).mut_lists.offset((*oldest_gen).no as isize);
         let ref mut fresh6 = *(*cap).mut_lists.offset((*oldest_gen).no as isize);
@@ -310,7 +311,7 @@ unsafe fn nonmovingSweepMutLists() {
             while p < (*bd).c2rust_unnamed.free {
                 let mut q = p as *mut *mut StgClosure;
 
-                if nonmovingIsAlive(*q) as c_int != 0 && !is_closure_clean(*q) {
+                if nonmovingIsAlive(*q) as i32 != 0 && !is_closure_clean(*q) {
                     recordMutableCap(*q, cap, (*oldest_gen).no);
                 }
 
@@ -325,9 +326,9 @@ unsafe fn nonmovingSweepMutLists() {
     }
 }
 
-unsafe fn freeChain_lock_max(mut bd: *mut bdescr, mut max_dur: c_int) {
+unsafe fn freeChain_lock_max(mut bd: *mut bdescr, mut max_dur: i32) {
     let mut next_bd = null_mut::<bdescr>();
-    let mut i = 0 as c_int;
+    let mut i = 0;
 
     while !bd.is_null() {
         next_bd = (*bd).link as *mut bdescr;
@@ -335,7 +336,7 @@ unsafe fn freeChain_lock_max(mut bd: *mut bdescr, mut max_dur: c_int) {
         bd = next_bd;
 
         if i == max_dur {
-            i = 0 as c_int;
+            i = 0;
         }
 
         i += 1;
@@ -343,11 +344,11 @@ unsafe fn freeChain_lock_max(mut bd: *mut bdescr, mut max_dur: c_int) {
 }
 
 unsafe fn nonmovingSweepLargeObjects() {
-    freeChain_lock_max(nonmoving_large_objects, 10000 as c_int);
+    freeChain_lock_max(nonmoving_large_objects, 10000);
     nonmoving_large_objects = nonmoving_marked_large_objects;
     n_nonmoving_large_blocks = n_nonmoving_marked_large_blocks;
     nonmoving_marked_large_objects = null_mut::<bdescr>();
-    n_nonmoving_marked_large_blocks = 0 as memcount;
+    n_nonmoving_marked_large_blocks = 0;
 }
 
 unsafe fn nonmovingSweepCompactObjects() {
@@ -356,25 +357,27 @@ unsafe fn nonmovingSweepCompactObjects() {
 
     while !bd.is_null() {
         next = (*bd).link as *mut bdescr;
+
         compactFree((*((*bd).start as *mut StgCompactNFDataBlock)).owner as *mut StgCompactNFData);
+
         bd = next;
     }
 
     nonmoving_compact_objects = nonmoving_marked_compact_objects;
     n_nonmoving_compact_blocks = n_nonmoving_marked_compact_blocks;
     nonmoving_marked_compact_objects = null_mut::<bdescr>();
-    n_nonmoving_marked_compact_blocks = 0 as memcount;
+    n_nonmoving_marked_compact_blocks = 0;
 }
 
 unsafe fn is_alive(mut p: *mut StgClosure) -> bool {
     if !(p as W_ >= mblock_address_space.0.begin && (p as W_) < mblock_address_space.0.end) {
-        return r#true != 0;
+        return true;
     }
 
     if nonmovingClosureBeingSwept(p) {
         return nonmovingIsAlive(p);
     } else {
-        return r#true != 0;
+        return true;
     };
 }
 
@@ -383,7 +386,7 @@ unsafe fn nonmovingSweepStableNameTable() {
 
     let mut p = null_mut::<snEntry>();
     let mut __end_ptr: *mut snEntry = stable_name_table.offset(SNT_size as isize) as *mut snEntry;
-    p = stable_name_table.offset(1 as c_int as isize);
+    p = stable_name_table.offset(1);
 
     while p < __end_ptr {
         if (*p).addr < stable_name_table as P_ || (*p).addr >= __end_ptr as P_ {

@@ -23,7 +23,7 @@ mod tests;
 #[derive(Debug)]
 pub struct InfoProv_ {
     pub table_name: *const c_char,
-    pub closure_desc: uint32_t,
+    pub closure_desc: u32,
     pub ty_desc: *const c_char,
     pub label: *const c_char,
     pub unit_id: *const c_char,
@@ -47,7 +47,7 @@ pub struct InfoProvEnt_ {
 pub type InfoProvEnt = InfoProvEnt_;
 
 #[ffi(compiler, libraries, testsuite)]
-pub type StringIdx = uint32_t;
+pub type StringIdx = u32;
 
 #[ffi(testsuite)]
 #[repr(C)]
@@ -55,7 +55,7 @@ pub type StringIdx = uint32_t;
 #[cfg_attr(test, derive(Clone))]
 pub struct IpeBufferEntry {
     pub table_name: StringIdx,
-    pub closure_desc: uint32_t,
+    pub closure_desc: u32,
     pub ty_desc: StringIdx,
     pub label: StringIdx,
     pub src_file: StringIdx,
@@ -97,30 +97,26 @@ pub type IpeBufferListNode = IpeBufferListNode_;
 /// cbindgen:no-export
 struct IpeMapEntry {
     node: *mut IpeBufferListNode,
-    idx: uint32_t,
+    idx: u32,
 }
 
-static mut ipeMap: *mut HashTable = null::<HashTable>() as *mut HashTable;
+static mut ipeMap: *mut HashTable = null_mut::<HashTable>();
 
-static mut ipeBufferList: *mut IpeBufferListNode =
-    null::<IpeBufferListNode>() as *mut IpeBufferListNode;
+static mut ipeBufferList: *mut IpeBufferListNode = null_mut::<IpeBufferListNode>();
 
 unsafe fn initIpe() {}
 
 unsafe fn exitIpe() {}
 
-unsafe fn ipeBufferEntryToIpe(
-    mut node: *const IpeBufferListNode,
-    mut idx: uint32_t,
-) -> InfoProvEnt {
-    if ((idx as StgWord) < (*node).count) as c_int as c_long != 0 {
+unsafe fn ipeBufferEntryToIpe(mut node: *const IpeBufferListNode, mut idx: u32) -> InfoProvEnt {
+    if ((idx as StgWord) < (*node).count) as i32 as i64 != 0 {
     } else {
-        _assertFail(b"rts/IPE.c\0" as *const u8 as *const c_char, 100 as c_uint);
+        _assertFail(c"rts/IPE.c".as_ptr(), 100);
     }
 
-    if ((*node).compressed == 0) as c_int as c_long != 0 {
+    if ((*node).compressed == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(b"rts/IPE.c\0" as *const u8 as *const c_char, 101 as c_uint);
+        _assertFail(c"rts/IPE.c".as_ptr(), 101);
     }
 
     let mut strings = (*node).string_table;
@@ -154,7 +150,7 @@ unsafe fn dumpIPEToEventLog() {
     while !node.is_null() {
         decompressIPEBufferListNodeIfCompressed(node);
 
-        let mut i: uint32_t = 0 as uint32_t;
+        let mut i: u32 = 0;
 
         while (i as StgWord) < (*node).count {
             let ent = ipeBufferEntryToIpe(node, i) as InfoProvEnt;
@@ -199,8 +195,8 @@ pub unsafe extern "C" fn registerInfoProvList(mut node: *mut IpeBufferListNode) 
 unsafe fn formatClosureDescIpe(mut ipe_buf: *const InfoProvEnt, mut str_buf: *mut c_char) {
     snprintf(
         str_buf,
-        CLOSURE_DESC_BUFFER_SIZE as size_t,
-        b"%u\0" as *const u8 as *const c_char,
+        CLOSURE_DESC_BUFFER_SIZE as usize,
+        c"%u".as_ptr(),
         (*ipe_buf).prov.closure_desc,
     );
 }
@@ -219,9 +215,9 @@ pub unsafe extern "C" fn lookupIPE(
     if !map_ent.is_null() {
         *out = ipeBufferEntryToIpe((*map_ent).node, (*map_ent).idx);
 
-        return r#true != 0;
+        return true;
     } else {
-        return r#false != 0;
+        return false;
     };
 }
 
@@ -244,11 +240,11 @@ unsafe fn updateIpeMap() {
         let mut map_ents = stgMallocBytes(
             (*node)
                 .count
-                .wrapping_mul(size_of::<IpeMapEntry>() as StgWord) as size_t,
-            b"updateIpeMap: ip_ents\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_mul(size_of::<IpeMapEntry>() as StgWord) as usize,
+            c"updateIpeMap: ip_ents".as_ptr(),
         ) as *mut IpeMapEntry;
 
-        let mut i: uint32_t = 0 as uint32_t;
+        let mut i: u32 = 0;
 
         while (i as StgWord) < (*node).count {
             let mut tbl = *(*node).tables.offset(i as isize);
@@ -270,12 +266,12 @@ unsafe fn updateIpeMap() {
 }
 
 unsafe fn decompressIPEBufferListNodeIfCompressed(mut node: *mut IpeBufferListNode) {
-    if (*node).compressed == 1 as StgWord {
-        (*node).compressed = 0 as StgWord;
+    if (*node).compressed == 1 {
+        (*node).compressed = 0;
 
         barf(
-            b"An IPE buffer list node has been compressed, but the decompression library (zstd) is not available.\0"
-                as *const u8 as *const c_char,
+            c"An IPE buffer list node has been compressed, but the decompression library (zstd) is not available."
+                .as_ptr(),
         );
     }
 }

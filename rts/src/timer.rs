@@ -15,52 +15,51 @@ mod tests;
 
 static mut timer_disabled: StgWord = 0;
 
-static mut ticks_to_ctxt_switch: c_int = 0 as c_int;
+static mut ticks_to_ctxt_switch: i32 = 0;
 
-static mut ticks_to_eventlog_flush: c_int = 0 as c_int;
+static mut ticks_to_eventlog_flush: i32 = 0;
 
-static mut idle_ticks_to_gc: c_int = 0 as c_int;
+static mut idle_ticks_to_gc: i32 = 0;
 
-static mut inter_gc_ticks_to_gc: c_int = 0 as c_int;
+static mut inter_gc_ticks_to_gc: i32 = 0;
 
-unsafe fn handle_tick(mut unused: c_int) {
+unsafe fn handle_tick(mut unused: i32) {
     handleProfTick();
 
-    if RtsFlags.ConcFlags.ctxtSwitchTicks > 0 as c_int
-        && (&raw mut timer_disabled).load(Ordering::SeqCst) == 0 as StgWord
+    if RtsFlags.ConcFlags.ctxtSwitchTicks > 0
+        && (&raw mut timer_disabled).load(Ordering::SeqCst) == 0
     {
         ticks_to_ctxt_switch -= 1;
 
-        if ticks_to_ctxt_switch <= 0 as c_int {
+        if ticks_to_ctxt_switch <= 0 {
             ticks_to_ctxt_switch = RtsFlags.ConcFlags.ctxtSwitchTicks;
             contextSwitchAllCapabilities();
         }
     }
 
-    if eventLogStatus() as c_uint == EVENTLOG_RUNNING as c_int as c_uint
-        && RtsFlags.TraceFlags.eventlogFlushTicks > 0 as c_int
+    if eventLogStatus() as u32 == EVENTLOG_RUNNING as i32 as u32
+        && RtsFlags.TraceFlags.eventlogFlushTicks > 0
     {
         ticks_to_eventlog_flush -= 1;
 
-        if ticks_to_eventlog_flush <= 0 as c_int {
+        if ticks_to_eventlog_flush <= 0 {
             ticks_to_eventlog_flush = RtsFlags.TraceFlags.eventlogFlushTicks;
             flushEventLog(null_mut::<*mut Capability>());
         }
     }
 
-    match getRecentActivity() as c_uint {
+    match getRecentActivity() as u32 {
         0 => {
             setRecentActivity(ACTIVITY_MAYBE_NO);
             idle_ticks_to_gc =
-                (RtsFlags.GcFlags.idleGCDelayTime / RtsFlags.MiscFlags.tickInterval) as c_int;
+                (RtsFlags.GcFlags.idleGCDelayTime / RtsFlags.MiscFlags.tickInterval) as i32;
         }
         1 => {
-            if idle_ticks_to_gc == 0 as c_int && inter_gc_ticks_to_gc == 0 as c_int {
+            if idle_ticks_to_gc == 0 && inter_gc_ticks_to_gc == 0 {
                 if RtsFlags.GcFlags.doIdleGC {
                     setRecentActivity(ACTIVITY_INACTIVE);
-                    inter_gc_ticks_to_gc = (RtsFlags.GcFlags.interIdleGCWait
-                        / RtsFlags.MiscFlags.tickInterval)
-                        as c_int;
+                    inter_gc_ticks_to_gc =
+                        (RtsFlags.GcFlags.interIdleGCWait / RtsFlags.MiscFlags.tickInterval) as i32;
                 } else {
                     setRecentActivity(ACTIVITY_DONE_GC);
                     stopTimer();
@@ -82,14 +81,14 @@ unsafe fn handle_tick(mut unused: c_int) {
 unsafe fn initTimer() {
     initProfTimer();
 
-    if RtsFlags.MiscFlags.tickInterval != 0 as Time {
+    if RtsFlags.MiscFlags.tickInterval != 0 {
         initTicker(
             RtsFlags.MiscFlags.tickInterval,
             Some(handle_tick as unsafe extern "C" fn(c_int) -> ()),
         );
     }
 
-    (&raw mut timer_disabled).store(1 as c_int as StgWord, Ordering::SeqCst);
+    (&raw mut timer_disabled).store(1, Ordering::SeqCst);
 }
 
 #[ffi(libraries)]
@@ -97,10 +96,10 @@ unsafe fn initTimer() {
 #[instrument]
 pub unsafe extern "C" fn startTimer() {
     let fresh5 = &raw mut timer_disabled;
-    let fresh6 = 1 as c_int as StgWord;
+    let fresh6 = 1;
 
-    if (fresh5).xsub(fresh6, Ordering::SeqCst) - fresh6 == 0 as StgWord {
-        if RtsFlags.MiscFlags.tickInterval != 0 as Time {
+    if (fresh5).xsub(fresh6, Ordering::SeqCst) - fresh6 == 0 {
+        if RtsFlags.MiscFlags.tickInterval != 0 {
             startTicker();
         }
     }
@@ -111,17 +110,17 @@ pub unsafe extern "C" fn startTimer() {
 #[instrument]
 pub unsafe extern "C" fn stopTimer() {
     let fresh7 = &raw mut timer_disabled;
-    let fresh8 = 1 as c_int as StgWord;
+    let fresh8 = 1;
 
-    if (fresh7).xadd(fresh8, Ordering::SeqCst) + fresh8 == 1 as StgWord {
-        if RtsFlags.MiscFlags.tickInterval != 0 as Time {
+    if (fresh7).xadd(fresh8, Ordering::SeqCst) + fresh8 == 1 {
+        if RtsFlags.MiscFlags.tickInterval != 0 {
             stopTicker();
         }
     }
 }
 
 unsafe fn exitTimer(mut wait: bool) {
-    if RtsFlags.MiscFlags.tickInterval != 0 as Time {
+    if RtsFlags.MiscFlags.tickInterval != 0 {
         exitTicker(wait);
     }
 }

@@ -15,14 +15,14 @@ mod tests;
 #[derive(Debug)]
 pub struct EventLogWriter {
     pub initEventLogWriter: Option<unsafe extern "C" fn() -> ()>,
-    pub writeEventLog: Option<unsafe extern "C" fn(*mut c_void, size_t) -> bool>,
+    pub writeEventLog: Option<unsafe extern "C" fn(*mut c_void, usize) -> bool>,
     pub flushEventLog: Option<unsafe extern "C" fn() -> ()>,
     pub stopEventLogWriter: Option<unsafe extern "C" fn() -> ()>,
 }
 
-static mut event_log_pid: pid_t = -(1 as pid_t);
+static mut event_log_pid: pid_t = -1;
 
-static mut event_log_file: *mut FILE = null::<FILE>() as *mut FILE;
+static mut event_log_file: *mut FILE = null_mut::<FILE>();
 
 unsafe fn acquire_event_log_lock() {}
 
@@ -33,33 +33,28 @@ unsafe fn outputFileName() -> *mut c_char {
         return strdup(RtsFlags.TraceFlags.trace_output);
     } else {
         let mut prog = stgMallocBytes(
-            strlen(prog_name).wrapping_add(1 as size_t),
-            b"initEventLogFileWriter\0" as *const u8 as *const c_char as *mut c_char,
+            strlen(prog_name).wrapping_add(1 as usize),
+            c"initEventLogFileWriter".as_ptr(),
         ) as *mut c_char;
 
         strcpy(prog, prog_name);
 
         let mut filename = stgMallocBytes(
             strlen(prog)
-                .wrapping_add(10 as size_t)
-                .wrapping_add(10 as size_t),
-            b"initEventLogFileWriter\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(10 as usize)
+                .wrapping_add(10 as usize),
+            c"initEventLogFileWriter".as_ptr(),
         ) as *mut c_char;
 
-        if event_log_pid == -(1 as pid_t) {
-            sprintf(
-                filename,
-                b"%s.eventlog\0" as *const u8 as *const c_char,
-                prog,
-            );
-
+        if event_log_pid == -1 {
+            sprintf(filename, c"%s.eventlog".as_ptr(), prog);
             event_log_pid = getpid();
         } else {
             event_log_pid = getpid();
 
             sprintf(
                 filename,
-                b"%s.%llu.eventlog\0" as *const u8 as *const c_char,
+                c"%s.%llu.eventlog".as_ptr(),
                 prog,
                 event_log_pid as StgWord64,
             );
@@ -73,11 +68,11 @@ unsafe fn outputFileName() -> *mut c_char {
 
 unsafe fn initEventLogFileWriter() {
     let mut event_log_filename = outputFileName();
-    event_log_file = __rts_fopen(event_log_filename, b"wb+\0" as *const u8 as *const c_char);
+    event_log_file = __rts_fopen(event_log_filename, c"wb+".as_ptr());
 
     if event_log_file.is_null() {
         sysErrorBelch(
-            b"initEventLogFileWriter: can't open %s\0" as *const u8 as *const c_char,
+            c"initEventLogFileWriter: can't open %s".as_ptr(),
             event_log_filename,
         );
 
@@ -87,19 +82,18 @@ unsafe fn initEventLogFileWriter() {
     stgFree(event_log_filename as *mut c_void);
 }
 
-unsafe fn writeEventLogFile(mut eventlog: *mut c_void, mut eventlog_size: size_t) -> bool {
-    let mut begin = eventlog as *mut c_uchar;
-    let mut remain: size_t = eventlog_size;
+unsafe fn writeEventLogFile(mut eventlog: *mut c_void, mut eventlog_size: usize) -> bool {
+    let mut begin = eventlog as *mut u8;
+    let mut remain: usize = eventlog_size;
     acquire_event_log_lock();
 
-    while remain > 0 as size_t {
-        let mut written =
-            fwrite(begin as *const c_void, 1 as size_t, remain, event_log_file) as size_t;
+    while remain > 0 {
+        let mut written = fwrite(begin as *const c_void, 1, remain, event_log_file) as usize;
 
-        if written == 0 as size_t {
+        if written == 0 {
             release_event_log_lock();
 
-            return r#false != 0;
+            return false;
         }
 
         remain = remain.wrapping_sub(written);
@@ -109,7 +103,7 @@ unsafe fn writeEventLogFile(mut eventlog: *mut c_void, mut eventlog_size: size_t
     release_event_log_lock();
     flushEventLogFile();
 
-    return r#true != 0;
+    return true;
 }
 
 unsafe fn flushEventLogFile() {
@@ -127,8 +121,8 @@ unsafe fn stopEventLogFileWriter() {
 
 unsafe fn initEventLogFileWriterNoop() {}
 
-unsafe fn writeEventLogFileNoop(mut eventlog: *mut c_void, mut eventlog_size: size_t) -> bool {
-    return r#true != 0;
+unsafe fn writeEventLogFileNoop(mut eventlog: *mut c_void, mut eventlog_size: usize) -> bool {
+    return true;
 }
 
 unsafe fn flushEventLogFileNoop() {}
@@ -138,7 +132,7 @@ unsafe fn stopEventLogFileWriterNoop() {}
 static mut FileEventLogWriter: EventLogWriter = unsafe {
     EventLogWriter {
         initEventLogWriter: Some(initEventLogFileWriter as unsafe extern "C" fn() -> ()),
-        writeEventLog: Some(writeEventLogFile as unsafe extern "C" fn(*mut c_void, size_t) -> bool),
+        writeEventLog: Some(writeEventLogFile as unsafe extern "C" fn(*mut c_void, usize) -> bool),
         flushEventLog: Some(flushEventLogFile as unsafe extern "C" fn() -> ()),
         stopEventLogWriter: Some(stopEventLogFileWriter as unsafe extern "C" fn() -> ()),
     }
@@ -148,7 +142,7 @@ static mut NullEventLogWriter: EventLogWriter = unsafe {
     EventLogWriter {
         initEventLogWriter: Some(initEventLogFileWriterNoop as unsafe extern "C" fn() -> ()),
         writeEventLog: Some(
-            writeEventLogFileNoop as unsafe extern "C" fn(*mut c_void, size_t) -> bool,
+            writeEventLogFileNoop as unsafe extern "C" fn(*mut c_void, usize) -> bool,
         ),
         flushEventLog: Some(flushEventLogFileNoop as unsafe extern "C" fn() -> ()),
         stopEventLogWriter: Some(stopEventLogFileWriterNoop as unsafe extern "C" fn() -> ()),

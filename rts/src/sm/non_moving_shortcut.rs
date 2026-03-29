@@ -16,7 +16,7 @@ use crate::sm::non_moving::isNonmovingClosure;
 use crate::sm::non_moving_mark::{MarkQueue, markQueuePushClosure};
 use crate::smp_closure_ops::{lockClosure, unlockClosure};
 
-const MAX_THUNK_SELECTOR_DEPTH: c_int = 16 as c_int;
+const MAX_THUNK_SELECTOR_DEPTH: i32 = 16;
 
 unsafe fn update_selector_chain(
     mut chain: *mut StgClosure,
@@ -25,8 +25,8 @@ unsafe fn update_selector_chain(
     val: *mut StgClosure,
 ) {
     while !chain.is_null() {
-        let mut next = *(&raw mut (*chain).payload as *mut *mut StgClosure_)
-            .offset(0 as c_int as isize) as *mut StgClosure;
+        let mut next =
+            *(&raw mut (*chain).payload as *mut *mut StgClosure_).offset(0) as *mut StgClosure;
 
         let ref mut fresh7 = (*(chain as *mut StgInd)).indirectee;
         *fresh7 = val;
@@ -43,7 +43,7 @@ unsafe fn nonmoving_eval_thunk_selector_(
     mut queue: *mut MarkQueue,
     p0: *mut StgSelector,
     origin: *mut *mut StgClosure,
-    mut depth: c_int,
+    mut depth: i32,
 ) -> *mut StgClosure {
     let mut selectee_info_tbl: *const StgInfoTable = null::<StgInfoTable>();
     let mut val: *mut StgClosure = null_mut::<StgClosure>();
@@ -64,7 +64,7 @@ unsafe fn nonmoving_eval_thunk_selector_(
             return p;
         }
 
-        let mut field: uint32_t = (*selector_info_tbl).layout.selector_offset as uint32_t;
+        let mut field: u32 = (*selector_info_tbl).layout.selector_offset as u32;
         let mut selectee = UNTAG_CLOSURE((*(p as *mut StgSelector)).selectee);
 
         loop {
@@ -115,7 +115,7 @@ unsafe fn nonmoving_eval_thunk_selector_(
                         return p;
                     }
 
-                    if GET_CLOSURE_TAG(indirectee_1) == 0 as StgWord {
+                    if GET_CLOSURE_TAG(indirectee_1) == 0 {
                         let mut i = (*indirectee_1).header.info;
 
                         if i == &raw const stg_TSO_info
@@ -144,7 +144,7 @@ unsafe fn nonmoving_eval_thunk_selector_(
                             queue,
                             selectee as *mut StgSelector,
                             null_mut::<*mut StgClosure>(),
-                            depth + 1 as c_int,
+                            depth + 1,
                         ));
 
                         if selectee == new_selectee {
@@ -164,9 +164,8 @@ unsafe fn nonmoving_eval_thunk_selector_(
                 }
                 _ => {
                     barf(
-                        b"nonmoving_eval_thunk_selector: strange selectee %d\0" as *const u8
-                            as *const c_char,
-                        (*selectee_info_tbl).r#type as c_int,
+                        c"nonmoving_eval_thunk_selector: strange selectee %d".as_ptr(),
+                        (*selectee_info_tbl).r#type as i32,
                     );
                 }
             }
@@ -194,16 +193,16 @@ unsafe fn nonmoving_eval_thunk_selector_(
                     }
                 }
                 22 => {
-                    let ref mut fresh5 = *(&raw mut (*p).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize);
+                    let ref mut fresh5 =
+                        *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0);
                     *fresh5 = chain as *mut StgClosure_;
                     chain = p;
                     p = val;
                     break;
                 }
                 _ => {
-                    let ref mut fresh6 = *(&raw mut (*p).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize);
+                    let ref mut fresh6 =
+                        *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0);
                     *fresh6 = chain as *mut StgClosure_;
                     chain = p;
                     update_selector_chain(chain, origin, p0, val);
@@ -220,5 +219,5 @@ unsafe fn nonmoving_eval_thunk_selector(
     mut p: *mut StgSelector,
     mut origin: *mut *mut StgClosure,
 ) {
-    nonmoving_eval_thunk_selector_(queue, p, origin, 0 as c_int);
+    nonmoving_eval_thunk_selector_(queue, p, origin, 0);
 }

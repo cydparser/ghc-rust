@@ -12,34 +12,34 @@ unsafe fn sweep(mut r#gen: *mut generation) {
     let mut bd = null_mut::<bdescr>();
     let mut prev = null_mut::<bdescr>();
     let mut next = null_mut::<bdescr>();
-    let mut i: uint32_t = 0;
+    let mut i: u32 = 0;
     let mut freed: W_ = 0;
     let mut resid: W_ = 0;
     let mut fragd: W_ = 0;
     let mut blocks: W_ = 0;
     let mut live: W_ = 0;
-    live = 0 as W_;
-    freed = 0 as W_;
-    fragd = 0 as W_;
-    blocks = 0 as W_;
+    live = 0;
+    freed = 0;
+    fragd = 0;
+    blocks = 0;
     prev = null_mut::<bdescr>();
     bd = (*r#gen).old_blocks;
 
     while !bd.is_null() {
         next = (*bd).link as *mut bdescr;
 
-        if (*bd).flags as c_int & BF_MARKED == 0 {
+        if (*bd).flags as i32 & BF_MARKED == 0 {
             prev = bd;
         } else {
             blocks = blocks.wrapping_add(1);
-            resid = 0 as W_;
-            i = 0 as uint32_t;
+            resid = 0;
+            i = 0;
 
             while (i as usize)
                 < BLOCK_SIZE_W
                     .wrapping_div((BITS_PER_BYTE as usize).wrapping_mul(size_of::<W_>() as usize))
             {
-                if *(*bd).u.bitmap.offset(i as isize) != 0 as StgWord {
+                if *(*bd).u.bitmap.offset(i as isize) != 0 {
                     resid = resid.wrapping_add(1);
                 }
 
@@ -50,7 +50,7 @@ unsafe fn sweep(mut r#gen: *mut generation) {
                 (BITS_PER_BYTE as usize).wrapping_mul(size_of::<W_>() as usize) as W_,
             ));
 
-            if resid == 0 as W_ {
+            if resid == 0 {
                 freed = freed.wrapping_add(1);
                 (*r#gen).n_old_blocks = (*r#gen).n_old_blocks.wrapping_sub(1);
 
@@ -72,10 +72,10 @@ unsafe fn sweep(mut r#gen: *mut generation) {
                     ) as W_
                 {
                     fragd = fragd.wrapping_add(1);
-                    (*bd).flags = ((*bd).flags as c_int | BF_FRAGMENTED) as StgWord16;
+                    (*bd).flags = ((*bd).flags as i32 | BF_FRAGMENTED) as StgWord16;
                 }
 
-                (*bd).flags = ((*bd).flags as c_int | BF_SWEPT) as StgWord16;
+                (*bd).flags = ((*bd).flags as i32 | BF_SWEPT) as StgWord16;
             }
         }
 
@@ -84,29 +84,29 @@ unsafe fn sweep(mut r#gen: *mut generation) {
 
     (*r#gen).live_estimate = live as memcount;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
         trace_(
-            b"sweeping: %d blocks, %d were copied, %d freed (%d%%), %d are fragmented, live estimate: %ld%%\0"
-                as *const u8 as *const c_char as *mut c_char,
+            c"sweeping: %d blocks, %d were copied, %d freed (%d%%), %d are fragmented, live estimate: %ld%%"
+                .as_ptr(),
             (*r#gen).n_old_blocks.wrapping_add(freed as memcount),
             (*r#gen)
                 .n_old_blocks
                 .wrapping_sub(blocks as memcount)
                 .wrapping_add(freed as memcount),
             freed,
-            if blocks == 0 as W_ {
-                0 as W_
+            if blocks == 0 {
+                0
             } else {
                 freed.wrapping_mul(100 as W_).wrapping_div(blocks)
             },
             fragd,
-            (if blocks.wrapping_sub(freed) == 0 as W_ {
-                0 as W_
+            (if blocks.wrapping_sub(freed) == 0 {
+                0
             } else {
                 live.wrapping_div(BLOCK_SIZE_W as W_)
                     .wrapping_mul(100 as W_)
                     .wrapping_div(blocks.wrapping_sub(freed))
-            }) as c_ulong,
+            }) as u64,
         );
     }
 }

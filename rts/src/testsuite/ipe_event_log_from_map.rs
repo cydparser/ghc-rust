@@ -3,13 +3,13 @@ use crate::ffi::rts::ipe::{InfoProv_, InfoProvEnt_, lookupIPE, registerInfoProvL
 use crate::ffi::rts_api::{rts_lock, rts_mkInt, rts_unlock};
 use crate::prelude::*;
 
-unsafe fn main_0(mut argc: c_int, mut argv: *mut *mut c_char) -> c_int {
+unsafe fn main_0(mut argc: i32, mut argv: *mut *mut c_char) -> i32 {
     hs_init(&raw mut argc, &raw mut argv);
 
     let mut cap = rts_lock();
-    let mut one = rts_mkInt(cap, 1 as HsInt);
-    let mut list1 = makeAnyProvEntries(cap, 0 as c_int, 10 as c_int);
-    let mut list2 = makeAnyProvEntries(cap, 0 as c_int, 10 as c_int);
+    let mut one = rts_mkInt(cap, 1);
+    let mut list1 = makeAnyProvEntries(cap, 0, 10);
+    let mut list2 = makeAnyProvEntries(cap, 0, 10);
     registerInfoProvList(list1);
     registerInfoProvList(list2);
 
@@ -27,7 +27,7 @@ unsafe fn main_0(mut argc: c_int, mut argv: *mut *mut c_char) -> c_int {
         },
     };
 
-    lookupIPE(*(*list1).tables.offset(0 as c_int as isize), &raw mut ipe);
+    lookupIPE(*(*list1).tables.offset(0), &raw mut ipe);
     dumpIPEToEventLog();
     rts_unlock(cap);
     hs_exit();
@@ -52,7 +52,7 @@ fn main() {
 
     unsafe {
         ::std::process::exit(main_0(
-            (args_ptrs.len() - 1) as c_int,
+            (args_ptrs.len() - 1) as i32,
             args_ptrs.as_mut_ptr() as *mut *mut c_char,
         ) as i32)
     }

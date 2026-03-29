@@ -7,7 +7,7 @@ use crate::ffi::stg::types::{StgPtr, StgStablePtr};
 use crate::prelude::*;
 use crate::stable_ptr::freeStablePtr;
 
-static mut topHandlerPtr: StgStablePtr = null::<c_void>() as *mut c_void;
+static mut topHandlerPtr: StgStablePtr = null_mut::<c_void>();
 
 unsafe fn rts_setMainThread(mut weak: *mut StgWeak) {
     if !topHandlerPtr.is_null() {
@@ -34,8 +34,7 @@ unsafe fn getTopHandlerThread() -> *mut StgTSO {
         return null_mut::<StgTSO>();
     } else {
         barf(
-            b"getTopHandlerThread: neither a WEAK nor a DEAD_WEAK: %p %p %d\0" as *const u8
-                as *const c_char,
+            c"getTopHandlerThread: neither a WEAK nor a DEAD_WEAK: %p %p %d".as_ptr(),
             weak,
             info,
             (*info).r#type,

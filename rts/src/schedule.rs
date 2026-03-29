@@ -96,7 +96,7 @@ use crate::trace::{
 #[cfg(test)]
 mod tests;
 
-pub(crate) type SchedState = c_uint;
+pub(crate) type SchedState = u32;
 
 pub(crate) const SCHED_SHUTTING_DOWN: SchedState = 2;
 
@@ -108,7 +108,7 @@ pub(crate) const ACTIVITY_YES: RecentActivity = 0;
 
 pub(crate) const ACTIVITY_DONE_GC: RecentActivity = 3;
 
-pub(crate) type RecentActivity = c_uint;
+pub(crate) type RecentActivity = u32;
 
 pub(crate) const ACTIVITY_INACTIVE: RecentActivity = 2;
 
@@ -143,49 +143,46 @@ pub(crate) unsafe fn peekRunQueue(mut cap: *mut Capability) -> *mut StgTSO {
 
 #[inline]
 pub(crate) unsafe fn emptyRunQueue(mut cap: *mut Capability) -> bool {
-    return (*cap).n_run_queue == 0 as uint32_t;
+    return (*cap).n_run_queue == 0;
 }
 
 #[inline]
 pub(crate) unsafe fn truncateRunQueue(mut cap: *mut Capability) {
     (*cap).run_queue_hd = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
     (*cap).run_queue_tl = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
-    (*cap).n_run_queue = 0 as uint32_t;
+    (*cap).n_run_queue = 0;
 }
 
-static mut allocated_bytes_at_heapoverflow: uint64_t = 0 as uint64_t;
+static mut allocated_bytes_at_heapoverflow: u64 = 0;
 
-static mut heap_overflow: bool = r#false != 0;
+static mut heap_overflow: bool = false;
 
-static mut recent_activity: StgWord = ACTIVITY_YES as c_int as StgWord;
+static mut recent_activity: StgWord = ACTIVITY_YES as i32 as StgWord;
 
-static mut sched_state: StgWord = SCHED_RUNNING as c_int as StgWord;
+static mut sched_state: StgWord = SCHED_RUNNING as i32 as StgWord;
 
-static mut allocLimitKill: bool = r#true != 0;
+static mut allocLimitKill: bool = true;
 
-static mut allocLimitRunHook: bool = r#false != 0;
+static mut allocLimitRunHook: bool = false;
 
 unsafe fn schedule(mut initialCapability: *mut Capability, mut task: *mut Task) -> *mut Capability {
     let mut t = null_mut::<StgTSO>();
     let mut cap = null_mut::<Capability>();
     let mut ret: StgThreadReturnCode = 0;
-    let mut prev_what_next: uint32_t = 0;
+    let mut prev_what_next: u32 = 0;
     let mut ready_to_gc: bool = false;
     cap = initialCapability;
     t = null_mut::<StgTSO>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-        trace_(
-            b"cap %d: schedule()\0" as *const u8 as *const c_char as *mut c_char,
-            (*initialCapability).no,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+        trace_(c"cap %d: schedule()".as_ptr(), (*initialCapability).no);
     }
 
     loop {
         if (*cap).in_haskell {
             errorBelch(
-                b"schedule: re-entered unsafely.\n   Perhaps a 'foreign import unsafe' should be 'safe'?\0"
-                    as *const u8 as *const c_char,
+                c"schedule: re-entered unsafely.\n   Perhaps a 'foreign import unsafe' should be 'safe'?"
+                    .as_ptr(),
             );
 
             stg_exit(EXIT_FAILURE);
@@ -193,44 +190,33 @@ unsafe fn schedule(mut initialCapability: *mut Capability, mut task: *mut Task) 
 
         let mut current_block_59: u64;
 
-        match getSchedState() as c_uint {
+        match getSchedState() as u32 {
             0 => {
                 current_block_59 = 2516253395664191498;
             }
             1 => {
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-                    trace_(b"SCHED_INTERRUPTING\0" as *const u8 as *const c_char as *mut c_char);
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+                    trace_(c"SCHED_INTERRUPTING".as_ptr());
                 }
 
-                scheduleDoGC(
-                    &raw mut cap,
-                    task,
-                    r#true != 0,
-                    r#false != 0,
-                    r#false != 0,
-                    r#false != 0,
-                );
-
+                scheduleDoGC(&raw mut cap, task, true, false, false, false);
                 current_block_59 = 1338095667010778376;
             }
             2 => {
                 current_block_59 = 1338095667010778376;
             }
             _ => {
-                barf(
-                    b"sched_state: %llu\0" as *const u8 as *const c_char,
-                    sched_state,
-                );
+                barf(c"sched_state: %llu".as_ptr(), sched_state);
             }
         }
 
         match current_block_59 {
             1338095667010778376 => {
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-                    trace_(b"SCHED_SHUTTING_DOWN\0" as *const u8 as *const c_char as *mut c_char);
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+                    trace_(c"SCHED_SHUTTING_DOWN".as_ptr());
                 }
 
-                if !isBoundTask(task) && emptyRunQueue(cap) as c_int != 0 {
+                if !isBoundTask(task) && emptyRunQueue(cap) as i32 != 0 {
                     return cap;
                 }
             }
@@ -243,36 +229,35 @@ unsafe fn schedule(mut initialCapability: *mut Capability, mut task: *mut Task) 
         emptyRunQueue(cap);
         t = popRunQueue(cap);
 
-        if getSchedState() as c_uint >= SCHED_INTERRUPTING as c_int as c_uint
-            && !((*t).what_next as c_int == ThreadComplete
-                || (*t).what_next as c_int == ThreadKilled)
+        if getSchedState() as u32 >= SCHED_INTERRUPTING as i32 as u32
+            && !((*t).what_next as i32 == ThreadComplete || (*t).what_next as i32 == ThreadKilled)
         {
             deleteThread(t);
         }
 
-        if RtsFlags.ConcFlags.ctxtSwitchTicks == 0 as c_int
-            && (!emptyRunQueue(cap) || anyPendingTimeoutsOrIO(cap) as c_int != 0)
+        if RtsFlags.ConcFlags.ctxtSwitchTicks == 0
+            && (!emptyRunQueue(cap) || anyPendingTimeoutsOrIO(cap) as i32 != 0)
         {
-            (*cap).context_switch = 1 as c_int;
+            (*cap).context_switch = 1;
         }
 
         loop {
             (*cap).r.rCurrentTSO = t as *mut StgTSO_;
             resumeHeapProfTimer();
-            prev_what_next = (*t).what_next as uint32_t;
-            *__error() = (*t).saved_errno as c_int;
-            (*cap).interrupt = 0 as c_int;
-            (*cap).in_haskell = r#true != 0;
-            (*cap).idle = 0 as uint32_t;
+            prev_what_next = (*t).what_next as u32;
+            *__error() = (*t).saved_errno as i32;
+            (*cap).interrupt = 0;
+            (*cap).in_haskell = true;
+            (*cap).idle = 0;
             dirty_TSO(cap, t);
             dirty_STACK(cap, (*t).stackobj as *mut StgStack);
 
-            match getRecentActivity() as c_uint {
+            match getRecentActivity() as u32 {
                 3 => {
-                    let mut prev: uint32_t = 0;
-                    prev = setRecentActivity(ACTIVITY_YES) as uint32_t;
+                    let mut prev: u32 = 0;
+                    prev = setRecentActivity(ACTIVITY_YES) as u32;
 
-                    if prev == ACTIVITY_DONE_GC as c_int as uint32_t {
+                    if prev == ACTIVITY_DONE_GC as i32 as u32 {
                         startTimer();
                     }
                 }
@@ -307,22 +292,21 @@ unsafe fn schedule(mut initialCapability: *mut Capability, mut task: *mut Task) 
                 }
                 _ => {
                     barf(
-                        b"schedule: invalid prev_what_next=%u field\0" as *const u8
-                            as *const c_char,
+                        c"schedule: invalid prev_what_next=%u field".as_ptr(),
                         prev_what_next,
                     );
                 }
             }
 
-            (*cap).in_haskell = r#false != 0;
+            (*cap).in_haskell = false;
             t = (*cap).r.rCurrentTSO as *mut StgTSO;
             (*cap).r.rCurrentTSO = null_mut::<StgTSO_>();
             (*t).saved_errno = *__error() as StgWord32;
 
             if ret == ThreadBlocked as StgThreadReturnCode {
-                let mut why_blocked: uint16_t = (*t).why_blocked as uint16_t;
+                let mut why_blocked: u16 = (*t).why_blocked as u16;
 
-                if why_blocked as c_int == BlockedOnBlackHole {
+                if why_blocked as i32 == BlockedOnBlackHole {
                     let mut owner = blackHoleOwner((*(*t).block_info.bh).bh);
 
                     traceEventStopThread(
@@ -330,11 +314,7 @@ unsafe fn schedule(mut initialCapability: *mut Capability, mut task: *mut Task) 
                         t,
                         ((*t).why_blocked as StgThreadReturnCode)
                             .wrapping_add(6 as StgThreadReturnCode),
-                        (if !owner.is_null() {
-                            (*owner).id
-                        } else {
-                            0 as StgThreadID
-                        }) as StgWord32,
+                        (if !owner.is_null() { (*owner).id } else { 0 }) as StgWord32,
                     );
                 } else {
                     traceEventStopThread(
@@ -342,18 +322,18 @@ unsafe fn schedule(mut initialCapability: *mut Capability, mut task: *mut Task) 
                         t,
                         ((*t).why_blocked as StgThreadReturnCode)
                             .wrapping_add(6 as StgThreadReturnCode),
-                        0 as StgWord32,
+                        0,
                     );
                 }
             } else if ret == StackOverflow as StgThreadReturnCode {
                 traceEventStopThread(cap, t, ret, (*t).tot_stack_size);
             } else {
-                traceEventStopThread(cap, t, ret, 0 as StgWord32);
+                traceEventStopThread(cap, t, ret, 0);
             }
 
             pauseHeapProfTimer();
             schedulePostRunThread(cap, t);
-            ready_to_gc = r#false != 0;
+            ready_to_gc = false;
 
             match ret {
                 1 => {
@@ -383,22 +363,15 @@ unsafe fn schedule(mut initialCapability: *mut Capability, mut task: *mut Task) 
                 }
                 _ => {
                     barf(
-                        b"schedule: invalid thread return code %d\0" as *const u8 as *const c_char,
-                        ret as c_int,
+                        c"schedule: invalid thread return code %d".as_ptr(),
+                        ret as i32,
                     );
                 }
             }
         }
 
-        if ready_to_gc as c_int != 0 || scheduleNeedHeapProfile(ready_to_gc) as c_int != 0 {
-            scheduleDoGC(
-                &raw mut cap,
-                task,
-                r#false != 0,
-                ready_to_gc,
-                r#false != 0,
-                r#false != 0,
-            );
+        if ready_to_gc as i32 != 0 || scheduleNeedHeapProfile(ready_to_gc) as i32 != 0 {
+            scheduleDoGC(&raw mut cap, task, false, ready_to_gc, false, false);
         }
     }
 }
@@ -435,7 +408,7 @@ unsafe fn scheduleFindWork(mut pcap: *mut *mut Capability) {
 unsafe fn schedulePushWork(mut cap: *mut Capability, mut task: *mut Task) {}
 
 unsafe fn scheduleStartSignalHandlers(mut cap: *mut Capability) {
-    if RtsFlags.MiscFlags.install_signal_handlers as c_int != 0
+    if RtsFlags.MiscFlags.install_signal_handlers as i32 != 0
         && next_pending_handler != &raw mut pending_handler_buf as *mut siginfo_t
     {
         startSignalHandlers(cap);
@@ -455,36 +428,21 @@ unsafe fn scheduleCheckBlockedThreads(mut cap: *mut Capability) {
 unsafe fn scheduleDetectDeadlock(mut pcap: *mut *mut Capability, mut task: *mut Task) {
     let mut cap = *pcap;
 
-    if emptyRunQueue(cap) as c_int != 0 && !anyPendingTimeoutsOrIO(cap) {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-            trace_(
-                b"deadlocked, forcing major GC...\0" as *const u8 as *const c_char as *mut c_char,
-            );
+    if emptyRunQueue(cap) as i32 != 0 && !anyPendingTimeoutsOrIO(cap) {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+            trace_(c"deadlocked, forcing major GC...".as_ptr());
         }
 
-        scheduleDoGC(
-            pcap,
-            task,
-            r#true != 0,
-            r#false != 0,
-            r#true != 0,
-            r#false != 0,
-        );
-
+        scheduleDoGC(pcap, task, true, false, true, false);
         cap = *pcap;
 
         if !emptyRunQueue(cap) {
             return;
         }
 
-        if RtsFlags.MiscFlags.install_signal_handlers as c_int != 0
-            && anyUserHandlers() as c_int != 0
-        {
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-                trace_(
-                    b"still deadlocked, waiting for signals...\0" as *const u8 as *const c_char
-                        as *mut c_char,
-                );
+        if RtsFlags.MiscFlags.install_signal_handlers as i32 != 0 && anyUserHandlers() as i32 != 0 {
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+                trace_(c"still deadlocked, waiting for signals...".as_ptr());
             }
 
             awaitUserSignals();
@@ -504,24 +462,19 @@ unsafe fn schedulePostRunThread(mut cap: *mut Capability, mut t: *mut StgTSO) {
     if (*t).trec != &raw mut stg_NO_TREC_closure as *mut c_void as *mut StgTRecHeader
         && (*t).why_blocked == NotBlocked as StgWord32
     {
-        if stmValidateNestOfTransactions(cap, (*t).trec as *mut StgTRecHeader, r#true) == 0 {
+        if stmValidateNestOfTransactions(cap, (*t).trec as *mut StgTRecHeader, true) == 0 {
             if DEBUG_RTS != 0
-                && (RtsFlags.DebugFlags.scheduler as c_int | RtsFlags.DebugFlags.stm as c_int)
-                    as c_long
+                && (RtsFlags.DebugFlags.scheduler as i32 | RtsFlags.DebugFlags.stm as i32) as i64
                     != 0
             {
-                trace_(
-                    b"trec %p found wasting its time\0" as *const u8 as *const c_char
-                        as *mut c_char,
-                    t,
-                );
+                trace_(c"trec %p found wasting its time".as_ptr(), t);
             }
 
-            throwToSingleThreaded_(cap, t, null_mut::<StgClosure>(), r#true != 0);
+            throwToSingleThreaded_(cap, t, null_mut::<StgClosure>(), true);
         }
     }
 
-    if PK_Int64(&raw mut (*t).alloc_limit as *mut W_) < 0 as StgInt64
+    if PK_Int64(&raw mut (*t).alloc_limit as *mut W_) < 0
         && (*t).flags & TSO_ALLOC_LIMIT as StgWord32 != 0
     {
         if allocLimitKill {
@@ -529,8 +482,8 @@ unsafe fn schedulePostRunThread(mut cap: *mut Capability, mut t: *mut StgTSO) {
 
             ASSIGN_Int64(
                 &raw mut (*t).alloc_limit as *mut W_,
-                (RtsFlags.GcFlags.allocLimitGrace as StgInt64 as c_ulonglong)
-                    .wrapping_mul(BLOCK_SIZE as c_ulonglong) as StgInt64,
+                (RtsFlags.GcFlags.allocLimitGrace as StgInt64 as u64)
+                    .wrapping_mul(BLOCK_SIZE as u64) as StgInt64,
             );
         } else {
             (*t).flags = (*t).flags & !TSO_ALLOC_LIMIT as StgWord32;
@@ -545,12 +498,7 @@ unsafe fn schedulePostRunThread(mut cap: *mut Capability, mut t: *mut StgTSO) {
 
             let mut hookThread = createIOThread(cap, RtsFlags.GcFlags.initialStkSize as W_, c);
 
-            setThreadLabel(
-                cap,
-                hookThread,
-                b"allocation limit handler thread\0" as *const u8 as *const c_char as *mut c_char,
-            );
-
+            setThreadLabel(cap, hookThread, c"allocation limit handler thread".as_ptr());
             pushOnRunQueue(cap, hookThread);
         }
     }
@@ -560,7 +508,7 @@ unsafe fn scheduleHandleHeapOverflow(mut cap: *mut Capability, mut t: *mut StgTS
     if (&raw mut (*cap).r.rHpLim).load(Ordering::Relaxed).is_null()
         || (&raw mut (*cap).context_switch).load(Ordering::Relaxed) != 0
     {
-        (&raw mut (*cap).context_switch).store(0 as c_int, Ordering::Relaxed);
+        (&raw mut (*cap).context_switch).store(0, Ordering::Relaxed);
         appendToRunQueue(cap, t);
     } else {
         pushOnRunQueue(cap, t);
@@ -579,15 +527,13 @@ unsafe fn scheduleHandleHeapOverflow(mut cap: *mut Capability, mut t: *mut StgTS
 
         if blocks > BLOCKS_PER_MBLOCK {
             barf(
-                b"allocation of %ld bytes too large (GHC should have complained at compile-time)\0"
-                    as *const u8 as *const c_char,
-                (*cap).r.rHpAlloc as c_long,
+                c"allocation of %ld bytes too large (GHC should have complained at compile-time)"
+                    .as_ptr(),
+                (*cap).r.rHpAlloc as i64,
             );
         }
 
-        if !(*(*cap).r.rCurrentNursery).link.is_null()
-            || (*(*cap).r.rNursery).n_blocks == 1 as memcount
-        {
+        if !(*(*cap).r.rCurrentNursery).link.is_null() || (*(*cap).r.rNursery).n_blocks == 1 {
             bd = allocGroupOnNode_lock((*cap).node, blocks);
             (*(*cap).r.rNursery).n_blocks = ((*(*cap).r.rNursery).n_blocks as StgWord)
                 .wrapping_add(blocks as StgWord)
@@ -600,14 +546,14 @@ unsafe fn scheduleHandleHeapOverflow(mut cap: *mut Capability, mut t: *mut StgTS
             while x < bd.offset(blocks as isize) {
                 initBdescr(x, g0, g0);
                 (*x).c2rust_unnamed.free = (*x).start;
-                (*x).flags = 0 as StgWord16;
+                (*x).flags = 0;
                 x = x.offset(1);
             }
 
             finishedNurseryBlock(cap, (*cap).r.rCurrentNursery as *mut bdescr);
             (*cap).r.rCurrentNursery = bd as *mut bdescr_;
 
-            return r#false != 0;
+            return false;
         }
     }
 
@@ -617,20 +563,20 @@ unsafe fn scheduleHandleHeapOverflow(mut cap: *mut Capability, mut t: *mut StgTS
 unsafe fn scheduleHandleYield(
     mut cap: *mut Capability,
     mut t: *mut StgTSO,
-    mut prev_what_next: uint32_t,
+    mut prev_what_next: u32,
 ) -> bool {
-    if (*t).what_next as uint32_t != prev_what_next {
-        return r#true != 0;
+    if (*t).what_next as u32 != prev_what_next {
+        return true;
     }
 
-    if (&raw mut (*cap).context_switch).load(Ordering::Relaxed) != 0 as c_int {
-        (&raw mut (*cap).context_switch).store(0 as c_int, Ordering::Relaxed);
+    if (&raw mut (*cap).context_switch).load(Ordering::Relaxed) != 0 {
+        (&raw mut (*cap).context_switch).store(0, Ordering::Relaxed);
         appendToRunQueue(cap, t);
     } else {
         pushOnRunQueue(cap, t);
     }
 
-    return r#false != 0;
+    return false;
 }
 
 unsafe fn scheduleHandleThreadBlocked(mut t: *mut StgTSO) {}
@@ -646,14 +592,12 @@ unsafe fn scheduleHandleThreadFinished(
         if (*t).bound != (*task).incall {
             appendToRunQueue(cap, t);
 
-            return r#false != 0;
+            return false;
         }
 
-        if (*t).what_next as c_int == ThreadComplete {
+        if (*t).what_next as i32 == ThreadComplete {
             if !(*(*task).incall).ret.is_null() {
-                let mut dead = (*(*(*(*task).incall).tso).stackobj)
-                    .sp
-                    .offset(0 as c_int as isize) as *mut StgWord
+                let mut dead = (*(*(*(*task).incall).tso).stackobj).sp.offset(0) as *mut StgWord
                     as *mut StgDeadThreadFrame;
                 *(*(*task).incall).ret = (*dead).result;
             }
@@ -664,7 +608,7 @@ unsafe fn scheduleHandleThreadFinished(
                 *(*(*task).incall).ret = null_mut::<StgClosure>();
             }
 
-            if getSchedState() as c_uint >= SCHED_INTERRUPTING as c_int as c_uint {
+            if getSchedState() as u32 >= SCHED_INTERRUPTING as i32 as u32 {
                 if heap_overflow {
                     (*(*task).incall).rstat = HeapExhausted;
                 } else {
@@ -678,21 +622,21 @@ unsafe fn scheduleHandleThreadFinished(
         (*t).bound = null_mut::<InCall_>();
         (*(*task).incall).tso = null_mut::<StgTSO>();
 
-        return r#true != 0;
+        return true;
     }
 
-    return r#false != 0;
+    return false;
 }
 
 unsafe fn scheduleNeedHeapProfile(mut ready_to_gc: bool) -> bool {
-    if performHeapProfile as c_int != 0
-        || RtsFlags.ProfFlags.heapProfileInterval == 0 as Time
+    if performHeapProfile as i32 != 0
+        || RtsFlags.ProfFlags.heapProfileInterval == 0
             && RtsFlags.ProfFlags.doHeapProfile != 0
-            && ready_to_gc as c_int != 0
+            && ready_to_gc as i32 != 0
     {
-        return r#true != 0;
+        return true;
     } else {
-        return r#false != 0;
+        return false;
     };
 }
 
@@ -715,34 +659,32 @@ unsafe fn scheduleDoGC(
 
     let mut cap = *pcap;
     let mut heap_census: bool = false;
-    let mut collect_gen: uint32_t = 0;
+    let mut collect_gen: u32 = 0;
     let mut major_gc: bool = false;
 
-    if getSchedState() as c_uint == SCHED_SHUTTING_DOWN as c_int as c_uint {
+    if getSchedState() as u32 == SCHED_SHUTTING_DOWN as i32 as u32 {
         return;
     }
 
-    heap_census = scheduleNeedHeapProfile(r#true != 0);
+    heap_census = scheduleNeedHeapProfile(true);
 
-    let mut mblock_overflow = RtsFlags.GcFlags.maxHeapSize != 0 as uint32_t
+    let mut mblock_overflow = RtsFlags.GcFlags.maxHeapSize != 0
         && mblocks_allocated
             > (1 as W_).wrapping_add(
                 (((RtsFlags.GcFlags.maxHeapSize as W_)
                     .wrapping_sub(
-                        (((1 as c_ulong) << 20 as c_int) as W_)
+                        (((1 as u64) << 20 as i32) as W_)
                             .wrapping_sub(
-                                ((0x40 as c_ulong).wrapping_mul(
-                                    ((1 as c_ulong) << 20 as c_int)
-                                        .wrapping_div((1 as c_ulong) << 12 as c_int),
+                                ((0x40 as u64).wrapping_mul(
+                                    ((1 as u64) << 20 as i32).wrapping_div((1 as u64) << 12 as i32),
                                 ) as W_)
-                                    .wrapping_add(((1 as c_ulong) << 12 as c_int) as W_)
+                                    .wrapping_add(((1 as u64) << 12 as i32) as W_)
                                     .wrapping_sub(1 as W_)
-                                    & !((1 as c_ulong) << 12 as c_int).wrapping_sub(1 as c_ulong)
-                                        as W_,
+                                    & !((1 as u64) << 12 as i32).wrapping_sub(1 as u64) as W_,
                             )
-                            .wrapping_div(((1 as c_ulong) << 12 as c_int) as W_),
+                            .wrapping_div(((1 as u64) << 12 as i32) as W_),
                     )
-                    .wrapping_mul(((1 as c_ulong) << 12 as c_int) as W_)
+                    .wrapping_mul(((1 as u64) << 12 as i32) as W_)
                     .wrapping_add(MBLOCK_SIZE as W_)
                     .wrapping_sub(1 as W_)
                     & !MBLOCK_MASK as W_) as *mut c_void as W_)
@@ -750,21 +692,19 @@ unsafe fn scheduleDoGC(
             );
 
     collect_gen = calcNeeded(
-        force_major as c_int != 0 || heap_census as c_int != 0 || mblock_overflow as c_int != 0,
+        force_major as i32 != 0 || heap_census as i32 != 0 || mblock_overflow as i32 != 0,
         null_mut::<StgWord>(),
-    ) as uint32_t;
+    ) as u32;
 
-    major_gc = collect_gen == RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t);
+    major_gc = collect_gen == RtsFlags.GcFlags.generations.wrapping_sub(1 as u32);
 
     loop {
-        if getSchedState() as c_uint == SCHED_INTERRUPTING as c_int as c_uint
-            && major_gc as c_int != 0
-        {
+        if getSchedState() as u32 == SCHED_INTERRUPTING as i32 as u32 && major_gc as i32 != 0 {
             deleteAllThreads();
             setSchedState(SCHED_SHUTTING_DOWN);
         }
 
-        doIdleGCWork(cap, r#true != 0);
+        doIdleGCWork(cap, true);
 
         config = GcConfig {
             collect_gen: collect_gen,
@@ -777,15 +717,15 @@ unsafe fn scheduleDoGC(
 
         GarbageCollect(config, cap, null_mut::<bool>());
 
-        if getSchedState() as c_uint == SCHED_SHUTTING_DOWN as c_int as c_uint {
-            doIdleGCWork(cap, r#true != 0);
+        if getSchedState() as u32 == SCHED_SHUTTING_DOWN as i32 as u32 {
+            doIdleGCWork(cap, true);
         }
 
         traceSparkCounters(cap);
 
         let mut current_block_20: u64;
 
-        match getRecentActivity() as c_uint {
+        match getRecentActivity() as u32 {
             2 => {
                 if force_major {
                     setRecentActivity(ACTIVITY_DONE_GC);
@@ -811,12 +751,10 @@ unsafe fn scheduleDoGC(
         }
 
         if heap_census {
-            performHeapProfile = 0 as c_int != 0;
+            performHeapProfile = 0 != 0;
         }
 
-        if !(heap_overflow as c_int != 0
-            && getSchedState() as c_uint == SCHED_RUNNING as c_int as c_uint)
-        {
+        if !(heap_overflow as i32 != 0 && getSchedState() as u32 == SCHED_RUNNING as i32 as u32) {
             break;
         }
 
@@ -825,13 +763,13 @@ unsafe fn scheduleDoGC(
         if main_thread.is_null() {
             setSchedState(SCHED_INTERRUPTING);
         } else {
-            heap_overflow = r#false != 0;
+            heap_overflow = false;
 
-            let allocation_count = getAllocations() as uint64_t;
+            let allocation_count = getAllocations() as u64;
 
             if RtsFlags.GcFlags.heapLimitGrace
                 < allocation_count.wrapping_sub(allocated_bytes_at_heapoverflow)
-                || allocated_bytes_at_heapoverflow == 0 as uint64_t
+                || allocated_bytes_at_heapoverflow == 0
             {
                 allocated_bytes_at_heapoverflow = allocation_count;
                 throwToSelf(cap, main_thread, (*ghc_hs_iface).heapOverflow_closure);
@@ -850,18 +788,18 @@ pub unsafe extern "C" fn forkProcess(mut entry: *mut HsStablePtr) -> pid_t {
     let mut t = null_mut::<StgTSO>();
     let mut next = null_mut::<StgTSO>();
     let mut cap = null_mut::<Capability>();
-    let mut g: uint32_t = 0;
+    let mut g: u32 = 0;
     let mut task = null_mut::<Task>();
-    let mut i: uint32_t = 0;
+    let mut i: u32 = 0;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-        trace_(b"forking!\0" as *const u8 as *const c_char as *mut c_char);
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+        trace_(c"forking!".as_ptr());
     }
 
     task = newBoundTask();
     cap = null_mut::<Capability>();
     waitForCapability(&raw mut cap, task);
-    i = 0 as uint32_t;
+    i = 0;
 
     while i < n_capabilities {
         i = i.wrapping_add(1);
@@ -873,10 +811,10 @@ pub unsafe extern "C" fn forkProcess(mut entry: *mut HsStablePtr) -> pid_t {
 
     if pid != 0 {
         startTimer();
-        i = 0 as uint32_t;
+        i = 0;
 
         while i < n_capabilities {
-            releaseCapability_(getCapability(i), r#false != 0);
+            releaseCapability_(getCapability(i), false);
             i = i.wrapping_add(1);
         }
 
@@ -886,7 +824,7 @@ pub unsafe extern "C" fn forkProcess(mut entry: *mut HsStablePtr) -> pid_t {
     } else {
         resetChildProcessStats();
         resetTracing();
-        g = 0 as uint32_t;
+        g = 0;
 
         while g < RtsFlags.GcFlags.generations {
             t = (*generations.offset(g as isize)).threads;
@@ -902,16 +840,16 @@ pub unsafe extern "C" fn forkProcess(mut entry: *mut HsStablePtr) -> pid_t {
         }
 
         discardTasksExcept(task);
-        i = 0 as uint32_t;
+        i = 0;
 
         while i < n_capabilities {
             cap = getCapability(i);
             truncateRunQueue(cap);
-            (*cap).n_run_queue = 0 as uint32_t;
+            (*cap).n_run_queue = 0;
             (*cap).suspended_ccalls = null_mut::<InCall>();
-            (*cap).n_suspended_ccalls = 0 as uint32_t;
+            (*cap).n_suspended_ccalls = 0;
 
-            if (*cap).no != 0 as uint32_t {
+            if (*cap).no != 0 {
                 (*task).cap = cap as *mut Capability_;
                 releaseCapability(cap);
             }
@@ -919,9 +857,9 @@ pub unsafe extern "C" fn forkProcess(mut entry: *mut HsStablePtr) -> pid_t {
             i = i.wrapping_add(1);
         }
 
-        cap = getCapability(0 as uint32_t);
+        cap = getCapability(0);
         (*task).cap = cap as *mut Capability_;
-        g = 0 as uint32_t;
+        g = 0;
 
         while g < RtsFlags.GcFlags.generations {
             let ref mut fresh1 = (*generations.offset(g as isize)).threads;
@@ -940,38 +878,31 @@ pub unsafe extern "C" fn forkProcess(mut entry: *mut HsStablePtr) -> pid_t {
             null_mut::<HsStablePtr>(),
         );
 
-        rts_checkSchedStatus(
-            b"forkProcess\0" as *const u8 as *const c_char as *mut c_char,
-            cap,
-        );
-
+        rts_checkSchedStatus(c"forkProcess".as_ptr(), cap);
         rts_unlock(cap);
-        shutdownHaskellAndExit(EXIT_SUCCESS, 0 as c_int);
+        shutdownHaskellAndExit(EXIT_SUCCESS, 0);
     };
 }
 
 #[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn setNumCapabilities(mut new_n_capabilities: uint32_t) {
-    if new_n_capabilities != 1 as uint32_t {
-        errorBelch(
-            b"setNumCapabilities: not supported in the non-threaded RTS\0" as *const u8
-                as *const c_char,
-        );
+pub unsafe extern "C" fn setNumCapabilities(mut new_n_capabilities: u32) {
+    if new_n_capabilities != 1 {
+        errorBelch(c"setNumCapabilities: not supported in the non-threaded RTS".as_ptr());
     }
 }
 
 unsafe fn deleteAllThreads() {
     let mut t = null_mut::<StgTSO>();
     let mut next = null_mut::<StgTSO>();
-    let mut g: uint32_t = 0;
+    let mut g: u32 = 0;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-        trace_(b"deleting all threads\0" as *const u8 as *const c_char as *mut c_char);
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+        trace_(c"deleting all threads".as_ptr());
     }
 
-    g = 0 as uint32_t;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         t = (*generations.offset(g as isize)).threads;
@@ -1029,7 +960,7 @@ pub unsafe extern "C" fn suspendThread(
     mut interruptible_0: bool,
 ) -> *mut c_void {
     let mut cap = null_mut::<Capability>();
-    let mut saved_errno: c_int = 0;
+    let mut saved_errno: i32 = 0;
     let mut tso = null_mut::<StgTSO>();
     let mut task = null_mut::<Task>();
     saved_errno = *__error();
@@ -1041,10 +972,10 @@ pub unsafe extern "C" fn suspendThread(
         cap,
         tso,
         THREAD_SUSPENDED_FOREIGN_CALL as StgThreadReturnCode,
-        0 as StgWord32,
+        0,
     );
 
-    (*tso).what_next = 1 as StgWord16;
+    (*tso).what_next = 1;
     threadPaused(cap, tso);
 
     if interruptible_0 {
@@ -1057,8 +988,8 @@ pub unsafe extern "C" fn suspendThread(
     (*(*task).incall).suspended_cap = cap;
     (*cap).r.rCurrentTSO = null_mut::<StgTSO_>();
     suspendTask(cap, task);
-    (*cap).in_haskell = r#false != 0;
-    releaseCapability_(cap, r#false != 0);
+    (*cap).in_haskell = false;
+    releaseCapability_(cap, false);
     *__error() = saved_errno;
 
     return task as *mut c_void;
@@ -1072,7 +1003,7 @@ pub unsafe extern "C" fn resumeThread(mut task_: *mut c_void) -> *mut StgRegTabl
     let mut incall = null_mut::<InCall>();
     let mut cap = null_mut::<Capability>();
     let mut task = task_ as *mut Task;
-    let mut saved_errno: c_int = 0;
+    let mut saved_errno: i32 = 0;
     saved_errno = *__error();
     incall = (*task).incall as *mut InCall;
     cap = (*incall).suspended_cap;
@@ -1086,7 +1017,7 @@ pub unsafe extern "C" fn resumeThread(mut task_: *mut c_void) -> *mut StgRegTabl
     traceEventRunThread(cap, tso);
     (*tso).why_blocked = NotBlocked as StgWord32;
 
-    if (*tso).flags & TSO_BLOCKEX as StgWord32 == 0 as StgWord32 {
+    if (*tso).flags & TSO_BLOCKEX as StgWord32 == 0 {
         if (*tso).blocked_exceptions
             != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
                 as *mut MessageThrowTo
@@ -1096,7 +1027,7 @@ pub unsafe extern "C" fn resumeThread(mut task_: *mut c_void) -> *mut StgRegTabl
     }
 
     (*cap).r.rCurrentTSO = tso as *mut StgTSO_;
-    (*cap).in_haskell = r#true != 0;
+    (*cap).in_haskell = true;
     *__error() = saved_errno;
     dirty_TSO(cap, tso);
     dirty_STACK(cap, (*tso).stackobj as *mut StgStack);
@@ -1115,7 +1046,7 @@ unsafe fn scheduleThreadNow(mut cap: *mut Capability, mut tso: *mut StgTSO) {
 unsafe fn scheduleThreadOn(mut cap: *mut Capability, mut cpu: StgWord, mut tso: *mut StgTSO) {
     (*tso).flags |= TSO_LOCKED as StgWord32;
     appendToRunQueue(cap, tso);
-    contextSwitchCapability(cap, r#false != 0);
+    contextSwitchCapability(cap, false);
 }
 
 unsafe fn scheduleWaitThread(
@@ -1135,45 +1066,33 @@ unsafe fn scheduleWaitThread(
     appendToRunQueue(cap, tso);
     cap = schedule(cap, task);
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-        trace_(
-            b"bound thread (%llu) finished\0" as *const u8 as *const c_char as *mut c_char,
-            (*tso).id,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+        trace_(c"bound thread (%llu) finished".as_ptr(), (*tso).id);
     }
 
     *pcap = cap;
 }
 
-unsafe fn startWorkerTasks(mut from: uint32_t, mut to: uint32_t) {}
+unsafe fn startWorkerTasks(mut from: u32, mut to: u32) {}
 
 unsafe fn initScheduler() {
     setSchedState(SCHED_RUNNING);
     setRecentActivity(ACTIVITY_YES);
-    allocated_bytes_at_heapoverflow = 0 as uint64_t;
+    allocated_bytes_at_heapoverflow = 0;
     initCapabilities();
     initTaskManager();
-    startWorkerTasks(1 as uint32_t, n_capabilities);
+    startWorkerTasks(1, n_capabilities);
 }
 
 unsafe fn exitScheduler(mut wait_foreign: bool) {
     let mut task = newBoundTask();
 
-    if (getSchedState() as c_uint) < SCHED_SHUTTING_DOWN as c_int as c_uint {
+    if (getSchedState() as u32) < SCHED_SHUTTING_DOWN as i32 as u32 {
         setSchedState(SCHED_INTERRUPTING);
 
         let mut cap = (*task).cap as *mut Capability;
         waitForCapability(&raw mut cap, task);
-
-        scheduleDoGC(
-            &raw mut cap,
-            task,
-            r#true != 0,
-            r#false != 0,
-            r#false != 0,
-            r#true != 0,
-        );
-
+        scheduleDoGC(&raw mut cap, task, true, false, false, true);
         releaseCapability(cap);
     }
 
@@ -1182,10 +1101,10 @@ unsafe fn exitScheduler(mut wait_foreign: bool) {
 }
 
 unsafe fn freeScheduler() {
-    let mut still_running: uint32_t = 0;
+    let mut still_running: u32 = 0;
     still_running = freeTaskManager();
 
-    if still_running == 0 as uint32_t {
+    if still_running == 0 {
         freeCapabilities();
     }
 }
@@ -1195,16 +1114,7 @@ unsafe fn performGC_(mut force_major: bool, mut nonconcurrent: bool) {
     let mut cap = null_mut::<Capability>();
     task = newBoundTask();
     waitForCapability(&raw mut cap, task);
-
-    scheduleDoGC(
-        &raw mut cap,
-        task,
-        force_major,
-        r#false != 0,
-        r#false != 0,
-        nonconcurrent,
-    );
-
+    scheduleDoGC(&raw mut cap, task, force_major, false, false, nonconcurrent);
     releaseCapability(cap);
     exitMyTask();
 }
@@ -1213,21 +1123,21 @@ unsafe fn performGC_(mut force_major: bool, mut nonconcurrent: bool) {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn performGC() {
-    performGC_(r#false != 0, r#false != 0);
+    performGC_(false, false);
 }
 
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn performMajorGC() {
-    performGC_(r#true != 0, r#false != 0);
+    performGC_(true, false);
 }
 
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn performBlockingMajorGC() {
-    performGC_(r#true != 0, r#true != 0);
+    performGC_(true, true);
 }
 
 unsafe fn interruptStgRts() {
@@ -1335,9 +1245,8 @@ unsafe fn raiseExceptionHelper(
 
                     (*raise_closure).header.info = &raw const stg_raise_info;
 
-                    let ref mut fresh7 = *(&raw mut (*raise_closure).payload
-                        as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize);
+                    let ref mut fresh7 =
+                        *(&raw mut (*raise_closure).payload as *mut *mut StgClosure_).offset(0);
                     *fresh7 = exception as *mut StgClosure_;
                 }
 
@@ -1351,12 +1260,8 @@ unsafe fn raiseExceptionHelper(
                 p = next;
             }
             55 => {
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                    trace_(
-                        b"found ATOMICALLY_FRAME at %p\0" as *const u8 as *const c_char
-                            as *mut c_char,
-                        p,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                    trace_(c"found ATOMICALLY_FRAME at %p".as_ptr(), p);
                 }
 
                 (*(*tso).stackobj).sp = p;
@@ -1369,12 +1274,8 @@ unsafe fn raiseExceptionHelper(
                 return CATCH_FRAME as StgWord;
             }
             57 => {
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                    trace_(
-                        b"found CATCH_STM_FRAME at %p\0" as *const u8 as *const c_char
-                            as *mut c_char,
-                        p,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                    trace_(c"found CATCH_STM_FRAME at %p".as_ptr(), p);
                 }
 
                 (*(*tso).stackobj).sp = p;
@@ -1395,20 +1296,12 @@ unsafe fn raiseExceptionHelper(
                 let mut trec = (*tso).trec as *mut StgTRecHeader;
                 let mut outer = (*trec).enclosing_trec as *mut StgTRecHeader;
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                    trace_(
-                        b"found CATCH_RETRY_FRAME at %p during raise\0" as *const u8
-                            as *const c_char as *mut c_char,
-                        p,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                    trace_(c"found CATCH_RETRY_FRAME at %p during raise".as_ptr(), p);
                 }
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                    trace_(
-                        b"trec=%p outer=%p\0" as *const u8 as *const c_char as *mut c_char,
-                        trec,
-                        outer,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                    trace_(c"trec=%p outer=%p".as_ptr(), trec, outer);
                 }
 
                 stmAbortTransaction(cap, trec);
@@ -1444,12 +1337,8 @@ unsafe fn findRetryFrameHelper(mut cap: *mut Capability, mut tso: *mut StgTSO) -
 
         match (*info).i.r#type {
             55 => {
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                    trace_(
-                        b"found ATOMICALLY_FRAME at %p during retry\0" as *const u8 as *const c_char
-                            as *mut c_char,
-                        p,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                    trace_(c"found ATOMICALLY_FRAME at %p during retry".as_ptr(), p);
                 }
 
                 (*(*tso).stackobj).sp = p;
@@ -1457,12 +1346,8 @@ unsafe fn findRetryFrameHelper(mut cap: *mut Capability, mut tso: *mut StgTSO) -
                 return ATOMICALLY_FRAME as StgWord;
             }
             56 => {
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                    trace_(
-                        b"found CATCH_RETRY_FRAME at %p during retry\0" as *const u8
-                            as *const c_char as *mut c_char,
-                        p,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                    trace_(c"found CATCH_RETRY_FRAME at %p during retry".as_ptr(), p);
                 }
 
                 (*(*tso).stackobj).sp = p;
@@ -1473,20 +1358,12 @@ unsafe fn findRetryFrameHelper(mut cap: *mut Capability, mut tso: *mut StgTSO) -
                 let mut trec = (*tso).trec as *mut StgTRecHeader;
                 let mut outer = (*trec).enclosing_trec as *mut StgTRecHeader;
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                    trace_(
-                        b"found CATCH_STM_FRAME at %p during retry\0" as *const u8 as *const c_char
-                            as *mut c_char,
-                        p,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                    trace_(c"found CATCH_STM_FRAME at %p during retry".as_ptr(), p);
                 }
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                    trace_(
-                        b"trec=%p outer=%p\0" as *const u8 as *const c_char as *mut c_char,
-                        trec,
-                        outer,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                    trace_(c"trec=%p outer=%p".as_ptr(), trec, outer);
                 }
 
                 stmAbortTransaction(cap, trec);
@@ -1518,10 +1395,9 @@ unsafe fn findAtomicallyFrameHelper(mut cap: *mut Capability, mut tso: *mut StgT
 
         match (*info).i.r#type {
             55 => {
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                     trace_(
-                        b"found ATOMICALLY_FRAME at %p while aborting after orElse\0" as *const u8
-                            as *const c_char as *mut c_char,
+                        c"found ATOMICALLY_FRAME at %p while aborting after orElse".as_ptr(),
                         p,
                     );
                 }
@@ -1534,20 +1410,15 @@ unsafe fn findAtomicallyFrameHelper(mut cap: *mut Capability, mut tso: *mut StgT
                 let mut trec = (*tso).trec as *mut StgTRecHeader;
                 let mut outer = (*trec).enclosing_trec as *mut StgTRecHeader;
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                     trace_(
-                        b"found CATCH_RETRY_FRAME at %p while aborting after orElse\0" as *const u8
-                            as *const c_char as *mut c_char,
+                        c"found CATCH_RETRY_FRAME at %p while aborting after orElse".as_ptr(),
                         p,
                     );
                 }
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                    trace_(
-                        b"trec=%p outer=%p\0" as *const u8 as *const c_char as *mut c_char,
-                        trec,
-                        outer,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                    trace_(c"trec=%p outer=%p".as_ptr(), trec, outer);
                 }
 
                 stmAbortTransaction(cap, trec);
@@ -1559,20 +1430,15 @@ unsafe fn findAtomicallyFrameHelper(mut cap: *mut Capability, mut tso: *mut StgT
                 let mut trec_0 = (*tso).trec as *mut StgTRecHeader;
                 let mut outer_0 = (*trec_0).enclosing_trec as *mut StgTRecHeader;
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
                     trace_(
-                        b"found CATCH_STM_FRAME at %p while aborting after orElse\0" as *const u8
-                            as *const c_char as *mut c_char,
+                        c"found CATCH_STM_FRAME at %p while aborting after orElse".as_ptr(),
                         p,
                     );
                 }
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as c_long != 0 {
-                    trace_(
-                        b"trec=%p outer=%p\0" as *const u8 as *const c_char as *mut c_char,
-                        trec_0,
-                        outer_0,
-                    );
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
+                    trace_(c"trec=%p outer=%p".as_ptr(), trec_0, outer_0);
                 }
 
                 stmAbortTransaction(cap, trec_0);
@@ -1605,11 +1471,8 @@ unsafe fn resurrectThreads(mut threads: *mut StgTSO) {
         (*tso).global_link = (*r#gen).threads as *mut StgTSO_;
         (*r#gen).threads = tso;
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-            trace_(
-                b"resurrecting thread %llu\0" as *const u8 as *const c_char as *mut c_char,
-                (*tso).id,
-            );
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+            trace_(c"resurrecting thread %llu".as_ptr(), (*tso).id);
         }
 
         cap = (*tso).cap as *mut Capability;
@@ -1627,8 +1490,7 @@ unsafe fn resurrectThreads(mut threads: *mut StgTSO) {
             0 | 12 => {}
             _ => {
                 barf(
-                    b"resurrectThreads: thread blocked in a strange way: %d\0" as *const u8
-                        as *const c_char,
+                    c"resurrectThreads: thread blocked in a strange way: %d".as_ptr(),
                     (*tso).why_blocked,
                 );
             }

@@ -27,20 +27,19 @@ pub struct _StgEntCounter {
 pub type StgEntCounter = _StgEntCounter;
 
 pub(crate) static mut top_ct: StgEntCounter = _StgEntCounter {
-    registeredp: 0 as StgWord,
-    arity: 0 as StgInt,
-    allocd: 0 as StgInt,
-    str: b"TOP\0" as *const u8 as *const c_char as *mut c_char,
-    arg_kinds: b"\0" as *const u8 as *const c_char as *mut c_char,
-    ticky_json: b"\0" as *const u8 as *const c_char as *mut c_char,
-    info: null::<StgInfoTable>() as *mut StgInfoTable,
-    entry_count: 0 as StgInt,
-    allocs: 0 as StgInt,
-    link: null::<_StgEntCounter>() as *mut _StgEntCounter,
+    registeredp: 0,
+    arity: 0,
+    allocd: 0,
+    str: c"TOP".as_ptr(),
+    arg_kinds: c"".as_ptr(),
+    ticky_json: c"".as_ptr(),
+    info: null_mut::<StgInfoTable>(),
+    entry_count: 0,
+    allocs: 0,
+    link: null_mut::<_StgEntCounter>(),
 };
 
-pub(crate) static mut ticky_entry_ctrs: *mut StgEntCounter =
-    null::<StgEntCounter>() as *mut StgEntCounter;
+pub(crate) static mut ticky_entry_ctrs: *mut StgEntCounter = null_mut::<StgEntCounter>();
 
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]

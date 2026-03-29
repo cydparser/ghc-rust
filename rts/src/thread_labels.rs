@@ -9,19 +9,19 @@ use crate::prelude::*;
 use crate::trace::traceThreadLabel;
 
 unsafe fn setThreadLabel(mut cap: *mut Capability, mut tso: *mut StgTSO, mut label: *mut c_char) {
-    let mut len = strlen(label) as c_int;
+    let mut len = strlen(label) as i32;
+
     let mut arr = allocateArrBytes(cap, len as StgWord, (*cap).r.rCCCS as *mut CostCentreStack);
 
-    if (arr == null_mut::<c_void>() as *mut StgArrBytes) as c_int as c_long != 0 {
+    if (arr == null_mut::<c_void>() as *mut StgArrBytes) as i32 as i64 != 0 {
         return;
     }
 
     memcpy(
         &raw mut (*arr).payload as *mut c_void,
         label as *const c_void,
-        len as size_t,
+        len as usize,
     );
-
     labelThread(cap, tso, arr);
 }
 
@@ -34,6 +34,6 @@ unsafe fn labelThread(mut cap: *mut Capability, mut tso: *mut StgTSO, mut label:
         cap,
         tso,
         &raw mut (*label).payload as *mut StgWord as *mut c_char,
-        (*label).bytes as size_t,
+        (*label).bytes as usize,
     );
 }

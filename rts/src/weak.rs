@@ -19,9 +19,9 @@ use crate::schedule::scheduleThread;
 use crate::task::myTask;
 use crate::trace::{DEBUG_RTS, trace_};
 
-static mut finalizer_list: *mut StgWeak = null::<StgWeak>() as *mut StgWeak;
+static mut finalizer_list: *mut StgWeak = null_mut::<StgWeak>();
 
-static mut n_finalizers: uint32_t = 0 as uint32_t;
+static mut n_finalizers: u32 = 0;
 
 unsafe fn runCFinalizers(mut list: *mut StgCFinalizerList) {
     let mut head = null_mut::<StgCFinalizerList>();
@@ -52,7 +52,7 @@ unsafe fn runAllCFinalizers(mut list: *mut StgWeak) {
     task = myTask();
 
     if !task.is_null() {
-        (*task).running_finalizers = r#true != 0;
+        (*task).running_finalizers = true;
     }
 
     w = list;
@@ -68,15 +68,15 @@ unsafe fn runAllCFinalizers(mut list: *mut StgWeak) {
     }
 
     if !task.is_null() {
-        (*task).running_finalizers = r#false != 0;
+        (*task).running_finalizers = false;
     }
 }
 
 unsafe fn scheduleFinalizers(mut cap: *mut Capability, mut list: *mut StgWeak) {
     let mut w = null_mut::<StgWeak>();
     let mut t = null_mut::<StgTSO>();
-    let mut n: uint32_t = 0;
-    let mut i: uint32_t = 0;
+    let mut n: u32 = 0;
+    let mut i: u32 = 0;
     let mut tl: *mut *mut StgWeak = &raw mut finalizer_list;
 
     while !(*tl).is_null() {
@@ -84,8 +84,8 @@ unsafe fn scheduleFinalizers(mut cap: *mut Capability, mut list: *mut StgWeak) {
     }
 
     *tl = list;
-    n = 0 as uint32_t;
-    i = 0 as uint32_t;
+    n = 0;
+    i = 0;
     w = list;
 
     while !w.is_null() {
@@ -100,20 +100,17 @@ unsafe fn scheduleFinalizers(mut cap: *mut Capability, mut list: *mut StgWeak) {
 
     n_finalizers = n_finalizers.wrapping_add(i);
 
-    if n == 0 as uint32_t {
+    if n == 0 {
         return;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.weak as c_long != 0 {
-        trace_(
-            b"weak: batching %d finalizers\0" as *const u8 as *const c_char as *mut c_char,
-            n,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.weak as i64 != 0 {
+        trace_(c"weak: batching %d finalizers".as_ptr(), n);
     }
 
     let mut arr = allocateMutArrPtrs(cap, n as StgWord, null_mut::<CostCentreStack>());
 
-    if (arr == null_mut::<c_void>() as *mut StgMutArrPtrs) as c_int as c_long != 0 {
+    if (arr == null_mut::<c_void>() as *mut StgMutArrPtrs) as i32 as i64 != 0 {
         exitHeapOverflow();
     }
 
@@ -121,8 +118,7 @@ unsafe fn scheduleFinalizers(mut cap: *mut Capability, mut list: *mut StgWeak) {
         arr as *mut StgClosure,
         &raw const stg_MUT_ARR_PTRS_FROZEN_CLEAN_info,
     );
-
-    n = 0 as uint32_t;
+    n = 0;
     w = list;
 
     while !w.is_null() {
@@ -142,7 +138,7 @@ unsafe fn scheduleFinalizers(mut cap: *mut Capability, mut list: *mut StgWeak) {
 
     while (i as StgWord) < size {
         let ref mut fresh7 = *(&raw mut (*arr).payload as *mut *mut StgClosure).offset(i as isize);
-        *fresh7 = -(1 as c_int) as W_ as *mut StgClosure;
+        *fresh7 = -1 as W_ as *mut StgClosure;
         i = i.wrapping_add(1);
     }
 
@@ -163,34 +159,31 @@ unsafe fn scheduleFinalizers(mut cap: *mut Capability, mut list: *mut StgWeak) {
     scheduleThread(cap, t);
 }
 
-static mut finalizer_chunk: int32_t = 100 as int32_t;
+static mut finalizer_chunk: i32 = 100;
 
-static mut finalizer_lock: StgWord = 0 as StgWord;
+static mut finalizer_lock: StgWord = 0;
 
 unsafe fn runSomeFinalizers(mut all: bool) -> bool {
-    if n_finalizers == 0 as uint32_t {
-        return r#false != 0;
+    if n_finalizers == 0 {
+        return false;
     }
 
-    if cas(&raw mut finalizer_lock, 0 as StgWord, 1 as StgWord) != 0 as StgWord {
-        return r#false != 0;
+    if cas(&raw mut finalizer_lock, 0, 1) != 0 {
+        return false;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-        trace_(
-            b"running C finalizers, %d remaining\0" as *const u8 as *const c_char as *mut c_char,
-            n_finalizers,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+        trace_(c"running C finalizers, %d remaining".as_ptr(), n_finalizers);
     }
 
     let mut task = myTask();
 
     if !task.is_null() {
-        (*task).running_finalizers = r#true != 0;
+        (*task).running_finalizers = true;
     }
 
     let mut w = finalizer_list;
-    let mut count: int32_t = 0 as int32_t;
+    let mut count: i32 = 0;
 
     while !w.is_null() {
         runCFinalizers((*w).cfinalizers as *mut StgCFinalizerList);
@@ -203,21 +196,18 @@ unsafe fn runSomeFinalizers(mut all: bool) -> bool {
     }
 
     finalizer_list = w;
-    n_finalizers = n_finalizers.wrapping_add(-count as uint32_t);
+    n_finalizers = n_finalizers.wrapping_add(-count as u32);
 
     if !task.is_null() {
-        (*task).running_finalizers = r#false != 0;
+        (*task).running_finalizers = false;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as c_long != 0 {
-        trace_(
-            b"ran %d C finalizers\0" as *const u8 as *const c_char as *mut c_char,
-            count,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+        trace_(c"ran %d C finalizers".as_ptr(), count);
     }
 
-    let mut ret = n_finalizers != 0 as uint32_t;
-    write_volatile(&mut finalizer_lock as *mut StgWord, 0 as StgWord);
+    let mut ret = n_finalizers != 0;
+    write_volatile(&mut finalizer_lock as *mut StgWord, 0);
 
     return ret;
 }

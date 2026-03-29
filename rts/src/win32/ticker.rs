@@ -12,10 +12,10 @@ static mut timer_queue: HANDLE = NULL;
 
 static mut timer: HANDLE = NULL;
 
-static mut tick_interval: Time = 0 as Time;
+static mut tick_interval: Time = 0;
 
 unsafe fn tick_callback(mut lpParameter: PVOID, mut TimerOrWaitFired: BOOLEAN) {
-    tick_proc.expect("non-null function pointer")(0 as c_int);
+    tick_proc.expect("non-null function pointer")(0);
 }
 
 unsafe fn initTicker(mut interval: Time, mut handle_tick: TickProc) {
@@ -24,7 +24,7 @@ unsafe fn initTicker(mut interval: Time, mut handle_tick: TickProc) {
     timer_queue = CreateTimerQueue();
 
     if timer_queue.is_null() {
-        sysErrorBelch(b"CreateTimerQueue\0" as *const u8 as *const c_char);
+        sysErrorBelch(c"CreateTimerQueue".as_ptr());
         stg_exit(EXIT_FAILURE);
     }
 }
@@ -37,13 +37,13 @@ unsafe fn startTicker() {
         timer_queue,
         Some(tick_callback as unsafe extern "C" fn(PVOID, BOOLEAN) -> ()),
         null_mut::<c_void>(),
-        0 as DWORD,
-        (tick_interval / 1000000 as Time) as DWORD,
+        0,
+        (tick_interval / 1000000) as DWORD,
         WT_EXECUTEINTIMERTHREAD as ULONG,
     ) as BOOL;
 
-    if r == 0 as c_int {
-        sysErrorBelch(b"CreateTimerQueueTimer\0" as *const u8 as *const c_char);
+    if r == 0 {
+        sysErrorBelch(c"CreateTimerQueueTimer".as_ptr());
         stg_exit(EXIT_FAILURE);
     }
 }
@@ -61,7 +61,7 @@ unsafe fn exitTicker(mut wait: bool) {
     if !timer_queue.is_null() {
         DeleteTimerQueueEx(
             timer_queue,
-            if wait as c_int != 0 {
+            if wait as i32 != 0 {
                 INVALID_HANDLE_VALUE
             } else {
                 NULL

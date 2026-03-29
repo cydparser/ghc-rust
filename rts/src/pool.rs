@@ -11,9 +11,9 @@ pub(crate) type Pool = Pool_;
 
 /// cbindgen:no-export
 struct Pool_ {
-    max_size: uint32_t,
-    desired_size: uint32_t,
-    current_size: uint32_t,
+    max_size: u32,
+    desired_size: u32,
+    current_size: u32,
     alloc_fn: alloc_thing_fn,
     free_fn: free_thing_fn,
     available: *mut PoolEntry,
@@ -29,27 +29,18 @@ struct PoolEntry_ {
     flags: StgWord,
 }
 
-const FLAG_SHOULD_FREE: c_int = (1 as c_int) << 0 as c_int;
+const FLAG_SHOULD_FREE: i32 = 1 << 0;
 
 unsafe fn poolInit(
-    mut max_size: uint32_t,
-    mut desired_size: uint32_t,
+    mut max_size: u32,
+    mut desired_size: u32,
     mut alloc_fn: alloc_thing_fn,
     mut free_fn: free_thing_fn,
 ) -> *mut Pool {
-    let mut pool = stgMallocBytes(
-        size_of::<Pool>() as size_t,
-        b"pool_init\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut Pool;
-
-    (*pool).max_size = if max_size == 0 as uint32_t {
-        -(1 as c_int) as uint32_t
-    } else {
-        max_size
-    };
-
+    let mut pool = stgMallocBytes(size_of::<Pool>() as usize, c"pool_init".as_ptr()) as *mut Pool;
+    (*pool).max_size = if max_size == 0 { -1 as u32 } else { max_size };
     (*pool).desired_size = desired_size;
-    (*pool).current_size = 0 as uint32_t;
+    (*pool).current_size = 0;
     (*pool).alloc_fn = alloc_fn;
     (*pool).free_fn = free_fn;
     (*pool).available = null_mut::<PoolEntry>();
@@ -58,18 +49,18 @@ unsafe fn poolInit(
     return pool;
 }
 
-unsafe fn poolFree(mut pool: *mut Pool) -> c_int {
+unsafe fn poolFree(mut pool: *mut Pool) -> i32 {
     if !(*pool).taken.is_null() {
-        return 1 as c_int;
+        return 1;
     }
 
-    poolSetMaxSize(pool, 0 as uint32_t);
+    poolSetMaxSize(pool, 0);
     stgFree(pool as *mut c_void);
 
-    return 0 as c_int;
+    return 0;
 }
 
-unsafe fn free_available(mut pool: *mut Pool, mut size: uint32_t) {
+unsafe fn free_available(mut pool: *mut Pool, mut size: u32) {
     while (*pool).current_size > size && !(*pool).available.is_null() {
         let mut ent = (*pool).available;
         (*pool).free_fn.expect("non-null function pointer")((*ent).thing);
@@ -79,14 +70,14 @@ unsafe fn free_available(mut pool: *mut Pool, mut size: uint32_t) {
     }
 }
 
-unsafe fn poolSetDesiredSize(mut pool: *mut Pool, mut size: uint32_t) {
+unsafe fn poolSetDesiredSize(mut pool: *mut Pool, mut size: u32) {
     (*pool).desired_size = size;
     free_available(pool, size);
 }
 
-unsafe fn poolSetMaxSize(mut pool: *mut Pool, mut size: uint32_t) {
-    if size == 0 as uint32_t {
-        size = -(1 as c_int) as uint32_t;
+unsafe fn poolSetMaxSize(mut pool: *mut Pool, mut size: u32) {
+    if size == 0 {
+        size = -1 as u32;
     }
 
     (*pool).max_size = size;
@@ -97,11 +88,11 @@ unsafe fn poolSetMaxSize(mut pool: *mut Pool, mut size: uint32_t) {
     }
 }
 
-unsafe fn poolGetMaxSize(mut pool: *mut Pool) -> uint32_t {
+unsafe fn poolGetMaxSize(mut pool: *mut Pool) -> u32 {
     return (*pool).max_size;
 }
 
-unsafe fn poolGetDesiredSize(mut pool: *mut Pool) -> uint32_t {
+unsafe fn poolGetDesiredSize(mut pool: *mut Pool) -> u32 {
     return (*pool).desired_size;
 }
 
@@ -112,12 +103,9 @@ unsafe fn poolTryTake_(mut pool: *mut Pool) -> *mut PoolEntry {
         ent = (*pool).available;
         (*pool).available = (*ent).next as *mut PoolEntry;
     } else if (*pool).current_size < (*pool).max_size {
-        ent = stgMallocBytes(
-            size_of::<PoolEntry>() as size_t,
-            b"pool_take\0" as *const u8 as *const c_char as *mut c_char,
-        ) as *mut PoolEntry;
-
-        (*ent).flags = 0 as StgWord;
+        ent = stgMallocBytes(size_of::<PoolEntry>() as usize, c"pool_take".as_ptr())
+            as *mut PoolEntry;
+        (*ent).flags = 0;
         (*ent).thing = (*pool).alloc_fn.expect("non-null function pointer")();
         (*pool).current_size = (*pool).current_size.wrapping_add(1);
     } else {
@@ -143,7 +131,7 @@ unsafe fn poolTake(mut pool: *mut Pool) -> *mut c_void {
         ent = poolTryTake_(pool);
 
         if ent.is_null() {
-            barf(b"Tried to take from an empty pool\0" as *const u8 as *const c_char);
+            barf(c"Tried to take from an empty pool".as_ptr());
         }
     }
 
@@ -175,14 +163,11 @@ unsafe fn poolRelease(mut pool: *mut Pool, mut thing: *mut c_void) {
         ent = (*ent).next as *mut PoolEntry;
     }
 
-    barf(
-        b"pool_release: trying to release resource which doesn't belong to pool.\0" as *const u8
-            as *const c_char,
-    );
+    barf(c"pool_release: trying to release resource which doesn't belong to pool.".as_ptr());
 }
 
 unsafe fn poolFlush(mut pool: *mut Pool) {
-    free_available(pool, 0 as uint32_t);
+    free_available(pool, 0);
 
     let mut ent = (*pool).taken;
 

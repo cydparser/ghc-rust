@@ -8,10 +8,10 @@ mod tests;
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_clz8(mut x: StgWord) -> StgWord {
-    return (if x as uint8_t as c_int != 0 {
-        (x as uint8_t as c_uint).leading_zeros() as i32 - 24 as c_int
+    return (if x as u8 as i32 != 0 {
+        (x as u8 as u32).leading_zeros() as i32 - 24
     } else {
-        8 as c_int
+        8
     }) as StgWord;
 }
 
@@ -19,10 +19,10 @@ pub unsafe extern "C" fn hs_clz8(mut x: StgWord) -> StgWord {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_clz16(mut x: StgWord) -> StgWord {
-    return (if x as uint16_t as c_int != 0 {
-        (x as uint16_t as c_uint).leading_zeros() as i32 - 16 as c_int
+    return (if x as u16 as i32 != 0 {
+        (x as u16 as u32).leading_zeros() as i32 - 16
     } else {
-        16 as c_int
+        16
     }) as StgWord;
 }
 
@@ -30,10 +30,10 @@ pub unsafe extern "C" fn hs_clz16(mut x: StgWord) -> StgWord {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_clz32(mut x: StgWord) -> StgWord {
-    return (if x as uint32_t != 0 {
-        (x as uint32_t).leading_zeros() as i32
+    return (if x as u32 != 0 {
+        (x as u32).leading_zeros() as i32
     } else {
-        32 as c_int
+        32
     }) as StgWord;
 }
 
@@ -42,8 +42,8 @@ pub unsafe extern "C" fn hs_clz32(mut x: StgWord) -> StgWord {
 #[instrument]
 pub unsafe extern "C" fn hs_clz64(mut x: StgWord64) -> StgWord {
     return (if x != 0 {
-        (x as c_ulong).leading_zeros() as i32
+        (x as u64).leading_zeros() as i32
     } else {
-        64 as c_int
+        64
     }) as StgWord;
 }

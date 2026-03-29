@@ -28,74 +28,56 @@ pub struct _HpcModuleInfo {
 #[ffi(libraries)]
 pub type HpcModuleInfo = _HpcModuleInfo;
 
-static mut hpc_inited: c_int = 0 as c_int;
+static mut hpc_inited: i32 = 0;
 
-static mut hpc_pid: pid_t = 0 as pid_t;
+static mut hpc_pid: pid_t = 0;
 
-static mut tixFile: *mut FILE = null::<FILE>() as *mut FILE;
+static mut tixFile: *mut FILE = null_mut::<FILE>();
 
-static mut tix_ch: c_int = 0;
+static mut tix_ch: i32 = 0;
 
-static mut moduleHash: *mut StrHashTable = null::<StrHashTable>() as *mut StrHashTable;
+static mut moduleHash: *mut StrHashTable = null_mut::<StrHashTable>();
 
-static mut modules: *mut HpcModuleInfo = null::<HpcModuleInfo>() as *mut HpcModuleInfo;
+static mut modules: *mut HpcModuleInfo = null_mut::<HpcModuleInfo>();
 
-static mut tixFilename: *mut c_char = null::<c_char>() as *mut c_char;
+static mut tixFilename: *mut c_char = null_mut::<c_char>();
 
 unsafe fn failure(mut msg: *mut c_char) -> ! {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as c_long != 0 {
-        trace_(
-            b"hpc failure: %s\n\0" as *const u8 as *const c_char as *mut c_char,
-            msg,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as i64 != 0 {
+        trace_(c"hpc failure: %s\n".as_ptr(), msg);
     }
 
-    fprintf(
-        __stderrp,
-        b"Hpc failure: %s\n\0" as *const u8 as *const c_char,
-        msg,
-    );
+    fprintf(__stderrp, c"Hpc failure: %s\n".as_ptr(), msg);
 
     if !tixFilename.is_null() {
         fprintf(
             __stderrp,
-            b"(perhaps remove %s file?)\n\0" as *const u8 as *const c_char,
+            c"(perhaps remove %s file?)\n".as_ptr(),
             tixFilename,
         );
     } else {
-        fprintf(
-            __stderrp,
-            b"(perhaps remove .tix file?)\n\0" as *const u8 as *const c_char,
-        );
+        fprintf(__stderrp, c"(perhaps remove .tix file?)\n".as_ptr());
     }
 
-    stg_exit(1 as c_int);
+    stg_exit(1);
 }
 
-unsafe fn init_open(mut file: *mut FILE) -> c_int {
+unsafe fn init_open(mut file: *mut FILE) -> i32 {
     tixFile = file;
 
     if tixFile.is_null() {
-        return 0 as c_int;
+        return 0;
     }
 
     tix_ch = getc(tixFile);
 
-    return 1 as c_int;
+    return 1;
 }
 
 unsafe fn expect(mut c: c_char) {
-    if tix_ch != c as c_int {
-        fprintf(
-            __stderrp,
-            b"('%c' '%c')\n\0" as *const u8 as *const c_char,
-            tix_ch,
-            c as c_int,
-        );
-
-        failure(
-            b"parse error when reading .tix file\0" as *const u8 as *const c_char as *mut c_char,
-        );
+    if tix_ch != c as i32 {
+        fprintf(__stderrp, c"('%c' '%c')\n".as_ptr(), tix_ch, c as i32);
+        failure(c"parse error when reading .tix file".as_ptr());
     }
 
     tix_ch = getc(tixFile);
@@ -110,7 +92,7 @@ unsafe fn ws() {
 unsafe fn expectString() -> *mut c_char {
     let mut tmp: [c_char; 256] = [0; 256];
     let mut res = null_mut::<c_char>();
-    let mut tmp_ix = 0 as c_int;
+    let mut tmp_ix = 0;
     expect('"' as i32 as c_char);
 
     while tix_ch != '"' as i32 {
@@ -122,21 +104,16 @@ unsafe fn expectString() -> *mut c_char {
 
     let fresh6 = tmp_ix;
     tmp_ix = tmp_ix + 1;
-    tmp[fresh6 as usize] = 0 as c_char;
+    tmp[fresh6 as usize] = 0;
     expect('"' as i32 as c_char);
-
-    res = stgMallocBytes(
-        tmp_ix as size_t,
-        b"Hpc.expectString\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut c_char;
-
+    res = stgMallocBytes(tmp_ix as usize, c"Hpc.expectString".as_ptr()) as *mut c_char;
     strcpy(res, &raw mut tmp as *mut c_char);
 
     return res;
 }
 
 unsafe fn expectWord64() -> StgWord64 {
-    let mut tmp: StgWord64 = 0 as StgWord64;
+    let mut tmp: StgWord64 = 0;
 
     while isdigit(tix_ch) != 0 {
         tmp = tmp
@@ -149,7 +126,7 @@ unsafe fn expectWord64() -> StgWord64 {
 }
 
 unsafe fn readTix() {
-    let mut i: c_uint = 0;
+    let mut i: u32 = 0;
     let mut tmpModule = null_mut::<HpcModuleInfo>();
     let mut lookup = null::<HpcModuleInfo>();
     ws();
@@ -161,12 +138,10 @@ unsafe fn readTix() {
     ws();
 
     while tix_ch != ']' as i32 {
-        tmpModule = stgMallocBytes(
-            size_of::<HpcModuleInfo>() as size_t,
-            b"Hpc.readTix\0" as *const u8 as *const c_char as *mut c_char,
-        ) as *mut HpcModuleInfo;
+        tmpModule = stgMallocBytes(size_of::<HpcModuleInfo>() as usize, c"Hpc.readTix".as_ptr())
+            as *mut HpcModuleInfo;
 
-        (*tmpModule).from_file = r#true != 0;
+        (*tmpModule).from_file = true;
         expect('T' as i32 as c_char);
         expect('i' as i32 as c_char);
         expect('x' as i32 as c_char);
@@ -179,20 +154,20 @@ unsafe fn readTix() {
         ws();
         (*tmpModule).modName = expectString();
         ws();
-        (*tmpModule).hashNo = expectWord64() as c_uint as StgWord32;
+        (*tmpModule).hashNo = expectWord64() as u32 as StgWord32;
         ws();
-        (*tmpModule).tickCount = expectWord64() as c_int as StgWord32;
+        (*tmpModule).tickCount = expectWord64() as i32 as StgWord32;
 
         (*tmpModule).tixArr = stgCallocBytes(
-            (*tmpModule).tickCount as size_t,
-            size_of::<StgWord64>() as size_t,
-            b"readTix\0" as *const u8 as *const c_char as *mut c_char,
+            (*tmpModule).tickCount as usize,
+            size_of::<StgWord64>() as usize,
+            c"readTix".as_ptr(),
         ) as *mut StgWord64;
 
         ws();
         expect('[' as i32 as c_char);
         ws();
-        i = 0 as c_uint;
+        i = 0;
 
         while (i as StgWord32) < (*tmpModule).tickCount {
             *(*tmpModule).tixArr.offset(i as isize) = expectWord64();
@@ -211,20 +186,18 @@ unsafe fn readTix() {
         lookup = lookupStrHashTable(moduleHash, (*tmpModule).modName) as *const HpcModuleInfo;
 
         if lookup.is_null() {
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as c_long != 0 {
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as i64 != 0 {
                 trace_(
-                    b"readTix: new HpcModuleInfo for %s\0" as *const u8 as *const c_char
-                        as *mut c_char,
+                    c"readTix: new HpcModuleInfo for %s".as_ptr(),
                     (*tmpModule).modName,
                 );
             }
 
             insertStrHashTable(moduleHash, (*tmpModule).modName, tmpModule as *const c_void);
         } else {
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as c_long != 0 {
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as i64 != 0 {
                 trace_(
-                    b"readTix: existing HpcModuleInfo for %s\0" as *const u8 as *const c_char
-                        as *mut c_char,
+                    c"readTix: existing HpcModuleInfo for %s".as_ptr(),
                     (*tmpModule).modName,
                 );
             }
@@ -232,17 +205,13 @@ unsafe fn readTix() {
             if (*tmpModule).hashNo != (*lookup).hashNo {
                 fprintf(
                     __stderrp,
-                    b"in module '%s'\n\0" as *const u8 as *const c_char,
+                    c"in module '%s'\n".as_ptr(),
                     (*tmpModule).modName,
                 );
-
-                failure(
-                    b"module mismatch with .tix/.mix file hash number\0" as *const u8
-                        as *const c_char as *mut c_char,
-                );
+                failure(c"module mismatch with .tix/.mix file hash number".as_ptr());
             }
 
-            i = 0 as c_uint;
+            i = 0;
 
             while (i as StgWord32) < (*tmpModule).tickCount {
                 *(*lookup).tixArr.offset(i as isize) = *(*tmpModule).tixArr.offset(i as isize);
@@ -272,69 +241,59 @@ unsafe fn startupHpc() {
         return;
     }
 
-    if hpc_inited != 0 as c_int {
+    if hpc_inited != 0 {
         return;
     }
 
-    hpc_inited = 1 as c_int;
+    hpc_inited = 1;
     hpc_pid = getpid();
-    hpc_tixdir = getenv(b"HPCTIXDIR\0" as *const u8 as *const c_char);
-    hpc_tixfile = getenv(b"HPCTIXFILE\0" as *const u8 as *const c_char);
+    hpc_tixdir = getenv(c"HPCTIXDIR".as_ptr());
+    hpc_tixfile = getenv(c"HPCTIXFILE".as_ptr());
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as c_long != 0 {
-        trace_(b"startupHpc\0" as *const u8 as *const c_char as *mut c_char);
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as i64 != 0 {
+        trace_(c"startupHpc".as_ptr());
     }
 
     if !hpc_tixfile.is_null() {
         tixFilename = strdup(hpc_tixfile);
     } else if !hpc_tixdir.is_null() {
-        mkdir(hpc_tixdir, 0o777 as mode_t);
+        mkdir(hpc_tixdir, 0o777);
 
         tixFilename = stgMallocBytes(
             strlen(hpc_tixdir)
                 .wrapping_add(strlen(prog_name))
-                .wrapping_add(12 as size_t),
-            b"Hpc.startupHpc\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(12 as usize),
+            c"Hpc.startupHpc".as_ptr(),
         ) as *mut c_char;
 
         sprintf(
             tixFilename,
-            b"%s/%s-%d.tix\0" as *const u8 as *const c_char,
+            c"%s/%s-%d.tix".as_ptr(),
             hpc_tixdir,
             prog_name,
-            hpc_pid as c_int,
+            hpc_pid as i32,
         );
     } else {
         tixFilename = stgMallocBytes(
-            strlen(prog_name).wrapping_add(6 as size_t),
-            b"Hpc.startupHpc\0" as *const u8 as *const c_char as *mut c_char,
+            strlen(prog_name).wrapping_add(6 as usize),
+            c"Hpc.startupHpc".as_ptr(),
         ) as *mut c_char;
 
-        sprintf(
-            tixFilename,
-            b"%s.tix\0" as *const u8 as *const c_char,
-            prog_name,
-        );
+        sprintf(tixFilename, c"%s.tix".as_ptr(), prog_name);
     }
 
-    if RtsFlags.HpcFlags.readTixFile as c_uint == HPC_YES_IMPLICIT as c_int as c_uint
-        && init_open(__rts_fopen(
-            tixFilename,
-            b"r\0" as *const u8 as *const c_char,
-        )) != 0
+    if RtsFlags.HpcFlags.readTixFile as u32 == HPC_YES_IMPLICIT as i32 as u32
+        && init_open(__rts_fopen(tixFilename, c"r".as_ptr())) != 0
     {
         fprintf(
             __stderrp,
-            b"Deprecation warning:\nI am reading in the existing tix file, and will add hpc info from this run to the existing data in that file.\nGHC 9.14 will cease looking for an existing tix file by default.\nIf you positively want to add hpc info to the current tix file, use the RTS option --read-tix-file=yes.\nMore information can be found in the accepted GHC proposal 612.\n\0"
-                as *const u8 as *const c_char,
+            c"Deprecation warning:\nI am reading in the existing tix file, and will add hpc info from this run to the existing data in that file.\nGHC 9.14 will cease looking for an existing tix file by default.\nIf you positively want to add hpc info to the current tix file, use the RTS option --read-tix-file=yes.\nMore information can be found in the accepted GHC proposal 612.\n"
+                .as_ptr(),
         );
 
         readTix();
-    } else if RtsFlags.HpcFlags.readTixFile as c_uint == HPC_YES_EXPLICIT as c_int as c_uint
-        && init_open(__rts_fopen(
-            tixFilename,
-            b"r\0" as *const u8 as *const c_char,
-        )) != 0
+    } else if RtsFlags.HpcFlags.readTixFile as u32 == HPC_YES_EXPLICIT as i32 as u32
+        && init_open(__rts_fopen(tixFilename, c"r".as_ptr())) != 0
     {
         readTix();
     }
@@ -350,7 +309,7 @@ pub unsafe extern "C" fn hs_hpc_module(
     mut tixArr: *mut StgWord64,
 ) {
     let mut tmpModule = null_mut::<HpcModuleInfo>();
-    let mut i: uint32_t = 0;
+    let mut i: u32 = 0;
 
     if moduleHash.is_null() {
         moduleHash = allocStrHashTable();
@@ -360,46 +319,40 @@ pub unsafe extern "C" fn hs_hpc_module(
 
     if tmpModule.is_null() {
         tmpModule = stgMallocBytes(
-            size_of::<HpcModuleInfo>() as size_t,
-            b"Hpc.hs_hpc_module\0" as *const u8 as *const c_char as *mut c_char,
+            size_of::<HpcModuleInfo>() as usize,
+            c"Hpc.hs_hpc_module".as_ptr(),
         ) as *mut HpcModuleInfo;
 
         (*tmpModule).modName = modName;
         (*tmpModule).tickCount = modCount;
         (*tmpModule).hashNo = modHashNo;
         (*tmpModule).tixArr = tixArr;
-        i = 0 as uint32_t;
+        i = 0;
 
         while i < modCount {
-            *tixArr.offset(i as isize) = 0 as StgWord64;
+            *tixArr.offset(i as isize) = 0;
             i = i.wrapping_add(1);
         }
 
         (*tmpModule).next = modules as *mut _HpcModuleInfo;
-        (*tmpModule).from_file = r#false != 0;
+        (*tmpModule).from_file = false;
         modules = tmpModule;
         insertStrHashTable(moduleHash, modName, tmpModule as *const c_void);
     } else {
         if (*tmpModule).tickCount != modCount {
-            failure(
-                b"inconsistent number of tick boxes\0" as *const u8 as *const c_char as *mut c_char,
-            );
+            failure(c"inconsistent number of tick boxes".as_ptr());
         }
 
         if (*tmpModule).hashNo != modHashNo {
             fprintf(
                 __stderrp,
-                b"in module '%s'\n\0" as *const u8 as *const c_char,
+                c"in module '%s'\n".as_ptr(),
                 (*tmpModule).modName,
             );
-
-            failure(
-                b"module mismatch with .tix/.mix file hash number\0" as *const u8 as *const c_char
-                    as *mut c_char,
-            );
+            failure(c"module mismatch with .tix/.mix file hash number".as_ptr());
         }
 
-        i = 0 as uint32_t;
+        i = 0;
 
         while i < modCount {
             *tixArr.offset(i as isize) = *(*tmpModule).tixArr.offset(i as isize);
@@ -411,76 +364,72 @@ pub unsafe extern "C" fn hs_hpc_module(
             stgFree((*tmpModule).tixArr as *mut c_void);
         }
 
-        (*tmpModule).from_file = r#false != 0;
+        (*tmpModule).from_file = false;
     };
 }
 
 unsafe fn writeTix(mut f: *mut FILE) {
     let mut tmpModule = null_mut::<HpcModuleInfo>();
-    let mut i: c_uint = 0;
-    let mut inner_comma: c_uint = 0;
-    let mut outer_comma: c_uint = 0;
-    outer_comma = 0 as c_uint;
+    let mut i: u32 = 0;
+    let mut inner_comma: u32 = 0;
+    let mut outer_comma: u32 = 0;
+    outer_comma = 0;
 
     if f.is_null() {
         return;
     }
 
-    fprintf(f, b"Tix [\0" as *const u8 as *const c_char);
+    fprintf(f, c"Tix [".as_ptr());
     tmpModule = modules;
 
     while !tmpModule.is_null() {
         if outer_comma != 0 {
-            fprintf(f, b",\0" as *const u8 as *const c_char);
+            fprintf(f, c",".as_ptr());
         } else {
-            outer_comma = 1 as c_uint;
+            outer_comma = 1;
         }
 
         fprintf(
             f,
-            b" TixModule \"%s\" %u %u [\0" as *const u8 as *const c_char,
+            c" TixModule \"%s\" %u %u [".as_ptr(),
             (*tmpModule).modName,
             (*tmpModule).hashNo,
             (*tmpModule).tickCount,
         );
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as i64 != 0 {
             trace_(
-                b"%s: %u (hash=%u)\n\0" as *const u8 as *const c_char as *mut c_char,
+                c"%s: %u (hash=%u)\n".as_ptr(),
                 (*tmpModule).modName,
                 (*tmpModule).tickCount,
                 (*tmpModule).hashNo,
             );
         }
 
-        inner_comma = 0 as c_uint;
-        i = 0 as c_uint;
+        inner_comma = 0;
+        i = 0;
 
         while (i as StgWord32) < (*tmpModule).tickCount {
             if inner_comma != 0 {
-                fprintf(f, b",\0" as *const u8 as *const c_char);
+                fprintf(f, c",".as_ptr());
             } else {
-                inner_comma = 1 as c_uint;
+                inner_comma = 1;
             }
 
             if !(*tmpModule).tixArr.is_null() {
-                fprintf(
-                    f,
-                    b"%llu\0" as *const u8 as *const c_char,
-                    *(*tmpModule).tixArr.offset(i as isize),
-                );
+                fprintf(f, c"%llu".as_ptr(), *(*tmpModule).tixArr.offset(i as isize));
             } else {
-                fprintf(f, b"0\0" as *const u8 as *const c_char);
+                fprintf(f, c"0".as_ptr());
             }
 
             i = i.wrapping_add(1);
         }
 
-        fprintf(f, b"]\0" as *const u8 as *const c_char);
+        fprintf(f, c"]".as_ptr());
         tmpModule = (*tmpModule).next as *mut HpcModuleInfo;
     }
 
-    fprintf(f, b"]\n\0" as *const u8 as *const c_char);
+    fprintf(f, c"]\n".as_ptr());
     fclose(f);
 }
 
@@ -494,18 +443,18 @@ unsafe fn freeHpcModuleInfo(mut r#mod: *mut HpcModuleInfo) {
 }
 
 unsafe fn exitHpc() {
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as c_long != 0 {
-        trace_(b"exitHpc\0" as *const u8 as *const c_char as *mut c_char);
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as i64 != 0 {
+        trace_(c"exitHpc".as_ptr());
     }
 
-    if hpc_inited == 0 as c_int {
+    if hpc_inited == 0 {
         return;
     }
 
     let mut is_subprocess = hpc_pid != getpid();
 
-    if !is_subprocess && RtsFlags.HpcFlags.writeTixFile as c_int != 0 {
-        let mut f = __rts_fopen(tixFilename, b"w+\0" as *const u8 as *const c_char);
+    if !is_subprocess && RtsFlags.HpcFlags.writeTixFile as i32 != 0 {
+        let mut f = __rts_fopen(tixFilename, c"w+".as_ptr());
         writeTix(f);
     }
 

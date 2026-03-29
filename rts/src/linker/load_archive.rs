@@ -15,7 +15,7 @@ mod tests;
 
 const ThinArchive: ArchiveFormat = 1;
 
-type ArchiveFormat = c_uint;
+type ArchiveFormat = u32;
 
 const FatArchive: ArchiveFormat = 2;
 
@@ -23,7 +23,7 @@ const StandardArchive: ArchiveFormat = 0;
 
 const MachO64: ObjectFileFormat = 6;
 
-type ObjectFileFormat = c_uint;
+type ObjectFileFormat = u32;
 
 const MachO32: ObjectFileFormat = 5;
 
@@ -37,14 +37,14 @@ const COFFAmd64: ObjectFileFormat = 1;
 
 const NotObject: ObjectFileFormat = 0;
 
-unsafe fn read4Bytes(mut buf: *const c_char) -> uint32_t {
+unsafe fn read4Bytes(mut buf: *const c_char) -> u32 {
     return if 0 != 0 {
-        (*(buf as *mut uint32_t) & 0xff000000 as __uint32_t) >> 24 as c_int
-            | (*(buf as *mut uint32_t) & 0xff0000 as __uint32_t) >> 8 as c_int
-            | (*(buf as *mut uint32_t) & 0xff00 as __uint32_t) << 8 as c_int
-            | (*(buf as *mut uint32_t) & 0xff as __uint32_t) << 24 as c_int
+        (*(buf as *mut u32) & 0xff000000) >> 24
+            | (*(buf as *mut u32) & 0xff0000) >> 8
+            | (*(buf as *mut u32) & 0xff00) << 8
+            | (*(buf as *mut u32) & 0xff) << 24
     } else {
-        _OSSwapInt32(*(buf as *mut uint32_t))
+        _OSSwapInt32(*(buf as *mut u32))
     };
 }
 
@@ -53,44 +53,34 @@ unsafe fn loadFatArchive(
     mut f: *mut FILE,
     mut path: *mut pathchar,
 ) -> bool {
-    let mut nfat_arch: uint32_t = 0;
-    let mut nfat_offset: uint32_t = 0;
-    let mut cputype: uint32_t = 0;
-    let mut cpusubtype: uint32_t = 0;
-    let mycputype: uint32_t = CPU_TYPE_ARM64 as uint32_t;
-    let mycpusubtype: uint32_t = CPU_SUBTYPE_ARM64_ALL as uint32_t;
-    nfat_arch = read4Bytes(input.offset(4 as c_int as isize) as *const c_char);
+    let mut nfat_arch: u32 = 0;
+    let mut nfat_offset: u32 = 0;
+    let mut cputype: u32 = 0;
+    let mut cpusubtype: u32 = 0;
+    let mycputype: u32 = CPU_TYPE_ARM64 as u32;
+    let mycpusubtype: u32 = CPU_SUBTYPE_ARM64_ALL as u32;
+    nfat_arch = read4Bytes(input.offset(4) as *const c_char);
 
     let mut tmp: [c_char; 20] = [0; 20];
-    nfat_offset = 0 as uint32_t;
+    nfat_offset = 0;
 
-    let mut i: uint32_t = 0 as uint32_t;
+    let mut i: u32 = 0;
 
     while i < nfat_arch {
-        let mut n = fread(
-            &raw mut tmp as *mut c_char as *mut c_void,
-            1 as size_t,
-            12 as size_t,
-            f,
-        ) as c_int;
+        let mut n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 12, f) as i32;
 
-        if n != 12 as c_int {
-            errorBelch(
-                b"Failed reading arch from `%s'\0" as *const u8 as *const c_char,
-                path,
-            );
+        if n != 12 {
+            errorBelch(c"Failed reading arch from `%s'".as_ptr(), path);
 
-            return r#false != 0;
+            return false;
         }
 
         cputype = read4Bytes(&raw mut tmp as *mut c_char as *const c_char);
-        cpusubtype =
-            read4Bytes((&raw mut tmp as *mut c_char).offset(4 as c_int as isize) as *const c_char);
+
+        cpusubtype = read4Bytes((&raw mut tmp as *mut c_char).offset(4) as *const c_char);
 
         if cputype == mycputype && cpusubtype == mycpusubtype {
-            nfat_offset = read4Bytes(
-                (&raw mut tmp as *mut c_char).offset(8 as c_int as isize) as *const c_char
-            );
+            nfat_offset = read4Bytes((&raw mut tmp as *mut c_char).offset(8) as *const c_char);
 
             break;
         } else {
@@ -98,107 +88,78 @@ unsafe fn loadFatArchive(
         }
     }
 
-    if nfat_offset == 0 as uint32_t {
+    if nfat_offset == 0 {
         errorBelch(
-            b"Fat archive contains %d architectures, but none of them are compatible with the host\0"
-                as *const u8 as *const c_char,
-            nfat_arch as c_int,
+            c"Fat archive contains %d architectures, but none of them are compatible with the host"
+                .as_ptr(),
+            nfat_arch as i32,
         );
 
-        return r#false != 0;
+        return false;
     } else {
-        let mut n_0 = fseek(f, nfat_offset as c_long, SEEK_SET);
+        let mut n_0 = fseek(f, nfat_offset as i64, SEEK_SET);
 
-        if n_0 != 0 as c_int {
-            errorBelch(
-                b"Failed to seek to arch in `%s'\0" as *const u8 as *const c_char,
-                path,
-            );
+        if n_0 != 0 {
+            errorBelch(c"Failed to seek to arch in `%s'".as_ptr(), path);
 
-            return r#false != 0;
+            return false;
         }
 
         let mut tmp_0: [c_char; 20] = [0; 20];
+        n_0 = fread(&raw mut tmp_0 as *mut c_char as *mut c_void, 1, 8, f) as i32;
 
-        n_0 = fread(
-            &raw mut tmp_0 as *mut c_char as *mut c_void,
-            1 as size_t,
-            8 as size_t,
-            f,
-        ) as c_int;
+        if n_0 != 8 {
+            errorBelch(c"Failed reading header from `%s'".as_ptr(), path);
 
-        if n_0 != 8 as c_int {
-            errorBelch(
-                b"Failed reading header from `%s'\0" as *const u8 as *const c_char,
-                path,
-            );
-
-            return r#false != 0;
+            return false;
         }
 
-        if strncmp(
-            &raw mut tmp_0 as *mut c_char,
-            b"!<arch>\n\0" as *const u8 as *const c_char,
-            8 as size_t,
-        ) != 0 as c_int
-        {
+        if strncmp(&raw mut tmp_0 as *mut c_char, c"!<arch>\n".as_ptr(), 8) != 0 {
             errorBelch(
-                b"couldn't find archive in `%s'at offset %d\0" as *const u8 as *const c_char,
+                c"couldn't find archive in `%s'at offset %d".as_ptr(),
                 path,
                 nfat_offset,
             );
 
-            return r#false != 0;
+            return false;
         }
     }
 
-    return r#true != 0;
+    return true;
 }
 
-unsafe fn identifyObjectFile_(mut buf: *mut c_char, mut sz: size_t) -> ObjectFileFormat {
-    if sz > 2 as size_t
-        && *(buf as *mut uint16_t).offset(0 as c_int as isize) as c_int == 0x8664 as c_int
-    {
+unsafe fn identifyObjectFile_(mut buf: *mut c_char, mut sz: usize) -> ObjectFileFormat {
+    if sz > 2 && *(buf as *mut u16).offset(0) as i32 == 0x8664 {
         return COFFAmd64;
     }
 
-    if sz > 2 as size_t
-        && *(buf as *mut uint16_t).offset(0 as c_int as isize) as c_int == 0x14c as c_int
-    {
+    if sz > 2 && *(buf as *mut u16).offset(0) as i32 == 0x14c {
         return COFFI386;
     }
 
-    if sz > 2 as size_t
-        && *(buf as *mut uint16_t).offset(0 as c_int as isize) as c_int == 0xaa64 as c_int
-    {
+    if sz > 2 && *(buf as *mut u16).offset(0) as i32 == 0xaa64 {
         return COFFAArch64;
     }
 
-    if sz > 4 as size_t
+    if sz > 4
         && memcmp(
             buf as *const c_void,
-            b"\x7FELF\0" as *const u8 as *const c_char as *const c_void,
-            4 as size_t,
-        ) == 0 as c_int
+            c"\u{7f}ELF".as_ptr() as *const c_void,
+            4,
+        ) == 0
     {
         return ELF;
     }
 
-    if sz > 4 as size_t
-        && *(buf as *mut uint32_t).offset(0 as c_int as isize) == 0xfeedface as uint32_t
-    {
+    if sz > 4 && *(buf as *mut u32).offset(0) == 0xfeedface {
         return MachO32;
     }
 
-    if sz > 4 as size_t
-        && *(buf as *mut uint32_t).offset(0 as c_int as isize) == 0xfeedfacf as uint32_t
-    {
+    if sz > 4 && *(buf as *mut u32).offset(0) == 0xfeedfacf {
         return MachO64;
     }
 
-    if sz > 8 as size_t
-        && *(buf as *mut uint64_t).offset(0 as c_int as isize) == 0x86640002ffff0000 as uint64_t
-    {
+    if sz > 8 && *(buf as *mut u64).offset(0) == 0x86640002ffff0000 {
         return COFFAmd64;
     }
 
@@ -207,33 +168,24 @@ unsafe fn identifyObjectFile_(mut buf: *mut c_char, mut sz: size_t) -> ObjectFil
 
 unsafe fn identifyObjectFile(mut f: *mut FILE) -> ObjectFileFormat {
     let mut buf: [c_char; 32] = [0; 32];
+    let mut sz: isize = fread(&raw mut buf as *mut c_char as *mut c_void, 1, 32, f) as isize;
 
-    let mut sz: ssize_t = fread(
-        &raw mut buf as *mut c_char as *mut c_void,
-        1 as size_t,
-        32 as size_t,
-        f,
-    ) as ssize_t;
-
-    if (fseek(f, -(sz as c_long), 1 as c_int) == 0 as c_int) as c_int as c_long != 0 {
+    if (fseek(f, -(sz as i64), 1) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/linker/LoadArchive.c\0" as *const u8 as *const c_char,
-            154 as c_uint,
-        );
+        _assertFail(c"rts/linker/LoadArchive.c".as_ptr(), 154);
     }
 
-    return identifyObjectFile_(&raw mut buf as *mut c_char, sz as size_t);
+    return identifyObjectFile_(&raw mut buf as *mut c_char, sz as usize);
 }
 
 unsafe fn readThinArchiveMember(
-    mut n: c_int,
-    mut memberSize: c_int,
+    mut n: i32,
+    mut memberSize: i32,
     mut path: *mut pathchar,
     mut fileName: *mut c_char,
     mut image: *mut c_char,
 ) -> bool {
-    let mut has_succeeded = r#false != 0;
+    let mut has_succeeded = false;
     let mut member = null_mut::<FILE>();
     let mut pathCopy = null_mut::<pathchar>();
     let mut dirName = null_mut::<pathchar>();
@@ -244,49 +196,41 @@ unsafe fn readThinArchiveMember(
     dirName = pathdir(pathCopy);
 
     let mut memberLen = strlen(dirName)
-        .wrapping_add(1 as size_t)
+        .wrapping_add(1 as usize)
         .wrapping_add(strlen(fileName))
-        .wrapping_add(1 as size_t) as c_int;
+        .wrapping_add(1 as usize) as i32;
 
     memberPath = stgMallocBytes(
-        pathsize.wrapping_mul(memberLen as size_t),
-        b"loadArchive(file)\0" as *const u8 as *const c_char as *mut c_char,
+        pathsize.wrapping_mul(memberLen as usize),
+        c"loadArchive(file)".as_ptr(),
     ) as *mut pathchar;
 
     objFileName = mkPath(fileName);
 
     snprintf(
         memberPath as *mut c_char,
-        memberLen as size_t,
-        b"%s%s\0" as *const u8 as *const c_char,
+        memberLen as usize,
+        c"%s%s".as_ptr(),
         dirName,
         objFileName,
     );
 
     stgFree(objFileName as *mut c_void);
     stgFree(dirName as *mut c_void);
-    member = fopen(memberPath, b"rb\0" as *const u8 as *const c_char) as *mut FILE;
+    member = fopen(memberPath, c"rb".as_ptr()) as *mut FILE;
 
     if member.is_null() {
         errorBelch(
-            b"loadObj: can't read thin archive `%s'\0" as *const u8 as *const c_char,
+            c"loadObj: can't read thin archive `%s'".as_ptr(),
             memberPath,
         );
     } else {
-        n = fread(
-            image as *mut c_void,
-            1 as size_t,
-            memberSize as size_t,
-            member,
-        ) as c_int;
+        n = fread(image as *mut c_void, 1, memberSize as usize, member) as i32;
 
         if n != memberSize {
-            errorBelch(
-                b"loadArchive: error whilst reading `%s'\0" as *const u8 as *const c_char,
-                fileName,
-            );
+            errorBelch(c"loadArchive: error whilst reading `%s'".as_ptr(), fileName);
         } else {
-            has_succeeded = r#true != 0;
+            has_succeeded = true;
         }
     }
 
@@ -302,14 +246,13 @@ unsafe fn checkFatArchive(
     mut f: *mut FILE,
     mut path: *mut pathchar,
 ) -> bool {
-    let mut success = r#false != 0;
+    let mut success = false;
 
-    if read4Bytes(magic as *const c_char) == FAT_MAGIC as uint32_t {
+    if read4Bytes(magic as *const c_char) == FAT_MAGIC as u32 {
         success = loadFatArchive(magic as *mut c_char, f, path);
     } else {
         errorBelch(
-            b"loadArchive: Neither an archive, nor a fat archive: `%s'\0" as *const u8
-                as *const c_char,
+            c"loadArchive: Neither an archive, nor a fat archive: `%s'".as_ptr(),
             path,
         );
     }
@@ -318,84 +261,77 @@ unsafe fn checkFatArchive(
 }
 
 unsafe fn lookupGNUArchiveIndex(
-    mut gnuFileIndexSize: c_int,
+    mut gnuFileIndexSize: i32,
     mut fileName_: *mut *mut c_char,
     mut gnuFileIndex: *mut c_char,
     mut path: *mut pathchar,
-    mut thisFileNameSize: *mut size_t,
-    mut fileNameSize: *mut size_t,
+    mut thisFileNameSize: *mut usize,
+    mut fileNameSize: *mut usize,
 ) -> bool {
     let mut fileName = *fileName_;
 
-    if isdigit(*fileName.offset(1 as c_int as isize) as c_int) != 0 {
+    if isdigit(*fileName.offset(1) as i32) != 0 {
         if gnuFileIndex.is_null() {
             errorBelch(
-                b"loadArchive: GNU-variant filename without an index while reading from `%s'\0"
-                    as *const u8 as *const c_char,
+                c"loadArchive: GNU-variant filename without an index while reading from `%s'"
+                    .as_ptr(),
                 path,
             );
 
-            return r#false != 0;
+            return false;
         }
 
-        let mut n: c_int = 0;
-        n = 2 as c_int;
+        let mut n: i32 = 0;
+        n = 2;
 
-        while isdigit(*fileName.offset(n as isize) as c_int) != 0 {
+        while isdigit(*fileName.offset(n as isize) as i32) != 0 {
             n += 1;
         }
 
         let mut end = null_mut::<c_char>();
         *fileName.offset(n as isize) = '\0' as i32 as c_char;
+        n = strtol(fileName.offset(1), &raw mut end, 10) as i32;
 
-        n = strtol(
-            fileName.offset(1 as c_int as isize),
-            &raw mut end,
-            10 as c_int,
-        ) as c_int;
-
-        if n < 0 as c_int || n > gnuFileIndexSize {
+        if n < 0 || n > gnuFileIndexSize {
             errorBelch(
-                b"loadArchive: GNU-variant filename offset %d out of range [0..%d] while reading filename from `%s'\0"
-                    as *const u8 as *const c_char,
+                c"loadArchive: GNU-variant filename offset %d out of range [0..%d] while reading filename from `%s'"
+                    .as_ptr(),
                 n,
                 gnuFileIndexSize,
                 path,
             );
 
-            return r#false != 0;
+            return false;
         }
 
-        if n != 0 as c_int
-            && !(*gnuFileIndex.offset((n - 1 as c_int) as isize) as c_int == '\n' as i32)
-        {
+        if n != 0 && !(*gnuFileIndex.offset((n - 1) as isize) as i32 == '\n' as i32) {
             errorBelch(
-                b"loadArchive: GNU-variant filename offset %d invalid (range [0..%d]) while reading filename from `%s'\0"
-                    as *const u8 as *const c_char,
+                c"loadArchive: GNU-variant filename offset %d invalid (range [0..%d]) while reading filename from `%s'"
+                    .as_ptr(),
                 n,
                 gnuFileIndexSize,
                 path,
             );
 
-            return r#false != 0;
+            return false;
         }
 
-        let mut i: c_int = 0;
+        let mut i: i32 = 0;
         i = n;
 
-        while !(*gnuFileIndex.offset(i as isize) as c_int == '\n' as i32) {
+        while !(*gnuFileIndex.offset(i as isize) as i32 == '\n' as i32) {
             i += 1;
         }
 
-        let mut FileNameSize: size_t = (i - n) as size_t;
+        let mut FileNameSize: usize = (i - n) as usize;
 
         if FileNameSize >= *fileNameSize {
-            *fileNameSize = FileNameSize.wrapping_mul(2 as size_t);
+            *fileNameSize = FileNameSize.wrapping_mul(2 as usize);
 
             fileName = stgReallocBytes(
                 fileName as *mut c_void,
                 *fileNameSize,
-                b"loadArchive(fileName)\0" as *const u8 as *const c_char as *mut c_char,
+                c"loadArchive(fileName)".as_ptr(),
             ) as *mut c_char;
 
             *fileName_ = fileName;
@@ -407,40 +343,29 @@ unsafe fn lookupGNUArchiveIndex(
             FileNameSize,
         );
 
-        if *fileName.offset(FileNameSize.wrapping_sub(1 as size_t) as isize) as c_int == '/' as i32
-        {
+        if *fileName.offset(FileNameSize.wrapping_sub(1 as usize) as isize) as i32 == '/' as i32 {
             FileNameSize = FileNameSize.wrapping_sub(1);
         }
 
         *fileName.offset(FileNameSize as isize) = '\0' as i32 as c_char;
         *thisFileNameSize = FileNameSize;
-    } else if 0 as c_int
-        == strncmp(
-            fileName.offset(1 as c_int as isize),
-            b"               \0" as *const u8 as *const c_char,
-            15 as size_t,
-        )
-        || 0 as c_int
-            == strncmp(
-                fileName.offset(1 as c_int as isize),
-                b"SYM64/         \0" as *const u8 as *const c_char,
-                15 as size_t,
-            )
+    } else if 0 == strncmp(fileName.offset(1), c"               ".as_ptr(), 15)
+        || 0 == strncmp(fileName.offset(1), c"SYM64/         ".as_ptr(), 15)
     {
-        *fileName.offset(0 as c_int as isize) = '\0' as i32 as c_char;
-        *thisFileNameSize = 0 as size_t;
+        *fileName.offset(0) = '\0' as i32 as c_char;
+        *thisFileNameSize = 0;
     } else {
         errorBelch(
-            b"loadArchive: invalid GNU-variant filename `%.16s' while reading filename from `%s'\0"
-                as *const u8 as *const c_char,
+            c"loadArchive: invalid GNU-variant filename `%.16s' while reading filename from `%s'"
+                .as_ptr(),
             fileName,
             path,
         );
 
-        return r#false != 0;
+        return false;
     }
 
-    return r#true != 0;
+    return true;
 }
 
 unsafe fn identifyArchiveFormat(
@@ -449,51 +374,35 @@ unsafe fn identifyArchiveFormat(
     mut out: *mut ArchiveFormat,
 ) -> bool {
     let mut tmp: [c_char; 8] = [0; 8];
+    let mut n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 8, f) as usize;
 
-    let mut n = fread(
-        &raw mut tmp as *mut c_char as *mut c_void,
-        1 as size_t,
-        8 as size_t,
-        f,
-    ) as size_t;
-
-    if n != 8 as size_t {
+    if n != 8 {
         errorBelch(
-            b"loadArchive: Failed reading header from `%s'\0" as *const u8 as *const c_char,
+            c"loadArchive: Failed reading header from `%s'".as_ptr(),
             path,
         );
 
-        return r#false != 0;
+        return false;
     }
 
-    if strncmp(
-        &raw mut tmp as *mut c_char,
-        b"!<arch>\n\0" as *const u8 as *const c_char,
-        8 as size_t,
-    ) == 0 as c_int
-    {
+    if strncmp(&raw mut tmp as *mut c_char, c"!<arch>\n".as_ptr(), 8) == 0 {
         *out = StandardArchive;
 
-        return r#true != 0;
-    } else if strncmp(
-        &raw mut tmp as *mut c_char,
-        b"!<thin>\n\0" as *const u8 as *const c_char,
-        8 as size_t,
-    ) == 0 as c_int
-    {
+        return true;
+    } else if strncmp(&raw mut tmp as *mut c_char, c"!<thin>\n".as_ptr(), 8) == 0 {
         *out = ThinArchive;
 
-        return r#true != 0;
+        return true;
     } else {
         let mut success = checkFatArchive(&raw mut tmp as *mut c_char, f, path);
 
         if !success {
-            return r#false != 0;
+            return false;
         }
 
         *out = FatArchive;
 
-        return r#true != 0;
+        return true;
     };
 }
 
@@ -502,185 +411,137 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
     let mut isThin: bool = false;
     let mut current_block: u64;
     let mut image = null_mut::<c_char>();
-    let mut retcode: HsInt = 0 as HsInt;
-    let mut memberIdx = 0 as c_int;
+    let mut retcode: HsInt = 0;
+    let mut memberIdx = 0;
     let mut f = null_mut::<FILE>();
-    let mut thisFileNameSize: size_t = -(1 as c_int) as size_t;
-    let mut misalignment = 0 as c_int;
+    let mut thisFileNameSize: usize = -1 as usize;
+    let mut misalignment = 0;
 
     if isAlreadyLoaded(path) != 0 {
-        return 1 as HsInt;
+        return 1;
     }
 
     let mut gnuFileIndex = null_mut::<c_char>();
-    let mut gnuFileIndexSize = 0 as c_int;
-    let mut fileNameSize: size_t = 32 as size_t;
-
-    let mut fileName = stgMallocBytes(
-        fileNameSize,
-        b"loadArchive(fileName)\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut c_char;
-
-    f = fopen(path, b"rb\0" as *const u8 as *const c_char) as *mut FILE;
+    let mut gnuFileIndexSize = 0;
+    let mut fileNameSize: usize = 32;
+    let mut fileName =
+        stgMallocBytes(fileNameSize, c"loadArchive(fileName)".as_ptr()) as *mut c_char;
+    f = fopen(path, c"rb".as_ptr()) as *mut FILE;
 
     if f.is_null() {
-        errorBelch(
-            b"loadArchive: loadObj: can't read `%s'\0" as *const u8 as *const c_char,
-            path,
-        );
+        errorBelch(c"loadArchive: loadObj: can't read `%s'".as_ptr(), path);
     } else {
         archive_fmt = StandardArchive;
 
         if !identifyArchiveFormat(f, path, &raw mut archive_fmt) {
             errorBelch(
-                b"loadArchive: failed to identify archive format of %s.\0" as *const u8
-                    as *const c_char,
+                c"loadArchive: failed to identify archive format of %s.".as_ptr(),
                 path,
             );
         } else {
-            isThin = archive_fmt as c_uint == ThinArchive as c_int as c_uint;
+            isThin = archive_fmt as u32 == ThinArchive as i32 as u32;
 
             loop {
-                let mut n: size_t = 0;
-                n = fread(fileName as *mut c_void, 1 as size_t, 16 as size_t, f) as size_t;
+                let mut n: usize = 0;
+                n = fread(fileName as *mut c_void, 1, 16, f) as usize;
 
-                if n != 16 as size_t {
+                if n != 16 {
                     if feof(f) != 0 {
                         current_block = 1691841359054504885;
                         break;
                     }
 
                     errorBelch(
-                        b"loadArchive: Failed reading file name from `%s'\0" as *const u8
-                            as *const c_char,
+                        c"loadArchive: Failed reading file name from `%s'".as_ptr(),
                         path,
                     );
 
                     current_block = 15851283293817637459;
                     break;
                 } else {
-                    if strncmp(
-                        fileName,
-                        b"!<arch>\n\0" as *const u8 as *const c_char,
-                        8 as size_t,
-                    ) == 0 as c_int
-                    {
+                    if strncmp(fileName, c"!<arch>\n".as_ptr(), 8) == 0 {
                         current_block = 1691841359054504885;
                         break;
                     }
 
                     let mut tmp: [c_char; 32] = [0; 32];
+                    n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 12, f) as usize;
 
-                    n = fread(
-                        &raw mut tmp as *mut c_char as *mut c_void,
-                        1 as size_t,
-                        12 as size_t,
-                        f,
-                    ) as size_t;
-
-                    if n != 12 as size_t {
+                    if n != 12 {
                         errorBelch(
-                            b"loadArchive: Failed reading mod time from `%s'\0" as *const u8
-                                as *const c_char,
+                            c"loadArchive: Failed reading mod time from `%s'".as_ptr(),
                             path,
                         );
 
                         current_block = 15851283293817637459;
                         break;
                     } else {
-                        n = fread(
-                            &raw mut tmp as *mut c_char as *mut c_void,
-                            1 as size_t,
-                            6 as size_t,
-                            f,
-                        ) as size_t;
+                        n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 6, f) as usize;
 
-                        if n != 6 as size_t {
+                        if n != 6 {
                             errorBelch(
-                                b"loadArchive: Failed reading owner from `%s'\0" as *const u8
-                                    as *const c_char,
+                                c"loadArchive: Failed reading owner from `%s'".as_ptr(),
                                 path,
                             );
 
                             current_block = 15851283293817637459;
                             break;
                         } else {
-                            n = fread(
-                                &raw mut tmp as *mut c_char as *mut c_void,
-                                1 as size_t,
-                                6 as size_t,
-                                f,
-                            ) as size_t;
+                            n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 6, f) as usize;
 
-                            if n != 6 as size_t {
+                            if n != 6 {
                                 errorBelch(
-                                    b"loadArchive: Failed reading group from `%s'\0" as *const u8
-                                        as *const c_char,
+                                    c"loadArchive: Failed reading group from `%s'".as_ptr(),
                                     path,
                                 );
 
                                 current_block = 15851283293817637459;
                                 break;
                             } else {
-                                n = fread(
-                                    &raw mut tmp as *mut c_char as *mut c_void,
-                                    1 as size_t,
-                                    8 as size_t,
-                                    f,
-                                ) as size_t;
+                                n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 8, f)
+                                    as usize;
 
-                                if n != 8 as size_t {
+                                if n != 8 {
                                     errorBelch(
-                                        b"loadArchive: Failed reading mode from `%s'\0" as *const u8
-                                            as *const c_char,
+                                        c"loadArchive: Failed reading mode from `%s'".as_ptr(),
                                         path,
                                     );
 
                                     current_block = 15851283293817637459;
                                     break;
                                 } else {
-                                    n = fread(
-                                        &raw mut tmp as *mut c_char as *mut c_void,
-                                        1 as size_t,
-                                        10 as size_t,
-                                        f,
-                                    ) as size_t;
+                                    n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 10, f)
+                                        as usize;
 
-                                    if n != 10 as size_t {
+                                    if n != 10 {
                                         errorBelch(
-                                            b"loadArchive: Failed reading size from `%s'\0"
-                                                as *const u8
-                                                as *const c_char,
+                                            c"loadArchive: Failed reading size from `%s'".as_ptr(),
                                             path,
                                         );
 
                                         current_block = 15851283293817637459;
                                         break;
                                     } else {
-                                        tmp[10 as c_int as usize] = '\0' as i32 as c_char;
-                                        n = 0 as size_t;
+                                        tmp[10] = '\0' as i32 as c_char;
+                                        n = 0;
 
-                                        while isdigit(tmp[n as usize] as c_int) != 0 {
+                                        while isdigit(tmp[n as usize] as i32) != 0 {
                                             n = n.wrapping_add(1);
                                         }
 
                                         tmp[n as usize] = '\0' as i32 as c_char;
 
-                                        let mut memberSize: size_t = 0;
+                                        let mut memberSize: usize = 0;
                                         let mut end = null_mut::<c_char>();
 
-                                        memberSize = strtol(
-                                            &raw mut tmp as *mut c_char,
-                                            &raw mut end,
-                                            10 as c_int,
-                                        )
-                                            as size_t;
+                                        memberSize =
+                                            strtol(&raw mut tmp as *mut c_char, &raw mut end, 10)
+                                                as usize;
 
                                         if &raw mut tmp as *mut c_char == end {
                                             errorBelch(
-                                                b"loadArchive: Failed to decode member size\0"
-                                                    as *const u8
-                                                    as *const c_char,
+                                                c"loadArchive: Failed to decode member size"
+                                                    .as_ptr(),
                                             );
 
                                             current_block = 15851283293817637459;
@@ -688,17 +549,16 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                         } else {
                                             n = fread(
                                                 &raw mut tmp as *mut c_char as *mut c_void,
-                                                1 as size_t,
-                                                2 as size_t,
+                                                1,
+                                                2,
                                                 f,
                                             )
-                                                as size_t;
+                                                as usize;
 
-                                            if n != 2 as size_t {
+                                            if n != 2 {
                                                 errorBelch(
-                                                    b"loadArchive: Failed reading magic from `%s'\0"
-                                                        as *const u8
-                                                        as *const c_char,
+                                                    c"loadArchive: Failed reading magic from `%s'"
+                                                        .as_ptr(),
                                                     path,
                                                 );
 
@@ -706,44 +566,33 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                 break;
                                             } else if strncmp(
                                                 &raw mut tmp as *mut c_char,
-                                                b"`\n\0" as *const u8 as *const c_char,
-                                                2 as size_t,
-                                            ) != 0 as c_int
+                                                c"`\n".as_ptr(),
+                                                2,
+                                            ) != 0
                                             {
                                                 errorBelch(
-                                                    b"loadArchive: Failed reading magic from `%s' at %ld. Got %c%c\0"
-                                                        as *const u8 as *const c_char,
+                                                    c"loadArchive: Failed reading magic from `%s' at %ld. Got %c%c"
+                                                        .as_ptr(),
                                                     path,
                                                     ftell(f),
-                                                    tmp[0 as c_int as usize] as c_int,
-                                                    tmp[1 as c_int as usize] as c_int,
+                                                    tmp[0] as i32,
+                                                    tmp[1] as i32,
                                                 );
 
                                                 current_block = 15851283293817637459;
                                                 break;
                                             } else {
-                                                let mut isGnuIndex = r#false != 0;
+                                                let mut isGnuIndex = false;
 
-                                                if 0 as c_int
-                                                    == strncmp(
-                                                        fileName,
-                                                        b"#1/\0" as *const u8 as *const c_char,
-                                                        3 as size_t,
-                                                    )
-                                                {
-                                                    let mut n_0: size_t = 0 as size_t;
-                                                    *fileName.offset(16 as c_int as isize) =
-                                                        '\0' as i32 as c_char;
+                                                if 0 == strncmp(fileName, c"#1/".as_ptr(), 3) {
+                                                    let mut n_0: usize = 0;
+                                                    *fileName.offset(16) = '\0' as i32 as c_char;
 
-                                                    if isdigit(
-                                                        *fileName.offset(3 as c_int as isize)
-                                                            as c_int,
-                                                    ) != 0
-                                                    {
-                                                        n_0 = 4 as size_t;
+                                                    if isdigit(*fileName.offset(3) as i32) != 0 {
+                                                        n_0 = 4;
 
                                                         while isdigit(
-                                                            *fileName.offset(n_0 as isize) as c_int,
+                                                            *fileName.offset(n_0 as isize) as i32,
                                                         ) != 0
                                                         {
                                                             n_0 = n_0.wrapping_add(1);
@@ -751,41 +600,34 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
 
                                                         *fileName.offset(n_0 as isize) =
                                                             '\0' as i32 as c_char;
-
-                                                        thisFileNameSize = atoi(
-                                                            fileName.offset(3 as c_int as isize),
-                                                        )
-                                                            as size_t;
+                                                        thisFileNameSize =
+                                                            atoi(fileName.offset(3)) as usize;
                                                         memberSize = memberSize
                                                             .wrapping_sub(thisFileNameSize);
 
                                                         if thisFileNameSize >= fileNameSize {
                                                             fileNameSize = thisFileNameSize
-                                                                .wrapping_mul(2 as size_t);
+                                                                .wrapping_mul(2 as usize);
 
                                                             fileName = stgReallocBytes(
                                                                 fileName as *mut c_void,
                                                                 fileNameSize,
-                                                                b"loadArchive(fileName)\0"
-                                                                    as *const u8
-                                                                    as *const c_char
-                                                                    as *mut c_char,
+                                                                c"loadArchive(fileName)".as_ptr(),
                                                             )
                                                                 as *mut c_char;
                                                         }
 
                                                         n_0 = fread(
                                                             fileName as *mut c_void,
-                                                            1 as size_t,
+                                                            1,
                                                             thisFileNameSize,
                                                             f,
                                                         )
-                                                            as size_t;
+                                                            as usize;
 
                                                         if n_0 != thisFileNameSize {
                                                             errorBelch(
-                                                                b"Failed reading filename from `%s'\0" as *const u8
-                                                                    as *const c_char,
+                                                                c"Failed reading filename from `%s'".as_ptr(),
                                                                 path,
                                                             );
 
@@ -794,35 +636,25 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                         } else {
                                                             *fileName.offset(
                                                                 thisFileNameSize as isize,
-                                                            ) = 0 as c_char;
-
+                                                            ) = 0;
                                                             thisFileNameSize = strlen(fileName);
                                                         }
                                                     } else {
                                                         errorBelch(
-                                                            b"BSD-variant filename size not found while reading filename from `%s'\0"
-                                                                as *const u8 as *const c_char,
+                                                            c"BSD-variant filename size not found while reading filename from `%s'"
+                                                                .as_ptr(),
                                                             path,
                                                         );
 
                                                         current_block = 15851283293817637459;
                                                         break;
                                                     }
-                                                } else if 0 as c_int
-                                                    == strncmp(
-                                                        fileName,
-                                                        b"//\0" as *const u8 as *const c_char,
-                                                        2 as size_t,
-                                                    )
+                                                } else if 0 == strncmp(fileName, c"//".as_ptr(), 2)
                                                 {
-                                                    *fileName.offset(0 as c_int as isize) =
-                                                        '\0' as i32 as c_char;
-                                                    thisFileNameSize = 0 as size_t;
-                                                    isGnuIndex = r#true != 0;
-                                                } else if *fileName.offset(0 as c_int as isize)
-                                                    as c_int
-                                                    == '/' as i32
-                                                {
+                                                    *fileName.offset(0) = '\0' as i32 as c_char;
+                                                    thisFileNameSize = 0;
+                                                    isGnuIndex = true;
+                                                } else if *fileName.offset(0) as i32 == '/' as i32 {
                                                     if !lookupGNUArchiveIndex(
                                                         gnuFileIndexSize,
                                                         &raw mut fileName,
@@ -835,18 +667,17 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                         break;
                                                     }
                                                 } else {
-                                                    thisFileNameSize = 0 as size_t;
+                                                    thisFileNameSize = 0;
 
-                                                    while thisFileNameSize < 16 as size_t {
+                                                    while thisFileNameSize < 16 {
                                                         if *fileName
                                                             .offset(thisFileNameSize as isize)
-                                                            as c_int
+                                                            as i32
                                                             == '/' as i32
                                                         {
                                                             *fileName.offset(
                                                                 thisFileNameSize as isize,
                                                             ) = '\0' as i32 as c_char;
-
                                                             break;
                                                         } else {
                                                             thisFileNameSize =
@@ -854,19 +685,18 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                         }
                                                     }
 
-                                                    if thisFileNameSize == 16 as size_t {
-                                                        thisFileNameSize = 0 as size_t;
+                                                    if thisFileNameSize == 16 {
+                                                        thisFileNameSize = 0;
 
-                                                        while thisFileNameSize < 16 as size_t {
+                                                        while thisFileNameSize < 16 {
                                                             if *fileName
                                                                 .offset(thisFileNameSize as isize)
-                                                                as c_int
+                                                                as i32
                                                                 == ' ' as i32
                                                             {
                                                                 *fileName.offset(
                                                                     thisFileNameSize as isize,
                                                                 ) = '\0' as i32 as c_char;
-
                                                                 break;
                                                             } else {
                                                                 thisFileNameSize = thisFileNameSize
@@ -876,32 +706,29 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                     }
                                                 }
 
-                                                let mut is_symbol_table = strcmp(
-                                                    b"\0" as *const u8 as *const c_char,
-                                                    fileName,
-                                                ) == 0 as c_int;
+                                                let mut is_symbol_table =
+                                                    strcmp(c"".as_ptr(), fileName) == 0;
 
-                                                let mut object_fmt =
-                                                    (if is_symbol_table as c_int != 0 {
-                                                        NotObject as c_int as c_uint
-                                                    } else {
-                                                        identifyObjectFile(f) as c_uint
-                                                    })
-                                                        as ObjectFileFormat;
+                                                let mut object_fmt = (if is_symbol_table as i32 != 0
+                                                {
+                                                    NotObject as i32 as u32
+                                                } else {
+                                                    identifyObjectFile(f) as u32
+                                                })
+                                                    as ObjectFileFormat;
 
-                                                let mut isImportLib = r#false != 0;
+                                                let mut isImportLib = false;
 
-                                                if !is_symbol_table && isThin as c_int != 0
-                                                    || object_fmt as c_uint
-                                                        != NotObject as c_int as c_uint
+                                                if !is_symbol_table && isThin as i32 != 0
+                                                    || object_fmt as u32 != NotObject as i32 as u32
                                                 {
                                                     image = mmapAnonForLinker(memberSize)
                                                         as *mut c_char;
 
                                                     if isThin {
                                                         if !readThinArchiveMember(
-                                                            n as c_int,
-                                                            memberSize as c_int,
+                                                            n as i32,
+                                                            memberSize as i32,
                                                             path,
                                                             fileName,
                                                             image,
@@ -912,16 +739,15 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                     } else {
                                                         let mut n_1 = fread(
                                                             image as *mut c_void,
-                                                            1 as size_t,
+                                                            1,
                                                             memberSize,
                                                             f,
                                                         )
-                                                            as size_t;
+                                                            as usize;
 
                                                         if n_1 != memberSize {
                                                             errorBelch(
-                                                                b"loadArchive: error whilst reading `%s'\0" as *const u8
-                                                                    as *const c_char,
+                                                                c"loadArchive: error whilst reading `%s'".as_ptr(),
                                                                 path,
                                                             );
 
@@ -932,35 +758,30 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
 
                                                     let mut size = snprintf(
                                                         null_mut::<c_char>(),
-                                                        0 as size_t,
-                                                        b"%s(#%d:%.*s)\0" as *const u8
-                                                            as *const c_char,
+                                                        0,
+                                                        c"%s(#%d:%.*s)".as_ptr(),
                                                         path,
                                                         memberIdx,
-                                                        thisFileNameSize as c_int,
+                                                        thisFileNameSize as i32,
                                                         fileName,
                                                     );
 
                                                     let mut archiveMemberName = stgMallocBytes(
-                                                        ((size + 1 as c_int + 1 as c_int)
-                                                            as size_t)
+                                                        ((size + 1 as i32 + 1 as i32) as usize)
                                                             .wrapping_mul(
-                                                                size_of::<pathchar>() as size_t
+                                                                size_of::<pathchar>() as usize
                                                             ),
-                                                        b"loadArchive(file)\0" as *const u8
-                                                            as *const c_char
-                                                            as *mut c_char,
+                                                        c"loadArchive(file)".as_ptr(),
                                                     )
                                                         as *mut pathchar;
 
                                                     snprintf(
                                                         archiveMemberName as *mut c_char,
-                                                        (size + 1 as c_int) as size_t,
-                                                        b"%s(#%d:%.*s)\0" as *const u8
-                                                            as *const c_char,
+                                                        (size + 1) as usize,
+                                                        c"%s(#%d:%.*s)".as_ptr(),
                                                         path,
                                                         memberIdx,
-                                                        thisFileNameSize as c_int,
+                                                        thisFileNameSize as i32,
                                                         fileName,
                                                     );
 
@@ -968,8 +789,8 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                         STATIC_OBJECT,
                                                         path,
                                                         image,
-                                                        memberSize as c_int,
-                                                        r#false != 0,
+                                                        memberSize as i32,
+                                                        false,
                                                         archiveMemberName,
                                                         misalignment,
                                                     );
@@ -977,11 +798,11 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                     ocInit_MachO(oc);
                                                     stgFree(archiveMemberName as *mut c_void);
 
-                                                    if 0 as HsInt == loadOc(oc) {
+                                                    if 0 == loadOc(oc) {
                                                         stgFree(fileName as *mut c_void);
                                                         fclose(f);
 
-                                                        return 0 as HsInt;
+                                                        return 0;
                                                     } else {
                                                         insertOCSectionIndices(oc);
                                                         (*oc).next_loaded_object =
@@ -991,8 +812,8 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                 } else if isGnuIndex {
                                                     if !gnuFileIndex.is_null() {
                                                         errorBelch(
-                                                            b"loadArchive: GNU-variant index found, but already have an index, while reading filename from `%s'\0"
-                                                                as *const u8 as *const c_char,
+                                                            c"loadArchive: GNU-variant index found, but already have an index, while reading filename from `%s'"
+                                                                .as_ptr(),
                                                             path,
                                                         );
 
@@ -1000,22 +821,21 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                         break;
                                                     } else {
                                                         gnuFileIndex = mmapAnonForLinker(
-                                                            memberSize.wrapping_add(1 as size_t),
+                                                            memberSize.wrapping_add(1 as usize),
                                                         )
                                                             as *mut c_char;
 
                                                         n = fread(
                                                             gnuFileIndex as *mut c_void,
-                                                            1 as size_t,
+                                                            1,
                                                             memberSize,
                                                             f,
                                                         )
-                                                            as size_t;
+                                                            as usize;
 
                                                         if n != memberSize {
                                                             errorBelch(
-                                                                b"loadArchive: error whilst reading `%s'\0" as *const u8
-                                                                    as *const c_char,
+                                                                c"loadArchive: error whilst reading `%s'".as_ptr(),
                                                                 path,
                                                             );
 
@@ -1025,18 +845,18 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                             *gnuFileIndex
                                                                 .offset(memberSize as isize) =
                                                                 '/' as i32 as c_char;
-                                                            gnuFileIndexSize = memberSize as c_int;
+                                                            gnuFileIndexSize = memberSize as i32;
                                                         }
                                                     }
                                                 } else if !isImportLib {
-                                                    if !isThin || thisFileNameSize == 0 as size_t {
-                                                        n = fseek(f, memberSize as c_long, SEEK_CUR)
-                                                            as size_t;
+                                                    if !isThin || thisFileNameSize == 0 {
+                                                        n = fseek(f, memberSize as i64, SEEK_CUR)
+                                                            as usize;
 
-                                                        if n != 0 as size_t {
+                                                        if n != 0 {
                                                             errorBelch(
-                                                                b"loadArchive: error whilst seeking by %zd in `%s'\0"
-                                                                    as *const u8 as *const c_char,
+                                                                c"loadArchive: error whilst seeking by %zd in `%s'"
+                                                                    .as_ptr(),
                                                                 memberSize,
                                                                 path,
                                                             );
@@ -1047,27 +867,25 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                     }
                                                 }
 
-                                                if !(isThin as c_int != 0
-                                                    && thisFileNameSize > 0 as size_t)
-                                                    && memberSize.wrapping_rem(2 as size_t) != 0
+                                                if !(isThin as i32 != 0 && thisFileNameSize > 0)
+                                                    && memberSize.wrapping_rem(2 as usize) != 0
                                                 {
                                                     n = fread(
                                                         &raw mut tmp as *mut c_char as *mut c_void,
-                                                        1 as size_t,
-                                                        1 as size_t,
+                                                        1,
+                                                        1,
                                                         f,
                                                     )
-                                                        as size_t;
+                                                        as usize;
 
-                                                    if n != 1 as size_t {
+                                                    if n != 1 {
                                                         if feof(f) != 0 {
                                                             current_block = 1691841359054504885;
                                                             break;
                                                         }
 
                                                         errorBelch(
-                                                            b"loadArchive: Failed reading padding from `%s'\0"
-                                                                as *const u8 as *const c_char,
+                                                            c"loadArchive: Failed reading padding from `%s'".as_ptr(),
                                                             path,
                                                         );
 
@@ -1090,7 +908,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
             match current_block {
                 15851283293817637459 => {}
                 _ => {
-                    retcode = 1 as HsInt;
+                    retcode = 1;
                 }
             }
         }
@@ -1107,8 +925,8 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
     if !gnuFileIndex.is_null() {
         munmapForLinker(
             gnuFileIndex as *mut c_void,
-            (gnuFileIndexSize + 1 as c_int) as size_t,
-            b"loadArchive_\0" as *const u8 as *const c_char,
+            (gnuFileIndexSize + 1) as usize,
+            c"loadArchive_".as_ptr(),
         );
     }
 
@@ -1129,28 +947,28 @@ unsafe fn isArchive(mut path: *mut pathchar) -> bool {
         unsafe { transmute::<[u8; 9], [c_char; 9]>(*b"!<arch>\n\0") };
 
     let mut buffer: [c_char; 10] = [0; 10];
-    let mut f = fopen(path, b"rb\0" as *const u8 as *const c_char) as *mut FILE;
+    let mut f = fopen(path, c"rb".as_ptr()) as *mut FILE;
 
     if f.is_null() {
-        return r#false != 0;
+        return false;
     }
 
     let mut ret = fread(
         &raw mut buffer as *mut c_char as *mut c_void,
-        1 as size_t,
-        size_of::<[c_char; 10]>() as size_t,
+        1,
+        size_of::<[c_char; 10]>() as usize,
         f,
-    ) as size_t;
+    ) as usize;
 
     fclose(f);
 
     if ret < size_of::<[c_char; 10]>() as usize {
-        return r#false != 0;
+        return false;
     }
 
     return strncmp(
         &raw const ARCHIVE_HEADER as *const c_char,
         &raw mut buffer as *mut c_char,
-        (size_of::<[c_char; 9]>() as size_t).wrapping_sub(1 as size_t),
-    ) == 0 as c_int;
+        (size_of::<[c_char; 9]>() as usize).wrapping_sub(1 as usize),
+    ) == 0;
 }

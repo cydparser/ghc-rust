@@ -12,50 +12,46 @@ use crate::sm::os_mem::roundUpToPage;
 
 unsafe fn ocAllocateExtras(
     mut oc: *mut ObjectCode,
-    mut count: c_int,
-    mut first: c_int,
-    mut bssSize: c_int,
-) -> c_int {
+    mut count: i32,
+    mut first: i32,
+    mut bssSize: i32,
+) -> i32 {
     let mut oldImage = (*oc).image as *mut c_void;
-    let extras_size: size_t = (size_of::<SymbolExtra>() as size_t).wrapping_mul(count as size_t);
+    let extras_size: usize = (size_of::<SymbolExtra>() as usize).wrapping_mul(count as usize);
 
-    if count > 0 as c_int || bssSize > 0 as c_int {
+    if count > 0 || bssSize > 0 {
         if RTS_LINKER_USE_MMAP == 0 {
-            let mut aligned = (*oc).fileSize + 3 as c_int & !(3 as c_int);
+            let mut aligned = (*oc).fileSize + 3 & !3;
             let mut misalignment = (*oc).misalignment;
             (*oc).image = (*oc).image.offset(-(misalignment as isize));
 
             (*oc).image = stgReallocBytes(
                 (*oc).image as *mut c_void,
-                ((misalignment + aligned) as size_t).wrapping_add(extras_size),
-                b"ocAllocateExtras\0" as *const u8 as *const c_char as *mut c_char,
+                ((misalignment + aligned) as usize).wrapping_add(extras_size),
+                c"ocAllocateExtras".as_ptr(),
             ) as *mut c_char;
 
             (*oc).image = (*oc).image.offset(misalignment as isize);
             (*oc).symbol_extras = (*oc).image.offset(aligned as isize) as *mut SymbolExtra;
-        } else if USE_CONTIGUOUS_MMAP != 0 || RtsFlags.MiscFlags.linkerAlwaysPic as c_int != 0 {
-            let mut n = roundUpToPage((*oc).fileSize as size_t);
-            bssSize = roundUpToPage(bssSize as size_t) as c_int;
+        } else if USE_CONTIGUOUS_MMAP != 0 || RtsFlags.MiscFlags.linkerAlwaysPic as i32 != 0 {
+            let mut n = roundUpToPage((*oc).fileSize as usize);
+            bssSize = roundUpToPage(bssSize as usize) as i32;
 
-            let mut allocated_size: size_t =
-                n.wrapping_add(bssSize as size_t).wrapping_add(extras_size);
+            let mut allocated_size: usize =
+                n.wrapping_add(bssSize as usize).wrapping_add(extras_size);
 
             let mut new = mmapAnonForLinker(allocated_size);
 
             if !new.is_null() {
-                memcpy(new, (*oc).image as *const c_void, (*oc).fileSize as size_t);
+                memcpy(new, (*oc).image as *const c_void, (*oc).fileSize as usize);
 
                 if (*oc).imageMapped != 0 {
-                    munmapForLinker(
-                        (*oc).image as *mut c_void,
-                        n,
-                        b"ocAllocateExtras\0" as *const u8 as *const c_char,
-                    );
+                    munmapForLinker((*oc).image as *mut c_void, n, c"ocAllocateExtras".as_ptr());
                 }
 
                 (*oc).image = new as *mut c_char;
-                (*oc).imageMapped = r#true;
-                (*oc).fileSize = allocated_size as c_int;
+                (*oc).imageMapped = true;
+                (*oc).fileSize = allocated_size as i32;
                 (*oc).symbol_extras =
                     (*oc).image.offset(n as isize).offset(bssSize as isize) as *mut SymbolExtra;
                 (*oc).bssBegin = (*oc).image.offset(n as isize);
@@ -63,42 +59,41 @@ unsafe fn ocAllocateExtras(
             } else {
                 (*oc).symbol_extras = null_mut::<SymbolExtra>();
 
-                return 0 as c_int;
+                return 0;
             }
         } else {
-            (*oc).symbol_extras =
-                m32_alloc((*oc).rx_m32, extras_size, 8 as size_t) as *mut SymbolExtra;
+            (*oc).symbol_extras = m32_alloc((*oc).rx_m32, extras_size, 8) as *mut SymbolExtra;
 
             if (*oc).symbol_extras.is_null() {
-                return 0 as c_int;
+                return 0;
             }
         }
     }
 
     if !(*oc).symbol_extras.is_null() {
-        memset((*oc).symbol_extras as *mut c_void, 0 as c_int, extras_size);
+        memset((*oc).symbol_extras as *mut c_void, 0, extras_size);
     }
 
     if (*oc).image != oldImage as *mut c_char {
         ocInit_MachO(oc);
     }
 
-    (*oc).first_symbol_extra = first as c_ulong;
-    (*oc).n_symbol_extras = count as c_ulong;
+    (*oc).first_symbol_extra = first as u64;
+    (*oc).n_symbol_extras = count as u64;
 
-    return 1 as c_int;
+    return 1;
 }
 
 unsafe fn ocProtectExtras(mut oc: *mut ObjectCode) {
-    if (*oc).n_symbol_extras == 0 as c_ulong {
+    if (*oc).n_symbol_extras == 0 {
         return;
     }
 
     if !(RTS_LINKER_USE_MMAP == 0) {
-        if USE_CONTIGUOUS_MMAP != 0 || RtsFlags.MiscFlags.linkerAlwaysPic as c_int != 0 {
+        if USE_CONTIGUOUS_MMAP != 0 || RtsFlags.MiscFlags.linkerAlwaysPic as i32 != 0 {
             mprotectForLinker(
                 (*oc).symbol_extras as *mut c_void,
-                (size_of::<SymbolExtra>() as size_t).wrapping_mul((*oc).n_symbol_extras as size_t),
+                (size_of::<SymbolExtra>() as usize).wrapping_mul((*oc).n_symbol_extras as usize),
                 MEM_READ_EXECUTE,
             );
         }

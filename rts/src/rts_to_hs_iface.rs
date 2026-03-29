@@ -65,4 +65,4 @@ pub struct HsIface {
 
 #[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
-pub static mut ghc_hs_iface: *mut HsIface = null::<HsIface>() as *mut HsIface;
+pub static mut ghc_hs_iface: *mut HsIface = null_mut::<HsIface>();

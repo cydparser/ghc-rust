@@ -60,35 +60,23 @@ pub(crate) type CapsetID = StgWord32;
 
 pub(crate) type CapsetType = StgWord16;
 
-pub(crate) const CAPSET_OSPROCESS_DEFAULT: CapsetID = 0 as c_int as CapsetID;
+pub(crate) const CAPSET_OSPROCESS_DEFAULT: CapsetID = 0;
 
-pub(crate) const CAPSET_HEAP_DEFAULT: CapsetID = 0 as c_int as CapsetID;
+pub(crate) const CAPSET_HEAP_DEFAULT: CapsetID = 0;
 
-pub(crate) const CAPSET_CLOCKDOMAIN_DEFAULT: CapsetID = 1 as c_int as CapsetID;
+pub(crate) const CAPSET_CLOCKDOMAIN_DEFAULT: CapsetID = 1;
 
 #[inline]
 pub(crate) unsafe fn traceEventCreateThread(mut cap: *mut Capability, mut tso: *mut StgTSO) {
-    if TRACE_sched as c_long != 0 {
-        traceSchedEvent_(
-            cap,
-            0 as EventTypeNum,
-            tso,
-            (*(*tso).stackobj).stack_size as StgWord,
-            0 as StgWord,
-        );
+    if TRACE_sched as i64 != 0 {
+        traceSchedEvent_(cap, 0, tso, (*(*tso).stackobj).stack_size as StgWord, 0);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventRunThread(mut cap: *mut Capability, mut tso: *mut StgTSO) {
-    if TRACE_sched as c_long != 0 {
-        traceSchedEvent_(
-            cap,
-            1 as EventTypeNum,
-            tso,
-            (*tso).what_next as StgWord,
-            0 as StgWord,
-        );
+    if TRACE_sched as i64 != 0 {
+        traceSchedEvent_(cap, 1, tso, (*tso).what_next as StgWord, 0);
     }
 }
 
@@ -99,14 +87,8 @@ pub(crate) unsafe fn traceEventStopThread(
     mut status: StgThreadReturnCode,
     mut info: StgWord32,
 ) {
-    if TRACE_sched as c_long != 0 {
-        traceSchedEvent_(
-            cap,
-            2 as EventTypeNum,
-            tso,
-            status as StgWord,
-            info as StgWord,
-        );
+    if TRACE_sched as i64 != 0 {
+        traceSchedEvent_(cap, 2, tso, status as StgWord, info as StgWord);
     }
 }
 
@@ -114,44 +96,38 @@ pub(crate) unsafe fn traceEventStopThread(
 pub(crate) unsafe fn traceEventMigrateThread(
     mut cap: *mut Capability,
     mut tso: *mut StgTSO,
-    mut new_cap: uint32_t,
+    mut new_cap: u32,
 ) {
-    if TRACE_sched as c_long != 0 {
-        traceSchedEvent_(
-            cap,
-            4 as EventTypeNum,
-            tso,
-            new_cap as StgWord,
-            0 as StgWord,
-        );
+    if TRACE_sched as i64 != 0 {
+        traceSchedEvent_(cap, 4, tso, new_cap as StgWord, 0);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceCapCreate(mut cap: *mut Capability) {
-    if TRACE_cap as c_long != 0 {
-        traceCapEvent_(cap, 45 as EventTypeNum);
+    if TRACE_cap as i64 != 0 {
+        traceCapEvent_(cap, 45);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceCapDelete(mut cap: *mut Capability) {
-    if TRACE_cap as c_long != 0 {
-        traceCapEvent_(cap, 46 as EventTypeNum);
+    if TRACE_cap as i64 != 0 {
+        traceCapEvent_(cap, 46);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceCapEnable(mut cap: *mut Capability) {
-    if TRACE_cap as c_long != 0 {
-        traceCapEvent_(cap, 48 as EventTypeNum);
+    if TRACE_cap as i64 != 0 {
+        traceCapEvent_(cap, 48);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceCapDisable(mut cap: *mut Capability) {
-    if TRACE_cap as c_long != 0 {
-        traceCapEvent_(cap, 47 as EventTypeNum);
+    if TRACE_cap as i64 != 0 {
+        traceCapEvent_(cap, 47);
     }
 
     if eventlog_enabled {
@@ -163,16 +139,10 @@ pub(crate) unsafe fn traceCapDisable(mut cap: *mut Capability) {
 pub(crate) unsafe fn traceEventThreadWakeup(
     mut cap: *mut Capability,
     mut tso: *mut StgTSO,
-    mut other_cap: uint32_t,
+    mut other_cap: u32,
 ) {
-    if TRACE_sched as c_long != 0 {
-        traceSchedEvent_(
-            cap,
-            8 as EventTypeNum,
-            tso,
-            other_cap as StgWord,
-            0 as StgWord,
-        );
+    if TRACE_sched as i64 != 0 {
+        traceSchedEvent_(cap, 8, tso, other_cap as StgWord, 0);
     }
 }
 
@@ -181,80 +151,80 @@ pub(crate) unsafe fn traceThreadLabel(
     mut cap: *mut Capability,
     mut tso: *mut StgTSO,
     mut label: *mut c_char,
-    mut len: size_t,
+    mut len: usize,
 ) {
-    if TRACE_sched as c_long != 0 {
+    if TRACE_sched as i64 != 0 {
         traceThreadLabel_(cap, tso, label, len);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventGcStart(mut cap: *mut Capability) {
-    if TRACE_gc as c_long != 0 {
-        traceGcEvent_(cap, 9 as EventTypeNum);
+    if TRACE_gc as i64 != 0 {
+        traceGcEvent_(cap, 9);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventGcStartAtT(mut cap: *mut Capability, mut ts: StgWord64) {
-    if TRACE_gc as c_long != 0 {
-        traceGcEventAtT_(cap, ts, 9 as EventTypeNum);
+    if TRACE_gc as i64 != 0 {
+        traceGcEventAtT_(cap, ts, 9);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventGcEnd(mut cap: *mut Capability) {
-    if TRACE_gc as c_long != 0 {
-        traceGcEvent_(cap, 10 as EventTypeNum);
+    if TRACE_gc as i64 != 0 {
+        traceGcEvent_(cap, 10);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventGcEndAtT(mut cap: *mut Capability, mut ts: StgWord64) {
-    if TRACE_gc as c_long != 0 {
-        traceGcEventAtT_(cap, ts, 10 as EventTypeNum);
+    if TRACE_gc as i64 != 0 {
+        traceGcEventAtT_(cap, ts, 10);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventRequestSeqGc(mut cap: *mut Capability) {
-    if TRACE_gc as c_long != 0 {
-        traceGcEvent_(cap, 11 as EventTypeNum);
+    if TRACE_gc as i64 != 0 {
+        traceGcEvent_(cap, 11);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventRequestParGc(mut cap: *mut Capability) {
-    if TRACE_gc as c_long != 0 {
-        traceGcEvent_(cap, 12 as EventTypeNum);
+    if TRACE_gc as i64 != 0 {
+        traceGcEvent_(cap, 12);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventGcIdle(mut cap: *mut Capability) {
-    if TRACE_gc as c_long != 0 {
-        traceGcEvent_(cap, 20 as EventTypeNum);
+    if TRACE_gc as i64 != 0 {
+        traceGcEvent_(cap, 20);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventGcWork(mut cap: *mut Capability) {
-    if TRACE_gc as c_long != 0 {
-        traceGcEvent_(cap, 21 as EventTypeNum);
+    if TRACE_gc as i64 != 0 {
+        traceGcEvent_(cap, 21);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventGcDone(mut cap: *mut Capability) {
-    if TRACE_gc as c_long != 0 {
-        traceGcEvent_(cap, 22 as EventTypeNum);
+    if TRACE_gc as i64 != 0 {
+        traceGcEvent_(cap, 22);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventGcGlobalSync(mut cap: *mut Capability) {
-    if TRACE_gc as c_long != 0 {
-        traceGcEvent_(cap, 54 as EventTypeNum);
+    if TRACE_gc as i64 != 0 {
+        traceGcEvent_(cap, 54);
     }
 }
 
@@ -262,16 +232,16 @@ pub(crate) unsafe fn traceEventGcGlobalSync(mut cap: *mut Capability) {
 pub(crate) unsafe fn traceEventGcStats(
     mut cap: *mut Capability,
     mut heap_capset: CapsetID,
-    mut r#gen: uint32_t,
+    mut r#gen: u32,
     mut copied: W_,
     mut slop: W_,
     mut fragmentation: W_,
-    mut par_n_threads: uint32_t,
+    mut par_n_threads: u32,
     mut par_max_copied: W_,
     mut par_tot_copied: W_,
     mut par_balanced_copied: W_,
 ) {
-    if TRACE_gc as c_long != 0 {
+    if TRACE_gc as i64 != 0 {
         traceEventGcStats_(
             cap,
             heap_capset,
@@ -290,11 +260,11 @@ pub(crate) unsafe fn traceEventGcStats(
 #[inline]
 pub(crate) unsafe fn traceEventMemReturn(
     mut cap: *mut Capability,
-    mut current_mblocks: uint32_t,
-    mut needed_mblocks: uint32_t,
-    mut returned_mblocks: uint32_t,
+    mut current_mblocks: u32,
+    mut needed_mblocks: u32,
+    mut returned_mblocks: u32,
 ) {
-    if TRACE_gc as c_long != 0 {
+    if TRACE_gc as i64 != 0 {
         traceEventMemReturn_(cap, current_mblocks, needed_mblocks, returned_mblocks);
     }
 }
@@ -302,13 +272,13 @@ pub(crate) unsafe fn traceEventMemReturn(
 #[inline]
 pub(crate) unsafe fn traceEventHeapInfo(
     mut heap_capset: CapsetID,
-    mut gens: uint32_t,
+    mut gens: u32,
     mut maxHeapSize: W_,
     mut allocAreaSize: W_,
     mut mblockSize: W_,
     mut blockSize: W_,
 ) {
-    if TRACE_gc as c_long != 0 {
+    if TRACE_gc as i64 != 0 {
         traceEventHeapInfo_(
             heap_capset,
             gens,
@@ -326,8 +296,8 @@ pub(crate) unsafe fn traceEventHeapAllocated(
     mut heap_capset: CapsetID,
     mut allocated: W_,
 ) {
-    if TRACE_gc as c_long != 0 {
-        traceHeapEvent_(cap, 49 as EventTypeNum, heap_capset, allocated);
+    if TRACE_gc as i64 != 0 {
+        traceHeapEvent_(cap, 49, heap_capset, allocated);
     }
 }
 
@@ -337,8 +307,8 @@ pub(crate) unsafe fn traceEventHeapSize(
     mut heap_capset: CapsetID,
     mut heap_size: W_,
 ) {
-    if TRACE_gc as c_long != 0 {
-        traceHeapEvent_(cap, 50 as EventTypeNum, heap_capset, heap_size);
+    if TRACE_gc as i64 != 0 {
+        traceHeapEvent_(cap, 50, heap_capset, heap_size);
     }
 }
 
@@ -348,8 +318,8 @@ pub(crate) unsafe fn traceEventBlocksSize(
     mut heap_capset: CapsetID,
     mut heap_size: W_,
 ) {
-    if TRACE_gc as c_long != 0 {
-        traceHeapEvent_(cap, 91 as EventTypeNum, heap_capset, heap_size);
+    if TRACE_gc as i64 != 0 {
+        traceHeapEvent_(cap, 91, heap_capset, heap_size);
     }
 }
 
@@ -359,36 +329,36 @@ pub(crate) unsafe fn traceEventHeapLive(
     mut heap_capset: CapsetID,
     mut heap_live: W_,
 ) {
-    if TRACE_gc as c_long != 0 {
-        traceHeapEvent_(cap, 51 as EventTypeNum, heap_capset, heap_live);
+    if TRACE_gc as i64 != 0 {
+        traceHeapEvent_(cap, 51, heap_capset, heap_live);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceCapsetCreate(mut capset: CapsetID, mut capset_type: CapsetType) {
-    if TRACE_cap as c_long != 0 {
-        traceCapsetEvent_(25 as EventTypeNum, capset, capset_type as StgWord);
+    if TRACE_cap as i64 != 0 {
+        traceCapsetEvent_(25, capset, capset_type as StgWord);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceCapsetDelete(mut capset: CapsetID) {
-    if TRACE_cap as c_long != 0 {
-        traceCapsetEvent_(26 as EventTypeNum, capset, 0 as StgWord);
+    if TRACE_cap as i64 != 0 {
+        traceCapsetEvent_(26, capset, 0);
     }
 }
 
 #[inline]
-pub(crate) unsafe fn traceCapsetAssignCap(mut capset: CapsetID, mut capno: uint32_t) {
-    if TRACE_cap as c_long != 0 {
-        traceCapsetEvent_(27 as EventTypeNum, capset, capno as StgWord);
+pub(crate) unsafe fn traceCapsetAssignCap(mut capset: CapsetID, mut capno: u32) {
+    if TRACE_cap as i64 != 0 {
+        traceCapsetEvent_(27, capset, capno as StgWord);
     }
 }
 
 #[inline]
-pub(crate) unsafe fn traceCapsetRemoveCap(mut capset: CapsetID, mut capno: uint32_t) {
-    if TRACE_cap as c_long != 0 {
-        traceCapsetEvent_(28 as EventTypeNum, capset, capno as StgWord);
+pub(crate) unsafe fn traceCapsetRemoveCap(mut capset: CapsetID, mut capno: u32) {
+    if TRACE_cap as i64 != 0 {
+        traceCapsetEvent_(28, capset, capno as StgWord);
     }
 }
 
@@ -407,8 +377,8 @@ pub(crate) unsafe fn traceEventCreateSparkThread(
     mut cap: *mut Capability,
     mut spark_tid: StgThreadID,
 ) {
-    if TRACE_spark_full as c_long != 0 {
-        traceSparkEvent_(cap, 15 as EventTypeNum, spark_tid as StgWord);
+    if TRACE_spark_full as i64 != 0 {
+        traceSparkEvent_(cap, 15, spark_tid as StgWord);
     }
 }
 
@@ -417,72 +387,66 @@ pub(crate) unsafe fn traceSparkCounters(mut cap: *mut Capability) {}
 
 #[inline]
 pub(crate) unsafe fn traceEventSparkCreate(mut cap: *mut Capability) {
-    if TRACE_spark_full as c_long != 0 {
-        traceSparkEvent_(cap, 35 as EventTypeNum, 0 as StgWord);
+    if TRACE_spark_full as i64 != 0 {
+        traceSparkEvent_(cap, 35, 0);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventSparkDud(mut cap: *mut Capability) {
-    if TRACE_spark_full as c_long != 0 {
-        traceSparkEvent_(cap, 36 as EventTypeNum, 0 as StgWord);
+    if TRACE_spark_full as i64 != 0 {
+        traceSparkEvent_(cap, 36, 0);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventSparkOverflow(mut cap: *mut Capability) {
-    if TRACE_spark_full as c_long != 0 {
-        traceSparkEvent_(cap, 37 as EventTypeNum, 0 as StgWord);
+    if TRACE_spark_full as i64 != 0 {
+        traceSparkEvent_(cap, 37, 0);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventSparkRun(mut cap: *mut Capability) {
-    if TRACE_spark_full as c_long != 0 {
-        traceSparkEvent_(cap, 38 as EventTypeNum, 0 as StgWord);
+    if TRACE_spark_full as i64 != 0 {
+        traceSparkEvent_(cap, 38, 0);
     }
 }
 
 #[inline]
-pub(crate) unsafe fn traceEventSparkSteal(mut cap: *mut Capability, mut victim_cap: uint32_t) {
-    if TRACE_spark_full as c_long != 0 {
-        traceSparkEvent_(cap, 39 as EventTypeNum, victim_cap as StgWord);
+pub(crate) unsafe fn traceEventSparkSteal(mut cap: *mut Capability, mut victim_cap: u32) {
+    if TRACE_spark_full as i64 != 0 {
+        traceSparkEvent_(cap, 39, victim_cap as StgWord);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventSparkFizzle(mut cap: *mut Capability) {
-    if TRACE_spark_full as c_long != 0 {
-        traceSparkEvent_(cap, 40 as EventTypeNum, 0 as StgWord);
+    if TRACE_spark_full as i64 != 0 {
+        traceSparkEvent_(cap, 40, 0);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceEventSparkGC(mut cap: *mut Capability) {
-    if TRACE_spark_full as c_long != 0 {
-        traceSparkEvent_(cap, 41 as EventTypeNum, 0 as StgWord);
+    if TRACE_spark_full as i64 != 0 {
+        traceSparkEvent_(cap, 41, 0);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceTaskCreate(mut task: *mut Task, mut cap: *mut Capability) {
-    if ((*task).cap == cap) as c_int as c_long != 0 {
+    if ((*task).cap == cap) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/Trace.h\0" as *const u8 as *const c_char,
-            933 as c_uint,
-        );
+        _assertFail(c"rts/Trace.h".as_ptr(), 933);
     }
 
-    if !cap.is_null() as c_int as c_long != 0 {
+    if !cap.is_null() as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/Trace.h\0" as *const u8 as *const c_char,
-            937 as c_uint,
-        );
+        _assertFail(c"rts/Trace.h".as_ptr(), 937);
     }
 
-    if TRACE_sched as c_long != 0 {
+    if TRACE_sched as i64 != 0 {
         traceTaskCreate_(task, cap);
     }
 }
@@ -493,101 +457,85 @@ pub(crate) unsafe fn traceTaskMigrate(
     mut cap: *mut Capability,
     mut new_cap: *mut Capability,
 ) {
-    if ((*task).cap == cap) as c_int as c_long != 0 {
+    if ((*task).cap == cap) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/Trace.h\0" as *const u8 as *const c_char,
-            952 as c_uint,
-        );
+        _assertFail(c"rts/Trace.h".as_ptr(), 952);
     }
 
-    if !cap.is_null() as c_int as c_long != 0 {
+    if !cap.is_null() as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/Trace.h\0" as *const u8 as *const c_char,
-            953 as c_uint,
-        );
+        _assertFail(c"rts/Trace.h".as_ptr(), 953);
     }
 
-    if (cap != new_cap) as c_int as c_long != 0 {
+    if (cap != new_cap) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/Trace.h\0" as *const u8 as *const c_char,
-            954 as c_uint,
-        );
+        _assertFail(c"rts/Trace.h".as_ptr(), 954);
     }
 
-    if !new_cap.is_null() as c_int as c_long != 0 {
+    if !new_cap.is_null() as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/Trace.h\0" as *const u8 as *const c_char,
-            955 as c_uint,
-        );
+        _assertFail(c"rts/Trace.h".as_ptr(), 955);
     }
 
-    if TRACE_sched as c_long != 0 {
+    if TRACE_sched as i64 != 0 {
         traceTaskMigrate_(task, cap, new_cap);
     }
 }
 
 #[inline]
 pub(crate) unsafe fn traceTaskDelete(mut task: *mut Task) {
-    if !(*task).cap.is_null() as c_int as c_long != 0 {
+    if !(*task).cap.is_null() as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/Trace.h\0" as *const u8 as *const c_char,
-            966 as c_uint,
-        );
+        _assertFail(c"rts/Trace.h".as_ptr(), 966);
     }
 
-    if TRACE_sched as c_long != 0 {
+    if TRACE_sched as i64 != 0 {
         traceTaskDelete_(task);
     }
 }
 
-static mut TRACE_sched: uint8_t = 0;
+static mut TRACE_sched: u8 = 0;
 
-static mut TRACE_gc: uint8_t = 0;
+static mut TRACE_gc: u8 = 0;
 
-static mut TRACE_nonmoving_gc: uint8_t = 0;
+static mut TRACE_nonmoving_gc: u8 = 0;
 
-static mut TRACE_spark_sampled: uint8_t = 0;
+static mut TRACE_spark_sampled: u8 = 0;
 
-static mut TRACE_spark_full: uint8_t = 0;
+static mut TRACE_spark_full: u8 = 0;
 
-static mut TRACE_user: uint8_t = 0;
+static mut TRACE_user: u8 = 0;
 
-static mut TRACE_cap: uint8_t = 0;
+static mut TRACE_cap: u8 = 0;
 
 unsafe fn updateTraceFlagCache() {
-    TRACE_sched = (RtsFlags.TraceFlags.scheduler as c_int != 0
-        || RtsFlags.DebugFlags.scheduler as c_int != 0) as c_int as uint8_t;
-    TRACE_gc = (RtsFlags.TraceFlags.gc as c_int != 0
-        || RtsFlags.DebugFlags.gc as c_int != 0
-        || RtsFlags.DebugFlags.scheduler as c_int != 0) as c_int as uint8_t;
-    TRACE_nonmoving_gc = RtsFlags.TraceFlags.nonmoving_gc as uint8_t;
-    TRACE_spark_sampled = RtsFlags.TraceFlags.sparks_sampled as uint8_t;
-    TRACE_spark_full = (RtsFlags.TraceFlags.sparks_full as c_int != 0
-        || RtsFlags.DebugFlags.sparks as c_int != 0) as c_int as uint8_t;
-    TRACE_user = RtsFlags.TraceFlags.user as uint8_t;
-    TRACE_cap = (TRACE_sched as c_int != 0
-        || TRACE_gc as c_int != 0
-        || TRACE_spark_sampled as c_int != 0
-        || TRACE_spark_full as c_int != 0
-        || TRACE_user as c_int != 0) as c_int as uint8_t;
+    TRACE_sched = (RtsFlags.TraceFlags.scheduler as i32 != 0
+        || RtsFlags.DebugFlags.scheduler as i32 != 0) as i32 as u8;
+    TRACE_gc = (RtsFlags.TraceFlags.gc as i32 != 0
+        || RtsFlags.DebugFlags.gc as i32 != 0
+        || RtsFlags.DebugFlags.scheduler as i32 != 0) as i32 as u8;
+    TRACE_nonmoving_gc = RtsFlags.TraceFlags.nonmoving_gc as u8;
+    TRACE_spark_sampled = RtsFlags.TraceFlags.sparks_sampled as u8;
+    TRACE_spark_full = (RtsFlags.TraceFlags.sparks_full as i32 != 0
+        || RtsFlags.DebugFlags.sparks as i32 != 0) as i32 as u8;
+    TRACE_user = RtsFlags.TraceFlags.user as u8;
+    TRACE_cap = (TRACE_sched as i32 != 0
+        || TRACE_gc as i32 != 0
+        || TRACE_spark_sampled as i32 != 0
+        || TRACE_spark_full as i32 != 0
+        || TRACE_user as i32 != 0) as i32 as u8;
 }
 
 unsafe fn initTracing() {
     updateTraceFlagCache();
 
-    if TRACE_gc as c_int != 0 && RtsFlags.GcFlags.giveStats == NO_GC_STATS as uint32_t {
-        RtsFlags.GcFlags.giveStats = COLLECT_GC_STATS as uint32_t;
+    if TRACE_gc as i32 != 0 && RtsFlags.GcFlags.giveStats == NO_GC_STATS as u32 {
+        RtsFlags.GcFlags.giveStats = COLLECT_GC_STATS as u32;
     }
 
     initEventLogging();
 
-    if RtsFlags.TraceFlags.tracing == TRACE_EVENTLOG && RtsFlags.TraceFlags.nullWriter as c_int != 0
-    {
+    if RtsFlags.TraceFlags.tracing == TRACE_EVENTLOG && RtsFlags.TraceFlags.nullWriter as i32 != 0 {
         startEventLogging(&raw const NullEventLogWriter);
     } else if RtsFlags.TraceFlags.tracing == TRACE_EVENTLOG && !rtsConfig.eventlog_writer.is_null()
     {
@@ -617,7 +565,7 @@ unsafe fn flushTrace() {
     }
 }
 
-unsafe fn tracingAddCapabilities(mut from: uint32_t, mut to: uint32_t) {
+unsafe fn tracingAddCapabilities(mut from: u32, mut to: u32) {
     if eventlog_enabled {
         moreCapEventBufs(from, to);
     }
@@ -625,35 +573,32 @@ unsafe fn tracingAddCapabilities(mut from: uint32_t, mut to: uint32_t) {
 
 unsafe fn tracePreface() {
     if RtsFlags.TraceFlags.timestamp {
-        debugBelch(
-            b"%9llu: \0" as *const u8 as *const c_char,
-            stat_getElapsedTime(),
-        );
+        debugBelch(c"%9llu: ".as_ptr(), stat_getElapsedTime());
     }
 }
 
 static mut thread_stop_reasons: [*mut c_char; 21] = [
-    null::<c_char>() as *mut c_char,
-    b"heap overflow\0" as *const u8 as *const c_char as *mut c_char,
-    b"stack overflow\0" as *const u8 as *const c_char as *mut c_char,
-    b"yielding\0" as *const u8 as *const c_char as *mut c_char,
-    b"blocked\0" as *const u8 as *const c_char as *mut c_char,
-    b"finished\0" as *const u8 as *const c_char as *mut c_char,
-    b"suspended while making a foreign call\0" as *const u8 as *const c_char as *mut c_char,
-    b"blocked on an MVar\0" as *const u8 as *const c_char as *mut c_char,
-    b"blocked on a black hole\0" as *const u8 as *const c_char as *mut c_char,
-    b"blocked on a read operation\0" as *const u8 as *const c_char as *mut c_char,
-    b"blocked on a write operation\0" as *const u8 as *const c_char as *mut c_char,
-    b"blocked on a delay operation\0" as *const u8 as *const c_char as *mut c_char,
-    b"blocked on STM\0" as *const u8 as *const c_char as *mut c_char,
-    b"blocked on asyncDoProc\0" as *const u8 as *const c_char as *mut c_char,
-    null::<c_char>() as *mut c_char,
-    null::<c_char>() as *mut c_char,
-    b"blocked on a foreign call\0" as *const u8 as *const c_char as *mut c_char,
-    b"blocked on a foreign call (interruptible)\0" as *const u8 as *const c_char as *mut c_char,
-    b"blocked on throwTo\0" as *const u8 as *const c_char as *mut c_char,
-    b"migrating\0" as *const u8 as *const c_char as *mut c_char,
-    b"blocked on an atomic MVar read\0" as *const u8 as *const c_char as *mut c_char,
+    null_mut::<c_char>(),
+    c"heap overflow".as_ptr(),
+    c"stack overflow".as_ptr(),
+    c"yielding".as_ptr(),
+    c"blocked".as_ptr(),
+    c"finished".as_ptr(),
+    c"suspended while making a foreign call".as_ptr(),
+    c"blocked on an MVar".as_ptr(),
+    c"blocked on a black hole".as_ptr(),
+    c"blocked on a read operation".as_ptr(),
+    c"blocked on a write operation".as_ptr(),
+    c"blocked on a delay operation".as_ptr(),
+    c"blocked on STM".as_ptr(),
+    c"blocked on asyncDoProc".as_ptr(),
+    null_mut::<c_char>(),
+    null_mut::<c_char>(),
+    c"blocked on a foreign call".as_ptr(),
+    c"blocked on a foreign call (interruptible)".as_ptr(),
+    c"blocked on throwTo".as_ptr(),
+    c"migrating".as_ptr(),
+    c"blocked on an atomic MVar read".as_ptr(),
 ];
 
 unsafe fn traceSchedEvent_stderr(
@@ -665,18 +610,18 @@ unsafe fn traceSchedEvent_stderr(
 ) {
     tracePreface();
 
-    let mut threadLabelLen = 0 as c_int;
-    let mut threadLabel = b"\0" as *const u8 as *const c_char as *mut c_char;
+    let mut threadLabelLen = 0;
+    let mut threadLabel = c"".as_ptr();
 
     if !(*tso).label.is_null() {
-        threadLabelLen = (*(*tso).label).bytes as c_int;
+        threadLabelLen = (*(*tso).label).bytes as i32;
         threadLabel = &raw mut (*(*tso).label).payload as *mut StgWord as *mut c_char;
     }
 
-    match tag as c_int {
+    match tag as i32 {
         EVENT_CREATE_THREAD => {
             debugBelch(
-                b"cap %d: created thread %llu[\"%.*s\"]\n\0" as *const u8 as *const c_char,
+                c"cap %d: created thread %llu[\"%.*s\"]\n".as_ptr(),
                 (*cap).no,
                 (*tso).id,
                 threadLabelLen,
@@ -685,7 +630,7 @@ unsafe fn traceSchedEvent_stderr(
         }
         EVENT_RUN_THREAD => {
             debugBelch(
-                b"cap %d: running thread %llu[\"%.*s\"] (%s)\n\0" as *const u8 as *const c_char,
+                c"cap %d: running thread %llu[\"%.*s\"] (%s)\n".as_ptr(),
                 (*cap).no,
                 (*tso).id,
                 threadLabelLen,
@@ -695,8 +640,7 @@ unsafe fn traceSchedEvent_stderr(
         }
         EVENT_THREAD_RUNNABLE => {
             debugBelch(
-                b"cap %d: thread %llu[\"%.*s\"] appended to run queue\n\0" as *const u8
-                    as *const c_char,
+                c"cap %d: thread %llu[\"%.*s\"] appended to run queue\n".as_ptr(),
                 (*cap).no,
                 (*tso).id,
                 threadLabelLen,
@@ -705,50 +649,47 @@ unsafe fn traceSchedEvent_stderr(
         }
         EVENT_MIGRATE_THREAD => {
             debugBelch(
-                b"cap %d: thread %llu[\"%.*s\"] migrating to cap %d\n\0" as *const u8
-                    as *const c_char,
+                c"cap %d: thread %llu[\"%.*s\"] migrating to cap %d\n".as_ptr(),
                 (*cap).no,
                 (*tso).id,
                 threadLabelLen,
                 threadLabel,
-                info1 as c_int,
+                info1 as i32,
             );
         }
         EVENT_THREAD_WAKEUP => {
             debugBelch(
-                b"cap %d: waking up thread %llu[\"%.*s\"] on cap %d\n\0" as *const u8
-                    as *const c_char,
+                c"cap %d: waking up thread %llu[\"%.*s\"] on cap %d\n".as_ptr(),
                 (*cap).no,
                 (*tso).id,
                 threadLabelLen,
                 threadLabel,
-                info1 as c_int,
+                info1 as i32,
             );
         }
         EVENT_STOP_THREAD => {
-            if info1 == (6 as c_int + BlockedOnBlackHole) as StgWord {
+            if info1 == (6 + BlockedOnBlackHole) as StgWord {
                 debugBelch(
-                    b"cap %d: thread %llu[\"%.*s\"] stopped (blocked on black hole owned by thread %lu)\n\0"
-                        as *const u8 as *const c_char,
+                    c"cap %d: thread %llu[\"%.*s\"] stopped (blocked on black hole owned by thread %lu)\n"
+                        .as_ptr(),
                     (*cap).no,
                     (*tso).id,
                     threadLabelLen,
                     threadLabel,
-                    info2 as c_long,
+                    info2 as i64,
                 );
             } else if info1 == StackOverflow as StgWord {
                 debugBelch(
-                    b"cap %d: thread %llu[\"%.*s\"] stopped (stack overflow, size %lu)\n\0"
-                        as *const u8 as *const c_char,
+                    c"cap %d: thread %llu[\"%.*s\"] stopped (stack overflow, size %lu)\n".as_ptr(),
                     (*cap).no,
                     (*tso).id,
                     threadLabelLen,
                     threadLabel,
-                    info2 as c_long,
+                    info2 as i64,
                 );
             } else {
                 debugBelch(
-                    b"cap %d: thread %llu[\"%.*s\"] stopped (%s)\n\0" as *const u8 as *const c_char,
+                    c"cap %d: thread %llu[\"%.*s\"] stopped (%s)\n".as_ptr(),
                     (*cap).no,
                     (*tso).id,
                     threadLabelLen,
@@ -759,12 +700,12 @@ unsafe fn traceSchedEvent_stderr(
         }
         _ => {
             debugBelch(
-                b"cap %d: thread %llu[\"%.*s\"]: event %d\n\n\0" as *const u8 as *const c_char,
+                c"cap %d: thread %llu[\"%.*s\"]: event %d\n\n".as_ptr(),
                 (*cap).no,
                 (*tso).id,
                 threadLabelLen,
                 threadLabel,
-                tag as c_int,
+                tag as i32,
             );
         }
     };
@@ -783,11 +724,7 @@ unsafe fn traceSchedEvent_(
         postSchedEvent(
             cap,
             tag,
-            if !tso.is_null() {
-                (*tso).id
-            } else {
-                0 as StgThreadID
-            },
+            if !tso.is_null() { (*tso).id } else { 0 },
             info1,
             info2,
         );
@@ -797,60 +734,33 @@ unsafe fn traceSchedEvent_(
 unsafe fn traceGcEvent_stderr(mut cap: *mut Capability, mut tag: EventTypeNum) {
     tracePreface();
 
-    match tag as c_int {
+    match tag as i32 {
         EVENT_REQUEST_SEQ_GC => {
-            debugBelch(
-                b"cap %d: requesting sequential GC\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: requesting sequential GC\n".as_ptr(), (*cap).no);
         }
         EVENT_REQUEST_PAR_GC => {
-            debugBelch(
-                b"cap %d: requesting parallel GC\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: requesting parallel GC\n".as_ptr(), (*cap).no);
         }
         EVENT_GC_START => {
-            debugBelch(
-                b"cap %d: starting GC\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: starting GC\n".as_ptr(), (*cap).no);
         }
         EVENT_GC_END => {
-            debugBelch(
-                b"cap %d: finished GC\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: finished GC\n".as_ptr(), (*cap).no);
         }
         EVENT_GC_IDLE => {
-            debugBelch(
-                b"cap %d: GC idle\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: GC idle\n".as_ptr(), (*cap).no);
         }
         EVENT_GC_WORK => {
-            debugBelch(
-                b"cap %d: GC working\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: GC working\n".as_ptr(), (*cap).no);
         }
         EVENT_GC_DONE => {
-            debugBelch(
-                b"cap %d: GC done\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: GC done\n".as_ptr(), (*cap).no);
         }
         EVENT_GC_GLOBAL_SYNC => {
-            debugBelch(
-                b"cap %d: all caps stopped for GC\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: all caps stopped for GC\n".as_ptr(), (*cap).no);
         }
         _ => {
-            barf(
-                b"traceGcEvent: unknown event tag %d\0" as *const u8 as *const c_char,
-                tag as c_int,
-            );
+            barf(c"traceGcEvent: unknown event tag %d".as_ptr(), tag as i32);
         }
     };
 }
@@ -884,7 +794,7 @@ unsafe fn traceHeapEvent_(
 
 unsafe fn traceEventHeapInfo_(
     mut heap_capset: CapsetID,
-    mut gens: uint32_t,
+    mut gens: u32,
     mut maxHeapSize: W_,
     mut allocAreaSize: W_,
     mut mblockSize: W_,
@@ -905,11 +815,11 @@ unsafe fn traceEventHeapInfo_(
 unsafe fn traceEventGcStats_(
     mut cap: *mut Capability,
     mut heap_capset: CapsetID,
-    mut r#gen: uint32_t,
+    mut r#gen: u32,
     mut copied: W_,
     mut slop: W_,
     mut fragmentation: W_,
-    mut par_n_threads: uint32_t,
+    mut par_n_threads: u32,
     mut par_max_copied: W_,
     mut par_tot_copied: W_,
     mut par_balanced_copied: W_,
@@ -932,15 +842,14 @@ unsafe fn traceEventGcStats_(
 
 unsafe fn traceEventMemReturn_(
     mut cap: *mut Capability,
-    mut current_mblocks: uint32_t,
-    mut needed_mblocks: uint32_t,
-    mut returned_mblocks: uint32_t,
+    mut current_mblocks: u32,
+    mut needed_mblocks: u32,
+    mut returned_mblocks: u32,
 ) {
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR {
         traceCap_stderr(
             cap,
-            b"Memory Return (Current: %u) (Needed: %u) (Returned: %u)\0" as *const u8
-                as *const c_char as *mut c_char,
+            c"Memory Return (Current: %u) (Needed: %u) (Returned: %u)".as_ptr(),
             current_mblocks,
             needed_mblocks,
             returned_mblocks,
@@ -960,30 +869,18 @@ unsafe fn traceCapEvent_(mut cap: *mut Capability, mut tag: EventTypeNum) {
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR {
         tracePreface();
 
-        match tag as c_int {
+        match tag as i32 {
             EVENT_CAP_CREATE => {
-                debugBelch(
-                    b"cap %d: initialised\n\0" as *const u8 as *const c_char,
-                    (*cap).no,
-                );
+                debugBelch(c"cap %d: initialised\n".as_ptr(), (*cap).no);
             }
             EVENT_CAP_DELETE => {
-                debugBelch(
-                    b"cap %d: shutting down\n\0" as *const u8 as *const c_char,
-                    (*cap).no,
-                );
+                debugBelch(c"cap %d: shutting down\n".as_ptr(), (*cap).no);
             }
             EVENT_CAP_ENABLE => {
-                debugBelch(
-                    b"cap %d: enabling capability\n\0" as *const u8 as *const c_char,
-                    (*cap).no,
-                );
+                debugBelch(c"cap %d: enabling capability\n".as_ptr(), (*cap).no);
             }
             EVENT_CAP_DISABLE => {
-                debugBelch(
-                    b"cap %d: disabling capability\n\0" as *const u8 as *const c_char,
-                    (*cap).no,
-                );
+                debugBelch(c"cap %d: disabling capability\n".as_ptr(), (*cap).no);
             }
             _ => {}
         }
@@ -993,36 +890,25 @@ unsafe fn traceCapEvent_(mut cap: *mut Capability, mut tag: EventTypeNum) {
 }
 
 unsafe fn traceCapsetEvent_(mut tag: EventTypeNum, mut capset: CapsetID, mut info: StgWord) {
-    if RtsFlags.TraceFlags.tracing == TRACE_STDERR && TRACE_sched as c_int != 0 {
+    if RtsFlags.TraceFlags.tracing == TRACE_STDERR && TRACE_sched as i32 != 0 {
         tracePreface();
 
-        match tag as c_int {
+        match tag as i32 {
             EVENT_CAPSET_CREATE => {
                 debugBelch(
-                    b"created capset %u of type %d\n\0" as *const u8 as *const c_char,
+                    c"created capset %u of type %d\n".as_ptr(),
                     capset,
-                    info as c_int,
+                    info as i32,
                 );
             }
             EVENT_CAPSET_DELETE => {
-                debugBelch(
-                    b"deleted capset %u\n\0" as *const u8 as *const c_char,
-                    capset,
-                );
+                debugBelch(c"deleted capset %u\n".as_ptr(), capset);
             }
             EVENT_CAPSET_ASSIGN_CAP => {
-                debugBelch(
-                    b"assigned cap %llu to capset %u\n\0" as *const u8 as *const c_char,
-                    info,
-                    capset,
-                );
+                debugBelch(c"assigned cap %llu to capset %u\n".as_ptr(), info, capset);
             }
             EVENT_CAPSET_REMOVE_CAP => {
-                debugBelch(
-                    b"removed cap %llu from capset %u\n\0" as *const u8 as *const c_char,
-                    info,
-                    capset,
-                );
+                debugBelch(c"removed cap %llu from capset %u\n".as_ptr(), info, capset);
             }
             _ => {}
         }
@@ -1055,10 +941,10 @@ unsafe fn traceOSProcessInfo_() {
 
         snprintf(
             &raw mut buf as *mut c_char,
-            size_of::<[c_char; 256]>() as size_t,
-            b"GHC-%s %s\0" as *const u8 as *const c_char,
+            size_of::<[c_char; 256]>() as usize,
+            c"GHC-%s %s".as_ptr(),
             __GLASGOW_HASKELL_FULL_VERSION__.as_ptr(),
-            b"TODO RtsWay\0" as *const u8 as *const c_char,
+            c"TODO RtsWay".as_ptr(),
         );
 
         postCapsetStrEvent(
@@ -1067,11 +953,11 @@ unsafe fn traceOSProcessInfo_() {
             &raw mut buf as *mut c_char,
         );
 
-        let mut argc = 0 as c_int;
+        let mut argc = 0;
         let mut argv = null_mut::<*mut c_char>();
         getFullProgArgv(&raw mut argc, &raw mut argv);
 
-        if argc != 0 as c_int {
+        if argc != 0 {
             postCapsetVecEvent(
                 EVENT_PROGRAM_ARGS as EventTypeNum,
                 CAPSET_OSPROCESS_DEFAULT,
@@ -1089,61 +975,46 @@ unsafe fn traceSparkEvent_stderr(
 ) {
     tracePreface();
 
-    match tag as c_int {
+    match tag as i32 {
         EVENT_CREATE_SPARK_THREAD => {
             debugBelch(
-                b"cap %d: creating spark thread %lu\n\0" as *const u8 as *const c_char,
+                c"cap %d: creating spark thread %lu\n".as_ptr(),
                 (*cap).no,
-                info1 as c_long,
+                info1 as i64,
             );
         }
         EVENT_SPARK_CREATE => {
-            debugBelch(
-                b"cap %d: added spark to pool\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: added spark to pool\n".as_ptr(), (*cap).no);
         }
         EVENT_SPARK_DUD => {
-            debugBelch(
-                b"cap %d: discarded dud spark\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: discarded dud spark\n".as_ptr(), (*cap).no);
         }
         EVENT_SPARK_OVERFLOW => {
-            debugBelch(
-                b"cap %d: discarded overflowed spark\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: discarded overflowed spark\n".as_ptr(), (*cap).no);
         }
         EVENT_SPARK_RUN => {
-            debugBelch(
-                b"cap %d: running a spark\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: running a spark\n".as_ptr(), (*cap).no);
         }
         EVENT_SPARK_STEAL => {
             debugBelch(
-                b"cap %d: stealing a spark from cap %d\n\0" as *const u8 as *const c_char,
+                c"cap %d: stealing a spark from cap %d\n".as_ptr(),
                 (*cap).no,
-                info1 as c_int,
+                info1 as i32,
             );
         }
         EVENT_SPARK_FIZZLE => {
             debugBelch(
-                b"cap %d: fizzled spark removed from pool\n\0" as *const u8 as *const c_char,
+                c"cap %d: fizzled spark removed from pool\n".as_ptr(),
                 (*cap).no,
             );
         }
         EVENT_SPARK_GC => {
-            debugBelch(
-                b"cap %d: GCd spark removed from pool\n\0" as *const u8 as *const c_char,
-                (*cap).no,
-            );
+            debugBelch(c"cap %d: GCd spark removed from pool\n".as_ptr(), (*cap).no);
         }
         _ => {
             barf(
-                b"traceSparkEvent: unknown event tag %d\0" as *const u8 as *const c_char,
-                tag as c_int,
+                c"traceSparkEvent: unknown event tag %d".as_ptr(),
+                tag as i32,
             );
         }
     };
@@ -1182,6 +1053,7 @@ unsafe fn traceTaskMigrate_(
 ) {
     if !(RtsFlags.TraceFlags.tracing == TRACE_STDERR) {
         let mut taskid = serialisableTaskId(task) as EventTaskId;
+
         postTaskMigrateEvent(taskid, (*cap).no as EventCapNo, (*new_cap).no as EventCapNo);
     }
 }
@@ -1234,8 +1106,8 @@ unsafe fn traceIPE(mut ipe: *const InfoProvEnt) {
         tracePreface();
 
         debugBelch(
-            b"IPE: table_name %s, closure_desc %s, ty_desc %s, label %s, unit %s, module %s, srcloc %s:%s\n\0"
-                as *const u8 as *const c_char,
+            c"IPE: table_name %s, closure_desc %s, ty_desc %s, label %s, unit %s, module %s, srcloc %s:%s\n"
+                .as_ptr(),
             (*ipe).prov.table_name,
             &raw mut closure_desc_buf as *mut c_char,
             (*ipe).prov.ty_desc,
@@ -1252,9 +1124,9 @@ unsafe fn traceIPE(mut ipe: *const InfoProvEnt) {
 
 unsafe fn vtraceCap_stderr(mut cap: *mut Capability, mut msg: *mut c_char, mut ap: VaList) {
     tracePreface();
-    debugBelch(b"cap %d: \0" as *const u8 as *const c_char, (*cap).no);
+    debugBelch(c"cap %d: ".as_ptr(), (*cap).no);
     vdebugBelch(msg, ap.as_va_list());
-    debugBelch(b"\n\0" as *const u8 as *const c_char);
+    debugBelch(c"\n".as_ptr());
 }
 
 unsafe fn traceCap_stderr(mut cap: *mut Capability, mut msg: *mut c_char, mut args: ...) {
@@ -1277,7 +1149,7 @@ unsafe fn traceCap_(mut cap: *mut Capability, mut msg: *mut c_char, mut args: ..
 unsafe fn vtrace_stderr(mut msg: *mut c_char, mut ap: VaList) {
     tracePreface();
     vdebugBelch(msg, ap.as_va_list());
-    debugBelch(b"\n\0" as *const u8 as *const c_char);
+    debugBelch(c"\n".as_ptr());
 }
 
 unsafe fn trace_(mut msg: *mut c_char, mut args: ...) {
@@ -1292,31 +1164,23 @@ unsafe fn trace_(mut msg: *mut c_char, mut args: ...) {
 }
 
 unsafe fn traceUserMsg(mut cap: *mut Capability, mut msg: *mut c_char) {
-    if RtsFlags.TraceFlags.tracing == TRACE_STDERR && TRACE_user as c_int != 0 {
-        traceCap_stderr(
-            cap,
-            b"%s\0" as *const u8 as *const c_char as *mut c_char,
-            msg,
-        );
-    } else if eventlog_enabled as c_int != 0 && TRACE_user as c_int != 0 {
+    if RtsFlags.TraceFlags.tracing == TRACE_STDERR && TRACE_user as i32 != 0 {
+        traceCap_stderr(cap, c"%s".as_ptr(), msg);
+    } else if eventlog_enabled as i32 != 0 && TRACE_user as i32 != 0 {
         postUserEvent(cap, EVENT_USER_MSG as EventTypeNum, msg);
     }
 }
 
-unsafe fn traceUserBinaryMsg(mut cap: *mut Capability, mut msg: *mut uint8_t, mut size: size_t) {
-    if eventlog_enabled as c_int != 0 && TRACE_user as c_int != 0 {
+unsafe fn traceUserBinaryMsg(mut cap: *mut Capability, mut msg: *mut u8, mut size: usize) {
+    if eventlog_enabled as i32 != 0 && TRACE_user as i32 != 0 {
         postUserBinaryEvent(cap, EVENT_USER_BINARY_MSG as EventTypeNum, msg, size);
     }
 }
 
 unsafe fn traceUserMarker(mut cap: *mut Capability, mut markername: *mut c_char) {
-    if RtsFlags.TraceFlags.tracing == TRACE_STDERR && TRACE_user as c_int != 0 {
-        traceCap_stderr(
-            cap,
-            b"User marker: %s\0" as *const u8 as *const c_char as *mut c_char,
-            markername,
-        );
-    } else if eventlog_enabled as c_int != 0 && TRACE_user as c_int != 0 {
+    if RtsFlags.TraceFlags.tracing == TRACE_STDERR && TRACE_user as i32 != 0 {
+        traceCap_stderr(cap, c"User marker: %s".as_ptr(), markername);
+    } else if eventlog_enabled as i32 != 0 && TRACE_user as i32 != 0 {
         postUserEvent(cap, EVENT_USER_MARKER as EventTypeNum, markername);
     }
 }
@@ -1325,16 +1189,16 @@ unsafe fn traceThreadLabel_(
     mut cap: *mut Capability,
     mut tso: *mut StgTSO,
     mut label: *mut c_char,
-    mut len: size_t,
+    mut len: usize,
 ) {
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR {
         tracePreface();
 
         debugBelch(
-            b"cap %d: thread %llu has label %.*s\n\0" as *const u8 as *const c_char,
+            c"cap %d: thread %llu has label %.*s\n".as_ptr(),
             (*cap).no,
             (*tso).id,
-            len as c_int,
+            len as i32,
             label,
         );
     } else {
@@ -1384,17 +1248,14 @@ unsafe fn traceConcUpdRemSetFlush(mut cap: *mut Capability) {
     }
 }
 
-unsafe fn traceNonmovingHeapCensus(
-    mut blk_size: uint16_t,
-    mut census: *const NonmovingAllocCensus,
-) {
-    if eventlog_enabled as c_int != 0 && TRACE_nonmoving_gc as c_int != 0 {
+unsafe fn traceNonmovingHeapCensus(mut blk_size: u16, mut census: *const NonmovingAllocCensus) {
+    if eventlog_enabled as i32 != 0 && TRACE_nonmoving_gc as i32 != 0 {
         postNonmovingHeapCensus(blk_size, census);
     }
 }
 
-unsafe fn traceNonmovingPrunedSegments(mut pruned_segments: uint32_t, mut free_segments: uint32_t) {
-    if eventlog_enabled as c_int != 0 && TRACE_nonmoving_gc as c_int != 0 {
+unsafe fn traceNonmovingPrunedSegments(mut pruned_segments: u32, mut free_segments: u32) {
+    if eventlog_enabled as i32 != 0 && TRACE_nonmoving_gc as i32 != 0 {
         postNonmovingPrunedSegments(pruned_segments, free_segments);
     }
 }
@@ -1413,5 +1274,5 @@ unsafe fn traceBegin(mut str: *const c_char, mut args: ...) {
 }
 
 unsafe fn traceEnd() {
-    debugBelch(b"\n\0" as *const u8 as *const c_char);
+    debugBelch(c"\n".as_ptr());
 }

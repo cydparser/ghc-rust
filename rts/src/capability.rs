@@ -61,17 +61,17 @@ pub type Capability = Capability_;
 pub(crate) struct Capability_ {
     pub(crate) f: StgFunTable,
     pub(crate) r: StgRegTable,
-    pub(crate) no: uint32_t,
-    pub(crate) node: uint32_t,
+    pub(crate) no: u32,
+    pub(crate) node: u32,
     pub(crate) running_task: *mut Task,
     pub(crate) in_haskell: bool,
-    pub(crate) idle: uint32_t,
+    pub(crate) idle: u32,
     pub(crate) disabled: bool,
     pub(crate) run_queue_hd: *mut StgTSO,
     pub(crate) run_queue_tl: *mut StgTSO,
-    pub(crate) n_run_queue: uint32_t,
+    pub(crate) n_run_queue: u32,
     pub(crate) suspended_ccalls: *mut InCall,
-    pub(crate) n_suspended_ccalls: uint32_t,
+    pub(crate) n_suspended_ccalls: u32,
     pub(crate) mut_lists: *mut *mut bdescr,
     pub(crate) saved_mut_lists: *mut *mut bdescr,
     pub(crate) upd_rem_set: UpdRemSet,
@@ -81,19 +81,19 @@ pub(crate) struct Capability_ {
     pub(crate) pinned_object_empty: *mut bdescr,
     pub(crate) weak_ptr_list_hd: *mut StgWeak,
     pub(crate) weak_ptr_list_tl: *mut StgWeak,
-    pub(crate) context_switch: c_int,
-    pub(crate) interrupt: c_int,
-    pub(crate) total_allocated: uint64_t,
+    pub(crate) context_switch: i32,
+    pub(crate) interrupt: i32,
+    pub(crate) total_allocated: u64,
     pub(crate) iomgr: *mut CapIOManager,
     pub(crate) free_tvar_watch_queues: *mut StgTVarWatchQueue,
     pub(crate) free_trec_chunks: *mut StgTRecChunk,
     pub(crate) free_trec_headers: *mut StgTRecHeader,
-    pub(crate) transaction_tokens: uint32_t,
+    pub(crate) transaction_tokens: u32,
 }
 
 pub(crate) type CapIOManager = _CapIOManager;
 
-pub(crate) type SyncType = c_uint;
+pub(crate) type SyncType = u32;
 
 pub(crate) const SYNC_FLUSH_EVENT_LOG: SyncType = 4;
 
@@ -114,8 +114,7 @@ pub(crate) struct PendingSync {
 
 #[inline]
 pub(crate) unsafe fn regTableToCapability(mut reg: *mut StgRegTable) -> *mut Capability {
-    return (reg as *mut c_uchar).offset(-(24 as c_ulong as isize)) as *mut c_void
-        as *mut Capability;
+    return (reg as *mut u8).offset(-24) as *mut c_void as *mut Capability;
 }
 
 #[inline]
@@ -128,7 +127,7 @@ pub(crate) unsafe fn releaseAndWakeupCapability(mut cap: *mut Capability) {}
 pub(crate) unsafe fn releaseCapability_(mut cap: *mut Capability, mut always_wakeup: bool) {}
 
 #[inline]
-pub(crate) unsafe fn getCapability(mut i: uint32_t) -> *mut Capability {
+pub(crate) unsafe fn getCapability(mut i: u32) -> *mut Capability {
     return *capabilities.offset(i as isize);
 }
 
@@ -136,7 +135,7 @@ pub(crate) unsafe fn getCapability(mut i: uint32_t) -> *mut Capability {
 pub(crate) unsafe fn recordMutableCap(
     mut p: *const StgClosure,
     mut cap: *mut Capability,
-    mut r#gen: uint32_t,
+    mut r#gen: u32,
 ) {
     let mut bd = null_mut::<bdescr>();
     bd = *(*cap).mut_lists.offset(r#gen as isize);
@@ -153,7 +152,7 @@ pub(crate) unsafe fn recordMutableCap(
     }
 
     *(*bd).c2rust_unnamed.free = p as StgWord;
-    (*bd).c2rust_unnamed.free = (*bd).c2rust_unnamed.free.offset(1 as c_int as isize);
+    (*bd).c2rust_unnamed.free = (*bd).c2rust_unnamed.free.offset(1);
 }
 
 #[inline]
@@ -161,8 +160,8 @@ pub(crate) unsafe fn recordClosureMutated(mut cap: *mut Capability, mut p: *mut 
     let mut bd = null_mut::<bdescr>();
     bd = Bdescr(p as StgPtr);
 
-    if (*bd).gen_no as c_int != 0 as c_int {
-        recordMutableCap(p, cap, (*bd).gen_no as uint32_t);
+    if (*bd).gen_no as i32 != 0 {
+        recordMutableCap(p, cap, (*bd).gen_no as u32);
     }
 }
 
@@ -174,7 +173,7 @@ pub(crate) unsafe fn stopCapability(mut cap: *mut Capability) {
 #[inline]
 pub(crate) unsafe fn interruptCapability(mut cap: *mut Capability) {
     stopCapability(cap);
-    (&raw mut (*cap).interrupt).store(1 as c_int, Ordering::Relaxed);
+    (&raw mut (*cap).interrupt).store(1, Ordering::Relaxed);
 }
 
 #[inline]
@@ -183,7 +182,7 @@ pub(crate) unsafe fn contextSwitchCapability(mut cap: *mut Capability, mut immed
         stopCapability(cap);
     }
 
-    (&raw mut (*cap).context_switch).store(1 as c_int, Ordering::Relaxed);
+    (&raw mut (*cap).context_switch).store(1, Ordering::Relaxed);
 }
 
 extern "C" {
@@ -312,82 +311,81 @@ pub static mut MainCapability: Capability = Capability_ {
             },
         },
         rL1: 0,
-        rSp: null::<StgWord>() as *mut StgWord,
-        rSpLim: null::<StgWord>() as *mut StgWord,
-        rHp: null::<StgWord>() as *mut StgWord,
-        rHpLim: null::<StgWord>() as *mut StgWord,
-        rCCCS: null::<CostCentreStack_>() as *mut CostCentreStack_,
-        rCurrentTSO: null::<StgTSO_>() as *mut StgTSO_,
-        rNursery: null::<nursery_>() as *mut nursery_,
-        rCurrentNursery: null::<bdescr_>() as *mut bdescr_,
-        rCurrentAlloc: null::<bdescr_>() as *mut bdescr_,
+        rSp: null_mut::<StgWord>(),
+        rSpLim: null_mut::<StgWord>(),
+        rHp: null_mut::<StgWord>(),
+        rHpLim: null_mut::<StgWord>(),
+        rCCCS: null_mut::<CostCentreStack_>(),
+        rCurrentTSO: null_mut::<StgTSO_>(),
+        rNursery: null_mut::<nursery_>(),
+        rCurrentNursery: null_mut::<bdescr_>(),
+        rCurrentAlloc: null_mut::<bdescr_>(),
         rHpAlloc: 0,
         rRet: 0,
     },
     no: 0,
     node: 0,
-    running_task: null::<Task>() as *mut Task,
+    running_task: null_mut::<Task>(),
     in_haskell: false,
     idle: 0,
     disabled: false,
-    run_queue_hd: null::<StgTSO>() as *mut StgTSO,
-    run_queue_tl: null::<StgTSO>() as *mut StgTSO,
+    run_queue_hd: null_mut::<StgTSO>(),
+    run_queue_tl: null_mut::<StgTSO>(),
     n_run_queue: 0,
-    suspended_ccalls: null::<InCall>() as *mut InCall,
+    suspended_ccalls: null_mut::<InCall>(),
     n_suspended_ccalls: 0,
-    mut_lists: null::<*mut bdescr>() as *mut *mut bdescr,
-    saved_mut_lists: null::<*mut bdescr>() as *mut *mut bdescr,
+    mut_lists: null_mut::<*mut bdescr>(),
+    saved_mut_lists: null_mut::<*mut bdescr>(),
     upd_rem_set: UpdRemSet {
         queue: MarkQueue_ {
-            blocks: null::<bdescr>() as *mut bdescr,
-            top: null::<MarkQueueBlock>() as *mut MarkQueueBlock,
+            blocks: null_mut::<bdescr>(),
+            top: null_mut::<MarkQueueBlock>(),
             is_upd_rem_set: false,
             prefetch_queue: [MarkQueueEnt {
                 c2rust_unnamed: C2RustUnnamed_2 {
                     null_entry: C2RustUnnamed_5 {
-                        p: null::<c_void>() as *mut c_void,
+                        p: null_mut::<c_void>(),
                     },
                 },
             }; 5],
             prefetch_head: 0,
         },
     },
-    current_segments: null::<*mut NonmovingSegment>() as *mut *mut NonmovingSegment,
-    pinned_object_block: null::<bdescr>() as *mut bdescr,
-    pinned_object_blocks: null::<bdescr>() as *mut bdescr,
-    pinned_object_empty: null::<bdescr>() as *mut bdescr,
-    weak_ptr_list_hd: null::<StgWeak>() as *mut StgWeak,
-    weak_ptr_list_tl: null::<StgWeak>() as *mut StgWeak,
+    current_segments: null_mut::<*mut NonmovingSegment>(),
+    pinned_object_block: null_mut::<bdescr>(),
+    pinned_object_blocks: null_mut::<bdescr>(),
+    pinned_object_empty: null_mut::<bdescr>(),
+    weak_ptr_list_hd: null_mut::<StgWeak>(),
+    weak_ptr_list_tl: null_mut::<StgWeak>(),
     context_switch: 0,
     interrupt: 0,
     total_allocated: 0,
-    iomgr: null::<CapIOManager>() as *mut CapIOManager,
-    free_tvar_watch_queues: null::<StgTVarWatchQueue>() as *mut StgTVarWatchQueue,
-    free_trec_chunks: null::<StgTRecChunk>() as *mut StgTRecChunk,
-    free_trec_headers: null::<StgTRecHeader>() as *mut StgTRecHeader,
+    iomgr: null_mut::<CapIOManager>(),
+    free_tvar_watch_queues: null_mut::<StgTVarWatchQueue>(),
+    free_trec_chunks: null_mut::<StgTRecChunk>(),
+    free_trec_headers: null_mut::<StgTRecHeader>(),
     transaction_tokens: 0,
 };
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
-pub static mut n_capabilities: uint32_t = 0 as uint32_t;
+pub static mut n_capabilities: u32 = 0;
 
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
-pub static mut enabled_capabilities: uint32_t = 0 as uint32_t;
+pub static mut enabled_capabilities: u32 = 0;
 
-static mut max_n_capabilities: uint32_t = MAX_N_CAPABILITIES as uint32_t;
+static mut max_n_capabilities: u32 = MAX_N_CAPABILITIES as u32;
 
-static mut capabilities: *mut *mut Capability = null::<*mut Capability>() as *mut *mut Capability;
+static mut capabilities: *mut *mut Capability = null_mut::<*mut Capability>();
 
-static mut last_free_capability: [*mut Capability; 16] =
-    [null::<Capability>() as *mut Capability; 16];
+static mut last_free_capability: [*mut Capability; 16] = [null_mut::<Capability>(); 16];
 
-static mut pending_sync: *mut PendingSync = null::<PendingSync>() as *mut PendingSync;
+static mut pending_sync: *mut PendingSync = null_mut::<PendingSync>();
 
-static mut n_numa_nodes: uint32_t = 0;
+static mut n_numa_nodes: u32 = 0;
 
-static mut numa_map: [uint32_t; 16] = [0; 16];
+static mut numa_map: [u32; 16] = [0; 16];
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
@@ -396,17 +394,17 @@ pub unsafe extern "C" fn rts_unsafeGetMyCapability() -> *mut Capability {
     return &raw mut MainCapability;
 }
 
-unsafe fn initCapability(mut cap: *mut Capability, mut i: uint32_t) {
-    let mut g: uint32_t = 0;
+unsafe fn initCapability(mut cap: *mut Capability, mut i: u32) {
+    let mut g: u32 = 0;
     (*cap).no = i;
     (*cap).node = i.wrapping_rem(n_numa_nodes);
-    (*cap).in_haskell = r#false != 0;
-    (*cap).idle = 0 as uint32_t;
-    (*cap).disabled = r#false != 0;
+    (*cap).in_haskell = false;
+    (*cap).idle = 0;
+    (*cap).disabled = false;
     (*cap).run_queue_hd = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
     (*cap).run_queue_tl = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
-    (*cap).n_run_queue = 0 as uint32_t;
-    (*cap).total_allocated = 0 as uint64_t;
+    (*cap).n_run_queue = 0;
+    (*cap).total_allocated = 0;
     initCapabilityIOManager(cap);
     (*cap).f.stgEagerBlackholeInfo = &raw const __stg_EAGER_BLACKHOLE_info as W_ as StgWord;
 
@@ -419,18 +417,18 @@ unsafe fn initCapability(mut cap: *mut Capability, mut i: uint32_t) {
     ));
 
     (*cap).mut_lists = stgMallocBytes(
-        (size_of::<*mut bdescr>() as size_t).wrapping_mul(RtsFlags.GcFlags.generations as size_t),
-        b"initCapability\0" as *const u8 as *const c_char as *mut c_char,
+        (size_of::<*mut bdescr>() as usize).wrapping_mul(RtsFlags.GcFlags.generations as usize),
+        c"initCapability".as_ptr(),
     ) as *mut *mut bdescr;
 
     (*cap).saved_mut_lists = stgMallocBytes(
-        (size_of::<*mut bdescr>() as size_t).wrapping_mul(RtsFlags.GcFlags.generations as size_t),
-        b"initCapability\0" as *const u8 as *const c_char as *mut c_char,
+        (size_of::<*mut bdescr>() as usize).wrapping_mul(RtsFlags.GcFlags.generations as usize),
+        c"initCapability".as_ptr(),
     ) as *mut *mut bdescr;
 
     (*cap).current_segments = null_mut::<*mut NonmovingSegment>();
     (*cap).upd_rem_set.queue.blocks = null_mut::<bdescr>();
-    g = 0 as uint32_t;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         let ref mut fresh7 = *(*cap).mut_lists.offset(g as isize);
@@ -445,9 +443,9 @@ unsafe fn initCapability(mut cap: *mut Capability, mut i: uint32_t) {
     (*cap).free_trec_chunks =
         &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk;
     (*cap).free_trec_headers = &raw mut stg_NO_TREC_closure as *mut c_void as *mut StgTRecHeader;
-    (*cap).transaction_tokens = 0 as uint32_t;
-    (*cap).context_switch = 0 as c_int;
-    (*cap).interrupt = 0 as c_int;
+    (*cap).transaction_tokens = 0;
+    (*cap).context_switch = 0;
+    (*cap).interrupt = 0;
     (*cap).pinned_object_block = null_mut::<bdescr>();
     (*cap).pinned_object_blocks = null_mut::<bdescr>();
     (*cap).pinned_object_empty = null_mut::<bdescr>();
@@ -461,92 +459,89 @@ unsafe fn initCapability(mut cap: *mut Capability, mut i: uint32_t) {
 unsafe fn initCapabilities() {
     traceCapsetCreate(
         CAPSET_OSPROCESS_DEFAULT,
-        CapsetTypeOsProcess as c_int as CapsetType,
+        CapsetTypeOsProcess as i32 as CapsetType,
     );
 
     traceCapsetCreate(
         CAPSET_CLOCKDOMAIN_DEFAULT,
-        CapsetTypeClockdomain as c_int as CapsetType,
+        CapsetTypeClockdomain as i32 as CapsetType,
     );
 
     if !RtsFlags.GcFlags.numa {
-        n_numa_nodes = 1 as uint32_t;
+        n_numa_nodes = 1;
 
-        let mut i: uint32_t = 0 as uint32_t;
+        let mut i: u32 = 0;
 
-        while i < MAX_NUMA_NODES as uint32_t {
-            numa_map[i as usize] = 0 as uint32_t;
+        while i < MAX_NUMA_NODES as u32 {
+            numa_map[i as usize] = 0;
             i = i.wrapping_add(1);
         }
     } else if !RtsFlags.DebugFlags.numa {
         let mut nNodes = osNumaNodes();
 
-        if nNodes > MAX_NUMA_NODES as uint32_t {
-            barf(
-                b"Too many NUMA nodes (max %d)\0" as *const u8 as *const c_char,
-                MAX_NUMA_NODES,
-            );
+        if nNodes > MAX_NUMA_NODES as u32 {
+            barf(c"Too many NUMA nodes (max %d)".as_ptr(), MAX_NUMA_NODES);
         }
 
         let mut mask: StgWord = RtsFlags.GcFlags.numaMask & osNumaMask() as StgWord;
-        let mut logical: uint32_t = 0 as uint32_t;
-        let mut physical: uint32_t = 0 as uint32_t;
+        let mut logical: u32 = 0;
+        let mut physical: u32 = 0;
 
-        while physical < MAX_NUMA_NODES as uint32_t {
-            if mask & 1 as StgWord != 0 {
+        while physical < MAX_NUMA_NODES as u32 {
+            if mask & 1 != 0 {
                 let fresh5 = logical;
                 logical = logical.wrapping_add(1);
                 numa_map[fresh5 as usize] = physical;
             }
 
-            mask = mask >> 1 as c_int;
+            mask = mask >> 1;
             physical = physical.wrapping_add(1);
         }
 
         n_numa_nodes = logical;
 
-        if logical == 0 as uint32_t {
-            barf(b"available NUMA node set is empty\0" as *const u8 as *const c_char);
+        if logical == 0 {
+            barf(c"available NUMA node set is empty".as_ptr());
         }
     }
 
-    n_capabilities = 1 as uint32_t;
+    n_capabilities = 1;
 
     capabilities = stgMallocBytes(
-        size_of::<Capability>() as size_t,
-        b"initCapabilities\0" as *const u8 as *const c_char as *mut c_char,
+        size_of::<Capability>() as usize,
+        c"initCapabilities".as_ptr(),
     ) as *mut *mut Capability;
 
-    let ref mut fresh6 = *capabilities.offset(0 as c_int as isize);
+    let ref mut fresh6 = *capabilities.offset(0);
     *fresh6 = &raw mut MainCapability;
-    initCapability(&raw mut MainCapability, 0 as uint32_t);
+    initCapability(&raw mut MainCapability, 0);
     enabled_capabilities = n_capabilities;
 
-    let mut i_0: uint32_t = 0 as uint32_t;
+    let mut i_0: u32 = 0;
 
     while i_0 < n_numa_nodes {
-        last_free_capability[i_0 as usize] = getCapability(0 as uint32_t);
+        last_free_capability[i_0 as usize] = getCapability(0);
         i_0 = i_0.wrapping_add(1);
     }
 }
 
-unsafe fn moreCapabilities(mut from: uint32_t, mut to: uint32_t) {}
+unsafe fn moreCapabilities(mut from: u32, mut to: u32) {}
 
 unsafe fn contextSwitchAllCapabilities() {
-    let mut i: uint32_t = 0;
-    i = 0 as uint32_t;
+    let mut i: u32 = 0;
+    i = 0;
 
-    while i < getNumCapabilities() as uint32_t {
-        contextSwitchCapability(getCapability(i), r#true != 0);
+    while i < getNumCapabilities() as u32 {
+        contextSwitchCapability(getCapability(i), true);
         i = i.wrapping_add(1);
     }
 }
 
 unsafe fn interruptAllCapabilities() {
-    let mut i: uint32_t = 0;
-    i = 0 as uint32_t;
+    let mut i: u32 = 0;
+    i = 0;
 
-    while i < getNumCapabilities() as uint32_t {
+    while i < getNumCapabilities() as u32 {
         interruptCapability(getCapability(i));
         i = i.wrapping_add(1);
     }
@@ -561,10 +556,10 @@ unsafe fn waitForCapability(mut pCap: *mut *mut Capability, mut task: *mut Task)
 unsafe fn shutdownCapability(mut cap: *mut Capability, mut task: *mut Task, mut safe: bool) {}
 
 unsafe fn shutdownCapabilities(mut task: *mut Task, mut safe: bool) {
-    let mut i: uint32_t = 0;
-    i = 0 as uint32_t;
+    let mut i: u32 = 0;
+    i = 0;
 
-    while i < getNumCapabilities() as uint32_t {
+    while i < getNumCapabilities() as u32 {
         shutdownCapability(getCapability(i), task, safe);
         i = i.wrapping_add(1);
     }
@@ -596,7 +591,6 @@ unsafe fn markCapability(
     mut no_mark_sparks: bool,
 ) {
     let mut incall = null_mut::<InCall>();
-
     evac.expect("non-null function pointer")(
         user,
         &raw mut (*cap).run_queue_hd as *mut c_void as *mut *mut StgClosure,
@@ -623,11 +617,11 @@ unsafe fn markCapability(
 }
 
 unsafe fn markCapabilities(mut evac: evac_fn, mut user: *mut c_void) {
-    let mut n: uint32_t = 0;
-    n = 0 as uint32_t;
+    let mut n: u32 = 0;
+    n = 0;
 
-    while n < getNumCapabilities() as uint32_t {
-        markCapability(evac, user, getCapability(n), r#false != 0);
+    while n < getNumCapabilities() as u32 {
+        markCapability(evac, user, getCapability(n), false);
         n = n.wrapping_add(1);
     }
 }

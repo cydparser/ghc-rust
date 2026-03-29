@@ -75,7 +75,7 @@ pub(crate) unsafe fn doYouWantToGC(mut cap: *mut Capability) -> bool {
 pub(crate) unsafe fn finishedNurseryBlock(mut cap: *mut Capability, mut bd: *mut bdescr) {
     (*cap).total_allocated = (*cap)
         .total_allocated
-        .wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).start) as c_long as uint64_t);
+        .wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).start) as i64 as u64);
 }
 
 #[inline]
@@ -83,7 +83,7 @@ pub(crate) unsafe fn newNurseryBlock(mut bd: *mut bdescr) {
     (*bd).c2rust_unnamed.free = (*bd).start;
 }
 
-pub(crate) const STATIC_FLAG_LIST: c_int = 3 as c_int;
+pub(crate) const STATIC_FLAG_LIST: i32 = 3;
 
 pub(crate) const END_OF_CAF_LIST: *mut StgClosure = STATIC_FLAG_LIST as *mut StgClosure;
 
@@ -91,20 +91,20 @@ pub(crate) const END_OF_CAF_LIST: *mut StgClosure = STATIC_FLAG_LIST as *mut Stg
 pub(crate) unsafe fn clear_blocks(mut bd: *mut bdescr) {
     memset(
         (*bd).start as *mut c_void,
-        if RtsFlags.DebugFlags.zero_on_gc as c_int != 0 {
-            0xaa as c_int
+        if RtsFlags.DebugFlags.zero_on_gc as i32 != 0 {
+            0xaa
         } else {
-            0 as c_int
+            0
         },
-        (BLOCK_SIZE as size_t).wrapping_mul((*bd).blocks as size_t),
+        (BLOCK_SIZE as usize).wrapping_mul((*bd).blocks as usize),
     );
 }
 
-static mut dyn_caf_list: *mut StgIndStatic = null::<StgIndStatic>() as *mut StgIndStatic;
+static mut dyn_caf_list: *mut StgIndStatic = null_mut::<StgIndStatic>();
 
-static mut debug_caf_list: *mut StgIndStatic = null::<StgIndStatic>() as *mut StgIndStatic;
+static mut debug_caf_list: *mut StgIndStatic = null_mut::<StgIndStatic>();
 
-static mut revertible_caf_list: *mut StgIndStatic = null::<StgIndStatic>() as *mut StgIndStatic;
+static mut revertible_caf_list: *mut StgIndStatic = null_mut::<StgIndStatic>();
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
@@ -114,54 +114,54 @@ static mut highMemDynamic: bool = false;
 
 static mut large_alloc_lim: W_ = 0;
 
-static mut exec_block: *mut bdescr = null::<bdescr>() as *mut bdescr;
+static mut exec_block: *mut bdescr = null_mut::<bdescr>();
 
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
-pub static mut generations: *mut generation = null::<generation>() as *mut generation;
+pub static mut generations: *mut generation = null_mut::<generation>();
 
 #[ffi(compiler, ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub static mut g0: *mut generation = null::<generation>() as *mut generation;
+pub static mut g0: *mut generation = null_mut::<generation>();
 
-static mut oldest_gen: *mut generation = null::<generation>() as *mut generation;
+static mut oldest_gen: *mut generation = null_mut::<generation>();
 
-static mut nurseries: *mut nursery = null::<nursery>() as *mut nursery;
+static mut nurseries: *mut nursery = null_mut::<nursery>();
 
-static mut n_nurseries: uint32_t = 0;
+static mut n_nurseries: u32 = 0;
 
 const PINNED_EMPTY_SIZE: W_ = BLOCKS_PER_MBLOCK;
 
 static mut next_nursery: [StgWord; 16] = [0; 16];
 
-unsafe fn initGeneration(mut r#gen: *mut generation, mut g: c_int) {
-    (*r#gen).no = g as uint32_t;
-    (*r#gen).collections = 0 as uint32_t;
-    (*r#gen).par_collections = 0 as uint32_t;
-    (*r#gen).failed_promotions = 0 as uint32_t;
-    (*r#gen).max_blocks = 0 as memcount;
+unsafe fn initGeneration(mut r#gen: *mut generation, mut g: i32) {
+    (*r#gen).no = g as u32;
+    (*r#gen).collections = 0;
+    (*r#gen).par_collections = 0;
+    (*r#gen).failed_promotions = 0;
+    (*r#gen).max_blocks = 0;
     (*r#gen).blocks = null_mut::<bdescr>();
-    (*r#gen).n_blocks = 0 as memcount;
-    (*r#gen).n_words = 0 as memcount;
-    (*r#gen).live_estimate = 0 as memcount;
+    (*r#gen).n_blocks = 0;
+    (*r#gen).n_words = 0;
+    (*r#gen).live_estimate = 0;
     (*r#gen).old_blocks = null_mut::<bdescr>();
-    (*r#gen).n_old_blocks = 0 as memcount;
+    (*r#gen).n_old_blocks = 0;
     (*r#gen).large_objects = null_mut::<bdescr>();
-    (*r#gen).n_large_blocks = 0 as memcount;
-    (*r#gen).n_large_words = 0 as memcount;
-    (*r#gen).n_new_large_words = 0 as memcount;
+    (*r#gen).n_large_blocks = 0;
+    (*r#gen).n_large_words = 0;
+    (*r#gen).n_new_large_words = 0;
     (*r#gen).compact_objects = null_mut::<bdescr>();
-    (*r#gen).n_compact_blocks = 0 as memcount;
+    (*r#gen).n_compact_blocks = 0;
     (*r#gen).compact_blocks_in_import = null_mut::<bdescr>();
-    (*r#gen).n_compact_blocks_in_import = 0 as memcount;
+    (*r#gen).n_compact_blocks_in_import = 0;
     (*r#gen).scavenged_large_objects = null_mut::<bdescr>();
-    (*r#gen).n_scavenged_large_blocks = 0 as memcount;
+    (*r#gen).n_scavenged_large_blocks = 0;
     (*r#gen).live_compact_objects = null_mut::<bdescr>();
-    (*r#gen).n_live_compact_blocks = 0 as memcount;
+    (*r#gen).n_live_compact_blocks = 0;
     (*r#gen).compact_blocks_in_import = null_mut::<bdescr>();
-    (*r#gen).n_compact_blocks_in_import = 0 as memcount;
-    (*r#gen).mark = 0 as c_int;
-    (*r#gen).compact = 0 as c_int;
+    (*r#gen).n_compact_blocks_in_import = 0;
+    (*r#gen).mark = 0;
+    (*r#gen).compact = 0;
     (*r#gen).bitmap = null_mut::<bdescr>();
     (*r#gen).threads = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
     (*r#gen).old_threads = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
@@ -173,16 +173,16 @@ unsafe fn traceHeapInfo() {
     traceEventHeapInfo(
         CAPSET_HEAP_DEFAULT,
         RtsFlags.GcFlags.generations,
-        (RtsFlags.GcFlags.maxHeapSize as c_ulong).wrapping_mul(BLOCK_SIZE) as W_,
-        (RtsFlags.GcFlags.minAllocAreaSize as c_ulong).wrapping_mul(BLOCK_SIZE) as W_,
+        (RtsFlags.GcFlags.maxHeapSize as u64).wrapping_mul(BLOCK_SIZE) as W_,
+        (RtsFlags.GcFlags.minAllocAreaSize as u64).wrapping_mul(BLOCK_SIZE) as W_,
         MBLOCK_SIZE as W_,
         BLOCK_SIZE as W_,
     );
 }
 
 unsafe fn initStorage() {
-    let mut g: uint32_t = 0;
-    let mut n: uint32_t = 0;
+    let mut g: u32 = 0;
+    let mut n: u32 = 0;
 
     if !generations.is_null() {
         return;
@@ -192,30 +192,25 @@ unsafe fn initStorage() {
     initBlockAllocator();
 
     generations = stgMallocBytes(
-        (RtsFlags.GcFlags.generations as size_t).wrapping_mul(size_of::<generation_>() as size_t),
-        b"initStorage: gens\0" as *const u8 as *const c_char as *mut c_char,
+        (RtsFlags.GcFlags.generations as usize).wrapping_mul(size_of::<generation_>() as usize),
+        c"initStorage: gens".as_ptr(),
     ) as *mut generation;
 
-    g = 0 as uint32_t;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
-        initGeneration(
-            generations.offset(g as isize) as *mut generation,
-            g as c_int,
-        );
-
+        initGeneration(generations.offset(g as isize) as *mut generation, g as i32);
         g = g.wrapping_add(1);
     }
 
-    g0 = generations.offset(0 as c_int as isize) as *mut generation;
-    oldest_gen = generations
-        .offset(RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t) as isize)
+    g0 = generations.offset(0) as *mut generation;
+    oldest_gen = generations.offset(RtsFlags.GcFlags.generations.wrapping_sub(1 as u32) as isize)
         as *mut generation;
-    g = 0 as uint32_t;
+    g = 0;
 
-    while g < RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t) {
+    while g < RtsFlags.GcFlags.generations.wrapping_sub(1 as u32) {
         let ref mut fresh12 = (*generations.offset(g as isize)).to;
-        *fresh12 = generations.offset(g.wrapping_add(1 as uint32_t) as isize) as *mut generation
+        *fresh12 = generations.offset(g.wrapping_add(1 as u32) as isize) as *mut generation
             as *mut generation_;
         g = g.wrapping_add(1);
     }
@@ -223,27 +218,24 @@ unsafe fn initStorage() {
     (*oldest_gen).to = oldest_gen as *mut generation_;
     nonmovingInit();
 
-    if RtsFlags.GcFlags.compact as c_int != 0 || RtsFlags.GcFlags.sweep as c_int != 0 {
-        if RtsFlags.GcFlags.generations == 1 as uint32_t {
-            errorBelch(
-                b"WARNING: compact/sweep is incompatible with -G1; disabled\0" as *const u8
-                    as *const c_char,
-            );
+    if RtsFlags.GcFlags.compact as i32 != 0 || RtsFlags.GcFlags.sweep as i32 != 0 {
+        if RtsFlags.GcFlags.generations == 1 {
+            errorBelch(c"WARNING: compact/sweep is incompatible with -G1; disabled".as_ptr());
         } else {
-            (*oldest_gen).mark = 1 as c_int;
+            (*oldest_gen).mark = 1;
 
             if RtsFlags.GcFlags.compact {
-                (*oldest_gen).compact = 1 as c_int;
+                (*oldest_gen).compact = 1;
             }
         }
     }
 
-    (*generations.offset(0 as c_int as isize)).max_blocks = 0 as memcount;
+    (*generations.offset(0)).max_blocks = 0;
     dyn_caf_list = END_OF_CAF_LIST as *mut StgIndStatic;
     debug_caf_list = END_OF_CAF_LIST as *mut StgIndStatic;
     revertible_caf_list = END_OF_CAF_LIST as *mut StgIndStatic;
 
-    if RtsFlags.GcFlags.largeAllocLim > 0 as uint32_t {
+    if RtsFlags.GcFlags.largeAllocLim > 0 {
         large_alloc_lim =
             (RtsFlags.GcFlags.largeAllocLim as usize).wrapping_mul(BLOCK_SIZE_W) as W_;
     } else {
@@ -252,60 +244,60 @@ unsafe fn initStorage() {
     }
 
     exec_block = null_mut::<bdescr>();
-    N = 0 as uint32_t;
-    n = 0 as uint32_t;
+    N = 0;
+    n = 0;
 
     while n < n_numa_nodes {
         write_volatile(&mut next_nursery[n as usize] as *mut StgWord, n as StgWord);
         n = n.wrapping_add(1);
     }
 
-    storageAddCapabilities(0 as uint32_t, getNumCapabilities() as uint32_t);
+    storageAddCapabilities(0, getNumCapabilities() as u32);
     postInitEvent(Some(traceHeapInfo as unsafe extern "C" fn() -> ()));
 }
 
-unsafe fn storageAddCapabilities(mut from: uint32_t, mut to: uint32_t) {
-    let mut n: uint32_t = 0;
-    let mut g: uint32_t = 0;
-    let mut i: uint32_t = 0;
-    let mut new_n_nurseries: uint32_t = 0;
+unsafe fn storageAddCapabilities(mut from: u32, mut to: u32) {
+    let mut n: u32 = 0;
+    let mut g: u32 = 0;
+    let mut i: u32 = 0;
+    let mut new_n_nurseries: u32 = 0;
     let mut old_nurseries = null_mut::<nursery>();
 
-    if RtsFlags.GcFlags.nurseryChunkSize == 0 as uint32_t {
+    if RtsFlags.GcFlags.nurseryChunkSize == 0 {
         new_n_nurseries = to;
     } else {
         let mut total_alloc: memcount =
             to.wrapping_mul(RtsFlags.GcFlags.minAllocAreaSize) as memcount;
 
         new_n_nurseries = ({
-            let mut _a: uint32_t = to as uint32_t;
-            let mut _b: uint32_t =
-                total_alloc.wrapping_div(RtsFlags.GcFlags.nurseryChunkSize as memcount) as uint32_t;
+            let mut _a: u32 = to as u32;
+            let mut _b: u32 =
+                total_alloc.wrapping_div(RtsFlags.GcFlags.nurseryChunkSize as memcount) as u32;
 
-            if _a <= _b { _b } else { _a as uint32_t }
+            if _a <= _b { _b } else { _a as u32 }
         });
     }
 
     old_nurseries = nurseries;
 
-    if from > 0 as uint32_t {
+    if from > 0 {
         nurseries = stgReallocBytes(
             nurseries as *mut c_void,
-            (new_n_nurseries as size_t).wrapping_mul(size_of::<nursery_>() as size_t),
-            b"storageAddCapabilities\0" as *const u8 as *const c_char as *mut c_char,
+            (new_n_nurseries as usize).wrapping_mul(size_of::<nursery_>() as usize),
+            c"storageAddCapabilities".as_ptr(),
         ) as *mut nursery;
     } else {
         nurseries = stgMallocBytes(
-            (new_n_nurseries as size_t).wrapping_mul(size_of::<nursery_>() as size_t),
-            b"storageAddCapabilities\0" as *const u8 as *const c_char as *mut c_char,
+            (new_n_nurseries as usize).wrapping_mul(size_of::<nursery_>() as usize),
+            c"storageAddCapabilities".as_ptr(),
         ) as *mut nursery;
     }
 
-    i = 0 as uint32_t;
+    i = 0;
 
     while i < from {
-        let mut index: uint32_t =
-            (*getCapability(i)).r.rNursery.offset_from(old_nurseries) as c_long as uint32_t;
+        let mut index: u32 =
+            (*getCapability(i)).r.rNursery.offset_from(old_nurseries) as i64 as u32;
 
         let ref mut fresh13 = (*getCapability(i)).r.rNursery;
         *fresh13 = nurseries.offset(index as isize) as *mut nursery as *mut nursery_;
@@ -318,7 +310,7 @@ unsafe fn storageAddCapabilities(mut from: uint32_t, mut to: uint32_t) {
     n = from;
 
     while n < to {
-        g = 1 as uint32_t;
+        g = 1;
 
         while g < RtsFlags.GcFlags.generations {
             let ref mut fresh14 = *(*getCapability(n)).mut_lists.offset(g as isize);
@@ -377,15 +369,15 @@ unsafe fn listSegmentBlocks(
 }
 
 unsafe fn listAllBlocks(mut cb: ListBlocksCb, mut user: *mut c_void) {
-    let mut g: uint32_t = 0;
-    let mut i: uint32_t = 0;
-    let mut s: uint32_t = 0;
-    g = 0 as uint32_t;
+    let mut g: u32 = 0;
+    let mut i: u32 = 0;
+    let mut s: u32 = 0;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
-        i = 0 as uint32_t;
+        i = 0;
 
-        while i < getNumCapabilities() as uint32_t {
+        while i < getNumCapabilities() as u32 {
             cb.expect("non-null function pointer")(
                 user,
                 *(*getCapability(i)).mut_lists.offset(g as isize),
@@ -422,27 +414,29 @@ unsafe fn listAllBlocks(mut cb: ListBlocksCb, mut user: *mut c_void) {
         g = g.wrapping_add(1);
     }
 
-    i = 0 as uint32_t;
+    i = 0;
 
     while i < n_nurseries {
         cb.expect("non-null function pointer")(user, (*nurseries.offset(i as isize)).blocks);
+
         i = i.wrapping_add(1);
     }
 
-    i = 0 as uint32_t;
+    i = 0;
 
-    while i < getNumCapabilities() as uint32_t {
+    while i < getNumCapabilities() as u32 {
         if !(*getCapability(i)).pinned_object_block.is_null() {
             cb.expect("non-null function pointer")(user, (*getCapability(i)).pinned_object_block);
         }
 
         cb.expect("non-null function pointer")(user, (*getCapability(i)).pinned_object_blocks);
+
         cb.expect("non-null function pointer")(user, (*getCapability(i)).pinned_object_empty);
 
         if RtsFlags.GcFlags.useNonmoving {
-            s = 0 as uint32_t;
+            s = 0;
 
-            while s < nonmoving_alloca_cnt as uint32_t {
+            while s < nonmoving_alloca_cnt as u32 {
                 listSegmentBlocks(
                     cb,
                     user,
@@ -457,9 +451,9 @@ unsafe fn listAllBlocks(mut cb: ListBlocksCb, mut user: *mut c_void) {
     }
 
     if RtsFlags.GcFlags.useNonmoving {
-        s = 0 as uint32_t;
+        s = 0;
 
-        while s < nonmoving_alloca_cnt as uint32_t {
+        while s < nonmoving_alloca_cnt as u32 {
             listSegmentBlocks(
                 cb,
                 user,
@@ -541,13 +535,10 @@ pub unsafe extern "C" fn newCAF(
         return null_mut::<StgInd>();
     }
 
-    if keepCAFs as c_int != 0
-        && !(highMemDynamic as c_int != 0
-            && caf as *mut c_void > 0x80000000 as c_uint as *mut c_void)
-    {
+    if keepCAFs as i32 != 0 && !(highMemDynamic as i32 != 0 && caf as *mut c_void > 0x80000000) {
         (*caf).static_link = dyn_caf_list as *mut StgClosure;
         dyn_caf_list = (caf as StgWord | STATIC_FLAG_LIST as StgWord) as *mut StgIndStatic;
-    } else if (*oldest_gen).no != 0 as uint32_t && !RtsFlags.GcFlags.useNonmoving {
+    } else if (*oldest_gen).no != 0 && !RtsFlags.GcFlags.useNonmoving {
         recordMutableCap(
             caf as *mut StgClosure,
             regTableToCapability(reg),
@@ -562,14 +553,14 @@ pub unsafe extern "C" fn newCAF(
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setKeepCAFs() {
-    keepCAFs = 1 as c_int != 0;
+    keepCAFs = 1 != 0;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setHighMemDynamic() {
-    highMemDynamic = 1 as c_int != 0;
+    highMemDynamic = 1 != 0;
 }
 
 unsafe fn newRetainedCAF(mut reg: *mut StgRegTable, mut caf: *mut StgIndStatic) -> *mut StgInd {
@@ -594,7 +585,7 @@ unsafe fn newGCdCAF(mut reg: *mut StgRegTable, mut caf: *mut StgIndStatic) -> *m
         return null_mut::<StgInd>();
     }
 
-    if (*oldest_gen).no != 0 as uint32_t && !RtsFlags.GcFlags.useNonmoving {
+    if (*oldest_gen).no != 0 && !RtsFlags.GcFlags.useNonmoving {
         recordMutableCap(
             caf as *mut StgClosure,
             regTableToCapability(reg),
@@ -605,40 +596,40 @@ unsafe fn newGCdCAF(mut reg: *mut StgRegTable, mut caf: *mut StgIndStatic) -> *m
     return bh;
 }
 
-unsafe fn allocNursery(mut node: uint32_t, mut tail: *mut bdescr, mut blocks: W_) -> *mut bdescr {
+unsafe fn allocNursery(mut node: u32, mut tail: *mut bdescr, mut blocks: W_) -> *mut bdescr {
     let mut bd = null_mut::<bdescr>();
     let mut i: W_ = 0;
     let mut n: W_ = 0;
 
-    while blocks > 0 as W_ {
+    while blocks > 0 {
         n = ({
-            let mut _a: W_ = (((1 as c_ulong) << 20 as c_int) as W_)
+            let mut _a: W_ = (((1 as u64) << 20 as i32) as W_)
                 .wrapping_sub(
-                    ((0x40 as c_ulong).wrapping_mul(
-                        ((1 as c_ulong) << 20 as c_int).wrapping_div((1 as c_ulong) << 12 as c_int),
+                    ((0x40 as u64).wrapping_mul(
+                        ((1 as u64) << 20 as i32).wrapping_div((1 as u64) << 12 as i32),
                     ) as W_)
-                        .wrapping_add(((1 as c_ulong) << 12 as c_int) as W_)
+                        .wrapping_add(((1 as u64) << 12 as i32) as W_)
                         .wrapping_sub(1 as W_)
-                        & !((1 as c_ulong) << 12 as c_int).wrapping_sub(1 as c_ulong) as W_,
+                        & !((1 as u64) << 12 as i32).wrapping_sub(1 as u64) as W_,
                 )
-                .wrapping_div(((1 as c_ulong) << 12 as c_int) as W_);
+                .wrapping_div(((1 as u64) << 12 as i32) as W_);
 
             let mut _b: W_ = blocks as W_;
 
             if _a <= _b { _a } else { _b as W_ }
         });
 
-        bd = allocLargeChunkOnNode(node, 1 as W_, n);
+        bd = allocLargeChunkOnNode(node, 1, n);
         n = (*bd).blocks as W_;
         blocks = blocks.wrapping_sub(n);
-        i = 0 as W_;
+        i = 0;
 
         while i < n {
             initBdescr(bd.offset(i as isize) as *mut bdescr, g0, g0);
-            (*bd.offset(i as isize)).blocks = 1 as StgWord32;
-            (*bd.offset(i as isize)).flags = 0 as StgWord16;
+            (*bd.offset(i as isize)).blocks = 1;
+            (*bd.offset(i as isize)).flags = 0;
 
-            if i > 0 as W_ {
+            if i > 0 {
                 let ref mut fresh7 = (*bd.offset(i as isize)).u.back;
                 *fresh7 =
                     bd.offset(i.wrapping_sub(1 as W_) as isize) as *mut bdescr as *mut bdescr_;
@@ -665,28 +656,28 @@ unsafe fn allocNursery(mut node: uint32_t, mut tail: *mut bdescr, mut blocks: W_
             i = i.wrapping_add(1);
         }
 
-        tail = bd.offset(0 as c_int as isize) as *mut bdescr;
+        tail = bd.offset(0) as *mut bdescr;
     }
 
-    return bd.offset(0 as c_int as isize) as *mut bdescr;
+    return bd.offset(0) as *mut bdescr;
 }
 
 #[inline]
-unsafe fn assignNurseryToCapability(mut cap: *mut Capability, mut n: uint32_t) {
+unsafe fn assignNurseryToCapability(mut cap: *mut Capability, mut n: u32) {
     (*cap).r.rNursery = nurseries.offset(n as isize) as *mut nursery as *mut nursery_;
     (*cap).r.rCurrentNursery = (*nurseries.offset(n as isize)).blocks as *mut bdescr_;
     newNurseryBlock((*nurseries.offset(n as isize)).blocks);
     (*cap).r.rCurrentAlloc = null_mut::<bdescr_>();
 }
 
-unsafe fn assignNurseriesToCapabilities(mut from: uint32_t, mut to: uint32_t) {
-    let mut i: uint32_t = 0;
-    let mut node: uint32_t = 0;
+unsafe fn assignNurseriesToCapabilities(mut from: u32, mut to: u32) {
+    let mut i: u32 = 0;
+    let mut node: u32 = 0;
     i = from;
 
     while i < to {
         node = (*getCapability(i)).node;
-        assignNurseryToCapability(getCapability(i), next_nursery[node as usize] as uint32_t);
+        assignNurseryToCapability(getCapability(i), next_nursery[node as usize] as u32);
 
         write_volatile(
             &mut next_nursery[node as usize] as *mut StgWord,
@@ -698,8 +689,8 @@ unsafe fn assignNurseriesToCapabilities(mut from: uint32_t, mut to: uint32_t) {
     }
 }
 
-unsafe fn allocNurseries(mut from: uint32_t, mut to: uint32_t) {
-    let mut i: uint32_t = 0;
+unsafe fn allocNurseries(mut from: u32, mut to: u32) {
+    let mut i: u32 = 0;
     let mut n_blocks: memcount = 0;
 
     if RtsFlags.GcFlags.nurseryChunkSize != 0 {
@@ -725,21 +716,21 @@ unsafe fn allocNurseries(mut from: uint32_t, mut to: uint32_t) {
 }
 
 unsafe fn resetNurseries() {
-    let mut n: uint32_t = 0;
-    n = 0 as uint32_t;
+    let mut n: u32 = 0;
+    n = 0;
 
     while n < n_numa_nodes {
         write_volatile(&mut next_nursery[n as usize] as *mut StgWord, n as StgWord);
         n = n.wrapping_add(1);
     }
 
-    assignNurseriesToCapabilities(0 as uint32_t, getNumCapabilities() as uint32_t);
+    assignNurseriesToCapabilities(0, getNumCapabilities() as u32);
 }
 
 unsafe fn countNurseryBlocks() -> StgWord {
-    let mut i: uint32_t = 0;
-    let mut blocks: W_ = 0 as W_;
-    i = 0 as uint32_t;
+    let mut i: u32 = 0;
+    let mut blocks: W_ = 0;
+    i = 0;
 
     while i < n_nurseries {
         blocks = (blocks as StgWord)
@@ -752,12 +743,12 @@ unsafe fn countNurseryBlocks() -> StgWord {
 }
 
 unsafe fn resizeNurseriesEach(mut blocks: W_) {
-    let mut i: uint32_t = 0;
-    let mut node: uint32_t = 0;
+    let mut i: u32 = 0;
+    let mut node: u32 = 0;
     let mut bd = null_mut::<bdescr>();
     let mut nursery_blocks: W_ = 0;
     let mut nursery = null_mut::<nursery>();
-    i = 0 as uint32_t;
+    i = 0;
 
     while i < n_nurseries {
         nursery = nurseries.offset(i as isize) as *mut nursery;
@@ -767,10 +758,9 @@ unsafe fn resizeNurseriesEach(mut blocks: W_) {
             node = i.wrapping_rem(n_numa_nodes);
 
             if nursery_blocks < blocks {
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
                     trace_(
-                        b"increasing size of nursery from %d to %d blocks\0" as *const u8
-                            as *const c_char as *mut c_char,
+                        c"increasing size of nursery from %d to %d blocks".as_ptr(),
                         nursery_blocks,
                         blocks,
                     );
@@ -781,10 +771,9 @@ unsafe fn resizeNurseriesEach(mut blocks: W_) {
             } else {
                 let mut next_bd = null_mut::<bdescr>();
 
-                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+                if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
                     trace_(
-                        b"decreasing size of nursery from %d to %d blocks\0" as *const u8
-                            as *const c_char as *mut c_char,
+                        c"decreasing size of nursery from %d to %d blocks".as_ptr(),
                         nursery_blocks,
                         blocks,
                     );
@@ -803,10 +792,9 @@ unsafe fn resizeNurseriesEach(mut blocks: W_) {
                 (*nursery).blocks = bd;
 
                 if nursery_blocks < blocks {
-                    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+                    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
                         trace_(
-                            b"reincreasing size of nursery from %d to %d blocks\0" as *const u8
-                                as *const c_char as *mut c_char,
+                            c"reincreasing size of nursery from %d to %d blocks".as_ptr(),
                             nursery_blocks,
                             blocks,
                         );
@@ -825,7 +813,7 @@ unsafe fn resizeNurseriesEach(mut blocks: W_) {
 }
 
 unsafe fn resizeNurseriesFixed() {
-    let mut blocks: uint32_t = 0;
+    let mut blocks: u32 = 0;
 
     if RtsFlags.GcFlags.nurseryChunkSize != 0 {
         blocks = RtsFlags.GcFlags.nurseryChunkSize;
@@ -842,8 +830,8 @@ unsafe fn resizeNurseries(mut blocks: W_) {
 
 unsafe fn getNewNursery(mut cap: *mut Capability) -> bool {
     let mut i: StgWord = 0;
-    let mut node: uint32_t = (*cap).node;
-    let mut n: uint32_t = 0;
+    let mut node: u32 = (*cap).node;
+    let mut n: u32 = 0;
 
     loop {
         i = next_nursery[node as usize];
@@ -855,13 +843,13 @@ unsafe fn getNewNursery(mut cap: *mut Capability) -> bool {
                 i.wrapping_add(n_numa_nodes as StgWord),
             ) == i
             {
-                assignNurseryToCapability(cap, i as uint32_t);
+                assignNurseryToCapability(cap, i as u32);
 
-                return r#true != 0;
+                return true;
             }
-        } else if n_numa_nodes > 1 as uint32_t {
-            let mut lost = r#false != 0;
-            n = 0 as uint32_t;
+        } else if n_numa_nodes > 1 {
+            let mut lost = false;
+            n = 0;
 
             while n < n_numa_nodes {
                 if !(n == node) {
@@ -875,11 +863,11 @@ unsafe fn getNewNursery(mut cap: *mut Capability) -> bool {
                             i.wrapping_add(n_numa_nodes as StgWord),
                         ) == i
                         {
-                            assignNurseryToCapability(cap, i as uint32_t);
+                            assignNurseryToCapability(cap, i as u32);
 
-                            return r#true != 0;
+                            return true;
                         } else {
-                            lost = r#true != 0;
+                            lost = true;
                         }
                     }
                 }
@@ -888,17 +876,17 @@ unsafe fn getNewNursery(mut cap: *mut Capability) -> bool {
             }
 
             if !lost {
-                return r#false != 0;
+                return false;
             }
         } else {
-            return r#false != 0;
+            return false;
         }
     }
 }
 
 unsafe fn move_STACK(mut src: *mut StgStack, mut dest: *mut StgStack) {
     let mut diff: ptrdiff_t = 0;
-    diff = (dest as StgPtr).offset_from(src as StgPtr) as c_long as ptrdiff_t;
+    diff = (dest as StgPtr).offset_from(src as StgPtr) as i64 as ptrdiff_t;
     (*dest).sp = (*dest).sp.offset(diff as isize);
 }
 
@@ -918,7 +906,7 @@ unsafe fn accountAllocation(mut cap: *mut Capability, mut n: W_) {
 pub unsafe extern "C" fn allocate(mut cap: *mut Capability, mut n: W_) -> StgPtr {
     let mut p = allocateMightFail(cap, n);
 
-    if (p == null_mut::<c_void>() as StgPtr) as c_int as c_long != 0 {
+    if (p == null_mut::<c_void>() as StgPtr) as i32 as i64 != 0 {
         exitHeapOverflow();
     }
 
@@ -930,13 +918,13 @@ unsafe fn allocateMightFail(mut cap: *mut Capability, mut n: W_) -> StgPtr {
     let mut p = null_mut::<StgWord>();
 
     if (n
-        >= (((1 as c_ulong) << 12 as c_int)
-            .wrapping_mul(8 as c_ulong)
-            .wrapping_div(10 as c_ulong) as uint32_t as usize)
-            .wrapping_div(size_of::<W_>() as usize) as W_) as c_int as c_long
+        >= (((1 as u64) << 12 as i32)
+            .wrapping_mul(8 as u64)
+            .wrapping_div(10 as u64) as u32 as usize)
+            .wrapping_div(size_of::<W_>() as usize) as W_) as i32 as i64
         != 0
     {
-        let mut max_words: W_ = (HS_WORD_MAX as W_ & !BLOCK_SIZE.wrapping_sub(1 as c_ulong) as W_)
+        let mut max_words: W_ = (HS_WORD_MAX as W_ & !BLOCK_SIZE.wrapping_sub(1 as u64) as W_)
             .wrapping_div(size_of::<W_>() as W_);
 
         let mut req_blocks: W_ = 0;
@@ -952,8 +940,7 @@ unsafe fn allocateMightFail(mut cap: *mut Capability, mut n: W_) -> StgPtr {
                 .wrapping_div(BLOCK_SIZE as W_);
         }
 
-        if RtsFlags.GcFlags.maxHeapSize > 0 as uint32_t
-            && req_blocks >= RtsFlags.GcFlags.maxHeapSize as W_
+        if RtsFlags.GcFlags.maxHeapSize > 0 && req_blocks >= RtsFlags.GcFlags.maxHeapSize as W_
             || req_blocks >= HS_INT32_MAX as W_
         {
             return null_mut::<StgWord>();
@@ -966,9 +953,9 @@ unsafe fn allocateMightFail(mut cap: *mut Capability, mut n: W_) -> StgPtr {
         (*g0).n_new_large_words =
             ((*g0).n_new_large_words as StgWord).wrapping_add(n as StgWord) as memcount as memcount;
         initBdescr(bd, g0, g0);
-        (*bd).flags = 2 as StgWord16;
+        (*bd).flags = 2;
         (*bd).c2rust_unnamed.free = (*bd).start.offset(n as isize);
-        (*cap).total_allocated = (*cap).total_allocated.wrapping_add(n as uint64_t);
+        (*cap).total_allocated = (*cap).total_allocated.wrapping_add(n as u64);
 
         return (*bd).start;
     }
@@ -979,8 +966,8 @@ unsafe fn allocateMightFail(mut cap: *mut Capability, mut n: W_) -> StgPtr {
     if (bd.is_null()
         || (*bd).c2rust_unnamed.free.offset(n as isize)
             > (*bd).start.offset(
-                ((1 as usize) << 12 as c_int).wrapping_div(size_of::<W_>() as usize) as isize,
-            )) as c_int as c_long
+                ((1 as usize) << 12 as i32).wrapping_div(size_of::<W_>() as usize) as isize,
+            )) as i32 as i64
         != 0
     {
         if !bd.is_null() {
@@ -993,7 +980,7 @@ unsafe fn allocateMightFail(mut cap: *mut Capability, mut n: W_) -> StgPtr {
             bd = allocBlockOnNode((*cap).node);
             (*(*cap).r.rNursery).n_blocks = (*(*cap).r.rNursery).n_blocks.wrapping_add(1);
             initBdescr(bd, g0, g0);
-            (*bd).flags = 0 as StgWord16;
+            (*bd).flags = 0;
         } else {
             newNurseryBlock(bd);
             (*(*cap).r.rCurrentNursery).link = (*bd).link;
@@ -1066,29 +1053,19 @@ unsafe fn allocatePinned(
     mut alignment: W_,
     mut align_off: W_,
 ) -> StgPtr {
-    if (alignment != 0 && alignment & alignment.wrapping_sub(1 as W_) == 0) as c_int as c_long != 0
-    {
+    if (alignment != 0 && alignment & alignment.wrapping_sub(1 as W_) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/Storage.c\0" as *const u8 as *const c_char,
-            1312 as c_uint,
-        );
+        _assertFail(c"rts/sm/Storage.c".as_ptr(), 1312);
     }
 
-    if (align_off & align_off.wrapping_sub(1 as W_) == 0) as c_int as c_long != 0 {
+    if (align_off & align_off.wrapping_sub(1 as W_) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/Storage.c\0" as *const u8 as *const c_char,
-            1313 as c_uint,
-        );
+        _assertFail(c"rts/sm/Storage.c".as_ptr(), 1313);
     }
 
-    if (alignment >= size_of::<W_>() as W_) as c_int as c_long != 0 {
+    if (alignment >= size_of::<W_>() as W_) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/sm/Storage.c\0" as *const u8 as *const c_char,
-            1315 as c_uint,
-        );
+        _assertFail(c"rts/sm/Storage.c".as_ptr(), 1315);
     }
 
     let mut bd = (*cap).pinned_object_block;
@@ -1098,7 +1075,8 @@ unsafe fn allocatePinned(
     }
 
     let alignment_w: StgWord = (alignment as StgWord).wrapping_div(size_of::<W_>() as StgWord);
-    let mut off_w: W_ = ((((*bd).c2rust_unnamed.free as uintptr_t).wrapping_neg() as W_)
+
+    let mut off_w: W_ = ((((*bd).c2rust_unnamed.free as usize).wrapping_neg() as W_)
         .wrapping_sub(align_off)
         & alignment.wrapping_sub(1 as W_))
     .wrapping_div(size_of::<W_>() as W_);
@@ -1114,7 +1092,7 @@ unsafe fn allocatePinned(
             > (*bd).start.offset(BLOCK_SIZE_W as isize)
         {
             bd = start_new_pinned_block(cap);
-            off_w = ((((*bd).c2rust_unnamed.free as uintptr_t).wrapping_neg() as W_)
+            off_w = ((((*bd).c2rust_unnamed.free as usize).wrapping_neg() as W_)
                 .wrapping_sub(align_off)
                 & alignment.wrapping_sub(1 as W_))
             .wrapping_div(size_of::<W_>() as W_);
@@ -1127,8 +1105,8 @@ unsafe fn allocatePinned(
 
             memset(
                 p as *mut c_void,
-                0 as c_int,
-                off_w.wrapping_mul(size_of::<W_>() as W_) as size_t,
+                0,
+                off_w.wrapping_mul(size_of::<W_>() as W_) as usize,
             );
 
             n = n.wrapping_add(off_w);
@@ -1146,26 +1124,26 @@ unsafe fn allocatePinned(
         return null_mut::<StgWord>();
     } else {
         let ref mut fresh6 = (*Bdescr(p_0)).flags;
-        *fresh6 = (*fresh6 as c_int | BF_PINNED) as StgWord16;
-        off_w = (((p_0 as uintptr_t).wrapping_neg() as W_).wrapping_sub(align_off)
+        *fresh6 = (*fresh6 as i32 | BF_PINNED) as StgWord16;
+        off_w = (((p_0 as usize).wrapping_neg() as W_).wrapping_sub(align_off)
             & alignment.wrapping_sub(1 as W_))
         .wrapping_div(size_of::<W_>() as W_);
 
         memset(
             p_0 as *mut c_void,
-            0 as c_int,
-            off_w.wrapping_mul(size_of::<W_>() as W_) as size_t,
+            0,
+            off_w.wrapping_mul(size_of::<W_>() as W_) as usize,
         );
 
         p_0 = p_0.offset(off_w as isize);
 
         memset(
             p_0.offset(n as isize) as *mut c_void,
-            0 as c_int,
+            0,
             alignment_w
                 .wrapping_sub(off_w as StgWord)
                 .wrapping_sub(1 as StgWord)
-                .wrapping_mul(size_of::<W_>() as StgWord) as size_t,
+                .wrapping_mul(size_of::<W_>() as StgWord) as usize,
         );
 
         return p_0;
@@ -1193,8 +1171,8 @@ unsafe fn dirty_TVAR(mut cap: *mut Capability, mut p: *mut StgTVar, mut old: *mu
 }
 
 unsafe fn setTSOLink(mut cap: *mut Capability, mut tso: *mut StgTSO, mut target: *mut StgTSO) {
-    if (*tso).dirty == 0 as StgWord32 {
-        (*tso).dirty = 1 as StgWord32;
+    if (*tso).dirty == 0 {
+        (*tso).dirty = 1;
         recordClosureMutated(cap, tso as *mut StgClosure);
     }
 
@@ -1202,8 +1180,8 @@ unsafe fn setTSOLink(mut cap: *mut Capability, mut tso: *mut StgTSO, mut target:
 }
 
 unsafe fn setTSOPrev(mut cap: *mut Capability, mut tso: *mut StgTSO, mut target: *mut StgTSO) {
-    if (*tso).dirty == 0 as StgWord32 {
-        (*tso).dirty = 1 as StgWord32;
+    if (*tso).dirty == 0 {
+        (*tso).dirty = 1;
         recordClosureMutated(cap, tso as *mut StgClosure);
     }
 
@@ -1211,15 +1189,15 @@ unsafe fn setTSOPrev(mut cap: *mut Capability, mut tso: *mut StgTSO, mut target:
 }
 
 unsafe fn dirty_TSO(mut cap: *mut Capability, mut tso: *mut StgTSO) {
-    if (*tso).dirty == 0 as StgWord32 {
-        (*tso).dirty = 1 as StgWord32;
+    if (*tso).dirty == 0 {
+        (*tso).dirty = 1;
         recordClosureMutated(cap, tso as *mut StgClosure);
     }
 }
 
 unsafe fn dirty_STACK(mut cap: *mut Capability, mut stack: *mut StgStack) {
-    if (*stack).dirty as c_int == 0 as c_int {
-        (*stack).dirty = 1 as StgWord8;
+    if (*stack).dirty as i32 == 0 {
+        (*stack).dirty = 1;
         recordClosureMutated(cap, stack as *mut StgClosure);
     }
 }
@@ -1242,19 +1220,18 @@ unsafe fn dirty_MVAR(
     recordClosureMutated(cap, p);
 }
 
-unsafe fn calcTotalAllocated() -> uint64_t {
-    let mut tot_alloc: uint64_t = 0 as uint64_t;
+unsafe fn calcTotalAllocated() -> u64 {
+    let mut tot_alloc: u64 = 0;
     let mut n: W_ = 0;
-    n = 0 as W_;
+    n = 0;
 
     while n < getNumCapabilities() as W_ {
-        tot_alloc = tot_alloc.wrapping_add((*getCapability(n as uint32_t)).total_allocated);
+        tot_alloc = tot_alloc.wrapping_add((*getCapability(n as u32)).total_allocated);
 
         traceEventHeapAllocated(
-            getCapability(n as uint32_t),
+            getCapability(n as u32),
             CAPSET_HEAP_DEFAULT,
-            ((*getCapability(n as uint32_t)).total_allocated as W_)
-                .wrapping_mul(size_of::<W_>() as W_),
+            ((*getCapability(n as u32)).total_allocated as W_).wrapping_mul(size_of::<W_>() as W_),
         );
 
         n = n.wrapping_add(1);
@@ -1264,11 +1241,11 @@ unsafe fn calcTotalAllocated() -> uint64_t {
 }
 
 unsafe fn updateNurseriesStats() {
-    let mut i: uint32_t = 0;
+    let mut i: u32 = 0;
     let mut bd = null_mut::<bdescr>();
-    i = 0 as uint32_t;
+    i = 0;
 
-    while i < getNumCapabilities() as uint32_t {
+    while i < getNumCapabilities() as u32 {
         bd = (*getCapability(i)).r.rCurrentNursery as *mut bdescr;
 
         if !bd.is_null() {
@@ -1287,11 +1264,11 @@ unsafe fn updateNurseriesStats() {
 
 unsafe fn countOccupied(mut bd: *mut bdescr) -> StgWord {
     let mut words: W_ = 0;
-    words = 0 as W_;
+    words = 0;
 
     while !bd.is_null() {
-        words =
-            words.wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).start) as c_long as W_);
+        words = words.wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).start) as i64 as W_);
+
         bd = (*bd).link as *mut bdescr;
     }
 
@@ -1303,8 +1280,8 @@ unsafe fn genLiveWords(mut r#gen: *mut generation) -> StgWord {
 }
 
 unsafe fn genLiveCopiedWords(mut r#gen: *mut generation) -> StgWord {
-    if r#gen == oldest_gen && RtsFlags.GcFlags.useNonmoving as c_int != 0 {
-        return 0 as StgWord;
+    if r#gen == oldest_gen && RtsFlags.GcFlags.useNonmoving as i32 != 0 {
+        return 0;
     } else {
         return if (*r#gen).live_estimate != 0 {
             (*r#gen).live_estimate as StgWord
@@ -1315,9 +1292,9 @@ unsafe fn genLiveCopiedWords(mut r#gen: *mut generation) -> StgWord {
 }
 
 unsafe fn genLiveUncopiedWords(mut r#gen: *mut generation) -> StgWord {
-    let mut nonmoving_blocks: W_ = 0 as W_;
+    let mut nonmoving_blocks: W_ = 0;
 
-    if r#gen == oldest_gen && RtsFlags.GcFlags.useNonmoving as c_int != 0 {
+    if r#gen == oldest_gen && RtsFlags.GcFlags.useNonmoving as i32 != 0 {
         nonmoving_blocks = (if (*r#gen).live_estimate != 0 {
             (*r#gen).live_estimate
         } else {
@@ -1337,9 +1314,9 @@ unsafe fn genLiveCopiedBlocks(mut r#gen: *mut generation) -> StgWord {
 }
 
 unsafe fn genLiveUncopiedBlocks(mut r#gen: *mut generation) -> StgWord {
-    let mut nonmoving_blocks: W_ = 0 as W_;
+    let mut nonmoving_blocks: W_ = 0;
 
-    if r#gen == oldest_gen && RtsFlags.GcFlags.useNonmoving as c_int != 0 {
+    if r#gen == oldest_gen && RtsFlags.GcFlags.useNonmoving as i32 != 0 {
         nonmoving_blocks = n_nonmoving_large_blocks
             .wrapping_add(n_nonmoving_marked_large_blocks)
             .wrapping_add(n_nonmoving_compact_blocks)
@@ -1355,7 +1332,7 @@ unsafe fn genLiveBlocks(mut r#gen: *mut generation) -> StgWord {
     return genLiveCopiedBlocks(r#gen).wrapping_add(genLiveUncopiedBlocks(r#gen));
 }
 
-unsafe fn gcThreadLiveWords(mut i: uint32_t, mut g: uint32_t) -> StgWord {
+unsafe fn gcThreadLiveWords(mut i: u32, mut g: u32) -> StgWord {
     let mut a: W_ = 0;
     let mut b: W_ = 0;
     let mut c: W_ = 0;
@@ -1381,7 +1358,7 @@ unsafe fn gcThreadLiveWords(mut i: uint32_t, mut g: uint32_t) -> StgWord {
         .wrapping_add(c as StgWord);
 }
 
-unsafe fn gcThreadLiveBlocks(mut i: uint32_t, mut g: uint32_t) -> StgWord {
+unsafe fn gcThreadLiveBlocks(mut i: u32, mut g: u32) -> StgWord {
     let mut blocks: W_ = 0;
 
     blocks = countBlocks(
@@ -1409,16 +1386,16 @@ unsafe fn gcThreadLiveBlocks(mut i: uint32_t, mut g: uint32_t) -> StgWord {
 }
 
 unsafe fn calcNeeded(mut force_major: bool, mut blocks_needed: *mut memcount) -> StgWord {
-    let mut needed: W_ = 0 as W_;
-    let mut N_0: uint32_t = 0;
+    let mut needed: W_ = 0;
+    let mut N_0: u32 = 0;
 
     if force_major {
-        N_0 = RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t);
+        N_0 = RtsFlags.GcFlags.generations.wrapping_sub(1 as u32);
     } else {
-        N_0 = 0 as uint32_t;
+        N_0 = 0;
     }
 
-    let mut g: uint32_t = 0 as uint32_t;
+    let mut g: u32 = 0;
 
     while g < RtsFlags.GcFlags.generations {
         let mut r#gen: *mut generation = generations.offset(g as isize) as *mut generation;
@@ -1437,12 +1414,12 @@ unsafe fn calcNeeded(mut force_major: bool, mut blocks_needed: *mut memcount) ->
 
         needed = needed.wrapping_add(blocks);
 
-        if g == 0 as uint32_t || blocks > (*r#gen).max_blocks {
+        if g == 0 || blocks > (*r#gen).max_blocks {
             N_0 = ({
-                let mut _a: uint32_t = N_0 as uint32_t;
-                let mut _b: uint32_t = g as uint32_t;
+                let mut _a: u32 = N_0 as u32;
+                let mut _b: u32 = g as u32;
 
-                if _a <= _b { _b } else { _a as uint32_t }
+                if _a <= _b { _b } else { _a as u32 }
             });
 
             if (*r#gen).mark != 0 {
@@ -1456,7 +1433,7 @@ unsafe fn calcNeeded(mut force_major: bool, mut blocks_needed: *mut memcount) ->
             }
 
             if !((*r#gen).compact != 0
-                || RtsFlags.GcFlags.useNonmoving as c_int != 0 && r#gen == oldest_gen)
+                || RtsFlags.GcFlags.useNonmoving as i32 != 0 && r#gen == oldest_gen)
             {
                 needed = (needed as StgWord).wrapping_add((*r#gen).n_blocks as StgWord) as W_ as W_;
             }
@@ -1473,9 +1450,9 @@ unsafe fn calcNeeded(mut force_major: bool, mut blocks_needed: *mut memcount) ->
 }
 
 unsafe fn calcTotalLargeObjectsW() -> StgWord {
-    let mut g: uint32_t = 0;
-    let mut totalW: StgWord = 0 as StgWord;
-    g = 0 as uint32_t;
+    let mut g: u32 = 0;
+    let mut totalW: StgWord = 0;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         totalW = totalW.wrapping_add((*generations.offset(g as isize)).n_large_words as StgWord);
@@ -1488,9 +1465,9 @@ unsafe fn calcTotalLargeObjectsW() -> StgWord {
 }
 
 unsafe fn calcTotalCompactW() -> StgWord {
-    let mut g: uint32_t = 0;
-    let mut totalW: StgWord = 0 as StgWord;
-    g = 0 as uint32_t;
+    let mut g: u32 = 0;
+    let mut totalW: StgWord = 0;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         totalW = totalW.wrapping_add(
@@ -1508,7 +1485,7 @@ unsafe fn calcTotalCompactW() -> StgWord {
 }
 
 unsafe fn flushExec(mut len: W_, mut exec_addr: AdjustorExecutable) {
-    sys_icache_invalidate(exec_addr as *mut c_void, len as size_t);
+    sys_icache_invalidate(exec_addr as *mut c_void, len as usize);
 }
 
 #[ffi(testsuite)]
@@ -1517,7 +1494,7 @@ unsafe fn flushExec(mut len: W_, mut exec_addr: AdjustorExecutable) {
 pub unsafe extern "C" fn rts_clearMemory() {
     clear_free_list();
 
-    let mut i: uint32_t = 0 as uint32_t;
+    let mut i: u32 = 0;
 
     while i < n_nurseries {
         let mut bd = (*nurseries.offset(i as isize)).blocks;
@@ -1530,10 +1507,10 @@ pub unsafe extern "C" fn rts_clearMemory() {
         i = i.wrapping_add(1);
     }
 
-    let mut i_0 = 0 as c_uint;
+    let mut i_0 = 0;
 
     while i_0 < getNumCapabilities() {
-        let mut bd_0 = (*getCapability(i_0 as uint32_t)).pinned_object_empty;
+        let mut bd_0 = (*getCapability(i_0 as u32)).pinned_object_empty;
 
         while !bd_0.is_null() {
             clear_blocks(bd_0);
@@ -1558,9 +1535,9 @@ pub unsafe extern "C" fn rts_clearMemory() {
             seg = (*seg).link;
         }
 
-        let mut i_1 = 0 as c_int;
+        let mut i_1 = 0;
 
-        while i_1 < nonmoving_alloca_cnt as c_int {
+        while i_1 < nonmoving_alloca_cnt as i32 {
             let mut alloc: *mut NonmovingAllocator =
                 nonmovingHeap.allocators.offset(i_1 as isize) as *mut NonmovingAllocator;
 
@@ -1571,11 +1548,13 @@ pub unsafe extern "C" fn rts_clearMemory() {
                 seg_0 = (*seg_0).link;
             }
 
-            let mut j = 0 as c_uint;
+            let mut j = 0;
 
             while j < getNumCapabilities() {
-                let mut cap = getCapability(j as uint32_t);
+                let mut cap = getCapability(j as u32);
+
                 nonmovingClearSegmentFreeBlocks(*(*cap).current_segments.offset(i_1 as isize));
+
                 j = j.wrapping_add(1);
             }
 

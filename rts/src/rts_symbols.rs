@@ -241,7 +241,7 @@ pub(crate) type SymbolAddr = ();
 
 pub(crate) type SymbolName = c_char;
 
-pub(crate) type _SymType = c_uint;
+pub(crate) type _SymType = u32;
 
 pub(crate) const SYM_TYPE_HIDDEN: _SymType = 16;
 
@@ -255,7 +255,7 @@ pub(crate) const SYM_TYPE_CODE: _SymType = 1;
 
 pub(crate) type SymType = _SymType;
 
-pub(crate) type _SymStrength = c_uint;
+pub(crate) type _SymStrength = u32;
 
 pub(crate) const STRENGTH_STRONG: _SymStrength = 2;
 
@@ -2848,7 +2848,7 @@ static mut rtsSyms: [RtsSymbolVal; 736] = unsafe {
         },
         _RtsSymbolVal {
             lbl: b"_prog_argc\0" as *const u8 as *const SymbolName,
-            addr: &raw const prog_argc as *mut c_int as *mut c_void,
+            addr: &raw const prog_argc as *mut i32 as *mut c_void,
             strength: STRENGTH_NORMAL,
             r#type: SYM_TYPE_CODE,
         },
@@ -2959,16 +2959,16 @@ static mut rtsSyms: [RtsSymbolVal; 736] = unsafe {
         },
         _RtsSymbolVal {
             lbl: b"_setNumCapabilities\0" as *const u8 as *const SymbolName,
-            addr: transmute::<Option<unsafe extern "C" fn(uint32_t) -> ()>, *mut c_void>(Some(
-                setNumCapabilities as unsafe extern "C" fn(uint32_t) -> (),
+            addr: transmute::<Option<unsafe extern "C" fn(c_uint) -> ()>, *mut c_void>(Some(
+                setNumCapabilities as unsafe extern "C" fn(c_uint) -> (),
             )),
             strength: STRENGTH_NORMAL,
             r#type: SYM_TYPE_CODE,
         },
         _RtsSymbolVal {
             lbl: b"_getNumberOfProcessors\0" as *const u8 as *const SymbolName,
-            addr: transmute::<Option<unsafe extern "C" fn() -> uint32_t>, *mut c_void>(Some(
-                getNumberOfProcessors as unsafe extern "C" fn() -> uint32_t,
+            addr: transmute::<Option<unsafe extern "C" fn() -> c_uint>, *mut c_void>(Some(
+                getNumberOfProcessors as unsafe extern "C" fn() -> c_uint,
             )),
             strength: STRENGTH_NORMAL,
             r#type: SYM_TYPE_CODE,
@@ -4651,8 +4651,8 @@ static mut rtsSyms: [RtsSymbolVal; 736] = unsafe {
         },
         _RtsSymbolVal {
             lbl: b"_getAllocations\0" as *const u8 as *const SymbolName,
-            addr: transmute::<Option<unsafe extern "C" fn() -> uint64_t>, *mut c_void>(Some(
-                getAllocations as unsafe extern "C" fn() -> uint64_t,
+            addr: transmute::<Option<unsafe extern "C" fn() -> c_ulong>, *mut c_void>(Some(
+                getAllocations as unsafe extern "C" fn() -> c_ulong,
             )),
             strength: STRENGTH_NORMAL,
             r#type: SYM_TYPE_CODE,
@@ -4747,19 +4747,19 @@ static mut rtsSyms: [RtsSymbolVal; 736] = unsafe {
         },
         _RtsSymbolVal {
             lbl: b"_n_capabilities\0" as *const u8 as *const SymbolName,
-            addr: &raw const n_capabilities as *mut uint32_t as *mut c_void,
+            addr: &raw const n_capabilities as *mut u32 as *mut c_void,
             strength: STRENGTH_NORMAL,
             r#type: SYM_TYPE_CODE,
         },
         _RtsSymbolVal {
             lbl: b"_max_n_capabilities\0" as *const u8 as *const SymbolName,
-            addr: &raw const max_n_capabilities as *mut uint32_t as *mut c_void,
+            addr: &raw const max_n_capabilities as *mut u32 as *mut c_void,
             strength: STRENGTH_NORMAL,
             r#type: SYM_TYPE_CODE,
         },
         _RtsSymbolVal {
             lbl: b"_enabled_capabilities\0" as *const u8 as *const SymbolName,
-            addr: &raw const enabled_capabilities as *mut uint32_t as *mut c_void,
+            addr: &raw const enabled_capabilities as *mut u32 as *mut c_void,
             strength: STRENGTH_NORMAL,
             r#type: SYM_TYPE_CODE,
         },
@@ -5100,10 +5100,10 @@ static mut rtsSyms: [RtsSymbolVal; 736] = unsafe {
         _RtsSymbolVal {
             lbl: b"_arenaAlloc\0" as *const u8 as *const SymbolName,
             addr: transmute::<
-                Option<unsafe extern "C" fn(*mut Arena, size_t) -> *mut c_void>,
+                Option<unsafe extern "C" fn(*mut Arena, usize) -> *mut c_void>,
                 *mut c_void,
             >(Some(
-                arenaAlloc as unsafe extern "C" fn(*mut Arena, size_t) -> *mut c_void,
+                arenaAlloc as unsafe extern "C" fn(*mut Arena, usize) -> *mut c_void,
             )),
             strength: STRENGTH_NORMAL,
             r#type: SYM_TYPE_CODE,
@@ -5191,19 +5191,19 @@ static mut rtsSyms: [RtsSymbolVal; 736] = unsafe {
         _RtsSymbolVal {
             lbl: b"_closure_sizeW_\0" as *const u8 as *const SymbolName,
             addr: transmute::<
-                Option<unsafe extern "C" fn(*const StgClosure, *const StgInfoTable) -> uint32_t>,
+                Option<unsafe extern "C" fn(*const StgClosure, *const StgInfoTable) -> c_uint>,
                 *mut c_void,
             >(Some(
                 closure_sizeW_
-                    as unsafe extern "C" fn(*const StgClosure, *const StgInfoTable) -> uint32_t,
+                    as unsafe extern "C" fn(*const StgClosure, *const StgInfoTable) -> c_uint,
             )),
             strength: STRENGTH_NORMAL,
             r#type: SYM_TYPE_CODE,
         },
         _RtsSymbolVal {
             lbl: b"_setIOManagerControlFd\0" as *const u8 as *const SymbolName,
-            addr: transmute::<Option<unsafe extern "C" fn(uint32_t, c_int) -> ()>, *mut c_void>(
-                Some(setIOManagerControlFd as unsafe extern "C" fn(uint32_t, c_int) -> ()),
+            addr: transmute::<Option<unsafe extern "C" fn(c_uint, c_int) -> ()>, *mut c_void>(
+                Some(setIOManagerControlFd as unsafe extern "C" fn(c_uint, c_int) -> ()),
             ),
             strength: STRENGTH_NORMAL,
             r#type: SYM_TYPE_CODE,
@@ -6063,7 +6063,7 @@ static mut rtsSyms: [RtsSymbolVal; 736] = unsafe {
         },
         _RtsSymbolVal {
             lbl: null::<SymbolName>(),
-            addr: null::<c_void>() as *mut c_void,
+            addr: null_mut::<c_void>(),
             strength: STRENGTH_NORMAL,
             r#type: SYM_TYPE_CODE,
         },
@@ -6072,7 +6072,7 @@ static mut rtsSyms: [RtsSymbolVal; 736] = unsafe {
 
 static mut default_extra_syms: [RtsSymbolVal; 1] = [_RtsSymbolVal {
     lbl: null::<SymbolName>(),
-    addr: null::<c_void>() as *mut c_void,
+    addr: null_mut::<c_void>(),
     strength: STRENGTH_NORMAL,
     r#type: SYM_TYPE_CODE,
 }];

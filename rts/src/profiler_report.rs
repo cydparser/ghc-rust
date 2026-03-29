@@ -8,14 +8,14 @@ use crate::prelude::*;
 use crate::profiling::{ProfilerTotals, ignoreCC, ignoreCCS};
 use crate::rts_utils::{showStgWord64, time_str};
 
-unsafe fn strlen_utf8(mut s: *mut c_char) -> uint32_t {
-    let mut n: uint32_t = 0 as uint32_t;
-    let mut c: c_uchar = 0;
+unsafe fn strlen_utf8(mut s: *mut c_char) -> u32 {
+    let mut n: u32 = 0;
+    let mut c: u8 = 0;
 
-    while *s as c_int != '\0' as i32 {
-        c = *s as c_uchar;
+    while *s as i32 != '\0' as i32 {
+        c = *s as u8;
 
-        if (c as c_int) < 0x80 as c_int || c as c_int > 0xbf as c_int {
+        if (c as i32) < 0x80 || c as i32 > 0xbf {
             n = n.wrapping_add(1);
         }
 
@@ -27,63 +27,63 @@ unsafe fn strlen_utf8(mut s: *mut c_char) -> uint32_t {
 
 unsafe fn fprintHeader(
     mut prof_file: *mut FILE,
-    mut max_label_len: uint32_t,
-    mut max_module_len: uint32_t,
-    mut max_src_len: uint32_t,
-    mut max_id_len: uint32_t,
+    mut max_label_len: u32,
+    mut max_module_len: u32,
+    mut max_src_len: u32,
+    mut max_id_len: u32,
 ) {
     fprintf(
         prof_file,
-        b"%-*s %-*s %-*s %-*s %11s  %12s   %12s\n\0" as *const u8 as *const c_char,
+        c"%-*s %-*s %-*s %-*s %11s  %12s   %12s\n".as_ptr(),
         max_label_len,
-        b"\0" as *const u8 as *const c_char,
+        c"".as_ptr(),
         max_module_len,
-        b"\0" as *const u8 as *const c_char,
+        c"".as_ptr(),
         max_src_len,
-        b"\0" as *const u8 as *const c_char,
+        c"".as_ptr(),
         max_id_len,
-        b"\0" as *const u8 as *const c_char,
-        b"\0" as *const u8 as *const c_char,
-        b"individual\0" as *const u8 as *const c_char,
-        b"inherited\0" as *const u8 as *const c_char,
+        c"".as_ptr(),
+        c"".as_ptr(),
+        c"individual".as_ptr(),
+        c"inherited".as_ptr(),
     );
 
     fprintf(
         prof_file,
-        b"%-*s %-*s %-*s %-*s\0" as *const u8 as *const c_char,
+        c"%-*s %-*s %-*s %-*s".as_ptr(),
         max_label_len,
-        b"COST CENTRE\0" as *const u8 as *const c_char,
+        c"COST CENTRE".as_ptr(),
         max_module_len,
-        b"MODULE\0" as *const u8 as *const c_char,
+        c"MODULE".as_ptr(),
         max_src_len,
-        b"SRC\0" as *const u8 as *const c_char,
+        c"SRC".as_ptr(),
         max_id_len,
-        b"no.\0" as *const u8 as *const c_char,
+        c"no.".as_ptr(),
     );
 
     fprintf(
         prof_file,
-        b" %11s  %5s %6s   %5s %6s\0" as *const u8 as *const c_char,
-        b"entries\0" as *const u8 as *const c_char,
-        b"%time\0" as *const u8 as *const c_char,
-        b"%alloc\0" as *const u8 as *const c_char,
-        b"%time\0" as *const u8 as *const c_char,
-        b"%alloc\0" as *const u8 as *const c_char,
+        c" %11s  %5s %6s   %5s %6s".as_ptr(),
+        c"entries".as_ptr(),
+        c"%time".as_ptr(),
+        c"%alloc".as_ptr(),
+        c"%time".as_ptr(),
+        c"%alloc".as_ptr(),
     );
 
-    if RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_VERBOSE as uint32_t {
+    if RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_VERBOSE as u32 {
         fprintf(
             prof_file,
-            b"  %5s %9s\0" as *const u8 as *const c_char,
-            b"ticks\0" as *const u8 as *const c_char,
-            b"bytes\0" as *const u8 as *const c_char,
+            c"  %5s %9s".as_ptr(),
+            c"ticks".as_ptr(),
+            c"bytes".as_ptr(),
         );
     }
 
-    fprintf(prof_file, b"\n\n\0" as *const u8 as *const c_char);
+    fprintf(prof_file, c"\n\n".as_ptr());
 }
 
-static mut sorted_cc_list: *mut CostCentre = null::<CostCentre>() as *mut CostCentre;
+static mut sorted_cc_list: *mut CostCentre = null_mut::<CostCentre>();
 
 unsafe fn insertCCInSortedList(mut new_cc: *mut CostCentre) {
     let mut prev = null_mut::<*mut CostCentre>();
@@ -110,43 +110,43 @@ unsafe fn insertCCInSortedList(mut new_cc: *mut CostCentre) {
 unsafe fn reportPerCCCosts(mut prof_file: *mut FILE, mut totals: ProfilerTotals) {
     let mut cc = null_mut::<CostCentre>();
     let mut next = null_mut::<CostCentre>();
-    let mut max_label_len: uint32_t = 0;
-    let mut max_module_len: uint32_t = 0;
-    let mut max_src_len: uint32_t = 0;
+    let mut max_label_len: u32 = 0;
+    let mut max_module_len: u32 = 0;
+    let mut max_src_len: u32 = 0;
     sorted_cc_list = null_mut::<CostCentre>();
-    max_label_len = 11 as uint32_t;
-    max_module_len = 6 as uint32_t;
-    max_src_len = 3 as uint32_t;
+    max_label_len = 11;
+    max_module_len = 6;
+    max_src_len = 3;
     cc = CC_LIST;
 
     while !cc.is_null() {
         next = (*cc).link as *mut CostCentre;
 
-        if (*cc).time_ticks > totals.total_prof_ticks.wrapping_div(100 as c_uint) as StgWord
-            || (*cc).mem_alloc > totals.total_alloc.wrapping_div(100 as uint64_t)
-            || RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_ALL as uint32_t
+        if (*cc).time_ticks > totals.total_prof_ticks.wrapping_div(100 as u32) as StgWord
+            || (*cc).mem_alloc > totals.total_alloc.wrapping_div(100 as u64)
+            || RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_ALL as u32
         {
             insertCCInSortedList(cc);
 
             max_label_len = ({
-                let mut _a = strlen_utf8((*cc).label) as uint32_t;
-                let mut _b: uint32_t = max_label_len as uint32_t;
+                let mut _a = strlen_utf8((*cc).label) as u32;
+                let mut _b: u32 = max_label_len as u32;
 
-                if _a <= _b { _b } else { _a as uint32_t }
+                if _a <= _b { _b } else { _a as u32 }
             });
 
             max_module_len = ({
-                let mut _a = strlen_utf8((*cc).module) as uint32_t;
-                let mut _b: uint32_t = max_module_len as uint32_t;
+                let mut _a = strlen_utf8((*cc).module) as u32;
+                let mut _b: u32 = max_module_len as u32;
 
-                if _a <= _b { _b } else { _a as uint32_t }
+                if _a <= _b { _b } else { _a as u32 }
             });
 
             max_src_len = ({
-                let mut _a = strlen_utf8((*cc).srcloc) as uint32_t;
-                let mut _b: uint32_t = max_src_len as uint32_t;
+                let mut _a = strlen_utf8((*cc).srcloc) as u32;
+                let mut _b: u32 = max_src_len as u32;
 
-                if _a <= _b { _b } else { _a as uint32_t }
+                if _a <= _b { _b } else { _a as u32 }
             });
         }
 
@@ -155,95 +155,94 @@ unsafe fn reportPerCCCosts(mut prof_file: *mut FILE, mut totals: ProfilerTotals)
 
     fprintf(
         prof_file,
-        b"%-*s %-*s %-*s\0" as *const u8 as *const c_char,
+        c"%-*s %-*s %-*s".as_ptr(),
         max_label_len,
-        b"COST CENTRE\0" as *const u8 as *const c_char,
+        c"COST CENTRE".as_ptr(),
         max_module_len,
-        b"MODULE\0" as *const u8 as *const c_char,
+        c"MODULE".as_ptr(),
         max_src_len,
-        b"SRC\0" as *const u8 as *const c_char,
+        c"SRC".as_ptr(),
     );
 
     fprintf(
         prof_file,
-        b" %6s %6s\0" as *const u8 as *const c_char,
-        b"%time\0" as *const u8 as *const c_char,
-        b"%alloc\0" as *const u8 as *const c_char,
+        c" %6s %6s".as_ptr(),
+        c"%time".as_ptr(),
+        c"%alloc".as_ptr(),
     );
 
-    if RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_VERBOSE as uint32_t {
+    if RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_VERBOSE as u32 {
         fprintf(
             prof_file,
-            b"  %5s %9s\0" as *const u8 as *const c_char,
-            b"ticks\0" as *const u8 as *const c_char,
-            b"bytes\0" as *const u8 as *const c_char,
+            c"  %5s %9s".as_ptr(),
+            c"ticks".as_ptr(),
+            c"bytes".as_ptr(),
         );
     }
 
-    fprintf(prof_file, b"\n\n\0" as *const u8 as *const c_char);
+    fprintf(prof_file, c"\n\n".as_ptr());
     cc = sorted_cc_list;
 
     while !cc.is_null() {
         if !ignoreCC(cc) {
             fprintf(
                 prof_file,
-                b"%s%*s %s%*s %s%*s\0" as *const u8 as *const c_char,
+                c"%s%*s %s%*s %s%*s".as_ptr(),
                 (*cc).label,
                 max_label_len.wrapping_sub(strlen_utf8((*cc).label)),
-                b"\0" as *const u8 as *const c_char,
+                c"".as_ptr(),
                 (*cc).module,
                 max_module_len.wrapping_sub(strlen_utf8((*cc).module)),
-                b"\0" as *const u8 as *const c_char,
+                c"".as_ptr(),
                 (*cc).srcloc,
                 max_src_len.wrapping_sub(strlen_utf8((*cc).srcloc)),
-                b"\0" as *const u8 as *const c_char,
+                c"".as_ptr(),
             );
 
             fprintf(
                 prof_file,
-                b" %6.1f %6.1f\0" as *const u8 as *const c_char,
-                if totals.total_prof_ticks == 0 as c_uint {
+                c" %6.1f %6.1f".as_ptr(),
+                if totals.total_prof_ticks == 0 {
                     0.0f64
                 } else {
-                    ((*cc).time_ticks as StgFloat / totals.total_prof_ticks as StgFloat
-                        * 100 as c_int as StgFloat) as c_double
+                    ((*cc).time_ticks as StgFloat / totals.total_prof_ticks as StgFloat * 100)
+                        as f64
                 },
-                if totals.total_alloc == 0 as uint64_t {
+                if totals.total_alloc == 0 {
                     0.0f64
                 } else {
-                    ((*cc).mem_alloc as StgFloat / totals.total_alloc as StgFloat
-                        * 100 as c_int as StgFloat) as c_double
+                    ((*cc).mem_alloc as StgFloat / totals.total_alloc as StgFloat * 100) as f64
                 },
             );
 
-            if RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_VERBOSE as uint32_t {
+            if RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_VERBOSE as u32 {
                 fprintf(
                     prof_file,
-                    b"  %5llu %9llu\0" as *const u8 as *const c_char,
+                    c"  %5llu %9llu".as_ptr(),
                     (*cc).time_ticks,
                     (*cc).mem_alloc.wrapping_mul(size_of::<W_>() as StgWord64),
                 );
             }
 
-            fprintf(prof_file, b"\n\0" as *const u8 as *const c_char);
+            fprintf(prof_file, c"\n".as_ptr());
         }
 
         cc = (*cc).link as *mut CostCentre;
     }
 
-    fprintf(prof_file, b"\n\n\0" as *const u8 as *const c_char);
+    fprintf(prof_file, c"\n\n".as_ptr());
 }
 
-unsafe fn numDigits(mut i: StgInt) -> uint32_t {
-    let mut result: uint32_t = 0;
-    result = 1 as uint32_t;
+unsafe fn numDigits(mut i: StgInt) -> u32 {
+    let mut result: u32 = 0;
+    result = 1;
 
-    if i < 0 as StgInt {
-        i = 0 as StgInt;
+    if i < 0 {
+        i = 0;
     }
 
-    while i > 9 as StgInt {
-        i /= 10 as StgInt;
+    while i > 9 {
+        i /= 10;
         result = result.wrapping_add(1);
     }
 
@@ -252,43 +251,42 @@ unsafe fn numDigits(mut i: StgInt) -> uint32_t {
 
 unsafe fn findCCSMaxLens(
     mut ccs: *const CostCentreStack,
-    mut indent: uint32_t,
-    mut max_label_len: *mut uint32_t,
-    mut max_module_len: *mut uint32_t,
-    mut max_src_len: *mut uint32_t,
-    mut max_id_len: *mut uint32_t,
+    mut indent: u32,
+    mut max_label_len: *mut u32,
+    mut max_module_len: *mut u32,
+    mut max_src_len: *mut u32,
+    mut max_id_len: *mut u32,
 ) {
     let mut cc = null_mut::<CostCentre>();
     let mut i = null_mut::<IndexTable>();
     cc = (*ccs).cc;
 
     *max_label_len = ({
-        let mut _a: uint32_t = *max_label_len;
-        let mut _b: uint32_t =
-            (indent as uint32_t).wrapping_add(strlen_utf8((*cc).label) as uint32_t);
+        let mut _a: u32 = *max_label_len;
+        let mut _b: u32 = (indent as u32).wrapping_add(strlen_utf8((*cc).label) as u32);
 
-        if _a <= _b { _b } else { _a as uint32_t }
+        if _a <= _b { _b } else { _a as u32 }
     });
 
     *max_module_len = ({
-        let mut _a: uint32_t = *max_module_len;
-        let mut _b = strlen_utf8((*cc).module) as uint32_t;
+        let mut _a: u32 = *max_module_len;
+        let mut _b = strlen_utf8((*cc).module) as u32;
 
-        if _a <= _b { _b } else { _a as uint32_t }
+        if _a <= _b { _b } else { _a as u32 }
     });
 
     *max_src_len = ({
-        let mut _a: uint32_t = *max_src_len;
-        let mut _b = strlen_utf8((*cc).srcloc) as uint32_t;
+        let mut _a: u32 = *max_src_len;
+        let mut _b = strlen_utf8((*cc).srcloc) as u32;
 
-        if _a <= _b { _b } else { _a as uint32_t }
+        if _a <= _b { _b } else { _a as u32 }
     });
 
     *max_id_len = ({
-        let mut _a: uint32_t = *max_id_len;
-        let mut _b = numDigits((*ccs).ccsID) as uint32_t;
+        let mut _a: u32 = *max_id_len;
+        let mut _b = numDigits((*ccs).ccsID) as u32;
 
-        if _a <= _b { _b } else { _a as uint32_t }
+        if _a <= _b { _b } else { _a as u32 }
     });
 
     i = (*ccs).indexTable as *mut IndexTable;
@@ -297,7 +295,7 @@ unsafe fn findCCSMaxLens(
         if !(*i).back_edge {
             findCCSMaxLens(
                 (*i).ccs,
-                indent.wrapping_add(1 as uint32_t),
+                indent.wrapping_add(1 as u32),
                 max_label_len,
                 max_module_len,
                 max_src_len,
@@ -313,11 +311,11 @@ unsafe fn logCCS(
     mut prof_file: *mut FILE,
     mut ccs: *const CostCentreStack,
     mut totals: ProfilerTotals,
-    mut indent: uint32_t,
-    mut max_label_len: uint32_t,
-    mut max_module_len: uint32_t,
-    mut max_src_len: uint32_t,
-    mut max_id_len: uint32_t,
+    mut indent: u32,
+    mut max_label_len: u32,
+    mut max_module_len: u32,
+    mut max_src_len: u32,
+    mut max_id_len: u32,
 ) {
     let mut cc = null_mut::<CostCentre>();
     let mut i = null_mut::<IndexTable>();
@@ -326,60 +324,60 @@ unsafe fn logCCS(
     if !ignoreCCS(ccs) {
         fprintf(
             prof_file,
-            b"%*s%s%*s %s%*s %s%*s\0" as *const u8 as *const c_char,
+            c"%*s%s%*s %s%*s %s%*s".as_ptr(),
             indent,
-            b"\0" as *const u8 as *const c_char,
+            c"".as_ptr(),
             (*cc).label,
             max_label_len
                 .wrapping_sub(indent)
                 .wrapping_sub(strlen_utf8((*cc).label)),
-            b"\0" as *const u8 as *const c_char,
+            c"".as_ptr(),
             (*cc).module,
             max_module_len.wrapping_sub(strlen_utf8((*cc).module)),
-            b"\0" as *const u8 as *const c_char,
+            c"".as_ptr(),
             (*cc).srcloc,
             max_src_len.wrapping_sub(strlen_utf8((*cc).srcloc)),
-            b"\0" as *const u8 as *const c_char,
+            c"".as_ptr(),
         );
 
         fprintf(
             prof_file,
-            b" %*lld %11llu  %5.1f  %5.1f   %5.1f  %5.1f\0" as *const u8 as *const c_char,
+            c" %*lld %11llu  %5.1f  %5.1f   %5.1f  %5.1f".as_ptr(),
             max_id_len,
             (*ccs).ccsID,
             (*ccs).scc_count,
-            if totals.total_prof_ticks == 0 as c_uint {
+            if totals.total_prof_ticks == 0 {
                 0.0f64
             } else {
-                (*ccs).time_ticks as c_double / totals.total_prof_ticks as c_double * 100.0f64
+                (*ccs).time_ticks as f64 / totals.total_prof_ticks as f64 * 100.0f64
             },
-            if totals.total_alloc == 0 as uint64_t {
+            if totals.total_alloc == 0 {
                 0.0f64
             } else {
-                (*ccs).mem_alloc as c_double / totals.total_alloc as c_double * 100.0f64
+                (*ccs).mem_alloc as f64 / totals.total_alloc as f64 * 100.0f64
             },
-            if totals.total_prof_ticks == 0 as c_uint {
+            if totals.total_prof_ticks == 0 {
                 0.0f64
             } else {
-                (*ccs).inherited_ticks as c_double / totals.total_prof_ticks as c_double * 100.0f64
+                (*ccs).inherited_ticks as f64 / totals.total_prof_ticks as f64 * 100.0f64
             },
-            if totals.total_alloc == 0 as uint64_t {
+            if totals.total_alloc == 0 {
                 0.0f64
             } else {
-                (*ccs).inherited_alloc as c_double / totals.total_alloc as c_double * 100.0f64
+                (*ccs).inherited_alloc as f64 / totals.total_alloc as f64 * 100.0f64
             },
         );
 
-        if RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_VERBOSE as uint32_t {
+        if RtsFlags.CcFlags.doCostCentres >= COST_CENTRES_VERBOSE as u32 {
             fprintf(
                 prof_file,
-                b"  %5llu %9llu\0" as *const u8 as *const c_char,
+                c"  %5llu %9llu".as_ptr(),
                 (*ccs).time_ticks,
                 (*ccs).mem_alloc.wrapping_mul(size_of::<W_>() as StgWord64),
             );
         }
 
-        fprintf(prof_file, b"\n\0" as *const u8 as *const c_char);
+        fprintf(prof_file, c"\n".as_ptr());
     }
 
     i = (*ccs).indexTable as *mut IndexTable;
@@ -390,7 +388,7 @@ unsafe fn logCCS(
                 prof_file,
                 (*i).ccs,
                 totals,
-                indent.wrapping_add(1 as uint32_t),
+                indent.wrapping_add(1 as u32),
                 max_label_len,
                 max_module_len,
                 max_src_len,
@@ -407,18 +405,18 @@ unsafe fn reportCCS(
     mut ccs: *const CostCentreStack,
     mut totals: ProfilerTotals,
 ) {
-    let mut max_label_len: uint32_t = 0;
-    let mut max_module_len: uint32_t = 0;
-    let mut max_src_len: uint32_t = 0;
-    let mut max_id_len: uint32_t = 0;
-    max_label_len = 11 as uint32_t;
-    max_module_len = 6 as uint32_t;
-    max_src_len = 3 as uint32_t;
-    max_id_len = 3 as uint32_t;
+    let mut max_label_len: u32 = 0;
+    let mut max_module_len: u32 = 0;
+    let mut max_src_len: u32 = 0;
+    let mut max_id_len: u32 = 0;
+    max_label_len = 11;
+    max_module_len = 6;
+    max_src_len = 3;
+    max_id_len = 3;
 
     findCCSMaxLens(
         ccs,
-        0 as uint32_t,
+        0,
         &raw mut max_label_len,
         &raw mut max_module_len,
         &raw mut max_src_len,
@@ -437,7 +435,7 @@ unsafe fn reportCCS(
         prof_file,
         ccs,
         totals,
-        0 as uint32_t,
+        0,
         max_label_len,
         max_module_len,
         max_src_len,
@@ -454,74 +452,63 @@ unsafe fn writeCCSReport(
 
     fprintf(
         prof_file,
-        b"\t%s Time and Allocation Profiling Report  (%s)\n\0" as *const u8 as *const c_char,
+        c"\t%s Time and Allocation Profiling Report  (%s)\n".as_ptr(),
         time_str(),
-        b"Final\0" as *const u8 as *const c_char,
+        c"Final".as_ptr(),
     );
 
-    fprintf(prof_file, b"\n\t  \0" as *const u8 as *const c_char);
-    fprintf(prof_file, b" %s\0" as *const u8 as *const c_char, prog_name);
-    fprintf(prof_file, b" +RTS\0" as *const u8 as *const c_char);
+    fprintf(prof_file, c"\n\t  ".as_ptr());
+    fprintf(prof_file, c" %s".as_ptr(), prog_name);
+    fprintf(prof_file, c" +RTS".as_ptr());
 
-    let mut count = 0 as c_int;
+    let mut count = 0;
 
     while !(*rts_argv.offset(count as isize)).is_null() {
-        fprintf(
-            prof_file,
-            b" %s\0" as *const u8 as *const c_char,
-            *rts_argv.offset(count as isize),
-        );
-
+        fprintf(prof_file, c" %s".as_ptr(), *rts_argv.offset(count as isize));
         count += 1;
     }
 
-    fprintf(prof_file, b" -RTS\0" as *const u8 as *const c_char);
+    fprintf(prof_file, c" -RTS".as_ptr());
 
-    let mut count_0 = 1 as c_int;
+    let mut count_0 = 1;
 
     while !(*prog_argv.offset(count_0 as isize)).is_null() {
         fprintf(
             prof_file,
-            b" %s\0" as *const u8 as *const c_char,
+            c" %s".as_ptr(),
             *prog_argv.offset(count_0 as isize),
         );
-
         count_0 += 1;
     }
 
-    fprintf(prof_file, b"\n\n\0" as *const u8 as *const c_char);
+    fprintf(prof_file, c"\n\n".as_ptr());
 
     fprintf(
         prof_file,
-        b"\ttotal time  = %11.2f secs   (%lu ticks @ %d us, %d processor%s)\n\0" as *const u8
-            as *const c_char,
-        totals.total_prof_ticks as c_double * RtsFlags.MiscFlags.tickInterval as c_double
-            / (TIME_RESOLUTION as c_uint).wrapping_mul(getNumCapabilities()) as c_double,
-        totals.total_prof_ticks as c_ulong,
-        (RtsFlags.MiscFlags.tickInterval / 1000 as Time) as c_int,
+        c"\ttotal time  = %11.2f secs   (%lu ticks @ %d us, %d processor%s)\n".as_ptr(),
+        totals.total_prof_ticks as f64 * RtsFlags.MiscFlags.tickInterval as f64
+            / (TIME_RESOLUTION as u32).wrapping_mul(getNumCapabilities()) as f64,
+        totals.total_prof_ticks as u64,
+        (RtsFlags.MiscFlags.tickInterval / 1000) as i32,
         getNumCapabilities(),
-        if getNumCapabilities() > 1 as c_uint {
-            b"s\0" as *const u8 as *const c_char
+        if getNumCapabilities() > 1 {
+            c"s".as_ptr()
         } else {
-            b"\0" as *const u8 as *const c_char
+            c"".as_ptr()
         },
     );
 
     fprintf(
         prof_file,
-        b"\ttotal alloc = %11s bytes\0" as *const u8 as *const c_char,
+        c"\ttotal alloc = %11s bytes".as_ptr(),
         showStgWord64(
             (totals.total_alloc as StgWord64).wrapping_mul(size_of::<W_>() as StgWord64),
             &raw mut temp as *mut c_char,
-            r#true != 0,
+            true,
         ),
     );
 
-    fprintf(
-        prof_file,
-        b"  (excludes profiling overheads)\n\n\0" as *const u8 as *const c_char,
-    );
-
+    fprintf(prof_file, c"  (excludes profiling overheads)\n\n".as_ptr());
     reportPerCCCosts(prof_file, totals);
     reportCCS(prof_file, stack, totals);
 }

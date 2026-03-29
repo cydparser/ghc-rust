@@ -8,19 +8,19 @@ mod tests;
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_pdep64(mut src: StgWord64, mut mask: StgWord64) -> StgWord64 {
-    let mut result: uint64_t = 0 as uint64_t;
+    let mut result: u64 = 0;
 
     loop {
-        let lowest: uint64_t = (mask as uint64_t).wrapping_neg() & mask as uint64_t;
+        let lowest: u64 = (mask as u64).wrapping_neg() & mask as u64;
 
-        if lowest == 0 as uint64_t {
+        if lowest == 0 {
             break;
         }
 
-        let lsb: uint64_t = ((src << 63 as c_int) as int64_t >> 63 as c_int) as uint64_t;
+        let lsb: u64 = ((src << 63) as i64 >> 63) as u64;
         result |= lsb & lowest;
         mask &= !lowest;
-        src >>= 1 as c_int;
+        src >>= 1;
     }
 
     return result as StgWord64;

@@ -15,96 +15,96 @@ pub(crate) type retainer = *mut CostCentreStack;
 
 /// cbindgen:no-export
 pub(crate) struct _RetainerSet {
-    pub(crate) num: uint32_t,
+    pub(crate) num: u32,
     pub(crate) hashKey: StgWord,
     pub(crate) link: *mut _RetainerSet,
-    pub(crate) id: c_int,
+    pub(crate) id: i32,
     pub(crate) element: [retainer; 0],
 }
 
 pub(crate) type RetainerSet = _RetainerSet;
 
-pub(crate) const BINARY_SEARCH_THRESHOLD: c_int = 8 as c_int;
+pub(crate) const BINARY_SEARCH_THRESHOLD: i32 = 8;
 
 #[inline]
 pub(crate) unsafe fn isMember(mut r: retainer, mut rs: *mut RetainerSet) -> bool {
-    let mut i: c_int = 0;
-    let mut left: c_int = 0;
-    let mut right: c_int = 0;
+    let mut i: i32 = 0;
+    let mut left: i32 = 0;
+    let mut right: i32 = 0;
     let mut ri = null_mut::<CostCentreStack>();
 
     if rs == &raw mut rs_MANY {
-        return r#true != 0;
+        return true;
     }
 
-    if (*rs).num < BINARY_SEARCH_THRESHOLD as uint32_t {
-        i = 0 as c_int;
+    if (*rs).num < BINARY_SEARCH_THRESHOLD as u32 {
+        i = 0;
 
-        while i < (*rs).num as c_int {
+        while i < (*rs).num as i32 {
             ri = *(&raw mut (*rs).element as *mut retainer).offset(i as isize);
 
             if r == ri {
-                return r#true != 0;
+                return true;
             } else if r < ri {
-                return r#false != 0;
+                return false;
             }
 
             i += 1;
         }
     } else {
-        left = 0 as c_int;
-        right = (*rs).num.wrapping_sub(1 as uint32_t) as c_int;
+        left = 0;
+        right = (*rs).num.wrapping_sub(1 as u32) as i32;
 
         while left <= right {
-            i = (left + right) / 2 as c_int;
+            i = (left + right) / 2;
             ri = *(&raw mut (*rs).element as *mut retainer).offset(i as isize);
 
             if r == ri {
-                return r#true != 0;
+                return true;
             } else if r < ri {
-                right = i - 1 as c_int;
+                right = i - 1;
             } else {
-                left = i + 1 as c_int;
+                left = i + 1;
             }
         }
     }
 
-    return r#false != 0;
+    return false;
 }
 
-const HASH_TABLE_SIZE: c_int = 255 as c_int;
+const HASH_TABLE_SIZE: i32 = 255;
 
-static mut hashTable: [*mut RetainerSet; 255] = [null::<RetainerSet>() as *mut RetainerSet; 255];
+static mut hashTable: [*mut RetainerSet; 255] = [null_mut::<RetainerSet>(); 255];
 
-static mut arena: *mut Arena = null::<Arena>() as *mut Arena;
+static mut arena: *mut Arena = null_mut::<Arena>();
 
-static mut nextId: c_int = 0;
+static mut nextId: i32 = 0;
 
 static mut rs_MANY: RetainerSet = _RetainerSet {
-    num: 0 as uint32_t,
-    hashKey: 0 as StgWord,
-    link: null::<_RetainerSet>() as *mut _RetainerSet,
-    id: 1 as c_int,
-    element: [null::<CostCentreStack>() as *mut CostCentreStack; 0],
+    num: 0,
+    hashKey: 0,
+    link: null_mut::<_RetainerSet>(),
+    id: 1,
+    element: [null_mut::<CostCentreStack>(); 0],
 };
 
 #[inline]
-unsafe fn sizeofRetainerSet(mut elems: c_int) -> size_t {
-    return (size_of::<RetainerSet>() as size_t)
-        .wrapping_add((elems as size_t).wrapping_mul(size_of::<retainer>() as size_t));
+unsafe fn sizeofRetainerSet(mut elems: i32) -> usize {
+    return (size_of::<RetainerSet>() as usize)
+        .wrapping_add((elems as usize).wrapping_mul(size_of::<retainer>() as usize));
 }
 
 unsafe fn initializeAllRetainerSet() {
-    let mut i: c_int = 0;
+    let mut i: i32 = 0;
     arena = newArena();
-    i = 0 as c_int;
+    i = 0;
 
     while i < HASH_TABLE_SIZE {
         hashTable[i as usize] = null_mut::<RetainerSet>();
         i += 1;
     }
 
-    nextId = 2 as c_int;
+    nextId = 2;
 }
 
 unsafe fn closeAllRetainerSet() {
@@ -118,17 +118,15 @@ unsafe fn singleton(mut r: retainer) -> *mut RetainerSet {
     rs = hashTable[hk.wrapping_rem(HASH_TABLE_SIZE as StgWord) as usize];
 
     while !rs.is_null() {
-        if (*rs).num == 1 as uint32_t
-            && *(&raw mut (*rs).element as *mut retainer).offset(0 as c_int as isize) == r
-        {
+        if (*rs).num == 1 && *(&raw mut (*rs).element as *mut retainer).offset(0) == r {
             return rs;
         }
 
         rs = (*rs).link as *mut RetainerSet;
     }
 
-    rs = arenaAlloc(arena, sizeofRetainerSet(1 as c_int)) as *mut RetainerSet;
-    (*rs).num = 1 as uint32_t;
+    rs = arenaAlloc(arena, sizeofRetainerSet(1)) as *mut RetainerSet;
+    (*rs).num = 1;
     (*rs).hashKey = hk;
     (*rs).link =
         hashTable[hk.wrapping_rem(HASH_TABLE_SIZE as StgWord) as usize] as *mut _RetainerSet;
@@ -137,7 +135,7 @@ unsafe fn singleton(mut r: retainer) -> *mut RetainerSet {
     nextId = nextId + 1;
     (*rs).id = fresh5;
 
-    let ref mut fresh6 = *(&raw mut (*rs).element as *mut retainer).offset(0 as c_int as isize);
+    let ref mut fresh6 = *(&raw mut (*rs).element as *mut retainer).offset(0);
     *fresh6 = r;
     hashTable[hk.wrapping_rem(HASH_TABLE_SIZE as StgWord) as usize] = rs;
 
@@ -145,8 +143,8 @@ unsafe fn singleton(mut r: retainer) -> *mut RetainerSet {
 }
 
 unsafe fn addElement(mut r: retainer, mut rs: *mut RetainerSet) -> *mut RetainerSet {
-    let mut i: uint32_t = 0;
-    let mut nl: uint32_t = 0;
+    let mut i: u32 = 0;
+    let mut nl: u32 = 0;
     let mut nrs = null_mut::<RetainerSet>();
     let mut hk: StgWord = 0;
 
@@ -154,7 +152,7 @@ unsafe fn addElement(mut r: retainer, mut rs: *mut RetainerSet) -> *mut Retainer
         return &raw mut rs_MANY;
     }
 
-    nl = 0 as uint32_t;
+    nl = 0;
 
     while nl < (*rs).num {
         if r < *(&raw mut (*rs).element as *mut retainer).offset(nl as isize) {
@@ -168,8 +166,8 @@ unsafe fn addElement(mut r: retainer, mut rs: *mut RetainerSet) -> *mut Retainer
     nrs = hashTable[hk.wrapping_rem(HASH_TABLE_SIZE as StgWord) as usize];
 
     while !nrs.is_null() {
-        if !((*rs).num.wrapping_add(1 as uint32_t) != (*nrs).num) {
-            i = 0 as uint32_t;
+        if !((*rs).num.wrapping_add(1 as u32) != (*nrs).num) {
+            i = 0;
 
             while i < nl {
                 if *(&raw mut (*rs).element as *mut retainer).offset(i as isize)
@@ -186,7 +184,7 @@ unsafe fn addElement(mut r: retainer, mut rs: *mut RetainerSet) -> *mut Retainer
                     while i < (*rs).num {
                         if *(&raw mut (*rs).element as *mut retainer).offset(i as isize)
                             != *(&raw mut (*nrs).element as *mut retainer)
-                                .offset(i.wrapping_add(1 as uint32_t) as isize)
+                                .offset(i.wrapping_add(1 as u32) as isize)
                         {
                             break;
                         }
@@ -206,10 +204,9 @@ unsafe fn addElement(mut r: retainer, mut rs: *mut RetainerSet) -> *mut Retainer
 
     nrs = arenaAlloc(
         arena,
-        sizeofRetainerSet((*rs).num.wrapping_add(1 as uint32_t) as c_int),
+        sizeofRetainerSet((*rs).num.wrapping_add(1 as u32) as i32),
     ) as *mut RetainerSet;
-
-    (*nrs).num = (*rs).num.wrapping_add(1 as uint32_t);
+    (*nrs).num = (*rs).num.wrapping_add(1 as u32);
     (*nrs).hashKey = hk;
     (*nrs).link =
         hashTable[hk.wrapping_rem(HASH_TABLE_SIZE as StgWord) as usize] as *mut _RetainerSet;
@@ -217,7 +214,7 @@ unsafe fn addElement(mut r: retainer, mut rs: *mut RetainerSet) -> *mut Retainer
     let fresh7 = nextId;
     nextId = nextId + 1;
     (*nrs).id = fresh7;
-    i = 0 as uint32_t;
+    i = 0;
 
     while i < nl {
         let ref mut fresh8 = *(&raw mut (*nrs).element as *mut retainer).offset(i as isize);
@@ -229,8 +226,8 @@ unsafe fn addElement(mut r: retainer, mut rs: *mut RetainerSet) -> *mut Retainer
     *fresh9 = r;
 
     while i < (*rs).num {
-        let ref mut fresh10 = *(&raw mut (*nrs).element as *mut retainer)
-            .offset(i.wrapping_add(1 as uint32_t) as isize);
+        let ref mut fresh10 =
+            *(&raw mut (*nrs).element as *mut retainer).offset(i.wrapping_add(1 as u32) as isize);
         *fresh10 = *(&raw mut (*rs).element as *mut retainer).offset(i as isize);
         i = i.wrapping_add(1);
     }
@@ -248,32 +245,26 @@ unsafe fn printRetainerSetShort(
     mut f: *mut FILE,
     mut rs: *mut RetainerSet,
     mut total_size: W_,
-    mut max_length: uint32_t,
+    mut max_length: u32,
 ) {
-    let vla = max_length.wrapping_add(1 as uint32_t) as usize;
+    let vla = max_length.wrapping_add(1 as u32) as usize;
     let mut tmp: Vec<c_char> = ::std::vec::from_elem(0, vla);
-    let mut size: uint32_t = 0;
-    let mut j: uint32_t = 0;
+    let mut size: u32 = 0;
+    let mut j: u32 = 0;
     *tmp.as_mut_ptr().offset(max_length as isize) = '\0' as i32 as c_char;
-
-    sprintf(
-        tmp.as_mut_ptr().offset(0 as c_int as isize),
-        b"(%d)\0" as *const u8 as *const c_char,
-        -(*rs).id,
-    );
-
-    size = strlen(tmp.as_mut_ptr()) as uint32_t;
-    j = 0 as uint32_t;
+    sprintf(tmp.as_mut_ptr().offset(0), c"(%d)".as_ptr(), -(*rs).id);
+    size = strlen(tmp.as_mut_ptr()) as u32;
+    j = 0;
 
     while j < (*rs).num {
-        if j < (*rs).num.wrapping_sub(1 as uint32_t) {
+        if j < (*rs).num.wrapping_sub(1 as u32) {
             strncpy(
                 tmp.as_mut_ptr().offset(size as isize),
                 (*(**(&raw mut (*rs).element as *mut retainer).offset(j as isize)).cc).label,
-                max_length.wrapping_sub(size) as size_t,
+                max_length.wrapping_sub(size) as usize,
             );
 
-            size = strlen(tmp.as_mut_ptr()) as uint32_t;
+            size = strlen(tmp.as_mut_ptr()) as u32;
 
             if size == max_length {
                 break;
@@ -281,11 +272,11 @@ unsafe fn printRetainerSetShort(
 
             strncpy(
                 tmp.as_mut_ptr().offset(size as isize),
-                b",\0" as *const u8 as *const c_char,
-                max_length.wrapping_sub(size) as size_t,
+                c",".as_ptr(),
+                max_length.wrapping_sub(size) as usize,
             );
 
-            size = strlen(tmp.as_mut_ptr()) as uint32_t;
+            size = strlen(tmp.as_mut_ptr()) as u32;
 
             if size == max_length {
                 break;
@@ -294,7 +285,7 @@ unsafe fn printRetainerSetShort(
             strncpy(
                 tmp.as_mut_ptr().offset(size as isize),
                 (*(**(&raw mut (*rs).element as *mut retainer).offset(j as isize)).cc).label,
-                max_length.wrapping_sub(size) as size_t,
+                max_length.wrapping_sub(size) as usize,
             );
         }
 
@@ -302,24 +293,24 @@ unsafe fn printRetainerSetShort(
     }
 
     fputs(tmp.as_mut_ptr(), f);
-    traceHeapProfSampleString(0 as StgWord8, tmp.as_mut_ptr(), total_size as StgWord);
+    traceHeapProfSampleString(0, tmp.as_mut_ptr(), total_size as StgWord);
 }
 
 unsafe fn outputAllRetainerSet(mut prof_file: *mut FILE) {
-    let mut i: uint32_t = 0;
-    let mut j: uint32_t = 0;
-    let mut numSet: uint32_t = 0;
+    let mut i: u32 = 0;
+    let mut j: u32 = 0;
+    let mut numSet: u32 = 0;
     let mut rs = null_mut::<RetainerSet>();
     let mut rsArray = null_mut::<*mut RetainerSet>();
     let mut tmp = null_mut::<RetainerSet>();
-    numSet = 0 as uint32_t;
-    i = 0 as uint32_t;
+    numSet = 0;
+    i = 0;
 
-    while i < HASH_TABLE_SIZE as uint32_t {
+    while i < HASH_TABLE_SIZE as u32 {
         rs = hashTable[i as usize];
 
         while !rs.is_null() {
-            if (*rs).id < 0 as c_int {
+            if (*rs).id < 0 {
                 numSet = numSet.wrapping_add(1);
             }
 
@@ -329,23 +320,23 @@ unsafe fn outputAllRetainerSet(mut prof_file: *mut FILE) {
         i = i.wrapping_add(1);
     }
 
-    if numSet == 0 as uint32_t {
+    if numSet == 0 {
         return;
     }
 
     rsArray = stgMallocBytes(
-        (numSet as size_t).wrapping_mul(size_of::<*mut RetainerSet>() as size_t),
-        b"outputAllRetainerSet()\0" as *const u8 as *const c_char as *mut c_char,
+        (numSet as usize).wrapping_mul(size_of::<*mut RetainerSet>() as usize),
+        c"outputAllRetainerSet()".as_ptr(),
     ) as *mut *mut RetainerSet;
 
-    j = 0 as uint32_t;
-    i = 0 as uint32_t;
+    j = 0;
+    i = 0;
 
-    while i < HASH_TABLE_SIZE as uint32_t {
+    while i < HASH_TABLE_SIZE as u32 {
         rs = hashTable[i as usize];
 
         while !rs.is_null() {
-            if (*rs).id < 0 as c_int {
+            if (*rs).id < 0 {
                 let ref mut fresh11 = *rsArray.offset(j as isize);
                 *fresh11 = rs;
                 j = j.wrapping_add(1);
@@ -357,21 +348,21 @@ unsafe fn outputAllRetainerSet(mut prof_file: *mut FILE) {
         i = i.wrapping_add(1);
     }
 
-    i = numSet.wrapping_sub(1 as uint32_t);
+    i = numSet.wrapping_sub(1 as u32);
 
-    while i > 0 as uint32_t {
-        j = 0 as uint32_t;
+    while i > 0 {
+        j = 0;
 
-        while j <= i.wrapping_sub(1 as uint32_t) {
+        while j <= i.wrapping_sub(1 as u32) {
             if (**rsArray.offset(j as isize)).id
-                < (**rsArray.offset(j.wrapping_add(1 as uint32_t) as isize)).id
+                < (**rsArray.offset(j.wrapping_add(1 as u32) as isize)).id
             {
                 tmp = *rsArray.offset(j as isize);
 
                 let ref mut fresh12 = *rsArray.offset(j as isize);
-                *fresh12 = *rsArray.offset(j.wrapping_add(1 as uint32_t) as isize);
+                *fresh12 = *rsArray.offset(j.wrapping_add(1 as u32) as isize);
 
-                let ref mut fresh13 = *rsArray.offset(j.wrapping_add(1 as uint32_t) as isize);
+                let ref mut fresh13 = *rsArray.offset(j.wrapping_add(1 as u32) as isize);
                 *fresh13 = tmp;
             }
 
@@ -383,32 +374,26 @@ unsafe fn outputAllRetainerSet(mut prof_file: *mut FILE) {
 
     fprintf(
         prof_file,
-        b"\nRetainer sets created during profiling:\n\0" as *const u8 as *const c_char,
+        c"\nRetainer sets created during profiling:\n".as_ptr(),
     );
-
-    i = 0 as uint32_t;
+    i = 0;
 
     while i < numSet {
         fprintf(
             prof_file,
-            b"SET %u = {\0" as *const u8 as *const c_char,
+            c"SET %u = {".as_ptr(),
             -(**rsArray.offset(i as isize)).id,
         );
+        j = 0;
 
-        j = 0 as uint32_t;
-
-        while j
-            < (**rsArray.offset(i as isize))
-                .num
-                .wrapping_sub(1 as uint32_t)
-        {
+        while j < (**rsArray.offset(i as isize)).num.wrapping_sub(1 as u32) {
             printRetainer(
                 prof_file,
                 *(&raw mut (**rsArray.offset(i as isize)).element as *mut retainer)
                     .offset(j as isize),
             );
 
-            fprintf(prof_file, b", \0" as *const u8 as *const c_char);
+            fprintf(prof_file, c", ".as_ptr());
             j = j.wrapping_add(1);
         }
 
@@ -417,7 +402,7 @@ unsafe fn outputAllRetainerSet(mut prof_file: *mut FILE) {
             *(&raw mut (**rsArray.offset(i as isize)).element as *mut retainer).offset(j as isize),
         );
 
-        fprintf(prof_file, b"}\n\0" as *const u8 as *const c_char);
+        fprintf(prof_file, c"}\n".as_ptr());
         i = i.wrapping_add(1);
     }
 

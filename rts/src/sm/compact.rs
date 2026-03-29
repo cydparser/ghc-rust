@@ -45,15 +45,14 @@ use crate::trace::{DEBUG_RTS, trace_};
 
 #[inline]
 pub(crate) unsafe fn mark(mut p: StgPtr, mut bd: *mut bdescr) {
-    let mut offset_within_block: uint32_t = p.offset_from((*bd).start) as c_long as uint32_t;
-
+    let mut offset_within_block: u32 = p.offset_from((*bd).start) as i64 as u32;
     let mut bitmap_word = (*bd).u.bitmap.offset(
         (offset_within_block as usize)
             .wrapping_div((BITS_PER_BYTE as usize).wrapping_mul(size_of::<W_>() as usize))
             as isize,
     );
 
-    let mut bit_mask: StgWord = (1 as c_int as StgWord)
+    let mut bit_mask: StgWord = 1
         << (offset_within_block as usize
             & (BITS_PER_BYTE as usize)
                 .wrapping_mul(size_of::<W_>() as usize)
@@ -63,15 +62,14 @@ pub(crate) unsafe fn mark(mut p: StgPtr, mut bd: *mut bdescr) {
 
 #[inline]
 pub(crate) unsafe fn is_marked(mut p: StgPtr, mut bd: *mut bdescr) -> StgWord {
-    let mut offset_within_block: uint32_t = p.offset_from((*bd).start) as c_long as uint32_t;
-
+    let mut offset_within_block: u32 = p.offset_from((*bd).start) as i64 as u32;
     let mut bitmap_word = (*bd).u.bitmap.offset(
         (offset_within_block as usize)
             .wrapping_div((BITS_PER_BYTE as usize).wrapping_mul(size_of::<W_>() as usize))
             as isize,
     );
 
-    let mut bit_mask: StgWord = (1 as c_int as StgWord)
+    let mut bit_mask: StgWord = 1
         << (offset_within_block as usize
             & (BITS_PER_BYTE as usize)
                 .wrapping_mul(size_of::<W_>() as usize)
@@ -95,7 +93,7 @@ unsafe fn get_iptr_tag(mut iptr: *mut StgInfoTable) -> W_ {
 
     match (*info).r#type {
         1 | 2 | 3 | 4 | 5 | 6 | 7 => {
-            let mut con_tag: W_ = ((*info).srt + 1 as StgSRTField) as W_;
+            let mut con_tag: W_ = ((*info).srt + 1) as W_;
 
             if con_tag > TAG_MASK as W_ {
                 return TAG_MASK as W_;
@@ -110,31 +108,30 @@ unsafe fn get_iptr_tag(mut iptr: *mut StgInfoTable) -> W_ {
             if arity <= TAG_MASK as W_ {
                 return arity;
             } else {
-                return 0 as W_;
+                return 0;
             }
         }
-        _ => return 0 as W_,
+        _ => return 0,
     };
 }
 
 #[inline]
 unsafe fn thread(mut p: *mut *mut StgClosure) {
     let mut q0 = *p;
-    let mut q0_tagged = GET_CLOSURE_TAG(q0) != 0 as StgWord;
+    let mut q0_tagged = GET_CLOSURE_TAG(q0) != 0;
     let mut q = UNTAG_CLOSURE(q0) as P_;
 
     if q as W_ >= mblock_address_space.0.begin && (q as W_) < mblock_address_space.0.end {
         let mut bd = Bdescr(q as StgPtr);
 
-        if (*bd).flags as c_int & BF_MARKED != 0 {
+        if (*bd).flags as i32 & BF_MARKED != 0 {
             let mut iptr: W_ = *q;
             *p = iptr as *mut StgClosure;
-
             *q = (p as W_).wrapping_add(1 as W_).wrapping_add(
-                (if q0_tagged as c_int != 0 {
-                    1 as c_int
+                (if q0_tagged as i32 != 0 {
+                    1 as i32
                 } else {
-                    0 as c_int
+                    0 as i32
                 }) as W_,
             ) as StgWord;
         }
@@ -173,7 +170,7 @@ unsafe fn unthread(p: P_, mut free: W_, mut tag: W_) {
                 q = r_0;
             }
             _ => {
-                barf(b"unthread\0" as *const u8 as *const c_char);
+                barf(c"unthread".as_ptr());
             }
         }
     }
@@ -190,7 +187,7 @@ unsafe fn get_threaded_info(mut p: P_) -> *mut StgInfoTable {
                 q = *(UNTAG_PTR(q) as P_) as W_;
             }
             _ => {
-                barf(b"get_threaded_info\0" as *const u8 as *const c_char);
+                barf(c"get_threaded_info".as_ptr());
             }
         }
     }
@@ -198,7 +195,7 @@ unsafe fn get_threaded_info(mut p: P_) -> *mut StgInfoTable {
 
 #[inline]
 unsafe fn r#move(mut to: P_, mut from: P_, mut size: W_) {
-    while size > 0 as W_ {
+    while size > 0 {
         let fresh6 = from;
         from = from.offset(1);
 
@@ -218,12 +215,10 @@ unsafe fn thread_static(mut p: *mut StgClosure) {
         match (*info).r#type {
             28 => {
                 thread(&raw mut (*(p as *mut StgInd)).indirectee);
-                p = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(1 as c_int as isize)
-                    as *mut StgClosure;
+                p = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(1) as *mut StgClosure;
             }
             21 => {
-                p = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(1 as c_int as isize)
-                    as *mut StgClosure;
+                p = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(1) as *mut StgClosure;
             }
             14 => {
                 p = *STATIC_LINK(info, p);
@@ -233,8 +228,8 @@ unsafe fn thread_static(mut p: *mut StgClosure) {
             }
             _ => {
                 barf(
-                    b"thread_static: strange closure %d\0" as *const u8 as *const c_char,
-                    (*info).r#type as c_int,
+                    c"thread_static: strange closure %d".as_ptr(),
+                    (*info).r#type as i32,
                 );
             }
         }
@@ -243,14 +238,14 @@ unsafe fn thread_static(mut p: *mut StgClosure) {
 
 #[inline]
 unsafe fn thread_large_bitmap(mut p: P_, mut large_bitmap: *mut StgLargeBitmap, mut size: W_) {
-    let mut b: W_ = 0 as W_;
+    let mut b: W_ = 0;
     let mut bitmap: W_ =
         *(&raw mut (*large_bitmap).bitmap as *mut StgWord).offset(b as isize) as W_;
 
-    let mut i: W_ = 0 as W_;
+    let mut i: W_ = 0;
 
     while i < size {
-        if bitmap & 1 as W_ == 0 as W_ {
+        if bitmap & 1 == 0 {
             thread(p as *mut *mut StgClosure);
         }
 
@@ -258,25 +253,25 @@ unsafe fn thread_large_bitmap(mut p: P_, mut large_bitmap: *mut StgLargeBitmap, 
         p = p.offset(1);
 
         if i.wrapping_rem((BITS_PER_BYTE as usize).wrapping_mul(size_of::<W_>() as usize) as W_)
-            == 0 as W_
+            == 0
         {
             b = b.wrapping_add(1);
             bitmap = *(&raw mut (*large_bitmap).bitmap as *mut StgWord).offset(b as isize) as W_;
         } else {
-            bitmap = bitmap >> 1 as c_int;
+            bitmap = bitmap >> 1;
         }
     }
 }
 
 #[inline]
 unsafe fn thread_small_bitmap(mut p: P_, mut size: W_, mut bitmap: W_) -> P_ {
-    while size > 0 as W_ {
-        if bitmap & 1 as W_ == 0 as W_ {
+    while size > 0 {
+        if bitmap & 1 == 0 {
             thread(p as *mut *mut StgClosure);
         }
 
         p = p.offset(1);
-        bitmap = bitmap >> 1 as c_int;
+        bitmap = bitmap >> 1;
         size = size.wrapping_sub(1);
     }
 
@@ -300,14 +295,14 @@ unsafe fn thread_arg_block(
             current_block_7 = 12307942874194897865;
         }
         1 => {
-            size = (*((fun_info.offset(1 as c_int as isize) as StgWord)
+            size = (*((fun_info.offset(1 as i32 as isize) as StgWord)
                 .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                 as *mut StgLargeBitmap))
                 .size as W_;
 
             thread_large_bitmap(
                 p,
-                (fun_info.offset(1 as c_int as isize) as StgWord)
+                (fun_info.offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                     as *mut StgLargeBitmap,
                 size,
@@ -320,7 +315,6 @@ unsafe fn thread_arg_block(
             bitmap = (*(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 >> BITMAP_BITS_SHIFT) as W_;
-
             size = (*(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 & BITMAP_SIZE_MASK as StgWord) as W_;
@@ -371,14 +365,14 @@ unsafe fn thread_stack(mut p: P_, mut stack_end: P_) {
             }
             31 => {
                 p = p.offset(1);
-                size_1 = (*(((&raw const (*info).i).offset(1 as c_int as isize) as StgWord)
+                size_1 = (*(((&raw const (*info).i).offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*info).i.layout.large_bitmap_offset as StgWord)
                     as *mut StgLargeBitmap))
                     .size as W_;
 
                 thread_large_bitmap(
                     p,
-                    ((&raw const (*info).i).offset(1 as c_int as isize) as StgWord)
+                    ((&raw const (*info).i).offset(1 as i32 as isize) as StgWord)
                         .wrapping_add((*info).i.layout.large_bitmap_offset as StgWord)
                         as *mut StgLargeBitmap,
                     size_1,
@@ -388,7 +382,9 @@ unsafe fn thread_stack(mut p: P_, mut stack_end: P_) {
             }
             32 => {
                 let mut ret_fun = p as *mut StgRetFun;
+
                 let mut fun_info = FUN_INFO_PTR_TO_STRUCT(get_threaded_info((*ret_fun).fun as P_));
+
                 thread(&raw mut (*ret_fun).fun);
 
                 p = thread_arg_block(
@@ -398,9 +394,8 @@ unsafe fn thread_stack(mut p: P_, mut stack_end: P_) {
             }
             _ => {
                 barf(
-                    b"thread_stack: weird activation record found on stack: %d\0" as *const u8
-                        as *const c_char,
-                    (*info).i.r#type as c_int,
+                    c"thread_stack: weird activation record found on stack: %d".as_ptr(),
+                    (*info).i.r#type as i32,
                 );
             }
         }
@@ -426,7 +421,7 @@ unsafe fn thread_PAP_payload(
         1 => {
             thread_large_bitmap(
                 p,
-                (fun_info.offset(1 as c_int as isize) as StgWord)
+                (fun_info.offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                     as *mut StgLargeBitmap,
                 size,
@@ -449,7 +444,6 @@ unsafe fn thread_PAP_payload(
             bitmap = (*(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 >> BITMAP_BITS_SHIFT) as W_;
-
             current_block_9 = 5976021267770950656;
         }
     }
@@ -548,8 +542,7 @@ unsafe fn thread_TSO(mut tso: *mut StgTSO) -> P_ {
     );
 }
 
-static mut nfdata_chain: *mut StgCompactNFData =
-    null::<StgCompactNFData>() as *mut StgCompactNFData;
+static mut nfdata_chain: *mut StgCompactNFData = null_mut::<StgCompactNFData>();
 
 unsafe fn thread_nfdata_hash_key(
     mut data: *mut c_void,
@@ -609,7 +602,7 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
     let mut current_block_20: u64;
 
     while !bd.is_null() {
-        if !((*bd).flags as c_int & BF_PINNED != 0) {
+        if !((*bd).flags as i32 & BF_PINNED != 0) {
             let mut p = (*bd).start as P_;
             let mut info = get_itbl(p as *mut StgClosure);
 
@@ -621,9 +614,8 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     match current_block_20 {
                         4415731432829968035 => {
                             barf(
-                                b"update_fwd_large: unknown/strange object  %d\0" as *const u8
-                                    as *const c_char,
-                                (*info).r#type as c_int,
+                                c"update_fwd_large: unknown/strange object  %d".as_ptr(),
+                                (*info).r#type as i32,
                             );
                         }
                         17833034027772472439 => {
@@ -677,11 +669,11 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         _ => {
                             let mut tc = p as *mut StgTRecChunk;
                             let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                                .offset(0 as c_int as isize)
+                                .offset(0)
                                 as *mut TRecEntry;
                             thread_(&raw mut (*tc).prev_chunk as *mut c_void);
 
-                            let mut i: W_ = 0 as W_;
+                            let mut i: W_ = 0;
 
                             while i < (*tc).next_entry_idx {
                                 thread_(&raw mut (*e).tvar as *mut c_void);
@@ -699,9 +691,8 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     match current_block_20 {
                         4415731432829968035 => {
                             barf(
-                                b"update_fwd_large: unknown/strange object  %d\0" as *const u8
-                                    as *const c_char,
-                                (*info).r#type as c_int,
+                                c"update_fwd_large: unknown/strange object  %d".as_ptr(),
+                                (*info).r#type as i32,
                             );
                         }
                         17833034027772472439 => {
@@ -755,11 +746,11 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         _ => {
                             let mut tc = p as *mut StgTRecChunk;
                             let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                                .offset(0 as c_int as isize)
+                                .offset(0)
                                 as *mut TRecEntry;
                             thread_(&raw mut (*tc).prev_chunk as *mut c_void);
 
-                            let mut i: W_ = 0 as W_;
+                            let mut i: W_ = 0;
 
                             while i < (*tc).next_entry_idx {
                                 thread_(&raw mut (*e).tvar as *mut c_void);
@@ -777,9 +768,8 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     match current_block_20 {
                         4415731432829968035 => {
                             barf(
-                                b"update_fwd_large: unknown/strange object  %d\0" as *const u8
-                                    as *const c_char,
-                                (*info).r#type as c_int,
+                                c"update_fwd_large: unknown/strange object  %d".as_ptr(),
+                                (*info).r#type as i32,
                             );
                         }
                         17833034027772472439 => {
@@ -833,11 +823,11 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         _ => {
                             let mut tc = p as *mut StgTRecChunk;
                             let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                                .offset(0 as c_int as isize)
+                                .offset(0)
                                 as *mut TRecEntry;
                             thread_(&raw mut (*tc).prev_chunk as *mut c_void);
 
-                            let mut i: W_ = 0 as W_;
+                            let mut i: W_ = 0;
 
                             while i < (*tc).next_entry_idx {
                                 thread_(&raw mut (*e).tvar as *mut c_void);
@@ -855,9 +845,8 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     match current_block_20 {
                         4415731432829968035 => {
                             barf(
-                                b"update_fwd_large: unknown/strange object  %d\0" as *const u8
-                                    as *const c_char,
-                                (*info).r#type as c_int,
+                                c"update_fwd_large: unknown/strange object  %d".as_ptr(),
+                                (*info).r#type as i32,
                             );
                         }
                         17833034027772472439 => {
@@ -911,11 +900,11 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         _ => {
                             let mut tc = p as *mut StgTRecChunk;
                             let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                                .offset(0 as c_int as isize)
+                                .offset(0)
                                 as *mut TRecEntry;
                             thread_(&raw mut (*tc).prev_chunk as *mut c_void);
 
-                            let mut i: W_ = 0 as W_;
+                            let mut i: W_ = 0;
 
                             while i < (*tc).next_entry_idx {
                                 thread_(&raw mut (*e).tvar as *mut c_void);
@@ -933,9 +922,8 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     match current_block_20 {
                         4415731432829968035 => {
                             barf(
-                                b"update_fwd_large: unknown/strange object  %d\0" as *const u8
-                                    as *const c_char,
-                                (*info).r#type as c_int,
+                                c"update_fwd_large: unknown/strange object  %d".as_ptr(),
+                                (*info).r#type as i32,
                             );
                         }
                         17833034027772472439 => {
@@ -989,11 +977,11 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         _ => {
                             let mut tc = p as *mut StgTRecChunk;
                             let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                                .offset(0 as c_int as isize)
+                                .offset(0)
                                 as *mut TRecEntry;
                             thread_(&raw mut (*tc).prev_chunk as *mut c_void);
 
-                            let mut i: W_ = 0 as W_;
+                            let mut i: W_ = 0;
 
                             while i < (*tc).next_entry_idx {
                                 thread_(&raw mut (*e).tvar as *mut c_void);
@@ -1011,9 +999,8 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     match current_block_20 {
                         4415731432829968035 => {
                             barf(
-                                b"update_fwd_large: unknown/strange object  %d\0" as *const u8
-                                    as *const c_char,
-                                (*info).r#type as c_int,
+                                c"update_fwd_large: unknown/strange object  %d".as_ptr(),
+                                (*info).r#type as i32,
                             );
                         }
                         17833034027772472439 => {
@@ -1067,11 +1054,11 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         _ => {
                             let mut tc = p as *mut StgTRecChunk;
                             let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                                .offset(0 as c_int as isize)
+                                .offset(0)
                                 as *mut TRecEntry;
                             thread_(&raw mut (*tc).prev_chunk as *mut c_void);
 
-                            let mut i: W_ = 0 as W_;
+                            let mut i: W_ = 0;
 
                             while i < (*tc).next_entry_idx {
                                 thread_(&raw mut (*e).tvar as *mut c_void);
@@ -1089,9 +1076,8 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     match current_block_20 {
                         4415731432829968035 => {
                             barf(
-                                b"update_fwd_large: unknown/strange object  %d\0" as *const u8
-                                    as *const c_char,
-                                (*info).r#type as c_int,
+                                c"update_fwd_large: unknown/strange object  %d".as_ptr(),
+                                (*info).r#type as i32,
                             );
                         }
                         17833034027772472439 => {
@@ -1145,11 +1131,11 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         _ => {
                             let mut tc = p as *mut StgTRecChunk;
                             let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                                .offset(0 as c_int as isize)
+                                .offset(0)
                                 as *mut TRecEntry;
                             thread_(&raw mut (*tc).prev_chunk as *mut c_void);
 
-                            let mut i: W_ = 0 as W_;
+                            let mut i: W_ = 0;
 
                             while i < (*tc).next_entry_idx {
                                 thread_(&raw mut (*e).tvar as *mut c_void);
@@ -1167,9 +1153,8 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     match current_block_20 {
                         4415731432829968035 => {
                             barf(
-                                b"update_fwd_large: unknown/strange object  %d\0" as *const u8
-                                    as *const c_char,
-                                (*info).r#type as c_int,
+                                c"update_fwd_large: unknown/strange object  %d".as_ptr(),
+                                (*info).r#type as i32,
                             );
                         }
                         17833034027772472439 => {
@@ -1223,11 +1208,11 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         _ => {
                             let mut tc = p as *mut StgTRecChunk;
                             let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                                .offset(0 as c_int as isize)
+                                .offset(0)
                                 as *mut TRecEntry;
                             thread_(&raw mut (*tc).prev_chunk as *mut c_void);
 
-                            let mut i: W_ = 0 as W_;
+                            let mut i: W_ = 0;
 
                             while i < (*tc).next_entry_idx {
                                 thread_(&raw mut (*e).tvar as *mut c_void);
@@ -1245,9 +1230,8 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     match current_block_20 {
                         4415731432829968035 => {
                             barf(
-                                b"update_fwd_large: unknown/strange object  %d\0" as *const u8
-                                    as *const c_char,
-                                (*info).r#type as c_int,
+                                c"update_fwd_large: unknown/strange object  %d".as_ptr(),
+                                (*info).r#type as i32,
                             );
                         }
                         17833034027772472439 => {
@@ -1301,11 +1285,11 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         _ => {
                             let mut tc = p as *mut StgTRecChunk;
                             let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                                .offset(0 as c_int as isize)
+                                .offset(0)
                                 as *mut TRecEntry;
                             thread_(&raw mut (*tc).prev_chunk as *mut c_void);
 
-                            let mut i: W_ = 0 as W_;
+                            let mut i: W_ = 0;
 
                             while i < (*tc).next_entry_idx {
                                 thread_(&raw mut (*e).tvar as *mut c_void);
@@ -1334,7 +1318,7 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize) as isize,
                 )
-                .offset(1 as c_int as isize);
+                .offset(1);
         }
         10 | 3 => {
             return p
@@ -1344,12 +1328,12 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize) as isize,
                 )
-                .offset(1 as c_int as isize);
+                .offset(1);
         }
         9 | 2 => {
             thread(
-                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
 
             return p
@@ -1359,12 +1343,12 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize) as isize,
                 )
-                .offset(1 as c_int as isize);
+                .offset(1);
         }
         16 => {
             thread(
-                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
 
             return p
@@ -1374,7 +1358,7 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize) as isize,
                 )
-                .offset(1 as c_int as isize);
+                .offset(1);
         }
         20 => {
             return p
@@ -1384,7 +1368,7 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize) as isize,
                 )
-                .offset(2 as c_int as isize);
+                .offset(2);
         }
         13 | 6 => {
             return p
@@ -1394,12 +1378,12 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize) as isize,
                 )
-                .offset(2 as c_int as isize);
+                .offset(2);
         }
         19 => {
             thread(
-                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
 
             return p
@@ -1409,12 +1393,12 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize) as isize,
                 )
-                .offset(2 as c_int as isize);
+                .offset(2);
         }
         12 | 5 => {
             thread(
-                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
 
             return p
@@ -1424,17 +1408,17 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize) as isize,
                 )
-                .offset(2 as c_int as isize);
+                .offset(2);
         }
         18 => {
             thread(
-                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
 
             thread(
-                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                    .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(1)
+                    as *mut *mut StgClosure,
             );
 
             return p
@@ -1444,17 +1428,17 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize) as isize,
                 )
-                .offset(2 as c_int as isize);
+                .offset(2);
         }
         11 | 4 => {
             thread(
-                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                    as *mut *mut StgClosure,
             );
 
             thread(
-                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                    .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(1)
+                    as *mut *mut StgClosure,
             );
 
             return p
@@ -1464,7 +1448,7 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize) as isize,
                 )
-                .offset(2 as c_int as isize);
+                .offset(2);
         }
         23 => {
             let mut bco = p as *mut StgBCO;
@@ -1591,12 +1575,11 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
         }
         54 => {
             let mut tc = p as *mut StgTRecChunk;
-            let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                .offset(0 as c_int as isize)
-                as *mut TRecEntry;
+            let mut e: *mut TRecEntry =
+                (&raw mut (*tc).entries as *mut TRecEntry).offset(0) as *mut TRecEntry;
             thread_(&raw mut (*tc).prev_chunk as *mut c_void);
 
-            let mut i: W_ = 0 as W_;
+            let mut i: W_ = 0;
 
             while i < (*tc).next_entry_idx {
                 thread_(&raw mut (*e).tvar as *mut c_void);
@@ -1616,8 +1599,8 @@ unsafe fn thread_obj(mut info: *const StgInfoTable, mut p: P_) -> P_ {
         64 => return thread_continuation(p as *mut StgContinuation),
         _ => {
             barf(
-                b"update_fwd: unknown/strange object  %d\0" as *const u8 as *const c_char,
-                (*info).r#type as c_int,
+                c"update_fwd: unknown/strange object  %d".as_ptr(),
+                (*info).r#type as i32,
             );
         }
     };
@@ -1660,10 +1643,10 @@ unsafe fn update_fwd_compact(mut blocks: *mut bdescr) {
             let mut q = p;
             p = thread_obj(info, p);
 
-            let mut size: W_ = p.offset_from(q) as c_long as W_;
+            let mut size: W_ = p.offset_from(q) as i64 as W_;
 
             if free.offset(size as isize) > (*free_bd).start.offset(BLOCK_SIZE_W as isize) {
-                mark(q.offset(1 as c_int as isize), bd);
+                mark(q.offset(1), bd);
                 free_bd = (*free_bd).link as *mut bdescr;
                 free = (*free_bd).start as P_;
             }
@@ -1684,7 +1667,7 @@ unsafe fn update_bkwd_compact(mut r#gen: *mut generation) -> W_ {
     bd = free_bd;
 
     let mut free = (*free_bd).start as P_;
-    let mut free_blocks: W_ = 1 as W_;
+    let mut free_blocks: W_ = 1;
 
     while !bd.is_null() {
         let mut p = (*bd).start as P_;
@@ -1698,7 +1681,7 @@ unsafe fn update_bkwd_compact(mut r#gen: *mut generation) -> W_ {
                 break;
             }
 
-            if is_marked(p.offset(1 as c_int as isize), bd) != 0 {
+            if is_marked(p.offset(1), bd) != 0 {
                 (*free_bd).c2rust_unnamed.free = free as StgPtr;
                 free_bd = (*free_bd).link as *mut bdescr;
                 free = (*free_bd).start as P_;
@@ -1749,7 +1732,7 @@ unsafe fn compact(
         NULL,
     );
 
-    let mut g: W_ = 0 as W_;
+    let mut g: W_ = 0;
 
     while g < RtsFlags.GcFlags.generations as W_ {
         if !(*generations.offset(g as isize)).weak_ptr_list.is_null() {
@@ -1766,15 +1749,13 @@ unsafe fn compact(
         thread(dead_weak_ptr_list as *mut c_void as *mut *mut StgClosure);
     }
 
-    let mut g_0: W_ = 1 as W_;
+    let mut g_0: W_ = 1;
 
     while g_0 < RtsFlags.GcFlags.generations as W_ {
-        let mut n: W_ = 0 as W_;
+        let mut n: W_ = 0;
 
         while n < getNumCapabilities() as W_ {
-            let mut bd = *(*getCapability(n as uint32_t))
-                .mut_lists
-                .offset(g_0 as isize);
+            let mut bd = *(*getCapability(n as u32)).mut_lists.offset(g_0 as isize);
 
             while !bd.is_null() {
                 let mut p = (*bd).start as P_;
@@ -1793,7 +1774,7 @@ unsafe fn compact(
         g_0 = g_0.wrapping_add(1);
     }
 
-    let mut g_1: W_ = 0 as W_;
+    let mut g_1: W_ = 0;
 
     while g_1 < RtsFlags.GcFlags.generations as W_ {
         thread(
@@ -1845,21 +1826,18 @@ unsafe fn compact(
         NULL,
     );
 
-    let mut g_2: W_ = 0 as W_;
+    let mut g_2: W_ = 0;
 
     while g_2 < RtsFlags.GcFlags.generations as W_ {
         let mut r#gen: *mut generation = generations.offset(g_2 as isize) as *mut generation;
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-            trace_(
-                b"update_fwd:  %d\0" as *const u8 as *const c_char as *mut c_char,
-                g_2,
-            );
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+            trace_(c"update_fwd:  %d".as_ptr(), g_2);
         }
 
         update_fwd((*r#gen).blocks);
 
-        let mut n_0: W_ = 0 as W_;
+        let mut n_0: W_ = 0;
 
         while n_0 < getNumCapabilities() as W_ {
             update_fwd(
@@ -1882,14 +1860,11 @@ unsafe fn compact(
         update_fwd_large((*r#gen).scavenged_large_objects);
         update_fwd_cnf((*r#gen).live_compact_objects);
 
-        if g_2 == RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t) as W_
+        if g_2 == RtsFlags.GcFlags.generations.wrapping_sub(1 as u32) as W_
             && !(*r#gen).old_blocks.is_null()
         {
-            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-                trace_(
-                    b"update_fwd:  %d (compact)\0" as *const u8 as *const c_char as *mut c_char,
-                    g_2,
-                );
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+                trace_(c"update_fwd:  %d (compact)".as_ptr(), g_2);
             }
 
             update_fwd_compact((*r#gen).old_blocks);
@@ -1903,10 +1878,9 @@ unsafe fn compact(
     if !(*gen_0).old_blocks.is_null() {
         let mut blocks = update_bkwd_compact(gen_0);
 
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
             trace_(
-                b"update_bkwd: %d (compact, old: %d blocks, now %d blocks)\0" as *const u8
-                    as *const c_char as *mut c_char,
+                c"update_bkwd: %d (compact, old: %d blocks, now %d blocks)".as_ptr(),
                 (*gen_0).no,
                 (*gen_0).n_old_blocks,
                 blocks,

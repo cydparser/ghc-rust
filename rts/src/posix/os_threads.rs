@@ -30,7 +30,7 @@ pub type OSThreadProc = unsafe extern "C" fn(*mut c_void) -> *mut c_void;
 pub(crate) type KernelThreadId = StgWord64;
 
 #[inline]
-pub(crate) unsafe fn OS_TRY_ACQUIRE_LOCK(mut mutex: *mut pthread_mutex_t) -> c_int {
+pub(crate) unsafe fn OS_TRY_ACQUIRE_LOCK(mut mutex: *mut pthread_mutex_t) -> i32 {
     return pthread_mutex_trylock(mutex as *mut pthread_mutex_t);
 }
 
@@ -50,40 +50,26 @@ pub unsafe extern "C" fn initCondition(mut pCond: *mut Condition) {
         __opaque: [0; 8],
     };
 
-    if (pthread_condattr_init(&raw mut attr) == 0 as c_int) as c_int as c_long != 0 {
+    if (pthread_condattr_init(&raw mut attr) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/posix/OSThreads.c\0" as *const u8 as *const c_char,
-            111 as c_uint,
-        );
+        _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 111);
     }
 
-    if (pthread_cond_init(&raw mut (*pCond).cond, &raw mut attr) == 0 as c_int) as c_int as c_long
-        != 0
-    {
+    if (pthread_cond_init(&raw mut (*pCond).cond, &raw mut attr) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/posix/OSThreads.c\0" as *const u8 as *const c_char,
-            118 as c_uint,
-        );
+        _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 118);
     }
 
-    if (pthread_condattr_destroy(&raw mut attr) == 0 as c_int) as c_int as c_long != 0 {
+    if (pthread_condattr_destroy(&raw mut attr) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/posix/OSThreads.c\0" as *const u8 as *const c_char,
-            119 as c_uint,
-        );
+        _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 119);
     };
 }
 
 unsafe fn closeCondition(mut pCond: *mut Condition) {
-    if (pthread_cond_destroy(&raw mut (*pCond).cond) == 0 as c_int) as c_int as c_long != 0 {
+    if (pthread_cond_destroy(&raw mut (*pCond).cond) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/posix/OSThreads.c\0" as *const u8 as *const c_char,
-            125 as c_uint,
-        );
+        _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 125);
     };
 }
 
@@ -91,22 +77,16 @@ unsafe fn closeCondition(mut pCond: *mut Condition) {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn broadcastCondition(mut pCond: *mut Condition) {
-    if (pthread_cond_broadcast(&raw mut (*pCond).cond) == 0 as c_int) as c_int as c_long != 0 {
+    if (pthread_cond_broadcast(&raw mut (*pCond).cond) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/posix/OSThreads.c\0" as *const u8 as *const c_char,
-            131 as c_uint,
-        );
+        _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 131);
     };
 }
 
 unsafe fn signalCondition(mut pCond: *mut Condition) {
-    if (pthread_cond_signal(&raw mut (*pCond).cond) == 0 as c_int) as c_int as c_long != 0 {
+    if (pthread_cond_signal(&raw mut (*pCond).cond) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/posix/OSThreads.c\0" as *const u8 as *const c_char,
-            137 as c_uint,
-        );
+        _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 137);
     };
 }
 
@@ -114,15 +94,11 @@ unsafe fn signalCondition(mut pCond: *mut Condition) {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn waitCondition(mut pCond: *mut Condition, mut pMut: *mut Mutex) {
-    if (pthread_cond_wait(&raw mut (*pCond).cond, pMut as *mut pthread_mutex_t) == 0 as c_int)
-        as c_int as c_long
+    if (pthread_cond_wait(&raw mut (*pCond).cond, pMut as *mut pthread_mutex_t) == 0) as i32 as i64
         != 0
     {
     } else {
-        _assertFail(
-            b"rts/posix/OSThreads.c\0" as *const u8 as *const c_char,
-            143 as c_uint,
-        );
+        _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 143);
     };
 }
 
@@ -135,28 +111,24 @@ unsafe fn timedWaitCondition(
         tv_sec: 0,
         tv_nsec: 0,
     };
-
     let mut tv = timeval {
         tv_sec: 0,
         tv_usec: 0,
     };
 
-    if (gettimeofday(&raw mut tv, null_mut::<c_void>()) == 0 as c_int) as c_int as c_long != 0 {
+    if (gettimeofday(&raw mut tv, null_mut::<c_void>()) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/posix/OSThreads.c\0" as *const u8 as *const c_char,
-            154 as c_uint,
-        );
+        _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 154);
     }
 
     ts.tv_sec = tv.tv_sec;
-    ts.tv_nsec = (1000 as __darwin_suseconds_t * tv.tv_usec) as c_long;
+    ts.tv_nsec = (1000 * tv.tv_usec) as i64;
 
-    let mut sec: uint64_t = (timeout / TIME_RESOLUTION as Time) as uint64_t;
-    ts.tv_sec = (ts.tv_sec as uint64_t).wrapping_add(sec) as __darwin_time_t as __darwin_time_t;
-    ts.tv_nsec = (ts.tv_nsec as Time + (timeout - sec as Time * 1000000000 as Time)) as c_long;
-    ts.tv_sec += ts.tv_nsec / 1000000000 as c_long;
-    ts.tv_nsec %= 1000000000 as c_long;
+    let mut sec: u64 = (timeout / TIME_RESOLUTION as Time) as u64;
+    ts.tv_sec = (ts.tv_sec as u64).wrapping_add(sec) as i64 as i64;
+    ts.tv_nsec = (ts.tv_nsec as Time + (timeout - sec as Time * 1000000000)) as i64;
+    ts.tv_sec += ts.tv_nsec / 1000000000;
+    ts.tv_nsec %= 1000000000;
 
     let mut ret = pthread_cond_timedwait(
         &raw mut (*pCond).cond,
@@ -165,10 +137,10 @@ unsafe fn timedWaitCondition(
     );
 
     match ret {
-        ETIMEDOUT => return r#false != 0,
-        0 => return r#true != 0,
+        ETIMEDOUT => return false,
+        0 => return true,
         _ => {
-            barf(b"pthread_cond_timedwait failed\0" as *const u8 as *const c_char);
+            barf(c"pthread_cond_timedwait failed".as_ptr());
         }
     };
 }
@@ -202,7 +174,7 @@ pub unsafe extern "C" fn createOSThread(
     mut name: *const c_char,
     mut startProc: Option<OSThreadProc>,
     mut param: *mut c_void,
-) -> c_int {
+) -> i32 {
     let mut result = createAttachedOSThread(pId, name, startProc, param);
 
     if result == 0 {
@@ -217,18 +189,18 @@ unsafe fn createAttachedOSThread(
     mut name: *const c_char,
     mut startProc: Option<OSThreadProc>,
     mut param: *mut c_void,
-) -> c_int {
+) -> i32 {
     let mut desc = stgMallocBytes(
-        size_of::<ThreadDesc>() as size_t,
-        b"createAttachedOSThread\0" as *const u8 as *const c_char as *mut c_char,
+        size_of::<ThreadDesc>() as usize,
+        c"createAttachedOSThread".as_ptr(),
     ) as *mut ThreadDesc;
 
     (*desc).startProc = startProc;
     (*desc).param = param;
 
     (*desc).name = stgMallocBytes(
-        strlen(name).wrapping_add(1 as size_t),
-        b"createAttachedOSThread\0" as *const u8 as *const c_char as *mut c_char,
+        strlen(name).wrapping_add(1 as usize),
+        c"createAttachedOSThread".as_ptr(),
     ) as *mut c_char;
 
     strcpy((*desc).name, name);
@@ -253,7 +225,7 @@ unsafe fn osThreadId() -> OSThreadId {
 }
 
 unsafe fn osThreadIsAlive(mut id: OSThreadId) -> bool {
-    return r#true != 0;
+    return true;
 }
 
 #[ffi(testsuite)]
@@ -270,8 +242,8 @@ unsafe fn closeMutex(mut pMut: *mut Mutex) {
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn forkOS_createThread(mut entry: HsStablePtr) -> c_int {
-    return -(1 as c_int);
+pub unsafe extern "C" fn forkOS_createThread(mut entry: HsStablePtr) -> i32 {
+    return -1;
 }
 
 unsafe fn freeThreadingResources() {}
@@ -279,12 +251,13 @@ unsafe fn freeThreadingResources() {}
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn getNumberOfProcessors() -> uint32_t {
-    return 1 as uint32_t;
+pub unsafe extern "C" fn getNumberOfProcessors() -> u32 {
+    return 1;
 }
 
-unsafe fn setThreadAffinity(mut n: uint32_t, mut m: uint32_t) {
+unsafe fn setThreadAffinity(mut n: u32, mut m: u32) {
     let mut policy = thread_affinity_policy { affinity_tag: 0 };
+
     policy.affinity_tag = n as integer_t;
 
     thread_policy_set(
@@ -295,7 +268,7 @@ unsafe fn setThreadAffinity(mut n: uint32_t, mut m: uint32_t) {
     );
 }
 
-unsafe fn setThreadNode(mut node: uint32_t) {}
+unsafe fn setThreadNode(mut node: u32) {}
 
 unsafe fn releaseThreadNode() {}
 
@@ -306,16 +279,13 @@ unsafe fn interruptOSThread(mut id: OSThreadId) {
 unsafe fn joinOSThread(mut id: OSThreadId) {
     let mut ret = pthread_join(id as pthread_t, null_mut::<*mut c_void>());
 
-    if ret != 0 as c_int {
-        sysErrorBelch(
-            b"joinOSThread: error %d\0" as *const u8 as *const c_char,
-            ret,
-        );
+    if ret != 0 {
+        sysErrorBelch(c"joinOSThread: error %d".as_ptr(), ret);
     }
 }
 
 unsafe fn kernelThreadId() -> KernelThreadId {
-    let mut ktid: uint64_t = 0;
+    let mut ktid: u64 = 0;
     pthread_threadid_np(null_mut::<_opaque_pthread_t>(), &raw mut ktid);
 
     return ktid as KernelThreadId;

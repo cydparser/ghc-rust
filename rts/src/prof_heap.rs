@@ -61,15 +61,15 @@ mod tests;
 
 /// cbindgen:no-export
 pub(crate) struct C2RustUnnamed_11 {
-    pub(crate) prim: ssize_t,
-    pub(crate) not_used: ssize_t,
-    pub(crate) used: ssize_t,
-    pub(crate) void_total: ssize_t,
-    pub(crate) drag_total: ssize_t,
+    pub(crate) prim: isize,
+    pub(crate) not_used: isize,
+    pub(crate) used: isize,
+    pub(crate) void_total: isize,
+    pub(crate) drag_total: isize,
 }
 
 pub(crate) union C2RustUnnamed_12 {
-    pub(crate) resid: ssize_t,
+    pub(crate) resid: isize,
     pub(crate) ldv: C2RustUnnamed_11,
 }
 
@@ -84,39 +84,33 @@ pub(crate) struct _counter {
 
 /// cbindgen:no-export
 pub(crate) struct Census {
-    pub(crate) time: c_double,
+    pub(crate) time: f64,
     pub(crate) rtime: StgWord64,
     pub(crate) hash: *mut HashTable,
     pub(crate) ctrs: *mut counter,
     pub(crate) arena: *mut Arena,
-    pub(crate) prim: ssize_t,
-    pub(crate) not_used: ssize_t,
-    pub(crate) used: ssize_t,
-    pub(crate) void_total: ssize_t,
-    pub(crate) drag_total: ssize_t,
+    pub(crate) prim: isize,
+    pub(crate) not_used: isize,
+    pub(crate) used: isize,
+    pub(crate) void_total: isize,
+    pub(crate) drag_total: isize,
 }
 
-static mut hp_file: *mut FILE = null::<FILE>() as *mut FILE;
+static mut hp_file: *mut FILE = null_mut::<FILE>();
 
-static mut hp_filename: *mut c_char = null::<c_char>() as *mut c_char;
+static mut hp_filename: *mut c_char = null_mut::<c_char>();
 
-static mut prof_locale: locale_t = null::<_xlocale>() as *mut _xlocale;
+static mut prof_locale: locale_t = null_mut::<_xlocale>();
 
-static mut saved_locale: locale_t = null::<_xlocale>() as *mut _xlocale;
+static mut saved_locale: locale_t = null_mut::<_xlocale>();
 
 #[inline]
 unsafe fn init_prof_locale() {
     if prof_locale.is_null() {
-        prof_locale = newlocale(
-            LC_NUMERIC_MASK,
-            b"POSIX\0" as *const u8 as *const c_char,
-            null_mut::<_xlocale>(),
-        );
+        prof_locale = newlocale(LC_NUMERIC_MASK, c"POSIX".as_ptr(), null_mut::<_xlocale>());
 
         if prof_locale.is_null() {
-            sysErrorBelch(
-                b"Couldn't allocate heap profiler locale\0" as *const u8 as *const c_char,
-            );
+            sysErrorBelch(c"Couldn't allocate heap profiler locale".as_ptr());
         }
     }
 }
@@ -141,9 +135,9 @@ unsafe fn restore_locale() {
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
-pub static mut era: c_uint = 0;
+pub static mut era: u32 = 0;
 
-static mut max_era: uint32_t = 0;
+static mut max_era: u32 = 0;
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
@@ -172,29 +166,29 @@ pub unsafe extern "C" fn incrementUserEra(mut w: StgWord) -> StgWord {
 
 #[inline]
 unsafe fn initLDVCtr(mut ctr: *mut counter) {
-    (*ctr).c.ldv.prim = 0 as ssize_t;
-    (*ctr).c.ldv.not_used = 0 as ssize_t;
-    (*ctr).c.ldv.used = 0 as ssize_t;
-    (*ctr).c.ldv.void_total = 0 as ssize_t;
-    (*ctr).c.ldv.drag_total = 0 as ssize_t;
+    (*ctr).c.ldv.prim = 0;
+    (*ctr).c.ldv.not_used = 0;
+    (*ctr).c.ldv.used = 0;
+    (*ctr).c.ldv.void_total = 0;
+    (*ctr).c.ldv.drag_total = 0;
 }
 
-static mut censuses: *mut Census = null::<Census>() as *mut Census;
+static mut censuses: *mut Census = null_mut::<Census>();
 
-static mut n_censuses: uint32_t = 0 as uint32_t;
+static mut n_censuses: u32 = 0;
 
 unsafe fn closureIdentity(mut p: *const StgClosure) -> *const c_void {
     match RtsFlags.ProfFlags.doHeapProfile {
         1 => return (*p).header.prof.ccs as *const c_void,
         2 => return (*(*(*p).header.prof.ccs).cc).module as *const c_void,
         4 => {
-            return (get_itbl(p).offset(1 as c_int as isize) as StgWord)
+            return (get_itbl(p).offset(1 as i32 as isize) as StgWord)
                 .wrapping_add((*get_itbl(p)).prof.closure_desc_off as StgWord)
                 as *mut c_char as *const c_void;
         }
         10 => return (*p).header.prof.hp.era as *mut c_void,
         5 => {
-            return (get_itbl(p).offset(1 as c_int as isize) as StgWord)
+            return (get_itbl(p).offset(1 as i32 as isize) as StgWord)
                 .wrapping_add((*get_itbl(p)).prof.closure_type_off as StgWord)
                 as *mut c_char as *const c_void;
         }
@@ -211,7 +205,7 @@ unsafe fn closureIdentity(mut p: *const StgClosure) -> *const c_void {
 
             match (*info).r#type {
                 1 | 2 | 3 | 4 | 5 | 6 | 7 => {
-                    return (itbl_to_con_itbl(info).offset(1 as c_int as isize) as StgWord)
+                    return (itbl_to_con_itbl(info).offset(1 as i32 as isize) as StgWord)
                         .wrapping_add((*itbl_to_con_itbl(info)).con_desc as StgWord)
                         as *const c_char as *const c_void;
                 }
@@ -224,55 +218,56 @@ unsafe fn closureIdentity(mut p: *const StgClosure) -> *const c_void {
         }
         9 => return get_itbl(p) as *const c_void,
         _ => {
-            barf(b"closureIdentity\0" as *const u8 as *const c_char);
+            barf(c"closureIdentity".as_ptr());
         }
     };
 }
 
-unsafe fn LDV_recordDead(mut c: *const StgClosure, mut size: uint32_t) {
+unsafe fn LDV_recordDead(mut c: *const StgClosure, mut size: u32) {
     let mut id = null::<c_void>();
-    let mut t: uint32_t = 0;
+    let mut t: u32 = 0;
     let mut ctr = null_mut::<counter>();
 
-    if era > 0 as c_uint && closureSatisfiesConstraints(c) as c_int != 0 {
-        size = (size as c_ulong).wrapping_sub(
+    if era > 0 && closureSatisfiesConstraints(c) as i32 != 0 {
+        size = (size as u64).wrapping_sub(
             (size_of::<StgProfHeader>() as usize)
                 .wrapping_add(size_of::<W_>() as usize)
                 .wrapping_sub(1 as usize)
-                .wrapping_div(size_of::<W_>() as usize) as c_ulong,
-        ) as uint32_t as uint32_t;
+                .wrapping_div(size_of::<W_>() as usize) as u64,
+        ) as u32 as u32;
 
         if (*(c as *mut StgClosure)).header.prof.hp.ldvw & LDV_STATE_MASK as StgWord
             == LDV_STATE_CREATE as StgWord
         {
             t = (((*(c as *mut StgClosure)).header.prof.hp.ldvw & LDV_CREATE_MASK as StgWord)
-                >> LDV_SHIFT) as uint32_t;
+                >> LDV_SHIFT) as u32;
 
-            if t < era as uint32_t {
+            if t < era as u32 {
                 if RtsFlags.ProfFlags.bioSelector.is_null() {
-                    (*censuses.offset(t as isize)).void_total += size as ssize_t;
-                    (*censuses.offset(era as isize)).void_total -= size as ssize_t;
+                    (*censuses.offset(t as isize)).void_total += size as isize;
+                    (*censuses.offset(era as isize)).void_total -= size as isize;
                 } else {
                     id = closureIdentity(c);
+
                     ctr = lookupHashTable((*censuses.offset(t as isize)).hash, id as StgWord)
                         as *mut counter;
 
                     if ctr.is_null() {
                         barf(
-                            b"LDV_recordDead: Failed to find counter for closure %p\0" as *const u8
-                                as *const c_char,
+                            c"LDV_recordDead: Failed to find counter for closure %p".as_ptr(),
                             c,
                         );
                     }
 
-                    (*ctr).c.ldv.void_total += size as ssize_t;
+                    (*ctr).c.ldv.void_total += size as isize;
+
                     ctr = lookupHashTable((*censuses.offset(era as isize)).hash, id as StgWord)
                         as *mut counter;
 
                     if ctr.is_null() {
                         ctr = arenaAlloc(
                             (*censuses.offset(era as isize)).arena,
-                            size_of::<counter>() as size_t,
+                            size_of::<counter>() as usize,
                         ) as *mut counter;
 
                         initLDVCtr(ctr);
@@ -290,35 +285,35 @@ unsafe fn LDV_recordDead(mut c: *const StgClosure, mut size: uint32_t) {
                         *fresh5 = ctr;
                     }
 
-                    (*ctr).c.ldv.void_total -= size as ssize_t;
+                    (*ctr).c.ldv.void_total -= size as isize;
                 }
             }
         } else {
-            t = ((*(c as *mut StgClosure)).header.prof.hp.ldvw & LDV_LAST_MASK as StgWord)
-                as uint32_t;
+            t = ((*(c as *mut StgClosure)).header.prof.hp.ldvw & LDV_LAST_MASK as StgWord) as u32;
 
-            if t.wrapping_add(1 as uint32_t) < era as uint32_t {
+            if t.wrapping_add(1 as u32) < era as u32 {
                 if RtsFlags.ProfFlags.bioSelector.is_null() {
-                    (*censuses.offset(t.wrapping_add(1 as uint32_t) as isize)).drag_total +=
-                        size as ssize_t;
-                    (*censuses.offset(era as isize)).drag_total -= size as ssize_t;
+                    (*censuses.offset(t.wrapping_add(1 as u32) as isize)).drag_total +=
+                        size as isize;
+                    (*censuses.offset(era as isize)).drag_total -= size as isize;
                 } else {
                     let mut id_0 = null::<c_void>();
                     id_0 = closureIdentity(c);
 
                     ctr = lookupHashTable(
-                        (*censuses.offset(t.wrapping_add(1 as uint32_t) as isize)).hash,
+                        (*censuses.offset(t.wrapping_add(1 as u32) as isize)).hash,
                         id_0 as StgWord,
                     ) as *mut counter;
 
-                    (*ctr).c.ldv.drag_total += size as ssize_t;
+                    (*ctr).c.ldv.drag_total += size as isize;
+
                     ctr = lookupHashTable((*censuses.offset(era as isize)).hash, id_0 as StgWord)
                         as *mut counter;
 
                     if ctr.is_null() {
                         ctr = arenaAlloc(
                             (*censuses.offset(era as isize)).arena,
-                            size_of::<counter>() as size_t,
+                            size_of::<counter>() as usize,
                         ) as *mut counter;
 
                         initLDVCtr(ctr);
@@ -336,7 +331,7 @@ unsafe fn LDV_recordDead(mut c: *const StgClosure, mut size: uint32_t) {
                         *fresh6 = ctr;
                     }
 
-                    (*ctr).c.ldv.drag_total -= size as ssize_t;
+                    (*ctr).c.ldv.drag_total -= size as isize;
                 }
             }
         }
@@ -356,11 +351,11 @@ unsafe fn initEra(mut census: *mut Census) {
     (*census).hash = allocHashTable();
     (*census).ctrs = null_mut::<counter>();
     (*census).arena = newArena();
-    (*census).not_used = 0 as ssize_t;
-    (*census).used = 0 as ssize_t;
-    (*census).prim = 0 as ssize_t;
-    (*census).void_total = 0 as ssize_t;
-    (*census).drag_total = 0 as ssize_t;
+    (*census).not_used = 0;
+    (*census).used = 0;
+    (*census).prim = 0;
+    (*census).void_total = 0;
+    (*census).drag_total = 0;
 }
 
 #[inline]
@@ -370,25 +365,22 @@ unsafe fn freeEra(mut census: *mut Census) {
 }
 
 unsafe fn nextEra() {
-    if user_era > 0 as StgWord && RtsFlags.ProfFlags.incrementUserEra as c_int != 0 {
+    if user_era > 0 && RtsFlags.ProfFlags.incrementUserEra as i32 != 0 {
         user_era = user_era.wrapping_add(1);
     }
 
     if doingLDVProfiling() {
         era = era.wrapping_add(1);
 
-        if era as uint32_t == max_era {
-            errorBelch(b"Maximum number of censuses reached.\0" as *const u8 as *const c_char);
+        if era as u32 == max_era {
+            errorBelch(c"Maximum number of censuses reached.".as_ptr());
 
-            if rtsConfig.rts_opts_suggestions == r#true as HsBool {
-                if rtsConfig.rts_opts_enabled as c_uint == RtsOptsAll as c_int as c_uint {
-                    errorBelch(
-                        b"Use `+RTS -i' to reduce censuses.\0" as *const u8 as *const c_char,
-                    );
+            if rtsConfig.rts_opts_suggestions == true {
+                if rtsConfig.rts_opts_enabled as u32 == RtsOptsAll as i32 as u32 {
+                    errorBelch(c"Use `+RTS -i' to reduce censuses.".as_ptr());
                 } else {
                     errorBelch(
-                        b"Relink with -rtsopts and use `+RTS -i' to reduce censuses.\0" as *const u8
-                            as *const c_char,
+                        c"Relink with -rtsopts and use `+RTS -i' to reduce censuses.".as_ptr(),
                     );
                 }
             }
@@ -396,21 +388,21 @@ unsafe fn nextEra() {
             stg_exit(EXIT_FAILURE);
         }
 
-        if era as uint32_t == n_censuses {
-            n_censuses = n_censuses.wrapping_mul(2 as uint32_t);
+        if era as u32 == n_censuses {
+            n_censuses = n_censuses.wrapping_mul(2 as u32);
 
             censuses = stgReallocBytes(
                 censuses as *mut c_void,
-                (size_of::<Census>() as size_t).wrapping_mul(n_censuses as size_t),
-                b"nextEra\0" as *const u8 as *const c_char as *mut c_char,
+                (size_of::<Census>() as usize).wrapping_mul(n_censuses as usize),
+                c"nextEra".as_ptr(),
             ) as *mut Census;
 
             memset(
                 censuses.offset(era as isize) as *mut Census as *mut c_void,
-                0 as c_int,
-                (size_of::<Census>() as size_t)
-                    .wrapping_mul(n_censuses as size_t)
-                    .wrapping_div(2 as size_t),
+                0,
+                (size_of::<Census>() as usize)
+                    .wrapping_mul(n_censuses as usize)
+                    .wrapping_div(2 as usize),
             );
         }
     }
@@ -421,12 +413,12 @@ unsafe fn nextEra() {
 unsafe fn printEscapedString(mut string: *const c_char) {
     let mut p = string;
 
-    while *p as c_int != '\0' as i32 {
-        if *p as c_int == '"' as i32 {
+    while *p as i32 != '\0' as i32 {
+        if *p as i32 == '"' as i32 {
             fputc('"' as i32, hp_file);
         }
 
-        fputc(*p as c_int, hp_file);
+        fputc(*p as i32, hp_file);
         p = p.offset(1);
     }
 }
@@ -434,11 +426,11 @@ unsafe fn printEscapedString(mut string: *const c_char) {
 unsafe fn printSample(mut beginSample: bool, mut sampleValue: StgDouble) {
     fprintf(
         hp_file,
-        b"%s %f\n\0" as *const u8 as *const c_char,
-        if beginSample as c_int != 0 {
-            b"BEGIN_SAMPLE\0" as *const u8 as *const c_char
+        c"%s %f\n".as_ptr(),
+        if beginSample as i32 != 0 {
+            c"BEGIN_SAMPLE".as_ptr()
         } else {
-            b"END_SAMPLE\0" as *const u8 as *const c_char
+            c"END_SAMPLE".as_ptr()
         },
         sampleValue,
     );
@@ -464,15 +456,15 @@ unsafe fn initHeapProfiling() {
 
     if !RtsFlags.CcFlags.outputFileNameStem.is_null() {
         stem = stgMallocBytes(
-            strlen(RtsFlags.CcFlags.outputFileNameStem).wrapping_add(1 as size_t),
-            b"initHeapProfiling\0" as *const u8 as *const c_char as *mut c_char,
+            strlen(RtsFlags.CcFlags.outputFileNameStem).wrapping_add(1 as usize),
+            c"initHeapProfiling".as_ptr(),
         ) as *mut c_char;
 
         strcpy(stem, RtsFlags.CcFlags.outputFileNameStem);
     } else {
         stem = stgMallocBytes(
-            strlen(prog_name).wrapping_add(1 as size_t),
-            b"initHeapProfiling\0" as *const u8 as *const c_char as *mut c_char,
+            strlen(prog_name).wrapping_add(1 as usize),
+            c"initHeapProfiling".as_ptr(),
         ) as *mut c_char;
 
         strcpy(stem, prog_name);
@@ -480,20 +472,19 @@ unsafe fn initHeapProfiling() {
 
     if RtsFlags.ProfFlags.doHeapProfile != 0 {
         hp_filename = stgMallocBytes(
-            strlen(stem).wrapping_add(6 as size_t),
-            b"hpFileName\0" as *const u8 as *const c_char as *mut c_char,
+            strlen(stem).wrapping_add(6 as usize),
+            c"hpFileName".as_ptr(),
         ) as *mut c_char;
 
-        sprintf(hp_filename, b"%s.hp\0" as *const u8 as *const c_char, stem);
-        hp_file = __rts_fopen(hp_filename, b"w+\0" as *const u8 as *const c_char);
+        sprintf(hp_filename, c"%s.hp".as_ptr(), stem);
+        hp_file = __rts_fopen(hp_filename, c"w+".as_ptr());
 
         if hp_file.is_null() {
             debugBelch(
-                b"Can't open profiling report file %s\n\0" as *const u8 as *const c_char,
+                c"Can't open profiling report file %s\n".as_ptr(),
                 hp_filename,
             );
-
-            RtsFlags.ProfFlags.doHeapProfile = 0 as uint32_t;
+            RtsFlags.ProfFlags.doHeapProfile = 0;
             stgFree(stem as *mut c_void);
             return;
         }
@@ -501,33 +492,33 @@ unsafe fn initHeapProfiling() {
 
     stgFree(stem as *mut c_void);
 
-    if doingLDVProfiling() as c_int != 0 && doingRetainerProfiling() as c_int != 0 {
-        errorBelch(b"cannot mix -hb and -hr\0" as *const u8 as *const c_char);
+    if doingLDVProfiling() as i32 != 0 && doingRetainerProfiling() as i32 != 0 {
+        errorBelch(c"cannot mix -hb and -hr".as_ptr());
         stg_exit(EXIT_FAILURE);
     }
 
     if doingErasProfiling() {
-        user_era = 1 as StgWord;
+        user_era = 1;
     }
 
     if doingLDVProfiling() {
-        era = 1 as c_uint;
-        n_censuses = 32 as uint32_t;
+        era = 1;
+        n_censuses = 32;
     } else {
-        era = 0 as c_uint;
-        n_censuses = 1 as uint32_t;
+        era = 0;
+        n_censuses = 1;
     }
 
-    max_era = ((1 as c_int) << LDV_SHIFT) as uint32_t;
+    max_era = (1 << LDV_SHIFT) as u32;
 
     censuses = stgMallocBytes(
-        (size_of::<Census>() as size_t).wrapping_mul(n_censuses as size_t),
-        b"initHeapProfiling\0" as *const u8 as *const c_char as *mut c_char,
+        (size_of::<Census>() as usize).wrapping_mul(n_censuses as usize),
+        c"initHeapProfiling".as_ptr(),
     ) as *mut Census;
 
-    let mut i = 0 as c_uint;
+    let mut i = 0;
 
-    while (i as uint32_t) < n_censuses {
+    while (i as u32) < n_censuses {
         let ref mut fresh8 = (*censuses.offset(i as isize)).arena;
         *fresh8 = null_mut::<Arena>();
 
@@ -537,10 +528,10 @@ unsafe fn initHeapProfiling() {
     }
 
     initEra(censuses.offset(era as isize) as *mut Census);
-    fprintf(hp_file, b"JOB \"\0" as *const u8 as *const c_char);
+    fprintf(hp_file, c"JOB \"".as_ptr());
     printEscapedString(prog_name);
 
-    let mut i_0 = 1 as c_int;
+    let mut i_0 = 1;
 
     while i_0 < prog_argc {
         fputc(' ' as i32, hp_file);
@@ -548,9 +539,9 @@ unsafe fn initHeapProfiling() {
         i_0 += 1;
     }
 
-    fprintf(hp_file, b" +RTS\0" as *const u8 as *const c_char);
+    fprintf(hp_file, c" +RTS".as_ptr());
 
-    let mut i_1 = 0 as c_int;
+    let mut i_1 = 0;
 
     while i_1 < rts_argc {
         fputc(' ' as i32, hp_file);
@@ -558,33 +549,19 @@ unsafe fn initHeapProfiling() {
         i_1 += 1;
     }
 
-    fprintf(hp_file, b"\"\n\0" as *const u8 as *const c_char);
-
-    fprintf(
-        hp_file,
-        b"DATE \"%s\"\n\0" as *const u8 as *const c_char,
-        time_str(),
-    );
-
-    fprintf(
-        hp_file,
-        b"SAMPLE_UNIT \"seconds\"\n\0" as *const u8 as *const c_char,
-    );
-
-    fprintf(
-        hp_file,
-        b"VALUE_UNIT \"bytes\"\n\0" as *const u8 as *const c_char,
-    );
-
-    printSample(r#true != 0, 0 as c_int as StgDouble);
-    printSample(r#false != 0, 0 as c_int as StgDouble);
+    fprintf(hp_file, c"\"\n".as_ptr());
+    fprintf(hp_file, c"DATE \"%s\"\n".as_ptr(), time_str());
+    fprintf(hp_file, c"SAMPLE_UNIT \"seconds\"\n".as_ptr());
+    fprintf(hp_file, c"VALUE_UNIT \"bytes\"\n".as_ptr());
+    printSample(true, 0);
+    printSample(false, 0);
 
     if doingRetainerProfiling() {
         initRetainerProfiling();
     }
 
     restore_locale();
-    traceHeapProfBegin(0 as StgWord8);
+    traceHeapProfBegin(0);
 }
 
 unsafe fn endHeapProfiling() {
@@ -597,20 +574,20 @@ unsafe fn endHeapProfiling() {
     if doingRetainerProfiling() {
         endRetainerProfiling();
     } else if doingLDVProfiling() {
-        let mut t: uint32_t = 0;
+        let mut t: u32 = 0;
         LdvCensusKillAll();
         aggregateCensusInfo();
-        t = 1 as uint32_t;
+        t = 1;
 
-        while t < era as uint32_t {
+        while t < era as u32 {
             dumpCensus(censuses.offset(t as isize) as *mut Census);
             t = t.wrapping_add(1);
         }
 
         if !RtsFlags.ProfFlags.bioSelector.is_null() {
-            t = 1 as uint32_t;
+            t = 1;
 
-            while t <= era as uint32_t {
+            while t <= era as u32 {
                 freeEra(censuses.offset(t as isize) as *mut Census);
                 t = t.wrapping_add(1);
             }
@@ -618,7 +595,7 @@ unsafe fn endHeapProfiling() {
             freeEra(censuses.offset(era as isize) as *mut Census);
         }
     } else {
-        freeEra(censuses.offset(0 as c_int as isize) as *mut Census);
+        freeEra(censuses.offset(0) as *mut Census);
     }
 
     stgFree(censuses as *mut c_void);
@@ -681,20 +658,20 @@ unsafe fn endHeapProfiling() {
 
     let mut mut_time: Time = stats.mutator_cpu_ns;
     let mut seconds = mut_time as StgDouble / TIME_RESOLUTION as StgDouble;
-    printSample(r#true != 0, seconds);
-    printSample(r#false != 0, seconds);
+    printSample(true, seconds);
+    printSample(false, seconds);
     fclose(hp_file);
     restore_locale();
 }
 
-unsafe fn buf_append(mut p: *mut c_char, mut q: *const c_char, mut end: *mut c_char) -> size_t {
-    let mut m: c_int = 0;
-    m = 0 as c_int;
+unsafe fn buf_append(mut p: *mut c_char, mut q: *const c_char, mut end: *mut c_char) -> usize {
+    let mut m: i32 = 0;
+    m = 0;
 
     while p < end {
         *p = *q;
 
-        if *q as c_int == '\0' as i32 {
+        if *q as i32 == '\0' as i32 {
             break;
         }
 
@@ -703,47 +680,42 @@ unsafe fn buf_append(mut p: *mut c_char, mut q: *const c_char, mut end: *mut c_c
         m += 1;
     }
 
-    return m as size_t;
+    return m as usize;
 }
 
-unsafe fn fprint_ccs(mut fp: *mut FILE, mut ccs: *mut CostCentreStack, mut max_length: uint32_t) {
-    let vla = max_length.wrapping_add(1 as uint32_t) as usize;
+unsafe fn fprint_ccs(mut fp: *mut FILE, mut ccs: *mut CostCentreStack, mut max_length: u32) {
+    let vla = max_length.wrapping_add(1 as u32) as usize;
     let mut buf: Vec<c_char> = ::std::vec::from_elem(0, vla);
     let mut p = null_mut::<c_char>();
     let mut buf_end = null_mut::<c_char>();
 
     if ccs == &raw mut CCS_MAIN as *mut CostCentreStack {
-        fprintf(fp, b"MAIN\0" as *const u8 as *const c_char);
+        fprintf(fp, c"MAIN".as_ptr());
         return;
     }
 
-    fprintf(fp, b"(%lld)\0" as *const u8 as *const c_char, (*ccs).ccsID);
+    fprintf(fp, c"(%lld)".as_ptr(), (*ccs).ccsID);
     p = buf.as_mut_ptr();
-    buf_end = buf
-        .as_mut_ptr()
-        .offset(max_length as isize)
-        .offset(1 as c_int as isize);
+    buf_end = buf.as_mut_ptr().offset(max_length as isize).offset(1);
 
     while !ccs.is_null() && ccs != &raw mut CCS_MAIN as *mut CostCentreStack {
-        if strcmp((*(*ccs).cc).label, b"CAF\0" as *const u8 as *const c_char) == 0 {
+        if strcmp((*(*ccs).cc).label, c"CAF".as_ptr()) == 0 {
             p = p.offset(buf_append(p, (*(*ccs).cc).module, buf_end) as isize);
-            p = p.offset(buf_append(p, b".CAF\0" as *const u8 as *const c_char, buf_end) as isize);
+            p = p.offset(buf_append(p, c".CAF".as_ptr(), buf_end) as isize);
         } else {
             p = p.offset(buf_append(p, (*(*ccs).cc).label, buf_end) as isize);
 
             if !(*ccs).prevStack.is_null()
                 && (*ccs).prevStack != &raw mut CCS_MAIN as *mut CostCentreStack
             {
-                p = p.offset(buf_append(p, b"/\0" as *const u8 as *const c_char, buf_end) as isize);
+                p = p.offset(buf_append(p, c"/".as_ptr(), buf_end) as isize);
             }
         }
 
         if p >= buf_end {
             sprintf(
-                buf.as_mut_ptr()
-                    .offset(max_length as isize)
-                    .offset(-(4 as c_int as isize)),
-                b"...\0" as *const u8 as *const c_char,
+                buf.as_mut_ptr().offset(max_length as isize).offset(-4),
+                c"...".as_ptr(),
             );
 
             break;
@@ -752,7 +724,7 @@ unsafe fn fprint_ccs(mut fp: *mut FILE, mut ccs: *mut CostCentreStack, mut max_l
         }
     }
 
-    fprintf(fp, b"%s\0" as *const u8 as *const c_char, buf.as_mut_ptr());
+    fprintf(fp, c"%s".as_ptr(), buf.as_mut_ptr());
 }
 
 unsafe fn strMatchesSelector(mut str: *const c_char, mut sel: *const c_char) -> bool {
@@ -761,31 +733,29 @@ unsafe fn strMatchesSelector(mut str: *const c_char, mut sel: *const c_char) -> 
     loop {
         p = str;
 
-        while *p as c_int != '\0' as i32
-            && *sel as c_int != ',' as i32
-            && *sel as c_int != '\0' as i32
-            && *p as c_int == *sel as c_int
+        while *p as i32 != '\0' as i32
+            && *sel as i32 != ',' as i32
+            && *sel as i32 != '\0' as i32
+            && *p as i32 == *sel as i32
         {
             p = p.offset(1);
             sel = sel.offset(1);
         }
 
-        if *p as c_int == '\0' as i32
-            && (*sel as c_int == ',' as i32 || *sel as c_int == '\0' as i32)
-        {
-            return r#true != 0;
+        if *p as i32 == '\0' as i32 && (*sel as i32 == ',' as i32 || *sel as i32 == '\0' as i32) {
+            return true;
         }
 
-        while *sel as c_int != ',' as i32 && *sel as c_int != '\0' as i32 {
+        while *sel as i32 != ',' as i32 && *sel as i32 != '\0' as i32 {
             sel = sel.offset(1);
         }
 
-        if *sel as c_int == ',' as i32 {
+        if *sel as i32 == ',' as i32 {
             sel = sel.offset(1);
         }
 
-        if *sel as c_int == '\0' as i32 {
-            return r#false != 0;
+        if *sel as i32 == '\0' as i32 {
+            return false;
         }
     }
 }
@@ -794,32 +764,32 @@ unsafe fn closureSatisfiesConstraints(mut p: *const StgClosure) -> bool {
     let mut b: bool = false;
 
     if (*(*p).header.prof.ccs).selected == 0 {
-        return r#false != 0;
+        return false;
     }
 
     if !RtsFlags.ProfFlags.descrSelector.is_null() {
         b = strMatchesSelector(
-            (get_itbl(p as *mut StgClosure).offset(1 as c_int as isize) as StgWord)
+            (get_itbl(p as *mut StgClosure).offset(1 as i32 as isize) as StgWord)
                 .wrapping_add((*get_itbl(p as *mut StgClosure)).prof.closure_desc_off as StgWord)
                 as *mut c_char,
             RtsFlags.ProfFlags.descrSelector,
         );
 
         if !b {
-            return r#false != 0;
+            return false;
         }
     }
 
     if !RtsFlags.ProfFlags.typeSelector.is_null() {
         b = strMatchesSelector(
-            (get_itbl(p as *mut StgClosure).offset(1 as c_int as isize) as StgWord)
+            (get_itbl(p as *mut StgClosure).offset(1 as i32 as isize) as StgWord)
                 .wrapping_add((*get_itbl(p as *mut StgClosure)).prof.closure_type_off as StgWord)
                 as *mut c_char,
             RtsFlags.ProfFlags.typeSelector,
         );
 
         if !b {
-            return r#false != 0;
+            return false;
         }
     }
 
@@ -829,13 +799,13 @@ unsafe fn closureSatisfiesConstraints(mut p: *const StgClosure) -> bool {
 
     if !RtsFlags.ProfFlags.retainerSelector.is_null() {
         let mut rs = null_mut::<RetainerSet>();
-        let mut i: uint32_t = 0;
+        let mut i: u32 = 0;
 
         if isRetainerSetValid(p as *mut StgClosure) {
             rs = retainerSetOf(p as *mut StgClosure);
 
             if !rs.is_null() {
-                i = 0 as uint32_t;
+                i = 0;
 
                 while i < (*rs).num {
                     b = strMatchesSelector(
@@ -845,7 +815,7 @@ unsafe fn closureSatisfiesConstraints(mut p: *const StgClosure) -> bool {
                     );
 
                     if b {
-                        return r#true != 0;
+                        return true;
                     }
 
                     i = i.wrapping_add(1);
@@ -853,15 +823,15 @@ unsafe fn closureSatisfiesConstraints(mut p: *const StgClosure) -> bool {
             }
         }
 
-        return r#false != 0;
+        return false;
     }
 
-    return r#true != 0;
+    return true;
 }
 
 unsafe fn aggregateCensusInfo() {
     let mut acc = null_mut::<HashTable>();
-    let mut t: uint32_t = 0;
+    let mut t: u32 = 0;
     let mut c = null_mut::<counter>();
     let mut d = null_mut::<counter>();
     let mut ctrs = null_mut::<counter>();
@@ -871,18 +841,18 @@ unsafe fn aggregateCensusInfo() {
         return;
     }
 
-    if RtsFlags.ProfFlags.doHeapProfile == HEAP_BY_LDV as uint32_t {
-        let mut void_total: c_long = 0;
-        let mut drag_total: c_long = 0;
-        void_total = 0 as c_long;
-        drag_total = 0 as c_long;
-        t = 1 as uint32_t;
+    if RtsFlags.ProfFlags.doHeapProfile == HEAP_BY_LDV as u32 {
+        let mut void_total: i64 = 0;
+        let mut drag_total: i64 = 0;
+        void_total = 0;
+        drag_total = 0;
+        t = 1;
 
-        while t < era as uint32_t {
-            void_total += (*censuses.offset(t as isize)).void_total as c_long;
-            drag_total += (*censuses.offset(t as isize)).drag_total as c_long;
-            (*censuses.offset(t as isize)).void_total = void_total as ssize_t;
-            (*censuses.offset(t as isize)).drag_total = drag_total as ssize_t;
+        while t < era as u32 {
+            void_total += (*censuses.offset(t as isize)).void_total as i64;
+            drag_total += (*censuses.offset(t as isize)).drag_total as i64;
+            (*censuses.offset(t as isize)).void_total = void_total as isize;
+            (*censuses.offset(t as isize)).drag_total = drag_total as isize;
             t = t.wrapping_add(1);
         }
 
@@ -892,9 +862,9 @@ unsafe fn aggregateCensusInfo() {
     arena = newArena();
     acc = allocHashTable();
     ctrs = null_mut::<counter>();
-    t = 1 as uint32_t;
+    t = 1;
 
-    while t < era as uint32_t {
+    while t < era as u32 {
         c = ctrs;
 
         while !c.is_null() {
@@ -919,7 +889,7 @@ unsafe fn aggregateCensusInfo() {
             d = lookupHashTable(acc, (*c).identity as StgWord) as *mut counter;
 
             if d.is_null() {
-                d = arenaAlloc(arena, size_of::<counter>() as size_t) as *mut counter;
+                d = arenaAlloc(arena, size_of::<counter>() as usize) as *mut counter;
                 initLDVCtr(d);
                 insertHashTable(acc, (*c).identity as StgWord, d as *const c_void);
                 (*d).identity = (*c).identity;
@@ -941,83 +911,83 @@ unsafe fn aggregateCensusInfo() {
 
 unsafe fn dumpCensus(mut census: *mut Census) {
     let mut ctr = null_mut::<counter>();
-    let mut count: ssize_t = 0;
+    let mut count: isize = 0;
     set_prof_locale();
-    printSample(r#true != 0, (*census).time as StgDouble);
+    printSample(true, (*census).time as StgDouble);
 
-    if RtsFlags.ProfFlags.doHeapProfile == HEAP_BY_LDV as uint32_t {
+    if RtsFlags.ProfFlags.doHeapProfile == HEAP_BY_LDV as u32 {
         traceHeapBioProfSampleBegin(era as StgInt, (*census).rtime);
     } else {
         traceHeapProfSampleBegin(era as StgInt);
     }
 
-    if RtsFlags.ProfFlags.doHeapProfile == HEAP_BY_LDV as uint32_t {
+    if RtsFlags.ProfFlags.doHeapProfile == HEAP_BY_LDV as u32 {
         fprintf(
             hp_file,
-            b"VOID\t%llu\n\0" as *const u8 as *const c_char,
-            ((*census).void_total as usize).wrapping_mul(size_of::<W_>() as usize) as uint64_t,
+            c"VOID\t%llu\n".as_ptr(),
+            ((*census).void_total as usize).wrapping_mul(size_of::<W_>() as usize) as u64,
         );
 
         fprintf(
             hp_file,
-            b"LAG\t%llu\n\0" as *const u8 as *const c_char,
+            c"LAG\t%llu\n".as_ptr(),
             (((*census).not_used - (*census).void_total) as usize)
-                .wrapping_mul(size_of::<W_>() as usize) as uint64_t,
+                .wrapping_mul(size_of::<W_>() as usize) as u64,
         );
 
         fprintf(
             hp_file,
-            b"USE\t%llu\n\0" as *const u8 as *const c_char,
+            c"USE\t%llu\n".as_ptr(),
             (((*census).used - (*census).drag_total) as usize)
-                .wrapping_mul(size_of::<W_>() as usize) as uint64_t,
+                .wrapping_mul(size_of::<W_>() as usize) as u64,
         );
 
         fprintf(
             hp_file,
-            b"INHERENT_USE\t%llu\n\0" as *const u8 as *const c_char,
-            ((*census).prim as usize).wrapping_mul(size_of::<W_>() as usize) as uint64_t,
+            c"INHERENT_USE\t%llu\n".as_ptr(),
+            ((*census).prim as usize).wrapping_mul(size_of::<W_>() as usize) as u64,
         );
 
         fprintf(
             hp_file,
-            b"DRAG\t%llu\n\0" as *const u8 as *const c_char,
-            ((*census).drag_total as usize).wrapping_mul(size_of::<W_>() as usize) as uint64_t,
+            c"DRAG\t%llu\n".as_ptr(),
+            ((*census).drag_total as usize).wrapping_mul(size_of::<W_>() as usize) as u64,
         );
 
         traceHeapProfSampleString(
-            0 as StgWord8,
-            b"VOID\0" as *const u8 as *const c_char,
+            0,
+            c"VOID".as_ptr(),
             ((*census).void_total as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord,
         );
 
         traceHeapProfSampleString(
-            0 as StgWord8,
-            b"LAG\0" as *const u8 as *const c_char,
+            0,
+            c"LAG".as_ptr(),
             (((*census).not_used - (*census).void_total) as usize)
                 .wrapping_mul(size_of::<W_>() as usize) as StgWord,
         );
 
         traceHeapProfSampleString(
-            0 as StgWord8,
-            b"USE\0" as *const u8 as *const c_char,
+            0,
+            c"USE".as_ptr(),
             (((*census).used - (*census).drag_total) as usize)
                 .wrapping_mul(size_of::<W_>() as usize) as StgWord,
         );
 
         traceHeapProfSampleString(
-            0 as StgWord8,
-            b"INHERENT_USE\0" as *const u8 as *const c_char,
+            0,
+            c"INHERENT_USE".as_ptr(),
             ((*census).prim as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord,
         );
 
         traceHeapProfSampleString(
-            0 as StgWord8,
-            b"DRAG\0" as *const u8 as *const c_char,
+            0,
+            c"DRAG".as_ptr(),
             ((*census).drag_total as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord,
         );
 
         traceHeapProfSampleEnd(era as StgInt);
-        printSample(r#false != 0, (*census).time as StgDouble);
+        printSample(false, (*census).time as StgDouble);
         return;
     }
 
@@ -1025,74 +995,49 @@ unsafe fn dumpCensus(mut census: *mut Census) {
 
     while !ctr.is_null() {
         if !RtsFlags.ProfFlags.bioSelector.is_null() {
-            count = 0 as ssize_t;
+            count = 0;
 
-            if strMatchesSelector(
-                b"lag\0" as *const u8 as *const c_char,
-                RtsFlags.ProfFlags.bioSelector,
-            ) {
+            if strMatchesSelector(c"lag".as_ptr(), RtsFlags.ProfFlags.bioSelector) {
                 count += (*ctr).c.ldv.not_used - (*ctr).c.ldv.void_total;
             }
 
-            if strMatchesSelector(
-                b"drag\0" as *const u8 as *const c_char,
-                RtsFlags.ProfFlags.bioSelector,
-            ) {
+            if strMatchesSelector(c"drag".as_ptr(), RtsFlags.ProfFlags.bioSelector) {
                 count += (*ctr).c.ldv.drag_total;
             }
 
-            if strMatchesSelector(
-                b"void\0" as *const u8 as *const c_char,
-                RtsFlags.ProfFlags.bioSelector,
-            ) {
+            if strMatchesSelector(c"void".as_ptr(), RtsFlags.ProfFlags.bioSelector) {
                 count += (*ctr).c.ldv.void_total;
             }
 
-            if strMatchesSelector(
-                b"use\0" as *const u8 as *const c_char,
-                RtsFlags.ProfFlags.bioSelector,
-            ) {
+            if strMatchesSelector(c"use".as_ptr(), RtsFlags.ProfFlags.bioSelector) {
                 count += (*ctr).c.ldv.used - (*ctr).c.ldv.drag_total;
             }
         } else {
             count = (*ctr).c.resid;
         }
 
-        if !(count == 0 as ssize_t) {
+        if !(count == 0) {
             let mut str: [c_char; 100] = [0; 100];
             let mut str_era: [c_char; 100] = [0; 100];
 
             match RtsFlags.ProfFlags.doHeapProfile {
                 8 => {
-                    fprintf(
-                        hp_file,
-                        b"%s\0" as *const u8 as *const c_char,
-                        (*ctr).identity as *mut c_char,
-                    );
+                    fprintf(hp_file, c"%s".as_ptr(), (*ctr).identity as *mut c_char);
 
                     traceHeapProfSampleString(
-                        0 as StgWord8,
+                        0,
                         (*ctr).identity as *mut c_char,
                         (count as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord,
                     );
                 }
                 9 => {
-                    fprintf(
-                        hp_file,
-                        b"%p\0" as *const u8 as *const c_char,
-                        (*ctr).identity,
-                    );
-
+                    fprintf(hp_file, c"%p".as_ptr(), (*ctr).identity);
                     str = [0; 100];
 
-                    sprintf(
-                        &raw mut str as *mut c_char,
-                        b"%p\0" as *const u8 as *const c_char,
-                        (*ctr).identity,
-                    );
+                    sprintf(&raw mut str as *mut c_char, c"%p".as_ptr(), (*ctr).identity);
 
                     traceHeapProfSampleString(
-                        0 as StgWord8,
+                        0,
                         &raw mut str as *mut c_char,
                         (count as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord,
                     );
@@ -1105,41 +1050,32 @@ unsafe fn dumpCensus(mut census: *mut Census) {
                     );
 
                     traceHeapProfSampleCostCentre(
-                        0 as StgWord8,
+                        0,
                         (*ctr).identity as *mut CostCentreStack,
                         (count as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord,
                     );
                 }
                 10 => {
-                    fprintf(
-                        hp_file,
-                        b"%llu\0" as *const u8 as *const c_char,
-                        (*ctr).identity as StgWord,
-                    );
-
+                    fprintf(hp_file, c"%llu".as_ptr(), (*ctr).identity as StgWord);
                     str_era = [0; 100];
 
                     sprintf(
                         &raw mut str_era as *mut c_char,
-                        b"%llu\0" as *const u8 as *const c_char,
+                        c"%llu".as_ptr(),
                         (*ctr).identity as StgWord,
                     );
 
                     traceHeapProfSampleString(
-                        0 as StgWord8,
+                        0,
                         &raw mut str_era as *mut c_char,
                         (count as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord,
                     );
                 }
                 2 | 4 | 5 => {
-                    fprintf(
-                        hp_file,
-                        b"%s\0" as *const u8 as *const c_char,
-                        (*ctr).identity as *mut c_char,
-                    );
+                    fprintf(hp_file, c"%s".as_ptr(), (*ctr).identity as *mut c_char);
 
                     traceHeapProfSampleString(
-                        0 as StgWord8,
+                        0,
                         (*ctr).identity as *mut c_char,
                         (count as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord,
                     );
@@ -1148,9 +1084,9 @@ unsafe fn dumpCensus(mut census: *mut Census) {
                     let mut rs = (*ctr).identity as *mut RetainerSet;
 
                     if rs == &raw mut rs_MANY {
-                        fprintf(hp_file, b"MANY\0" as *const u8 as *const c_char);
+                        fprintf(hp_file, c"MANY".as_ptr());
                     } else {
-                        if (*rs).id > 0 as c_int {
+                        if (*rs).id > 0 {
                             (*rs).id = -(*rs).id;
                         }
 
@@ -1163,13 +1099,13 @@ unsafe fn dumpCensus(mut census: *mut Census) {
                     }
                 }
                 _ => {
-                    barf(b"dumpCensus; doHeapProfile\0" as *const u8 as *const c_char);
+                    barf(c"dumpCensus; doHeapProfile".as_ptr());
                 }
             }
 
             fprintf(
                 hp_file,
-                b"\t%llu\n\0" as *const u8 as *const c_char,
+                c"\t%llu\n".as_ptr(),
                 (count as W_).wrapping_mul(size_of::<W_>() as W_),
             );
         }
@@ -1178,13 +1114,13 @@ unsafe fn dumpCensus(mut census: *mut Census) {
     }
 
     traceHeapProfSampleEnd(era as StgInt);
-    printSample(r#false != 0, (*census).time as StgDouble);
+    printSample(false, (*census).time as StgDouble);
     restore_locale();
 }
 
 #[inline]
 unsafe fn heapInsertNewCounter(mut census: *mut Census, mut identity: StgWord) -> *mut counter {
-    let mut ctr = arenaAlloc((*census).arena, size_of::<counter>() as size_t) as *mut counter;
+    let mut ctr = arenaAlloc((*census).arena, size_of::<counter>() as usize) as *mut counter;
     initLDVCtr(ctr);
     insertHashTable((*census).hash, identity, ctr as *const c_void);
     (*ctr).identity = identity as *mut c_void;
@@ -1197,34 +1133,33 @@ unsafe fn heapInsertNewCounter(mut census: *mut Census, mut identity: StgWord) -
 unsafe fn heapProfObject(
     mut census: *mut Census,
     mut p: *mut StgClosure,
-    mut size: size_t,
+    mut size: usize,
     mut prim: bool,
 ) {
     let mut identity = null::<c_void>();
-    let mut real_size: size_t = 0;
+    let mut real_size: usize = 0;
     let mut ctr = null_mut::<counter>();
     identity = null::<c_void>();
-
     real_size = size.wrapping_sub(
-        (size_of::<StgProfHeader>() as size_t)
-            .wrapping_add(size_of::<W_>() as size_t)
-            .wrapping_sub(1 as size_t)
-            .wrapping_div(size_of::<W_>() as size_t),
+        (size_of::<StgProfHeader>() as usize)
+            .wrapping_add(size_of::<W_>() as usize)
+            .wrapping_sub(1 as usize)
+            .wrapping_div(size_of::<W_>() as usize),
     );
 
     if closureSatisfiesConstraints(p) {
-        if RtsFlags.ProfFlags.doHeapProfile == HEAP_BY_LDV as uint32_t {
+        if RtsFlags.ProfFlags.doHeapProfile == HEAP_BY_LDV as u32 {
             if prim {
                 (*census).prim =
-                    ((*census).prim as size_t).wrapping_add(real_size) as ssize_t as ssize_t;
+                    ((*census).prim as usize).wrapping_add(real_size) as isize as isize;
             } else if (*p).header.prof.hp.ldvw & LDV_STATE_MASK as StgWord
                 == LDV_STATE_CREATE as StgWord
             {
                 (*census).not_used =
-                    ((*census).not_used as size_t).wrapping_add(real_size) as ssize_t as ssize_t;
+                    ((*census).not_used as usize).wrapping_add(real_size) as isize as isize;
             } else {
                 (*census).used =
-                    ((*census).used as size_t).wrapping_add(real_size) as ssize_t as ssize_t;
+                    ((*census).used as usize).wrapping_add(real_size) as isize as isize;
             }
         } else {
             identity = closureIdentity(p);
@@ -1235,40 +1170,37 @@ unsafe fn heapProfObject(
                 if !ctr.is_null() {
                     if !RtsFlags.ProfFlags.bioSelector.is_null() {
                         if prim {
-                            (*ctr).c.ldv.prim =
-                                ((*ctr).c.ldv.prim as size_t).wrapping_add(real_size) as ssize_t
-                                    as ssize_t;
+                            (*ctr).c.ldv.prim = ((*ctr).c.ldv.prim as usize).wrapping_add(real_size)
+                                as isize as isize;
                         } else if (*p).header.prof.hp.ldvw & LDV_STATE_MASK as StgWord
                             == LDV_STATE_CREATE as StgWord
                         {
-                            (*ctr).c.ldv.not_used = ((*ctr).c.ldv.not_used as size_t)
-                                .wrapping_add(real_size)
-                                as ssize_t
-                                as ssize_t;
+                            (*ctr).c.ldv.not_used =
+                                ((*ctr).c.ldv.not_used as usize).wrapping_add(real_size) as isize
+                                    as isize;
                         } else {
-                            (*ctr).c.ldv.used =
-                                ((*ctr).c.ldv.used as size_t).wrapping_add(real_size) as ssize_t
-                                    as ssize_t;
+                            (*ctr).c.ldv.used = ((*ctr).c.ldv.used as usize).wrapping_add(real_size)
+                                as isize as isize;
                         }
                     } else {
-                        (*ctr).c.resid = ((*ctr).c.resid as size_t).wrapping_add(real_size)
-                            as ssize_t as ssize_t;
+                        (*ctr).c.resid =
+                            ((*ctr).c.resid as usize).wrapping_add(real_size) as isize as isize;
                     }
                 } else {
                     ctr = heapInsertNewCounter(census, identity as StgWord);
 
                     if !RtsFlags.ProfFlags.bioSelector.is_null() {
                         if prim {
-                            (*ctr).c.ldv.prim = real_size as ssize_t;
+                            (*ctr).c.ldv.prim = real_size as isize;
                         } else if (*p).header.prof.hp.ldvw & LDV_STATE_MASK as StgWord
                             == LDV_STATE_CREATE as StgWord
                         {
-                            (*ctr).c.ldv.not_used = real_size as ssize_t;
+                            (*ctr).c.ldv.not_used = real_size as isize;
                         } else {
-                            (*ctr).c.ldv.used = real_size as ssize_t;
+                            (*ctr).c.ldv.used = real_size as isize;
                         }
                     } else {
-                        (*ctr).c.resid = real_size as ssize_t;
+                        (*ctr).c.resid = real_size as isize;
                     }
                 }
             }
@@ -1284,8 +1216,8 @@ unsafe fn heapCensusCompactList(mut census: *mut Census, mut bd: *mut bdescr) {
         heapProfObject(
             census,
             str as *mut StgClosure,
-            compact_nfdata_full_sizeW(str) as size_t,
-            r#true != 0,
+            compact_nfdata_full_sizeW(str) as usize,
+            true,
         );
 
         bd = (*bd).link as *mut bdescr;
@@ -1295,7 +1227,7 @@ unsafe fn heapCensusCompactList(mut census: *mut Census, mut bd: *mut bdescr) {
 unsafe fn heapCensusBlock(mut census: *mut Census, mut bd: *mut bdescr) {
     let mut p = (*bd).start;
 
-    if (*bd).flags as c_int & BF_PINNED != 0 {
+    if (*bd).flags as i32 & BF_PINNED != 0 {
         while p < (*bd).c2rust_unnamed.free && *p == 0 {
             p = p.offset(1);
         }
@@ -1303,94 +1235,88 @@ unsafe fn heapCensusBlock(mut census: *mut Census, mut bd: *mut bdescr) {
 
     while p < (*bd).c2rust_unnamed.free {
         let mut info = get_itbl(p as *const StgClosure);
-        let mut prim = r#false != 0;
-        let mut size: size_t = 0;
+        let mut prim = false;
+        let mut size: usize = 0;
 
         match (*info).r#type {
             15 => {
-                size = thunk_sizeW_fromITBL(info) as size_t;
+                size = thunk_sizeW_fromITBL(info) as usize;
             }
             19 | 20 | 18 => {
                 size = (size_of::<StgThunkHeader>() as usize)
                     .wrapping_add(size_of::<W_>() as usize)
                     .wrapping_sub(1 as usize)
                     .wrapping_div(size_of::<W_>() as usize)
-                    .wrapping_add(2 as usize) as size_t;
+                    .wrapping_add(2 as usize) as usize;
             }
             16 | 17 | 22 => {
                 size = (size_of::<StgThunkHeader>() as usize)
                     .wrapping_add(size_of::<W_>() as usize)
                     .wrapping_sub(1 as usize)
                     .wrapping_div(size_of::<W_>() as usize)
-                    .wrapping_add(1 as usize) as size_t;
+                    .wrapping_add(1 as usize) as usize;
             }
             8 | 38 | 37 | 9 | 10 | 12 | 13 | 11 | 1 | 7 | 2 | 3 | 5 | 6 | 4 => {
-                size = sizeW_fromITBL(info) as size_t;
+                size = sizeW_fromITBL(info) as usize;
             }
             27 => {
-                size = BLACKHOLE_sizeW() as size_t;
+                size = BLACKHOLE_sizeW() as usize;
             }
             23 => {
-                prim = r#true != 0;
-                size = bco_sizeW(p as *mut StgBCO) as size_t;
+                prim = true;
+                size = bco_sizeW(p as *mut StgBCO) as usize;
             }
             39 | 40 | 41 | 49 | 50 | 51 | 47 | 48 => {
-                prim = r#true != 0;
-                size = sizeW_fromITBL(info) as size_t;
+                prim = true;
+                size = sizeW_fromITBL(info) as usize;
             }
             24 => {
-                size = ap_sizeW(p as *mut StgAP) as size_t;
+                size = ap_sizeW(p as *mut StgAP) as usize;
             }
             25 => {
-                size = pap_sizeW(p as *mut StgPAP) as size_t;
+                size = pap_sizeW(p as *mut StgPAP) as usize;
             }
             26 => {
-                size = ap_stack_sizeW(p as *mut StgAP_STACK) as size_t;
+                size = ap_stack_sizeW(p as *mut StgAP_STACK) as usize;
             }
             42 => {
-                prim = r#true != 0;
-                size = arr_words_sizeW(p as *mut StgArrBytes) as size_t;
+                prim = true;
+                size = arr_words_sizeW(p as *mut StgArrBytes) as usize;
             }
             43 | 44 | 46 | 45 => {
-                prim = r#true != 0;
-                size = mut_arr_ptrs_sizeW(p as *mut StgMutArrPtrs) as size_t;
+                prim = true;
+                size = mut_arr_ptrs_sizeW(p as *mut StgMutArrPtrs) as usize;
             }
             59 | 60 | 62 | 61 => {
-                prim = r#true != 0;
-                size = small_mut_arr_ptrs_sizeW(p as *mut StgSmallMutArrPtrs) as size_t;
+                prim = true;
+                size = small_mut_arr_ptrs_sizeW(p as *mut StgSmallMutArrPtrs) as usize;
             }
             52 => {
-                prim = r#true != 0;
+                prim = true;
                 size = (size_of::<StgTSO>() as usize)
                     .wrapping_add(size_of::<W_>() as usize)
                     .wrapping_sub(1 as usize)
-                    .wrapping_div(size_of::<W_>() as usize) as size_t;
+                    .wrapping_div(size_of::<W_>() as usize) as usize;
             }
             53 => {
-                prim = r#true != 0;
-                size = stack_sizeW(p as *mut StgStack) as size_t;
+                prim = true;
+                size = stack_sizeW(p as *mut StgStack) as usize;
             }
             54 => {
-                prim = r#true != 0;
+                prim = true;
                 size = (size_of::<StgTRecChunk>() as usize)
                     .wrapping_add(size_of::<W_>() as usize)
                     .wrapping_sub(1 as usize)
-                    .wrapping_div(size_of::<W_>() as usize) as size_t;
+                    .wrapping_div(size_of::<W_>() as usize) as usize;
             }
             64 => {
-                size = continuation_sizeW(p as *mut StgContinuation) as size_t;
+                size = continuation_sizeW(p as *mut StgContinuation) as usize;
             }
             63 => {
-                barf(
-                    b"heapCensus, found compact object in the wrong list\0" as *const u8
-                        as *const c_char,
-                );
+                barf(c"heapCensus, found compact object in the wrong list".as_ptr());
             }
             _ => {
-                barf(
-                    b"heapCensus, unknown object: %d\0" as *const u8 as *const c_char,
-                    (*info).r#type,
-                );
+                barf(c"heapCensus, unknown object: %d".as_ptr(), (*info).r#type);
             }
         }
 
@@ -1404,30 +1330,24 @@ unsafe fn heapCensusBlock(mut census: *mut Census, mut bd: *mut bdescr) {
 }
 
 unsafe fn closureIsPrim(mut p: StgPtr) -> bool {
-    let mut prim = r#false != 0;
+    let mut prim = false;
     let mut info = get_itbl(p as *const StgClosure);
 
     match (*info).r#type {
         15 | 19 | 20 | 18 | 16 | 17 | 22 | 8 | 38 | 37 | 9 | 10 | 12 | 13 | 11 | 1 | 7 | 2 | 3
         | 5 | 6 | 4 | 27 | 24 | 25 | 26 | 64 => {
-            prim = r#false != 0;
+            prim = false;
         }
 
         23 | 39 | 40 | 41 | 49 | 50 | 51 | 47 | 48 | 42 | 43 | 44 | 46 | 45 | 59 | 60 | 62 | 61
         | 52 | 53 | 54 => {
-            prim = r#true != 0;
+            prim = true;
         }
         63 => {
-            barf(
-                b"heapCensus, found compact object in the wrong list\0" as *const u8
-                    as *const c_char,
-            );
+            barf(c"heapCensus, found compact object in the wrong list".as_ptr());
         }
         _ => {
-            barf(
-                b"heapCensus, unknown object: %d\0" as *const u8 as *const c_char,
-                (*info).r#type,
-            );
+            barf(c"heapCensus, unknown object: %d".as_ptr(), (*info).r#type);
         }
     }
 
@@ -1437,7 +1357,7 @@ unsafe fn closureIsPrim(mut p: StgPtr) -> bool {
 unsafe fn heapCensusSegment(mut census: *mut Census, mut seg: *mut NonmovingSegment) {
     let mut block_size = nonmovingSegmentBlockSize(seg);
     let mut block_count = nonmovingSegmentBlockCount(seg);
-    let mut b = 0 as c_uint;
+    let mut b = 0;
 
     while b < block_count {
         let mut p = nonmovingSegmentGetBlock(seg, b as nonmoving_block_idx) as StgPtr;
@@ -1446,7 +1366,7 @@ unsafe fn heapCensusSegment(mut census: *mut Census, mut seg: *mut NonmovingSegm
             heapProfObject(
                 census,
                 p as *mut StgClosure,
-                (block_size as size_t).wrapping_div(size_of::<W_>() as size_t),
+                (block_size as usize).wrapping_div(size_of::<W_>() as usize),
                 closureIsPrim(p),
             );
         }
@@ -1466,7 +1386,7 @@ unsafe fn heapCensusChain(mut census: *mut Census, mut bd: *mut bdescr) {
     let mut current_block_3: u64;
 
     while !bd.is_null() {
-        if (*bd).flags as c_int & BF_LARGE != 0 {
+        if (*bd).flags as i32 & BF_LARGE != 0 {
             let mut p = (*bd).start;
 
             while p < (*bd).c2rust_unnamed.free && *p == 0 {
@@ -1474,8 +1394,8 @@ unsafe fn heapCensusChain(mut census: *mut Census, mut bd: *mut bdescr) {
             }
 
             if (*get_itbl(p as *mut StgClosure)).r#type == ARR_WORDS as StgHalfWord {
-                let mut size: size_t = arr_words_sizeW(p as *mut StgArrBytes) as size_t;
-                let mut prim = r#true != 0;
+                let mut size: usize = arr_words_sizeW(p as *mut StgArrBytes) as usize;
+                let mut prim = true;
                 heapProfObject(census, p as *mut StgClosure, size, prim);
                 current_block_3 = 792017965103506125;
             } else {
@@ -1497,12 +1417,12 @@ unsafe fn heapCensusChain(mut census: *mut Census, mut bd: *mut bdescr) {
 }
 
 unsafe fn heapCensus(mut t: Time) {
-    let mut g: uint32_t = 0;
-    let mut n: uint32_t = 0;
+    let mut g: u32 = 0;
+    let mut n: u32 = 0;
     let mut census = null_mut::<Census>();
     let mut ws = null_mut::<gen_workspace>();
     census = censuses.offset(era as isize) as *mut Census;
-    (*census).time = t as c_double / TIME_RESOLUTION as c_double;
+    (*census).time = t as f64 / TIME_RESOLUTION as f64;
     (*census).rtime = stat_getElapsedTime() as StgWord64;
 
     if doingRetainerProfiling() {
@@ -1510,15 +1430,15 @@ unsafe fn heapCensus(mut t: Time) {
     }
 
     stat_startHeapCensus();
-    g = 0 as uint32_t;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         heapCensusChain(census, (*generations.offset(g as isize)).blocks);
         heapCensusChain(census, (*generations.offset(g as isize)).large_objects);
         heapCensusCompactList(census, (*generations.offset(g as isize)).compact_objects);
-        n = 0 as uint32_t;
+        n = 0;
 
-        while n < getNumCapabilities() as uint32_t {
+        while n < getNumCapabilities() as u32 {
             ws = (&raw mut (**gc_threads.offset(n as isize)).gens as *mut gen_workspace)
                 .offset(g as isize) as *mut gen_workspace;
             heapCensusChain(census, (*ws).0.todo_bd);
@@ -1531,9 +1451,9 @@ unsafe fn heapCensus(mut t: Time) {
     }
 
     if RtsFlags.GcFlags.useNonmoving {
-        let mut i = 0 as c_uint;
+        let mut i = 0;
 
-        while i < nonmoving_alloca_cnt as c_uint {
+        while i < nonmoving_alloca_cnt as u32 {
             heapCensusSegmentList(
                 census,
                 (*nonmovingHeap.allocators.offset(i as isize)).filled,
@@ -1552,10 +1472,10 @@ unsafe fn heapCensus(mut t: Time) {
             heapCensusChain(census, nonmoving_large_objects);
             heapCensusCompactList(census, nonmoving_compact_objects);
 
-            let mut j = 0 as c_uint;
+            let mut j = 0;
 
             while j < getNumCapabilities() {
-                let mut cap = getCapability(j as uint32_t);
+                let mut cap = getCapability(j as u32);
                 heapCensusSegment(census, *(*cap).current_segments.offset(i as isize));
                 j = j.wrapping_add(1);
             }

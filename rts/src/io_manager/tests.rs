@@ -8,7 +8,7 @@ fn test_setIOManagerControlFd() {
 
     let actual = {
         let cap_no: u32 = Arbitrary::arbitrary(g);
-        let fd: c_int = Arbitrary::arbitrary(g);
+        let fd: i32 = Arbitrary::arbitrary(g);
         unsafe { setIOManagerControlFd(cap_no, fd) };
         todo!()
     };
@@ -21,7 +21,7 @@ fn test_setIOManagerControlFd() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent_setIOManagerControlFd(cap_no: u32, fd: c_int) -> bool {
+fn equivalent_setIOManagerControlFd(cap_no: u32, fd: i32) -> bool {
     let expected = {
         unsafe { sys::setIOManagerControlFd(cap_no, fd) };
         todo!()

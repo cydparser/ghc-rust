@@ -11,23 +11,21 @@ use crate::stable_ptr::freeStablePtr;
 #[cfg(test)]
 mod tests;
 
-static mut spt: *mut HashTable = null::<HashTable>() as *mut HashTable;
+static mut spt: *mut HashTable = null_mut::<HashTable>();
 
 #[inline]
-unsafe fn hashFingerprint(mut table: *const HashTable, mut key: StgWord) -> c_int {
+unsafe fn hashFingerprint(mut table: *const HashTable, mut key: StgWord) -> i32 {
     let mut ptr: *const StgWord64 = key as *mut StgWord64;
 
-    return hashWord(table, *ptr.offset(1 as c_int as isize));
+    return hashWord(table, *ptr.offset(1));
 }
 
 #[inline]
-unsafe fn compareFingerprint(mut a: StgWord, mut b: StgWord) -> c_int {
+unsafe fn compareFingerprint(mut a: StgWord, mut b: StgWord) -> i32 {
     let mut ptra: *const StgWord64 = a as *mut StgWord64;
     let mut ptrb: *const StgWord64 = b as *mut StgWord64;
 
-    return (*ptra == *ptrb
-        && *ptra.offset(1 as c_int as isize) == *ptrb.offset(1 as c_int as isize))
-        as c_int;
+    return (*ptra == *ptrb && *ptra.offset(1) == *ptrb.offset(1)) as i32;
 }
 
 #[ffi(ghc_lib)]
@@ -54,8 +52,8 @@ pub unsafe extern "C" fn hs_spt_insert_stableptr(
 #[instrument]
 pub unsafe extern "C" fn hs_spt_insert(mut key: *mut StgWord64, mut spe_closure: *mut c_void) {
     let mut entry = stgMallocBytes(
-        size_of::<StgStablePtr>() as size_t,
-        b"hs_spt_insert: entry\0" as *const u8 as *const c_char as *mut c_char,
+        size_of::<StgStablePtr>() as usize,
+        c"hs_spt_insert: entry".as_ptr(),
     ) as *mut StgStablePtr;
 
     *entry = getStablePtr(spe_closure as StgPtr);
@@ -113,24 +111,24 @@ pub unsafe extern "C" fn hs_spt_lookup(mut key: *mut StgWord64) -> StgPtr {
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_spt_keys(mut keys: *mut StgPtr, mut szKeys: c_int) -> c_int {
+pub unsafe extern "C" fn hs_spt_keys(mut keys: *mut StgPtr, mut szKeys: i32) -> i32 {
     if !spt.is_null() {
-        let ret = keysHashTable(spt, keys as *mut StgWord, szKeys) as c_int;
+        let ret = keysHashTable(spt, keys as *mut StgWord, szKeys) as i32;
 
         return ret;
     } else {
-        return 0 as c_int;
+        return 0;
     };
 }
 
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_spt_key_count() -> c_int {
+pub unsafe extern "C" fn hs_spt_key_count() -> i32 {
     return if !spt.is_null() {
         keyCountHashTable(spt)
     } else {
-        0 as c_int
+        0
     };
 }
 

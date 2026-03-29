@@ -37,13 +37,13 @@ fn equivalent_eq_thread() {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn test_cmp_thread() {
-    let actual: c_int = {
+    let actual: i32 = {
         let tso1: StgPtr = todo!();
         let tso2: StgPtr = todo!();
         unsafe { cmp_thread(tso1, tso2) }
     };
 
-    let expected: c_int = todo!();
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -52,13 +52,13 @@ fn test_cmp_thread() {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn equivalent_cmp_thread() {
-    let expected: c_int = {
+    let expected: i32 = {
         let tso1: StgPtr = todo!();
         let tso2: StgPtr = todo!();
         unsafe { sys::cmp_thread(tso1, tso2) }
     };
 
-    let actual: c_int = {
+    let actual: i32 = {
         let tso1: StgPtr = todo!();
         let tso2: StgPtr = todo!();
         unsafe { cmp_thread(tso1, tso2) }
@@ -201,7 +201,9 @@ fn test_listThreads() {
 fn equivalent_listThreads() {
     let expected = {
         let mut cap: sys::Capability = todo!();
+
         let result: &_StgMutArrPtrs = unsafe { transmute(&*sys::listThreads(&raw mut cap)) };
+
         todo!()
     };
 

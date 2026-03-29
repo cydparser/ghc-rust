@@ -7,17 +7,17 @@ use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
 
 unsafe fn init_string_table(mut st: *mut StringTable) {
-    (*st).size = 128 as size_t;
-    (*st).n = 0 as size_t;
+    (*st).size = 128;
+    (*st).n = 0;
     (*st).buffer = malloc((*st).size) as *mut c_char;
 }
 
-unsafe fn add_string(mut st: *mut StringTable, mut s: *const c_char) -> uint32_t {
-    let len = strlen(s) as size_t;
-    let n: uint32_t = (*st).n as uint32_t;
+unsafe fn add_string(mut st: *mut StringTable, mut s: *const c_char) -> u32 {
+    let len = strlen(s) as usize;
+    let n: u32 = (*st).n as u32;
 
-    if (*st).n.wrapping_add(len).wrapping_add(1 as size_t) > (*st).size {
-        let new_size: size_t = (2 as size_t).wrapping_mul((*st).size).wrapping_add(len);
+    if (*st).n.wrapping_add(len).wrapping_add(1 as usize) > (*st).size {
+        let new_size: usize = (2 as usize).wrapping_mul((*st).size).wrapping_add(len);
         (*st).buffer = realloc((*st).buffer as *mut c_void, new_size) as *mut c_char;
         (*st).size = new_size;
     }
@@ -30,7 +30,7 @@ unsafe fn add_string(mut st: *mut StringTable, mut s: *const c_char) -> uint32_t
 
     (*st).n = (*st).n.wrapping_add(len);
     *(*st).buffer.offset((*st).n as isize) = '\0' as i32 as c_char;
-    (*st).n = (*st).n.wrapping_add(1 as size_t);
+    (*st).n = (*st).n.wrapping_add(1 as usize);
 
     return n;
 }
@@ -38,7 +38,7 @@ unsafe fn add_string(mut st: *mut StringTable, mut s: *const c_char) -> uint32_t
 unsafe fn makeAnyProvEntry(
     mut cap: *mut Capability,
     mut st: *mut StringTable,
-    mut i: c_int,
+    mut i: i32,
 ) -> IpeBufferEntry {
     let mut provEnt = IpeBufferEntry {
         table_name: 0,
@@ -49,86 +49,71 @@ unsafe fn makeAnyProvEntry(
         src_span: 0,
     };
 
-    let mut tableNameLength = strlen(b"table_name_\0" as *const u8 as *const c_char)
-        .wrapping_add(3 as size_t)
-        .wrapping_add(1 as size_t) as c_uint;
+    let mut tableNameLength = strlen(c"table_name_".as_ptr())
+        .wrapping_add(3 as usize)
+        .wrapping_add(1 as usize) as u32;
 
     let mut tableName =
-        malloc((size_of::<c_char>() as size_t).wrapping_mul(tableNameLength as size_t))
+        malloc((size_of::<c_char>() as usize).wrapping_mul(tableNameLength as usize))
             as *mut c_char;
 
     snprintf(
         tableName,
-        tableNameLength as size_t,
-        b"table_name_%03i\0" as *const u8 as *const c_char,
+        tableNameLength as usize,
+        c"table_name_%03i".as_ptr(),
         i,
     );
-
     provEnt.table_name = add_string(st, tableName) as StringIdx;
-    provEnt.closure_desc = i as uint32_t;
+    provEnt.closure_desc = i as u32;
 
-    let mut tyDescLength = strlen(b"ty_desc_\0" as *const u8 as *const c_char)
-        .wrapping_add(3 as size_t)
-        .wrapping_add(1 as size_t) as c_uint;
+    let mut tyDescLength = strlen(c"ty_desc_".as_ptr())
+        .wrapping_add(3 as usize)
+        .wrapping_add(1 as usize) as u32;
 
     let mut tyDesc =
-        malloc((size_of::<c_char>() as size_t).wrapping_mul(tyDescLength as size_t)) as *mut c_char;
+        malloc((size_of::<c_char>() as usize).wrapping_mul(tyDescLength as usize)) as *mut c_char;
 
-    snprintf(
-        tyDesc,
-        tyDescLength as size_t,
-        b"ty_desc_%03i\0" as *const u8 as *const c_char,
-        i,
-    );
-
+    snprintf(tyDesc, tyDescLength as usize, c"ty_desc_%03i".as_ptr(), i);
     provEnt.ty_desc = add_string(st, tyDesc) as StringIdx;
 
-    let mut labelLength = strlen(b"label_\0" as *const u8 as *const c_char)
-        .wrapping_add(3 as size_t)
-        .wrapping_add(1 as size_t) as c_uint;
+    let mut labelLength = strlen(c"label_".as_ptr())
+        .wrapping_add(3 as usize)
+        .wrapping_add(1 as usize) as u32;
 
     let mut label =
-        malloc((size_of::<c_char>() as size_t).wrapping_mul(labelLength as size_t)) as *mut c_char;
+        malloc((size_of::<c_char>() as usize).wrapping_mul(labelLength as usize)) as *mut c_char;
 
-    snprintf(
-        label,
-        labelLength as size_t,
-        b"label_%03i\0" as *const u8 as *const c_char,
-        i,
-    );
-
+    snprintf(label, labelLength as usize, c"label_%03i".as_ptr(), i);
     provEnt.label = add_string(st, label) as StringIdx;
 
-    let mut srcFileLength = strlen(b"src_file_\0" as *const u8 as *const c_char)
-        .wrapping_add(3 as size_t)
-        .wrapping_add(1 as size_t) as c_uint;
+    let mut srcFileLength = strlen(c"src_file_".as_ptr())
+        .wrapping_add(3 as usize)
+        .wrapping_add(1 as usize) as u32;
 
-    let mut srcFile = malloc((size_of::<c_char>() as size_t).wrapping_mul(srcFileLength as size_t))
-        as *mut c_char;
+    let mut srcFile =
+        malloc((size_of::<c_char>() as usize).wrapping_mul(srcFileLength as usize)) as *mut c_char;
 
     snprintf(
         srcFile,
-        srcFileLength as size_t,
-        b"src_file_%03i\0" as *const u8 as *const c_char,
+        srcFileLength as usize,
+        c"src_file_%03i".as_ptr(),
         i,
     );
-
     provEnt.src_file = add_string(st, srcFile) as StringIdx;
 
-    let mut srcSpanLength = strlen(b"src_span_\0" as *const u8 as *const c_char)
-        .wrapping_add(3 as size_t)
-        .wrapping_add(1 as size_t) as c_uint;
+    let mut srcSpanLength = strlen(c"src_span_".as_ptr())
+        .wrapping_add(3 as usize)
+        .wrapping_add(1 as usize) as u32;
 
-    let mut srcSpan = malloc((size_of::<c_char>() as size_t).wrapping_mul(srcSpanLength as size_t))
-        as *mut c_char;
+    let mut srcSpan =
+        malloc((size_of::<c_char>() as usize).wrapping_mul(srcSpanLength as usize)) as *mut c_char;
 
     snprintf(
         srcSpan,
-        srcSpanLength as size_t,
-        b"src_span_%03i\0" as *const u8 as *const c_char,
+        srcSpanLength as usize,
+        c"src_span_%03i".as_ptr(),
         i,
     );
-
     provEnt.src_span = add_string(st, srcSpan) as StringIdx;
 
     return provEnt;
@@ -136,14 +121,16 @@ unsafe fn makeAnyProvEntry(
 
 unsafe fn makeAnyProvEntries(
     mut cap: *mut Capability,
-    mut start: c_int,
-    mut end: c_int,
+    mut start: i32,
+    mut end: i32,
 ) -> *mut IpeBufferListNode {
     let n = end - start;
-    let mut node = malloc(size_of::<IpeBufferListNode>() as size_t) as *mut IpeBufferListNode;
-    (*node).tables = malloc((size_of::<*mut StgInfoTable>() as size_t).wrapping_mul(n as size_t))
+    let mut node = malloc(size_of::<IpeBufferListNode>() as usize) as *mut IpeBufferListNode;
+
+    (*node).tables = malloc((size_of::<*mut StgInfoTable>() as usize).wrapping_mul(n as usize))
         as *mut *const StgInfoTable;
-    (*node).entries = malloc((size_of::<IpeBufferEntry>() as size_t).wrapping_mul(n as size_t))
+
+    (*node).entries = malloc((size_of::<IpeBufferEntry>() as usize).wrapping_mul(n as usize))
         as *mut IpeBufferEntry;
 
     let mut st = StringTable {
@@ -154,42 +141,40 @@ unsafe fn makeAnyProvEntries(
 
     init_string_table(&raw mut st);
 
-    let mut unitIdLength = strlen(b"unit_id_\0" as *const u8 as *const c_char)
-        .wrapping_add(3 as size_t)
-        .wrapping_add(1 as size_t) as c_uint;
+    let mut unitIdLength = strlen(c"unit_id_".as_ptr())
+        .wrapping_add(3 as usize)
+        .wrapping_add(1 as usize) as u32;
 
     let mut unitId =
-        malloc((size_of::<c_char>() as size_t).wrapping_mul(unitIdLength as size_t)) as *mut c_char;
+        malloc((size_of::<c_char>() as usize).wrapping_mul(unitIdLength as usize)) as *mut c_char;
 
     snprintf(
         unitId,
-        unitIdLength as size_t,
-        b"unit_id_%03i\0" as *const u8 as *const c_char,
+        unitIdLength as usize,
+        c"unit_id_%03i".as_ptr(),
         start,
     );
-
     (*node).unit_id = add_string(&raw mut st, unitId) as StringIdx;
 
-    let mut moduleLength = strlen(b"module_\0" as *const u8 as *const c_char)
-        .wrapping_add(3 as size_t)
-        .wrapping_add(1 as size_t) as c_uint;
+    let mut moduleLength = strlen(c"module_".as_ptr())
+        .wrapping_add(3 as usize)
+        .wrapping_add(1 as usize) as u32;
 
     let mut module =
-        malloc((size_of::<c_char>() as size_t).wrapping_mul(moduleLength as size_t)) as *mut c_char;
+        malloc((size_of::<c_char>() as usize).wrapping_mul(moduleLength as usize)) as *mut c_char;
 
     snprintf(
         module,
-        moduleLength as size_t,
-        b"module_%03i\0" as *const u8 as *const c_char,
+        moduleLength as usize,
+        c"module_%03i".as_ptr(),
         start,
     );
-
     (*node).module_name = add_string(&raw mut st, module) as StringIdx;
 
     let mut i = start;
 
     while i < end {
-        let mut closure = rts_mkInt(cap, 42 as HsInt);
+        let mut closure = rts_mkInt(cap, 42);
         let ref mut fresh5 = *(*node).tables.offset(i as isize);
         *fresh5 = get_itbl(closure as *const StgClosure);
         *(*node).entries.offset(i as isize) = makeAnyProvEntry(cap, &raw mut st, i);
@@ -197,7 +182,7 @@ unsafe fn makeAnyProvEntries(
     }
 
     (*node).next = null_mut::<IpeBufferListNode_>();
-    (*node).compressed = 0 as StgWord;
+    (*node).compressed = 0;
     (*node).count = n as StgWord;
     (*node).string_table = st.buffer;
 

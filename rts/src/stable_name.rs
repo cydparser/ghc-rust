@@ -14,15 +14,15 @@ use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
 use crate::sm::gc::{evac_fn, isAlive};
 use crate::trace::{DEBUG_RTS, trace_};
 
-static mut stable_name_table: *mut snEntry = null::<snEntry>() as *mut snEntry;
+static mut stable_name_table: *mut snEntry = null_mut::<snEntry>();
 
-static mut stable_name_free: *mut snEntry = null::<snEntry>() as *mut snEntry;
+static mut stable_name_free: *mut snEntry = null_mut::<snEntry>();
 
-static mut SNT_size: c_uint = 0 as c_uint;
+static mut SNT_size: u32 = 0;
 
-const INIT_SNT_SIZE: c_int = 64 as c_int;
+const INIT_SNT_SIZE: i32 = 64;
 
-static mut addrToStableHash: *mut HashTable = null::<HashTable>() as *mut HashTable;
+static mut addrToStableHash: *mut HashTable = null_mut::<HashTable>();
 
 unsafe fn stableNameLock() {
     initStableNameTable();
@@ -31,9 +31,9 @@ unsafe fn stableNameLock() {
 unsafe fn stableNameUnlock() {}
 
 #[inline]
-unsafe fn initSnEntryFreeList(mut table: *mut snEntry, mut n: uint32_t, mut free: *mut snEntry) {
+unsafe fn initSnEntryFreeList(mut table: *mut snEntry, mut n: u32, mut free: *mut snEntry) {
     let mut p = null_mut::<snEntry>();
-    p = table.offset(n as isize).offset(-(1 as c_int as isize));
+    p = table.offset(n as isize).offset(-1);
 
     while p >= table {
         (*p).addr = free as P_ as StgPtr;
@@ -47,20 +47,20 @@ unsafe fn initSnEntryFreeList(mut table: *mut snEntry, mut n: uint32_t, mut free
 }
 
 unsafe fn initStableNameTable() {
-    if SNT_size > 0 as c_uint {
+    if SNT_size > 0 {
         return;
     }
 
-    SNT_size = INIT_SNT_SIZE as c_uint;
+    SNT_size = INIT_SNT_SIZE as u32;
 
     stable_name_table = stgMallocBytes(
-        (SNT_size as size_t).wrapping_mul(size_of::<snEntry>() as size_t),
-        b"initStableNameTable\0" as *const u8 as *const c_char as *mut c_char,
+        (SNT_size as usize).wrapping_mul(size_of::<snEntry>() as usize),
+        c"initStableNameTable".as_ptr(),
     ) as *mut snEntry;
 
     initSnEntryFreeList(
-        stable_name_table.offset(1 as c_int as isize),
-        (INIT_SNT_SIZE - 1 as c_int) as uint32_t,
+        stable_name_table.offset(1),
+        (INIT_SNT_SIZE - 1) as u32,
         null_mut::<snEntry>(),
     );
 
@@ -68,13 +68,13 @@ unsafe fn initStableNameTable() {
 }
 
 unsafe fn enlargeStableNameTable() {
-    let mut old_SNT_size: uint32_t = SNT_size as uint32_t;
-    SNT_size = SNT_size.wrapping_mul(2 as c_uint);
+    let mut old_SNT_size: u32 = SNT_size as u32;
+    SNT_size = SNT_size.wrapping_mul(2 as u32);
 
     stable_name_table = stgReallocBytes(
         stable_name_table as *mut c_void,
-        (SNT_size as size_t).wrapping_mul(size_of::<snEntry>() as size_t),
-        b"enlargeStableNameTable\0" as *const u8 as *const c_char as *mut c_char,
+        (SNT_size as usize).wrapping_mul(size_of::<snEntry>() as usize),
+        c"enlargeStableNameTable".as_ptr(),
     ) as *mut snEntry;
 
     initSnEntryFreeList(
@@ -96,7 +96,7 @@ unsafe fn exitStableNameTable() {
     }
 
     stable_name_table = null_mut::<snEntry>();
-    SNT_size = 0 as c_uint;
+    SNT_size = 0;
 }
 
 unsafe fn freeSnEntry(mut sn: *mut snEntry) {
@@ -119,7 +119,7 @@ unsafe fn removeIndirections(mut p: *mut StgClosure) -> *mut StgClosure {
             38 => {
                 p = (*(q as *mut StgInd)).indirectee;
 
-                if GET_CLOSURE_TAG(p) != 0 as StgWord {
+                if GET_CLOSURE_TAG(p) != 0 {
                     continue;
                 }
             }
@@ -142,13 +142,9 @@ unsafe fn lookupStableName(mut p: StgPtr) -> StgWord {
 
     let mut sn: StgWord = lookupHashTable(addrToStableHash, p as StgWord) as StgWord;
 
-    if sn != 0 as StgWord {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stable as c_long != 0 {
-            trace_(
-                b"cached stable name %ld at %p\0" as *const u8 as *const c_char as *mut c_char,
-                sn,
-                p,
-            );
+    if sn != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stable as i64 != 0 {
+            trace_(c"cached stable name %ld at %p".as_ptr(), sn, p);
         }
 
         stableNameUnlock();
@@ -156,7 +152,7 @@ unsafe fn lookupStableName(mut p: StgPtr) -> StgWord {
         return sn;
     }
 
-    sn = stable_name_free.offset_from(stable_name_table) as c_long as StgWord;
+    sn = stable_name_free.offset_from(stable_name_table) as i64 as StgWord;
     stable_name_free = (*stable_name_free).addr as *mut snEntry;
 
     let ref mut fresh6 = (*stable_name_table.offset(sn as isize)).addr;
@@ -173,7 +169,7 @@ unsafe fn lookupStableName(mut p: StgPtr) -> StgWord {
 unsafe fn rememberOldStableNameAddresses() {
     let mut p = null_mut::<snEntry>();
     let mut __end_ptr: *mut snEntry = stable_name_table.offset(SNT_size as isize) as *mut snEntry;
-    p = stable_name_table.offset(1 as c_int as isize);
+    p = stable_name_table.offset(1);
 
     while p < __end_ptr {
         if (*p).addr < stable_name_table as P_ || (*p).addr >= __end_ptr as P_ {
@@ -187,7 +183,7 @@ unsafe fn rememberOldStableNameAddresses() {
 unsafe fn threadStableNameTable(mut evac: evac_fn, mut user: *mut c_void) {
     let mut p = null_mut::<snEntry>();
     let mut __end_ptr: *mut snEntry = stable_name_table.offset(SNT_size as isize) as *mut snEntry;
-    p = stable_name_table.offset(1 as c_int as isize);
+    p = stable_name_table.offset(1);
 
     while p < __end_ptr {
         if (*p).addr < stable_name_table as P_ || (*p).addr >= __end_ptr as P_ {
@@ -212,7 +208,7 @@ unsafe fn gcStableNameTable() {
 
     let mut p = null_mut::<snEntry>();
     let mut __end_ptr: *mut snEntry = stable_name_table.offset(SNT_size as isize) as *mut snEntry;
-    p = stable_name_table.offset(1 as c_int as isize);
+    p = stable_name_table.offset(1);
 
     while p < __end_ptr {
         if (*p).addr < stable_name_table as P_ || (*p).addr >= __end_ptr as P_ {
@@ -220,11 +216,10 @@ unsafe fn gcStableNameTable() {
                 (*p).sn_obj = isAlive((*p).sn_obj);
 
                 if (*p).sn_obj.is_null() {
-                    if 0 as c_int != 0 && RtsFlags.DebugFlags.stable as c_long != 0 {
+                    if 0 != 0 && RtsFlags.DebugFlags.stable as i64 != 0 {
                         trace_(
-                            b"GC'd StableName %ld (addr=%p)\0" as *const u8 as *const c_char
-                                as *mut c_char,
-                            p.offset_from(stable_name_table) as c_long,
+                            c"GC'd StableName %ld (addr=%p)".as_ptr(),
+                            p.offset_from(stable_name_table) as i64,
                             (*p).addr,
                         );
                     }
@@ -234,10 +229,10 @@ unsafe fn gcStableNameTable() {
                     (*p).addr = isAlive((*p).addr as *mut StgClosure) as StgPtr;
 
                     if (*p).addr.is_null() {
-                        if 0 as c_int != 0 && RtsFlags.DebugFlags.stable as c_long != 0 {
+                        if 0 != 0 && RtsFlags.DebugFlags.stable as i64 != 0 {
                             trace_(
-                                b"GC'd pointee %ld\0" as *const u8 as *const c_char as *mut c_char,
-                                p.offset_from(stable_name_table) as c_long,
+                                c"GC'd pointee %ld".as_ptr(),
+                                p.offset_from(stable_name_table) as i64,
                             );
                         }
                     }
@@ -252,10 +247,7 @@ unsafe fn gcStableNameTable() {
 }
 
 unsafe fn updateStableNameTable(mut full: bool) {
-    if full as c_int != 0
-        && !addrToStableHash.is_null()
-        && 0 as c_int != keyCountHashTable(addrToStableHash)
-    {
+    if full as i32 != 0 && !addrToStableHash.is_null() && 0 != keyCountHashTable(addrToStableHash) {
         freeHashTable(addrToStableHash, None);
         addrToStableHash = allocHashTable();
     }
@@ -264,7 +256,7 @@ unsafe fn updateStableNameTable(mut full: bool) {
         let mut p = null_mut::<snEntry>();
         let mut __end_ptr: *mut snEntry =
             stable_name_table.offset(SNT_size as isize) as *mut snEntry;
-        p = stable_name_table.offset(1 as c_int as isize);
+        p = stable_name_table.offset(1);
 
         while p < __end_ptr {
             if (*p).addr < stable_name_table as P_ || (*p).addr >= __end_ptr as P_ {
@@ -272,7 +264,7 @@ unsafe fn updateStableNameTable(mut full: bool) {
                     insertHashTable(
                         addrToStableHash,
                         (*p).addr as StgWord,
-                        p.offset_from(stable_name_table) as c_long as *mut c_void,
+                        p.offset_from(stable_name_table) as i64 as *mut c_void,
                     );
                 }
             }
@@ -283,7 +275,7 @@ unsafe fn updateStableNameTable(mut full: bool) {
         let mut p_0 = null_mut::<snEntry>();
         let mut __end_ptr_0: *mut snEntry =
             stable_name_table.offset(SNT_size as isize) as *mut snEntry;
-        p_0 = stable_name_table.offset(1 as c_int as isize);
+        p_0 = stable_name_table.offset(1);
 
         while p_0 < __end_ptr_0 {
             if (*p_0).addr < stable_name_table as P_ || (*p_0).addr >= __end_ptr_0 as P_ {
@@ -294,7 +286,7 @@ unsafe fn updateStableNameTable(mut full: bool) {
                         insertHashTable(
                             addrToStableHash,
                             (*p_0).addr as StgWord,
-                            p_0.offset_from(stable_name_table) as c_long as *mut c_void,
+                            p_0.offset_from(stable_name_table) as i64 as *mut c_void,
                         );
                     }
                 }

@@ -20,7 +20,7 @@ use crate::traverse_heap::{
 
 /// cbindgen:no-export
 struct node {
-    id: c_uint,
+    id: u32,
     u: node_union,
 }
 
@@ -77,7 +77,7 @@ static mut n1003: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -93,7 +93,7 @@ static mut n1002: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -109,7 +109,7 @@ static mut n1001: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -125,7 +125,7 @@ static mut n1000: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -141,7 +141,7 @@ static mut n1103: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -157,7 +157,7 @@ static mut n1102: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -173,7 +173,7 @@ static mut n1101: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -189,7 +189,7 @@ static mut n1100: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -205,7 +205,7 @@ static mut n2006: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -221,7 +221,7 @@ static mut n2007: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -237,7 +237,7 @@ static mut n2008: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -253,7 +253,7 @@ static mut n2005: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -269,7 +269,7 @@ static mut n2004: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -285,7 +285,7 @@ static mut n2003: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -301,7 +301,7 @@ static mut n2002: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -317,7 +317,7 @@ static mut n2001: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -333,7 +333,7 @@ static mut n2000: node = node {
             header: StgHeader {
                 info: null::<StgInfoTable>(),
                 prof: StgProfHeader {
-                    ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                    ccs: null_mut::<CostCentreStack>(),
                     hp: C2RustUnnamed { trav: 0 },
                 },
             },
@@ -350,10 +350,10 @@ unsafe fn testReturn(
 ) {
     let mut n = ({
         let mut __mptr: *const StgClosure = c;
-        (__mptr as *mut c_char).offset(-(8 as c_ulong as isize)) as *mut node
+        (__mptr as *mut c_char).offset(-8) as *mut node
     });
 
-    printf(b"return %u\n\0" as *const u8 as *const c_char, (*n).id);
+    printf(c"return %u\n".as_ptr(), (*n).id);
 }
 
 unsafe fn testVisit(
@@ -366,10 +366,10 @@ unsafe fn testVisit(
 ) -> bool {
     let mut n = ({
         let mut __mptr: *const StgClosure = c;
-        (__mptr as *mut c_char).offset(-(8 as c_ulong as isize)) as *mut node
+        (__mptr as *mut c_char).offset(-8) as *mut node
     });
 
-    printf(b"visit  %u\n\0" as *const u8 as *const c_char, (*n).id);
+    printf(c"visit  %u\n".as_ptr(), (*n).id);
 
     return first_visit;
 }
@@ -384,11 +384,11 @@ static mut g_tests: [*mut node; 3] = unsafe {
 
 static mut state: traverseState = traverseState_ {
     flip: 0,
-    firstStack: null::<bdescr>() as *mut bdescr,
-    currentStack: null::<bdescr>() as *mut bdescr,
-    stackBottom: null::<stackElement>() as *mut stackElement,
-    stackTop: null::<stackElement>() as *mut stackElement,
-    stackLimit: null::<stackElement>() as *mut stackElement,
+    firstStack: null_mut::<bdescr>(),
+    currentStack: null_mut::<bdescr>(),
+    stackBottom: null_mut::<stackElement>(),
+    stackTop: null_mut::<stackElement>(),
+    stackLimit: null_mut::<stackElement>(),
     stackSize: 0,
     maxStackSize: 0,
     return_cb: None,
@@ -396,7 +396,7 @@ static mut state: traverseState = traverseState_ {
 
 unsafe fn traverseHeapRunTests() {
     let mut ts: *mut traverseState = &raw mut state;
-    printf(b"with return\n\0" as *const u8 as *const c_char);
+    printf(c"with return\n".as_ptr());
 
     state.return_cb = Some(
         testReturn
@@ -419,7 +419,7 @@ unsafe fn traverseHeapRunTests() {
     initializeTraverseStack(ts);
     traverseInvalidateClosureData(ts);
 
-    let mut i: size_t = 0 as size_t;
+    let mut i: usize = 0;
 
     while i < (size_of::<[*mut node; 3]>() as usize).wrapping_div(size_of::<*mut node>() as usize) {
         let mut n = g_tests[i as usize];
@@ -432,18 +432,17 @@ unsafe fn traverseHeapRunTests() {
             c: null_mut::<StgClosure>(),
             sep: null_mut::<stackElement_>(),
             data: stackData_ {
-                c_child_r: null::<CostCentreStack>() as *mut CostCentreStack,
+                c_child_r: null_mut::<CostCentreStack>(),
             },
             accum: stackAccum_ { subtree_sizeW: 0 },
         };
 
         memset(
             &raw mut se as *mut c_void,
-            0 as c_int,
-            size_of::<stackElement>() as size_t,
+            0,
+            size_of::<stackElement>() as usize,
         );
-
-        printf(b"\n\npush   %u\n\0" as *const u8 as *const c_char, (*n).id);
+        printf(c"\n\npush   %u\n".as_ptr(), (*n).id);
 
         traversePushClosure(
             ts,
@@ -472,21 +471,17 @@ unsafe fn traverseHeapRunTests() {
     }
 
     closeTraverseStack(ts);
-    printf(b"\n\n\n\njust visit\n\0" as *const u8 as *const c_char);
+    printf(c"\n\n\n\njust visit\n".as_ptr());
     state.return_cb = None;
     initializeTraverseStack(ts);
     traverseInvalidateClosureData(ts);
 
-    let mut i_0: size_t = 0 as size_t;
+    let mut i_0: usize = 0;
 
     while i_0 < (size_of::<[*mut node; 3]>() as usize).wrapping_div(size_of::<*mut node>() as usize)
     {
         let mut n_0 = g_tests[i_0 as usize];
-
-        printf(
-            b"\n\npush   %u\n\0" as *const u8 as *const c_char,
-            (*n_0).id,
-        );
+        printf(c"\n\npush   %u\n".as_ptr(), (*n_0).id);
 
         traversePushClosure(
             ts,
@@ -519,13 +514,13 @@ unsafe fn traverseHeapRunTests() {
 
 unsafe fn run_static_initializers() {
     n1003 = node {
-        id: 1003 as c_uint,
+        id: 1003,
         u: node_union {
             arrbytes: StgArrBytes {
                 header: StgHeader {
-                    info: (&raw mut info_arrwords).offset(1 as c_int as isize),
+                    info: (&raw mut info_arrwords).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -536,13 +531,13 @@ unsafe fn run_static_initializers() {
     };
 
     n1002 = node {
-        id: 1002 as c_uint,
+        id: 1002,
         u: node_union {
             arrbytes: StgArrBytes {
                 header: StgHeader {
-                    info: (&raw mut info_arrwords).offset(1 as c_int as isize),
+                    info: (&raw mut info_arrwords).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -553,13 +548,13 @@ unsafe fn run_static_initializers() {
     };
 
     n1001 = node {
-        id: 1001 as c_uint,
+        id: 1001,
         u: node_union {
             arrbytes: StgArrBytes {
                 header: StgHeader {
-                    info: (&raw mut info_arrwords).offset(1 as c_int as isize),
+                    info: (&raw mut info_arrwords).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -570,13 +565,13 @@ unsafe fn run_static_initializers() {
     };
 
     n1000 = node {
-        id: 1000 as c_uint,
+        id: 1000,
         u: node_union {
             weak: _StgWeak {
                 header: StgHeader {
-                    info: (&raw mut info_weak).offset(1 as c_int as isize),
+                    info: (&raw mut info_weak).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -590,13 +585,13 @@ unsafe fn run_static_initializers() {
     };
 
     n1103 = node {
-        id: 1103 as c_uint,
+        id: 1103,
         u: node_union {
             arrbytes: StgArrBytes {
                 header: StgHeader {
-                    info: (&raw mut info_arrwords).offset(1 as c_int as isize),
+                    info: (&raw mut info_arrwords).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -607,13 +602,13 @@ unsafe fn run_static_initializers() {
     };
 
     n1102 = node {
-        id: 1102 as c_uint,
+        id: 1102,
         u: node_union {
             arrbytes: StgArrBytes {
                 header: StgHeader {
-                    info: (&raw mut info_arrwords).offset(1 as c_int as isize),
+                    info: (&raw mut info_arrwords).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -624,13 +619,13 @@ unsafe fn run_static_initializers() {
     };
 
     n1101 = node {
-        id: 1101 as c_uint,
+        id: 1101,
         u: node_union {
             selector: StgSelector {
                 header: StgThunkHeader {
-                    info: (&raw mut info_selector).offset(1 as c_int as isize),
+                    info: (&raw mut info_selector).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                     smp: StgSMPThunkHeader { pad: 0 },
@@ -641,13 +636,13 @@ unsafe fn run_static_initializers() {
     };
 
     n1100 = node {
-        id: 1100 as c_uint,
+        id: 1100,
         u: node_union {
             weak: _StgWeak {
                 header: StgHeader {
-                    info: (&raw mut info_weak).offset(1 as c_int as isize),
+                    info: (&raw mut info_weak).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -661,13 +656,13 @@ unsafe fn run_static_initializers() {
     };
 
     n2006 = node {
-        id: 2006 as c_uint,
+        id: 2006,
         u: node_union {
             arrbytes: StgArrBytes {
                 header: StgHeader {
-                    info: (&raw mut info_arrwords).offset(1 as c_int as isize),
+                    info: (&raw mut info_arrwords).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -678,13 +673,13 @@ unsafe fn run_static_initializers() {
     };
 
     n2007 = node {
-        id: 2007 as c_uint,
+        id: 2007,
         u: node_union {
             arrbytes: StgArrBytes {
                 header: StgHeader {
-                    info: (&raw mut info_arrwords).offset(1 as c_int as isize),
+                    info: (&raw mut info_arrwords).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -695,13 +690,13 @@ unsafe fn run_static_initializers() {
     };
 
     n2008 = node {
-        id: 2008 as c_uint,
+        id: 2008,
         u: node_union {
             arrbytes: StgArrBytes {
                 header: StgHeader {
-                    info: (&raw mut info_arrwords).offset(1 as c_int as isize),
+                    info: (&raw mut info_arrwords).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -712,13 +707,13 @@ unsafe fn run_static_initializers() {
     };
 
     n2005 = node {
-        id: 2005 as c_uint,
+        id: 2005,
         u: node_union {
             weak: _StgWeak {
                 header: StgHeader {
-                    info: (&raw mut info_weak).offset(1 as c_int as isize),
+                    info: (&raw mut info_weak).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -732,13 +727,13 @@ unsafe fn run_static_initializers() {
     };
 
     n2004 = node {
-        id: 2004 as c_uint,
+        id: 2004,
         u: node_union {
             selector: StgSelector {
                 header: StgThunkHeader {
-                    info: (&raw mut info_selector).offset(1 as c_int as isize),
+                    info: (&raw mut info_selector).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                     smp: StgSMPThunkHeader { pad: 0 },
@@ -749,13 +744,13 @@ unsafe fn run_static_initializers() {
     };
 
     n2003 = node {
-        id: 2003 as c_uint,
+        id: 2003,
         u: node_union {
             arrbytes: StgArrBytes {
                 header: StgHeader {
-                    info: (&raw mut info_arrwords).offset(1 as c_int as isize),
+                    info: (&raw mut info_arrwords).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -766,13 +761,13 @@ unsafe fn run_static_initializers() {
     };
 
     n2002 = node {
-        id: 2002 as c_uint,
+        id: 2002,
         u: node_union {
             selector: StgSelector {
                 header: StgThunkHeader {
-                    info: (&raw mut info_selector).offset(1 as c_int as isize),
+                    info: (&raw mut info_selector).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                     smp: StgSMPThunkHeader { pad: 0 },
@@ -783,13 +778,13 @@ unsafe fn run_static_initializers() {
     };
 
     n2001 = node {
-        id: 2001 as c_uint,
+        id: 2001,
         u: node_union {
             arrbytes: StgArrBytes {
                 header: StgHeader {
-                    info: (&raw mut info_arrwords).offset(1 as c_int as isize),
+                    info: (&raw mut info_arrwords).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },
@@ -800,13 +795,13 @@ unsafe fn run_static_initializers() {
     };
 
     n2000 = node {
-        id: 2000 as c_uint,
+        id: 2000,
         u: node_union {
             weak: _StgWeak {
                 header: StgHeader {
-                    info: (&raw mut info_weak).offset(1 as c_int as isize),
+                    info: (&raw mut info_weak).offset(1),
                     prof: StgProfHeader {
-                        ccs: null::<CostCentreStack>() as *mut CostCentreStack,
+                        ccs: null_mut::<CostCentreStack>(),
                         hp: C2RustUnnamed { trav: 0 },
                     },
                 },

@@ -27,7 +27,7 @@ unsafe fn allocateMutArrPtrs(
     let mut arr = null_mut::<StgMutArrPtrs>();
     arr = allocateMightFail(cap, objsize as W_) as *mut StgMutArrPtrs;
 
-    if (arr == null_mut::<c_void>() as *mut StgMutArrPtrs) as c_int as c_long != 0 {
+    if (arr == null_mut::<c_void>() as *mut StgMutArrPtrs) as i32 as i64 != 0 {
         return null_mut::<StgMutArrPtrs>();
     }
 
@@ -38,8 +38,8 @@ unsafe fn allocateMutArrPtrs(
     memset(
         (&raw mut (*arr).payload as *mut *mut StgClosure).offset(nelements as isize)
             as *mut *mut StgClosure as *mut c_void,
-        0 as c_int,
-        mutArrPtrsCards(nelements as W_) as size_t,
+        0,
+        mutArrPtrsCards(nelements as W_) as usize,
     );
 
     return arr;
@@ -60,7 +60,7 @@ unsafe fn allocateSmallMutArrPtrs(
     let mut arr = null_mut::<StgSmallMutArrPtrs>();
     arr = allocateMightFail(cap, objsize as W_) as *mut StgSmallMutArrPtrs;
 
-    if (arr == null_mut::<c_void>() as *mut StgSmallMutArrPtrs) as c_int as c_long != 0 {
+    if (arr == null_mut::<c_void>() as *mut StgSmallMutArrPtrs) as i32 as i64 != 0 {
         return null_mut::<StgSmallMutArrPtrs>();
     }
 
@@ -89,7 +89,7 @@ unsafe fn allocateArrBytes(
     let mut arr = null_mut::<StgArrBytes>();
     arr = allocateMightFail(cap, objsize as W_) as *mut StgArrBytes;
 
-    if (arr == null_mut::<c_void>() as *mut StgArrBytes) as c_int as c_long != 0 {
+    if (arr == null_mut::<c_void>() as *mut StgArrBytes) as i32 as i64 != 0 {
         return null_mut::<StgArrBytes>();
     }
 
@@ -124,7 +124,7 @@ unsafe fn allocateArrBytesPinned(
     let mut arr = null_mut::<StgArrBytes>();
     arr = allocatePinned(cap, objsize as W_, alignment as W_, alignoff as W_) as *mut StgArrBytes;
 
-    if (arr == null_mut::<c_void>() as *mut StgArrBytes) as c_int as c_long != 0 {
+    if (arr == null_mut::<c_void>() as *mut StgArrBytes) as i32 as i64 != 0 {
         return null_mut::<StgArrBytes>();
     }
 

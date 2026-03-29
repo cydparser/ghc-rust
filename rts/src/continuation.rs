@@ -48,18 +48,18 @@ unsafe fn captureContinuationAndAbort(
 ) -> *mut StgClosure {
     let mut stack = (*tso).stackobj as *mut StgStack;
     let mut frame = (*stack).sp;
-    let mut total_words: StgWord = 0 as StgWord;
-    let mut in_first_chunk = r#true != 0;
-    let mut first_chunk_words: StgWord = 0 as StgWord;
-    let mut last_chunk_words: StgWord = 0 as StgWord;
-    let mut full_chunks: StgWord = 0 as StgWord;
+    let mut total_words: StgWord = 0;
+    let mut in_first_chunk = true;
+    let mut first_chunk_words: StgWord = 0;
+    let mut last_chunk_words: StgWord = 0;
+    let mut full_chunks: StgWord = 0;
     let mut apply_mask_frame = null::<StgInfoTable>();
-    let mut mask_frame_offset: StgWord = 0 as StgWord;
+    let mut mask_frame_offset: StgWord = 0;
 
     loop {
         let mut info_ptr = (*(frame as *mut StgClosure)).header.info;
         let mut info = get_ret_itbl(frame as *mut StgClosure);
-        let mut chunk_words: StgWord = frame.offset_from((*stack).sp) as c_long as StgWord;
+        let mut chunk_words: StgWord = frame.offset_from((*stack).sp) as i64 as StgWord;
 
         if info_ptr == &raw const stg_prompt_frame_info
             && (*(frame as *mut StgPromptFrame)).tag == prompt_tag
@@ -84,13 +84,13 @@ unsafe fn captureContinuationAndAbort(
 
             stack = (*(frame as *mut StgUnderflowFrame)).next_chunk as *mut StgStack;
             frame = (*stack).sp;
-            in_first_chunk = r#false != 0;
+            in_first_chunk = false;
         } else {
-            if ((*info).i.r#type == 36 as StgHalfWord
-                || (*info).i.r#type == 33 as StgHalfWord
-                || (*info).i.r#type == 55 as StgHalfWord
-                || (*info).i.r#type == 56 as StgHalfWord
-                || (*info).i.r#type == 57 as StgHalfWord) as c_int as c_long
+            if ((*info).i.r#type == 36
+                || (*info).i.r#type == 33
+                || (*info).i.r#type == 55
+                || (*info).i.r#type == 56
+                || (*info).i.r#type == 57) as i32 as i64
                 != 0
             {
                 return null_mut::<StgClosure>();
@@ -100,9 +100,9 @@ unsafe fn captureContinuationAndAbort(
                 mask_frame_offset = total_words.wrapping_add(chunk_words);
 
                 if apply_mask_frame.is_null() {
-                    if (*tso).flags & TSO_BLOCKEX as StgWord32 == 0 as StgWord32 {
+                    if (*tso).flags & TSO_BLOCKEX as StgWord32 == 0 {
                         apply_mask_frame = &raw const stg_unmaskAsyncExceptionszh_ret_info;
-                    } else if (*tso).flags & TSO_INTERRUPTIBLE as StgWord32 == 0 as StgWord32 {
+                    } else if (*tso).flags & TSO_INTERRUPTIBLE as StgWord32 == 0 {
                         apply_mask_frame = &raw const stg_maskUninterruptiblezh_ret_info;
                     } else {
                         apply_mask_frame = &raw const stg_maskAsyncExceptionszh_ret_info;
@@ -129,7 +129,7 @@ unsafe fn captureContinuationAndAbort(
     memcpy(
         cont_stack as *mut c_void,
         (*stack).sp as *const c_void,
-        first_chunk_words.wrapping_mul(size_of::<StgWord>() as StgWord) as size_t,
+        first_chunk_words.wrapping_mul(size_of::<StgWord>() as StgWord) as usize,
     );
 
     cont_stack = cont_stack.offset(first_chunk_words as isize);
@@ -139,24 +139,23 @@ unsafe fn captureContinuationAndAbort(
     } else {
         stack = pop_stack_chunk(cap, tso);
 
-        let mut i: StgWord = 0 as StgWord;
+        let mut i: StgWord = 0;
 
         while i < full_chunks {
-            let chunk_words_0: size_t = ((&raw mut (*stack).stack as *mut StgWord)
+            let chunk_words_0: usize = ((&raw mut (*stack).stack as *mut StgWord)
                 .offset((*stack).stack_size as isize)
-                .offset_from((*stack).sp) as c_long
-                as size_t)
+                .offset_from((*stack).sp) as i64 as usize)
                 .wrapping_sub(
-                    (size_of::<StgUnderflowFrame>() as size_t)
-                        .wrapping_add(size_of::<W_>() as size_t)
-                        .wrapping_sub(1 as size_t)
-                        .wrapping_div(size_of::<W_>() as size_t),
+                    (size_of::<StgUnderflowFrame>() as usize)
+                        .wrapping_add(size_of::<W_>() as usize)
+                        .wrapping_sub(1 as usize)
+                        .wrapping_div(size_of::<W_>() as usize),
                 );
 
             memcpy(
                 cont_stack as *mut c_void,
                 (*stack).sp as *const c_void,
-                chunk_words_0.wrapping_mul(size_of::<StgWord>() as size_t),
+                chunk_words_0.wrapping_mul(size_of::<StgWord>() as usize),
             );
 
             cont_stack = cont_stack.offset(chunk_words_0 as isize);
@@ -167,7 +166,7 @@ unsafe fn captureContinuationAndAbort(
         memcpy(
             cont_stack as *mut c_void,
             (*stack).sp as *const c_void,
-            last_chunk_words.wrapping_mul(size_of::<StgWord>() as StgWord) as size_t,
+            last_chunk_words.wrapping_mul(size_of::<StgWord>() as StgWord) as usize,
         );
 
         cont_stack = cont_stack.offset(last_chunk_words as isize);
@@ -178,5 +177,5 @@ unsafe fn captureContinuationAndAbort(
         .sp
         .offset(stack_frame_sizeW(frame as *mut StgClosure) as isize);
 
-    return TAG_CLOSURE(2 as StgWord, cont as *mut StgClosure);
+    return TAG_CLOSURE(2, cont as *mut StgClosure);
 }

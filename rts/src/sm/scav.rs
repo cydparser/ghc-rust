@@ -60,11 +60,8 @@ unsafe fn do_evacuate(mut p: *mut *mut StgClosure, mut user: *mut c_void) {
 unsafe fn scavengeTSO(mut tso: *mut StgTSO) {
     let mut saved_eager: bool = false;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-        trace_(
-            b"scavenging thread %llu\0" as *const u8 as *const c_char as *mut c_char,
-            (*tso).id,
-        );
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+        trace_(c"scavenging thread %llu".as_ptr(), (*tso).id);
     }
 
     if !(*tso).bound.is_null() {
@@ -72,7 +69,7 @@ unsafe fn scavengeTSO(mut tso: *mut StgTSO) {
     }
 
     saved_eager = (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion;
-    (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+    (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
     evacuate(&raw mut (*tso).blocked_exceptions as *mut *mut StgClosure);
     evacuate(&raw mut (*tso).bq as *mut *mut StgClosure);
     evacuate(&raw mut (*tso).trec as *mut *mut StgClosure);
@@ -110,7 +107,7 @@ unsafe fn evacuate_hash_entry(
 unsafe fn scavenge_compact(mut str: *mut StgCompactNFData) {
     let mut saved_eager: bool = false;
     saved_eager = (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion;
-    (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+    (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
 
     if !(*str).hash.is_null() {
         let mut dat = MapHashData {
@@ -139,11 +136,11 @@ unsafe fn scavenge_compact(mut str: *mut StgCompactNFData) {
         (*str).hash = newHash as *mut hashtable;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.compact as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.compact as i64 != 0 {
         trace_(
-            b"compact alive @%p, gen %d, %llu bytes\0" as *const u8 as *const c_char as *mut c_char,
+            c"compact alive @%p, gen %d, %llu bytes".as_ptr(),
             str,
-            (*Bdescr(str as StgPtr)).gen_no as c_int,
+            (*Bdescr(str as StgPtr)).gen_no as i32,
             (*str).totalW.wrapping_mul(size_of::<W_>() as StgWord),
         );
     }
@@ -164,13 +161,12 @@ unsafe fn scavenge_mut_arr_ptrs(mut a: *mut StgMutArrPtrs) -> StgPtr {
     let mut any_failed: bool = false;
     let mut p = null_mut::<StgWord>();
     let mut q = null_mut::<StgWord>();
-    any_failed = r#false != 0;
-    p = (&raw mut (*a).payload as *mut *mut StgClosure).offset(0 as c_int as isize)
-        as *mut *mut StgClosure as StgPtr;
-    m = 0 as W_;
+    any_failed = false;
+    p = (&raw mut (*a).payload as *mut *mut StgClosure).offset(0) as *mut *mut StgClosure as StgPtr;
+    m = 0;
 
-    while (m as c_int) < mutArrPtrsCards((*a).ptrs as W_) as c_int - 1 as c_int {
-        q = p.offset(((1 as c_int) << MUT_ARR_PTRS_CARD_BITS) as isize);
+    while (m as i32) < mutArrPtrsCards((*a).ptrs as W_) as i32 - 1 {
+        q = p.offset((1 << MUT_ARR_PTRS_CARD_BITS) as isize);
 
         while p < q {
             evacuate(p as *mut *mut StgClosure);
@@ -178,11 +174,11 @@ unsafe fn scavenge_mut_arr_ptrs(mut a: *mut StgMutArrPtrs) -> StgPtr {
         }
 
         if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
-            any_failed = r#true != 0;
-            *mutArrPtrsCard(a, m) = 1 as StgWord8;
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+            any_failed = true;
+            *mutArrPtrsCard(a, m) = 1;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
         } else {
-            *mutArrPtrsCard(a, m) = 0 as StgWord8;
+            *mutArrPtrsCard(a, m) = 0;
         }
 
         m = m.wrapping_add(1);
@@ -198,11 +194,11 @@ unsafe fn scavenge_mut_arr_ptrs(mut a: *mut StgMutArrPtrs) -> StgPtr {
         }
 
         if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
-            any_failed = r#true != 0;
-            *mutArrPtrsCard(a, m) = 1 as StgWord8;
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+            any_failed = true;
+            *mutArrPtrsCard(a, m) = 1;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
         } else {
-            *mutArrPtrsCard(a, m) = 0 as StgWord8;
+            *mutArrPtrsCard(a, m) = 0;
         }
     }
 
@@ -216,17 +212,17 @@ unsafe fn scavenge_mut_arr_ptrs_marked(mut a: *mut StgMutArrPtrs) -> StgPtr {
     let mut p = null_mut::<StgWord>();
     let mut q = null_mut::<StgWord>();
     let mut any_failed: bool = false;
-    any_failed = r#false != 0;
-    m = 0 as W_;
+    any_failed = false;
+    m = 0;
 
     while m < mutArrPtrsCards((*a).ptrs as W_) {
-        if *mutArrPtrsCard(a, m) as c_int != 0 as c_int {
+        if *mutArrPtrsCard(a, m) as i32 != 0 {
             p = (&raw mut (*a).payload as *mut *mut StgClosure)
                 .offset((m << MUT_ARR_PTRS_CARD_BITS) as isize)
                 as *mut *mut StgClosure as StgPtr;
 
             q = ({
-                let mut _a = p.offset(((1 as c_int) << 7 as c_int) as isize);
+                let mut _a = p.offset((1 << 7) as isize);
                 let mut _b = (&raw mut (*a).payload as *mut *mut StgClosure)
                     .offset((*a).ptrs as isize) as *mut *mut StgClosure
                     as StgPtr;
@@ -240,10 +236,10 @@ unsafe fn scavenge_mut_arr_ptrs_marked(mut a: *mut StgMutArrPtrs) -> StgPtr {
             }
 
             if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
-                any_failed = r#true != 0;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+                any_failed = true;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
             } else {
-                *mutArrPtrsCard(a, m) = 0 as StgWord8;
+                *mutArrPtrsCard(a, m) = 0;
             }
         }
 
@@ -257,13 +253,13 @@ unsafe fn scavenge_mut_arr_ptrs_marked(mut a: *mut StgMutArrPtrs) -> StgPtr {
 
 #[inline]
 unsafe fn scavenge_small_bitmap(mut p: StgPtr, mut size: StgWord, mut bitmap: StgWord) -> StgPtr {
-    while size > 0 as StgWord {
-        if bitmap & 1 as StgWord == 0 as StgWord {
+    while size > 0 {
+        if bitmap & 1 == 0 {
             evacuate(p as *mut *mut StgClosure);
         }
 
         p = p.offset(1);
-        bitmap = bitmap >> 1 as c_int;
+        bitmap = bitmap >> 1;
         size = size.wrapping_sub(1);
     }
 
@@ -289,14 +285,14 @@ unsafe fn scavenge_arg_block(
             current_block_8 = 13148051919047804176;
         }
         1 => {
-            size = (*((fun_info.offset(1 as c_int as isize) as StgWord)
+            size = (*((fun_info.offset(1 as i32 as isize) as StgWord)
                 .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                 as *mut StgLargeBitmap))
                 .size;
 
             scavenge_large_bitmap(
                 p,
-                (fun_info.offset(1 as c_int as isize) as StgWord)
+                (fun_info.offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                     as *mut StgLargeBitmap,
                 size,
@@ -309,7 +305,6 @@ unsafe fn scavenge_arg_block(
             bitmap = *(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 >> BITMAP_BITS_SHIFT;
-
             size = *(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 & BITMAP_SIZE_MASK as StgWord;
@@ -350,7 +345,7 @@ unsafe fn scavenge_PAP_payload(
         1 => {
             scavenge_large_bitmap(
                 p,
-                (fun_info.offset(1 as c_int as isize) as StgWord)
+                (fun_info.offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*fun_info).f.b.bitmap_offset as StgWord)
                     as *mut StgLargeBitmap,
                 size,
@@ -373,7 +368,6 @@ unsafe fn scavenge_PAP_payload(
             bitmap = *(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 >> BITMAP_BITS_SHIFT;
-
             current_block_12 = 6251836766594653680;
         }
     }
@@ -427,7 +421,7 @@ unsafe fn scavenge_thunk_srt(mut info: *const StgInfoTable) {
     thunk_info = itbl_to_thunk_itbl(info);
 
     if (*thunk_info).i.srt != 0 {
-        let mut srt = (thunk_info.offset(1 as c_int as isize) as StgWord)
+        let mut srt = (thunk_info.offset(1 as i32 as isize) as StgWord)
             .wrapping_add((*thunk_info).i.srt as StgWord) as *mut StgClosure;
         evacuate(&raw mut srt);
     }
@@ -443,7 +437,7 @@ unsafe fn scavenge_fun_srt(mut info: *const StgInfoTable) {
     fun_info = itbl_to_fun_itbl(info);
 
     if (*fun_info).i.srt != 0 {
-        let mut srt = (fun_info.offset(1 as c_int as isize) as StgWord)
+        let mut srt = (fun_info.offset(1 as i32 as isize) as StgWord)
             .wrapping_add((*fun_info).i.srt as StgWord) as *mut StgClosure;
         evacuate(&raw mut srt);
     }
@@ -456,20 +450,20 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
     let mut saved_eager_promotion: bool = false;
     let mut ws = null_mut::<gen_workspace>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
         trace_(
-            b"scavenging block %p (gen %d) @ %p\0" as *const u8 as *const c_char as *mut c_char,
+            c"scavenging block %p (gen %d) @ %p".as_ptr(),
             (*bd).start,
-            (*bd).gen_no as c_int,
+            (*bd).gen_no as i32,
             (*bd).u.scan,
         );
     }
 
     let ref mut fresh11 = (*(&raw mut the_gc_thread as *mut gc_thread)).scan_bd;
     *fresh11 = bd;
-    (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = (*bd).gen_no as uint32_t;
+    (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = (*bd).gen_no as u32;
     saved_eager_promotion = (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion;
-    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
     ws = (&raw mut (*(&raw mut the_gc_thread as *mut gc_thread)).gens as *mut gen_workspace)
         .offset((*bd).gen_no as isize) as *mut gen_workspace;
     p = (*bd).u.scan;
@@ -483,7 +477,7 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
         match (*info).r#type {
             39 | 40 => {
                 let mut mvar = p as *mut StgMVar;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*mvar).head as *mut *mut StgClosure);
                 evacuate(&raw mut (*mvar).tail as *mut *mut StgClosure);
                 evacuate(&raw mut (*mvar).value);
@@ -507,9 +501,11 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             41 => {
                 let mut tvar = p as *mut StgTVar;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*tvar).current_value);
+
                 evacuate(&raw mut (*tvar).first_watch_queue_entry as *mut *mut StgClosure);
+
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
 
@@ -532,13 +528,13 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
                 scavenge_fun_srt(info);
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(1)
+                        as *mut *mut StgClosure,
                 );
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 p = p.offset(
@@ -555,13 +551,13 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
                 scavenge_thunk_srt(info);
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                        .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(1)
+                        as *mut *mut StgClosure,
                 );
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 p = p.offset(
@@ -576,13 +572,13 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             4 => {
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(1)
+                        as *mut *mut StgClosure,
                 );
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 p = p.offset(
@@ -599,8 +595,8 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
                 scavenge_thunk_srt(info);
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 p = p.offset(
@@ -622,7 +618,6 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             17 => {
                 scavenge_thunk_srt(info);
-
                 p = p.offset(
                     (size_of::<StgThunk>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
@@ -642,7 +637,6 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             20 => {
                 scavenge_thunk_srt(info);
-
                 p = p.offset(
                     (size_of::<StgThunk>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
@@ -664,8 +658,8 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
                 scavenge_thunk_srt(info);
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 p = p.offset(
@@ -718,7 +712,6 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             38 => {
                 evacuate(&raw mut (*(p as *mut StgInd)).indirectee);
-
                 p = p.offset(
                     (size_of::<StgInd>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
@@ -729,7 +722,7 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
                 current_block_192 = 15908231092227701503;
             }
             47 | 48 => {
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*(p as *mut StgMutVar)).var);
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
@@ -753,7 +746,7 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             37 => {
                 let mut bq = p as *mut StgBlockingQueue;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*bq).bh);
                 evacuate(&raw mut (*bq).owner as *mut *mut StgClosure);
                 evacuate(&raw mut (*bq).queue as *mut *mut StgClosure);
@@ -809,7 +802,7 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
                 current_block_192 = 15908231092227701503;
             }
             43 | 44 => {
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 p = scavenge_mut_arr_ptrs(p as *mut StgMutArrPtrs);
 
                 if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
@@ -822,7 +815,7 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
 
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 current_block_192 = 15908231092227701503;
             }
             46 | 45 => {
@@ -840,8 +833,9 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             59 | 60 => {
                 let mut next = null_mut::<StgWord>();
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 next = p.offset(small_mut_arr_ptrs_sizeW(p as *mut StgSmallMutArrPtrs) as isize);
+
                 p = &raw mut (*(p as *mut StgSmallMutArrPtrs)).payload as *mut *mut StgClosure as P_
                     as StgPtr;
 
@@ -861,12 +855,13 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
                     *fresh19 = &raw const stg_SMALL_MUT_ARR_PTRS_CLEAN_info;
                 }
 
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 current_block_192 = 15908231092227701503;
             }
             62 | 61 => {
                 let mut next_0 = null_mut::<StgWord>();
                 next_0 = p.offset(small_mut_arr_ptrs_sizeW(p as *mut StgSmallMutArrPtrs) as isize);
+
                 p = &raw mut (*(p as *mut StgSmallMutArrPtrs)).payload as *mut *mut StgClosure as P_
                     as StgPtr;
 
@@ -887,7 +882,6 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             52 => {
                 scavengeTSO(p as *mut StgTSO);
-
                 p = p.offset(
                     (size_of::<StgTSO>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
@@ -899,7 +893,7 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             53 => {
                 let mut stack = p as *mut StgStack;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
 
                 scavenge_stack(
                     (*stack).sp,
@@ -915,7 +909,7 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             51 => {
                 let mut end_1 = null_mut::<StgWord>();
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 end_1 = (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_ as P_)
                     .offset((*info).layout.payload.ptrs as isize) as StgPtr;
                 p = &raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_ as P_
@@ -929,18 +923,17 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
                 p = p.offset((*info).layout.payload.nptrs as isize);
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 current_block_192 = 15908231092227701503;
             }
             54 => {
                 let mut i: StgWord = 0;
                 let mut tc = p as *mut StgTRecChunk;
-                let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                    .offset(0 as c_int as isize)
-                    as *mut TRecEntry;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                let mut e: *mut TRecEntry =
+                    (&raw mut (*tc).entries as *mut TRecEntry).offset(0) as *mut TRecEntry;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*tc).prev_chunk as *mut *mut StgClosure);
-                i = 0 as StgWord;
+                i = 0;
 
                 while i < (*tc).next_entry_idx {
                     evacuate(&raw mut (*e).tvar as *mut *mut StgClosure);
@@ -952,8 +945,7 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
 
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
-
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 p = p.offset(
                     (size_of::<StgTRecChunk>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
@@ -969,8 +961,7 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             _ => {
                 barf(
-                    b"scavenge: unimplemented/strange closure type %d @ %p\0" as *const u8
-                        as *const c_char,
+                    c"scavenge: unimplemented/strange closure type %d @ %p".as_ptr(),
                     (*info).r#type,
                     p,
                 );
@@ -994,8 +985,8 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             15810552018466442339 => {
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 p = p.offset(
@@ -1008,8 +999,8 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
             }
             16508105131140061713 => {
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 p = p.offset(
@@ -1042,10 +1033,10 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
         }
 
         if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
 
-            if (*bd).gen_no as c_int > 0 as c_int {
-                recordMutableGen_GC(q as *mut StgClosure, (*bd).gen_no as uint32_t);
+            if (*bd).gen_no as i32 > 0 {
+                recordMutableGen_GC(q as *mut StgClosure, (*bd).gen_no as u32);
             }
         }
     }
@@ -1053,21 +1044,22 @@ unsafe fn scavenge_block(mut bd: *mut bdescr) {
     if p > (*bd).c2rust_unnamed.free {
         let ref mut fresh22 = (*(&raw mut the_gc_thread as *mut gc_thread)).copied;
         *fresh22 = (*fresh22)
-            .wrapping_add((*ws).0.todo_free.offset_from((*bd).c2rust_unnamed.free) as c_long as W_);
+            .wrapping_add((*ws).0.todo_free.offset_from((*bd).c2rust_unnamed.free) as i64 as W_);
+
         (*bd).c2rust_unnamed.free = p;
     }
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
         trace_(
-            b"   scavenged %ld bytes\0" as *const u8 as *const c_char as *mut c_char,
-            ((*bd).c2rust_unnamed.free.offset_from((*bd).u.scan) as c_long as usize)
-                .wrapping_mul(size_of::<W_>() as usize) as c_ulong,
+            c"   scavenged %ld bytes".as_ptr(),
+            ((*bd).c2rust_unnamed.free.offset_from((*bd).u.scan) as i64 as usize)
+                .wrapping_mul(size_of::<W_>() as usize) as u64,
         );
     }
 
     let ref mut fresh23 = (*(&raw mut the_gc_thread as *mut gc_thread)).scanned;
-    *fresh23 = (*fresh23)
-        .wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).u.scan) as c_long as W_);
+    *fresh23 =
+        (*fresh23).wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).u.scan) as i64 as W_);
     (*bd).u.scan = (*bd).c2rust_unnamed.free;
 
     if bd != (*ws).0.todo_bd {
@@ -1101,7 +1093,7 @@ unsafe fn scavenge_mark_stack() {
         match (*info).r#type {
             39 | 40 => {
                 let mut mvar = p as *mut StgMVar;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*mvar).head as *mut *mut StgClosure);
                 evacuate(&raw mut (*mvar).tail as *mut *mut StgClosure);
                 evacuate(&raw mut (*mvar).value);
@@ -1118,9 +1110,11 @@ unsafe fn scavenge_mark_stack() {
             }
             41 => {
                 let mut tvar = p as *mut StgTVar;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*tvar).current_value);
+
                 evacuate(&raw mut (*tvar).first_watch_queue_entry as *mut *mut StgClosure);
+
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
 
@@ -1136,13 +1130,13 @@ unsafe fn scavenge_mark_stack() {
                 scavenge_fun_srt(info);
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(1)
+                        as *mut *mut StgClosure,
                 );
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 current_block_144 = 4338462691184853296;
@@ -1151,26 +1145,26 @@ unsafe fn scavenge_mark_stack() {
                 scavenge_thunk_srt(info);
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                        .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(1)
+                        as *mut *mut StgClosure,
                 );
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 current_block_144 = 4338462691184853296;
             }
             4 => {
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(1 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(1)
+                        as *mut *mut StgClosure,
                 );
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 current_block_144 = 4338462691184853296;
@@ -1179,8 +1173,8 @@ unsafe fn scavenge_mark_stack() {
                 scavenge_fun_srt(info);
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 current_block_144 = 4338462691184853296;
@@ -1189,16 +1183,16 @@ unsafe fn scavenge_mark_stack() {
                 scavenge_thunk_srt(info);
 
                 evacuate(
-                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 current_block_144 = 4338462691184853296;
             }
             2 | 5 => {
                 evacuate(
-                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-                        .offset(0 as c_int as isize) as *mut *mut StgClosure,
+                    (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                        as *mut *mut StgClosure,
                 );
 
                 current_block_144 = 4338462691184853296;
@@ -1245,7 +1239,7 @@ unsafe fn scavenge_mark_stack() {
                 current_block_144 = 4338462691184853296;
             }
             47 | 48 => {
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*(p as *mut StgMutVar)).var);
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
@@ -1262,7 +1256,7 @@ unsafe fn scavenge_mark_stack() {
             }
             37 => {
                 let mut bq = p as *mut StgBlockingQueue;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*bq).bh);
                 evacuate(&raw mut (*bq).owner as *mut *mut StgClosure);
                 evacuate(&raw mut (*bq).queue as *mut *mut StgClosure);
@@ -1307,7 +1301,7 @@ unsafe fn scavenge_mark_stack() {
                 current_block_144 = 4338462691184853296;
             }
             43 | 44 => {
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 scavenge_mut_arr_ptrs(p as *mut StgMutArrPtrs);
 
                 if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
@@ -1320,7 +1314,7 @@ unsafe fn scavenge_mark_stack() {
 
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 current_block_144 = 4338462691184853296;
             }
             46 | 45 => {
@@ -1341,8 +1335,9 @@ unsafe fn scavenge_mark_stack() {
                 let mut next = null_mut::<StgWord>();
                 let mut saved_eager: bool = false;
                 saved_eager = (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 next = p.offset(small_mut_arr_ptrs_sizeW(p as *mut StgSmallMutArrPtrs) as isize);
+
                 p = &raw mut (*(p as *mut StgSmallMutArrPtrs)).payload as *mut *mut StgClosure as P_
                     as StgPtr;
 
@@ -1361,13 +1356,14 @@ unsafe fn scavenge_mark_stack() {
                     *fresh45 = &raw const stg_SMALL_MUT_ARR_PTRS_CLEAN_info;
                 }
 
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 current_block_144 = 4338462691184853296;
             }
             62 | 61 => {
                 let mut next_0 = null_mut::<StgWord>();
                 let mut q_1 = p;
                 next_0 = p.offset(small_mut_arr_ptrs_sizeW(p as *mut StgSmallMutArrPtrs) as isize);
+
                 p = &raw mut (*(p as *mut StgSmallMutArrPtrs)).payload as *mut *mut StgClosure as P_
                     as StgPtr;
 
@@ -1392,7 +1388,7 @@ unsafe fn scavenge_mark_stack() {
             }
             53 => {
                 let mut stack = p as *mut StgStack;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
 
                 scavenge_stack(
                     (*stack).sp,
@@ -1407,7 +1403,7 @@ unsafe fn scavenge_mark_stack() {
             }
             51 => {
                 let mut end_1 = null_mut::<StgWord>();
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 end_1 = (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_ as P_)
                     .offset((*info).layout.payload.ptrs as isize) as StgPtr;
                 p = &raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_ as P_
@@ -1420,18 +1416,17 @@ unsafe fn scavenge_mark_stack() {
 
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 current_block_144 = 4338462691184853296;
             }
             54 => {
                 let mut i: StgWord = 0;
                 let mut tc = p as *mut StgTRecChunk;
-                let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                    .offset(0 as c_int as isize)
-                    as *mut TRecEntry;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                let mut e: *mut TRecEntry =
+                    (&raw mut (*tc).entries as *mut TRecEntry).offset(0) as *mut TRecEntry;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*tc).prev_chunk as *mut *mut StgClosure);
-                i = 0 as StgWord;
+                i = 0;
 
                 while i < (*tc).next_entry_idx {
                     evacuate(&raw mut (*e).tvar as *mut *mut StgClosure);
@@ -1443,7 +1438,7 @@ unsafe fn scavenge_mark_stack() {
 
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 current_block_144 = 4338462691184853296;
             }
             64 => {
@@ -1452,8 +1447,7 @@ unsafe fn scavenge_mark_stack() {
             }
             _ => {
                 barf(
-                    b"scavenge_mark_stack: unimplemented/strange closure type %d @ %p\0"
-                        as *const u8 as *const c_char,
+                    c"scavenge_mark_stack: unimplemented/strange closure type %d @ %p".as_ptr(),
                     (*info).r#type,
                     p,
                 );
@@ -1477,7 +1471,7 @@ unsafe fn scavenge_mark_stack() {
         }
 
         if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
 
             if (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no != 0 {
                 recordMutableGen_GC(
@@ -1501,7 +1495,7 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
         match (*info).r#type {
             39 | 40 => {
                 let mut mvar = p as *mut StgMVar;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*mvar).head as *mut *mut StgClosure);
                 evacuate(&raw mut (*mvar).tail as *mut *mut StgClosure);
                 evacuate(&raw mut (*mvar).value);
@@ -1518,9 +1512,11 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
             }
             41 => {
                 let mut tvar = p as *mut StgTVar;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*tvar).current_value);
+
                 evacuate(&raw mut (*tvar).first_watch_queue_entry as *mut *mut StgClosure);
+
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
 
@@ -1567,7 +1563,7 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
             }
             47 | 48 => {
                 let mut q_1 = p;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*(p as *mut StgMutVar)).var);
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
@@ -1584,7 +1580,7 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
             }
             37 => {
                 let mut bq = p as *mut StgBlockingQueue;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*bq).bh);
                 evacuate(&raw mut (*bq).owner as *mut *mut StgClosure);
                 evacuate(&raw mut (*bq).queue as *mut *mut StgClosure);
@@ -1631,7 +1627,7 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
                 break;
             }
             43 | 44 => {
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 scavenge_mut_arr_ptrs(p as *mut StgMutArrPtrs);
 
                 if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
@@ -1644,7 +1640,7 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
 
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 break;
             }
             46 | 45 => {
@@ -1665,9 +1661,10 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
                 let mut q_2 = null_mut::<StgWord>();
                 let mut saved_eager: bool = false;
                 saved_eager = (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 q_2 = p;
                 next = p.offset(small_mut_arr_ptrs_sizeW(p as *mut StgSmallMutArrPtrs) as isize);
+
                 p = &raw mut (*(p as *mut StgSmallMutArrPtrs)).payload as *mut *mut StgClosure as P_
                     as StgPtr;
 
@@ -1686,13 +1683,14 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
                     *fresh33 = &raw const stg_SMALL_MUT_ARR_PTRS_CLEAN_info;
                 }
 
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 break;
             }
             62 | 61 => {
                 let mut next_0 = null_mut::<StgWord>();
                 let mut q_3 = p;
                 next_0 = p.offset(small_mut_arr_ptrs_sizeW(p as *mut StgSmallMutArrPtrs) as isize);
+
                 p = &raw mut (*(p as *mut StgSmallMutArrPtrs)).payload as *mut *mut StgClosure as P_
                     as StgPtr;
 
@@ -1717,7 +1715,7 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
             }
             53 => {
                 let mut stack = p as *mut StgStack;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
 
                 scavenge_stack(
                     (*stack).sp,
@@ -1732,7 +1730,7 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
             }
             51 => {
                 let mut end_1 = null_mut::<StgWord>();
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 end_1 = (&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_ as P_)
                     .offset((*info).layout.payload.ptrs as isize) as StgPtr;
                 p = &raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_ as P_
@@ -1745,18 +1743,17 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
 
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 break;
             }
             54 => {
                 let mut i: StgWord = 0;
                 let mut tc = p as *mut StgTRecChunk;
-                let mut e: *mut TRecEntry = (&raw mut (*tc).entries as *mut TRecEntry)
-                    .offset(0 as c_int as isize)
-                    as *mut TRecEntry;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                let mut e: *mut TRecEntry =
+                    (&raw mut (*tc).entries as *mut TRecEntry).offset(0) as *mut TRecEntry;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                 evacuate(&raw mut (*tc).prev_chunk as *mut *mut StgClosure);
-                i = 0 as StgWord;
+                i = 0;
 
                 while i < (*tc).next_entry_idx {
                     evacuate(&raw mut (*e).tvar as *mut *mut StgClosure);
@@ -1768,7 +1765,7 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
 
                 (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                     saved_eager_promotion;
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 break;
             }
             27 | 38 | 28 => {
@@ -1793,15 +1790,15 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
             58 => while get_itbl(p as *mut StgClosure) == &raw const stg_WHITEHOLE_info {},
             _ => {
                 barf(
-                    b"scavenge_one: strange object %d\0" as *const u8 as *const c_char,
-                    (*info).r#type as c_int,
+                    c"scavenge_one: strange object %d".as_ptr(),
+                    (*info).r#type as i32,
                 );
             }
         }
     }
 
     no_luck = (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac;
-    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
 
     return no_luck;
 }
@@ -1809,7 +1806,7 @@ unsafe fn scavenge_one(mut p: StgPtr) -> bool {
 unsafe fn scavenge_mutable_list(mut bd: *mut bdescr, mut r#gen: *mut generation) {
     let mut p = null_mut::<StgWord>();
     let mut q = null_mut::<StgWord>();
-    let mut gen_no: uint32_t = (*r#gen).no;
+    let mut gen_no: u32 = (*r#gen).no;
     (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = gen_no;
 
     while !bd.is_null() {
@@ -1826,7 +1823,7 @@ unsafe fn scavenge_mutable_list(mut bd: *mut bdescr, mut r#gen: *mut generation)
                     let mut saved_eager_promotion: bool = false;
                     saved_eager_promotion =
                         (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion;
-                    (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = r#false != 0;
+                    (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion = false;
                     scavenge_mut_arr_ptrs_marked(p as *mut StgMutArrPtrs);
 
                     if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
@@ -1839,12 +1836,12 @@ unsafe fn scavenge_mutable_list(mut bd: *mut bdescr, mut r#gen: *mut generation)
 
                     (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion =
                         saved_eager_promotion;
-                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
                     recordMutableGen_GC(p as *mut StgClosure, gen_no);
                 }
                 _ => {
-                    if RtsFlags.GcFlags.useNonmoving as c_int != 0
-                        && major_gc as c_int != 0
+                    if RtsFlags.GcFlags.useNonmoving as i32 != 0
+                        && major_gc as i32 != 0
                         && r#gen == oldest_gen
                     {
                         nonmovingScavengeOne(p as *mut StgClosure);
@@ -1862,8 +1859,8 @@ unsafe fn scavenge_mutable_list(mut bd: *mut bdescr, mut r#gen: *mut generation)
 }
 
 unsafe fn scavenge_capability_mut_lists(mut cap: *mut Capability) {
-    if RtsFlags.GcFlags.useNonmoving as c_int != 0 && major_gc as c_int != 0 {
-        let mut g: uint32_t = (*oldest_gen).no;
+    if RtsFlags.GcFlags.useNonmoving as i32 != 0 && major_gc as i32 != 0 {
+        let mut g: u32 = (*oldest_gen).no;
         scavenge_mutable_list(*(*cap).saved_mut_lists.offset(g as isize), oldest_gen);
         freeChain_sync(*(*cap).saved_mut_lists.offset(g as isize));
 
@@ -1872,7 +1869,7 @@ unsafe fn scavenge_capability_mut_lists(mut cap: *mut Capability) {
         return;
     }
 
-    let mut g_0: uint32_t = RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t);
+    let mut g_0: u32 = RtsFlags.GcFlags.generations.wrapping_sub(1 as u32);
 
     while g_0 > N {
         scavenge_mutable_list(
@@ -1893,8 +1890,8 @@ unsafe fn scavenge_static() {
     let mut p = null_mut::<StgClosure>();
     let mut info = null::<StgInfoTable>();
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as c_long != 0 {
-        trace_(b"scavenging static objects\0" as *const u8 as *const c_char as *mut c_char);
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+        trace_(c"scavenging static objects".as_ptr());
     }
 
     (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = (*oldest_gen).no;
@@ -1926,7 +1923,7 @@ unsafe fn scavenge_static() {
                 evacuate(&raw mut (*ind).indirectee);
 
                 if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
-                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
                     recordMutableGen_GC(p, (*oldest_gen).no);
                 }
 
@@ -1945,8 +1942,8 @@ unsafe fn scavenge_static() {
             }
             _ => {
                 barf(
-                    b"scavenge_static: strange closure %d\0" as *const u8 as *const c_char,
-                    (*info).r#type as c_int,
+                    c"scavenge_static: strange closure %d".as_ptr(),
+                    (*info).r#type as i32,
                 );
             }
         }
@@ -1995,7 +1992,6 @@ unsafe fn scavenge_stack(mut p: StgPtr, mut stack_end: StgPtr) {
             33 => {
                 let mut frame = p as *mut StgUpdateFrame;
                 evacuate_BLACKHOLE(&raw mut (*frame).updatee);
-
                 p = p.offset(
                     (size_of::<StgUpdateFrame>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
@@ -2031,7 +2027,7 @@ unsafe fn scavenge_stack(mut p: StgPtr, mut stack_end: StgPtr) {
             }
             31 => {
                 let mut size_1: StgWord = 0;
-                size_1 = (*(((&raw const (*info).i).offset(1 as c_int as isize) as StgWord)
+                size_1 = (*(((&raw const (*info).i).offset(1 as i32 as isize) as StgWord)
                     .wrapping_add((*info).i.layout.large_bitmap_offset as StgWord)
                     as *mut StgLargeBitmap))
                     .size;
@@ -2039,7 +2035,7 @@ unsafe fn scavenge_stack(mut p: StgPtr, mut stack_end: StgPtr) {
 
                 scavenge_large_bitmap(
                     p,
-                    ((&raw const (*info).i).offset(1 as c_int as isize) as StgWord)
+                    ((&raw const (*info).i).offset(1 as i32 as isize) as StgWord)
                         .wrapping_add((*info).i.layout.large_bitmap_offset as StgWord)
                         as *mut StgLargeBitmap,
                     size_1,
@@ -2060,15 +2056,14 @@ unsafe fn scavenge_stack(mut p: StgPtr, mut stack_end: StgPtr) {
             }
             _ => {
                 barf(
-                    b"scavenge_stack: weird activation record found on stack: %d\0" as *const u8
-                        as *const c_char,
-                    (*info).i.r#type as c_int,
+                    c"scavenge_stack: weird activation record found on stack: %d".as_ptr(),
+                    (*info).i.r#type as i32,
                 );
             }
         }
 
-        if major_gc as c_int != 0 && (*info).i.srt != 0 {
-            let mut srt = (info.offset(1 as c_int as isize) as StgWord)
+        if major_gc as i32 != 0 && (*info).i.srt != 0 {
+            let mut srt = (info.offset(1 as i32 as isize) as StgWord)
                 .wrapping_add((*info).i.srt as StgWord)
                 as *mut StgClosure;
             evacuate(&raw mut srt);
@@ -2085,7 +2080,7 @@ unsafe fn scavenge_large(mut ws: *mut gen_workspace) {
     while !bd.is_null() {
         (*ws).0.todo_large_objects = (*bd).link as *mut bdescr;
 
-        if (*bd).flags as c_int & BF_COMPACT != 0 {
+        if (*bd).flags as i32 & BF_COMPACT != 0 {
             dbl_link_onto(bd, &raw mut (*(*ws).0.r#gen).live_compact_objects);
 
             let mut str =
@@ -2104,7 +2099,7 @@ unsafe fn scavenge_large(mut ws: *mut gen_workspace) {
         }
 
         if scavenge_one(p) {
-            if (*(*ws).0.r#gen).no > 0 as uint32_t {
+            if (*(*ws).0.r#gen).no > 0 {
                 recordMutableGen_GC(p as *mut StgClosure, (*(*ws).0.r#gen).no);
             }
         }
@@ -2116,20 +2111,20 @@ unsafe fn scavenge_large(mut ws: *mut gen_workspace) {
 }
 
 unsafe fn scavenge_find_work() -> bool {
-    let mut g: c_int = 0;
+    let mut g: i32 = 0;
     let mut ws = null_mut::<gen_workspace>();
     let mut did_something: bool = false;
     let mut did_anything: bool = false;
     let mut bd = null_mut::<bdescr>();
     let ref mut fresh9 = (*(&raw mut the_gc_thread as *mut gc_thread)).scav_find_work;
     *fresh9 = (*fresh9).wrapping_add(1);
-    did_anything = r#false != 0;
+    did_anything = false;
 
     loop {
-        did_something = r#false != 0;
-        g = RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t) as c_int;
+        did_something = false;
+        g = RtsFlags.GcFlags.generations.wrapping_sub(1 as u32) as i32;
 
-        while g >= 0 as c_int {
+        while g >= 0 {
             ws = (&raw mut (*(&raw mut the_gc_thread as *mut gc_thread)).gens as *mut gen_workspace)
                 .offset(g as isize) as *mut gen_workspace;
 
@@ -2138,7 +2133,7 @@ unsafe fn scavenge_find_work() -> bool {
                 (*ws).0.todo_seg = (*seg).todo_link;
                 (*seg).todo_link = null_mut::<NonmovingSegment>();
                 scavengeNonmovingSegment(seg);
-                did_something = r#true != 0;
+                did_something = true;
                 break;
             } else {
                 let ref mut fresh10 = (*(&raw mut the_gc_thread as *mut gc_thread)).scan_bd;
@@ -2146,18 +2141,18 @@ unsafe fn scavenge_find_work() -> bool {
 
                 if (*(*ws).0.todo_bd).u.scan < (*ws).0.todo_free {
                     scavenge_block((*ws).0.todo_bd);
-                    did_something = r#true != 0;
+                    did_something = true;
                     break;
                 } else if !(*ws).0.todo_large_objects.is_null() {
                     scavenge_large(ws);
-                    did_something = r#true != 0;
+                    did_something = true;
                     break;
                 } else {
                     bd = grab_local_todo_block(ws);
 
                     if !bd.is_null() {
                         scavenge_block(bd);
-                        did_something = r#true != 0;
+                        did_something = true;
                         break;
                     } else {
                         g -= 1;
@@ -2170,7 +2165,7 @@ unsafe fn scavenge_find_work() -> bool {
             break;
         }
 
-        did_anything = r#true != 0;
+        did_anything = true;
     }
 
     return did_anything;
@@ -2180,9 +2175,9 @@ unsafe fn scavenge_loop() {
     let mut work_to_do: bool = false;
 
     loop {
-        work_to_do = r#false != 0;
+        work_to_do = false;
 
-        if major_gc as c_int != 0
+        if major_gc as i32 != 0
             && (*(&raw mut the_gc_thread as *mut gc_thread)).static_objects
                 != static_flag as StgWord as *mut StgClosure
         {
@@ -2191,7 +2186,7 @@ unsafe fn scavenge_loop() {
 
         if !mark_stack_bd.is_null() && !mark_stack_empty() {
             scavenge_mark_stack();
-            work_to_do = r#true != 0;
+            work_to_do = true;
         }
 
         if scavenge_find_work() {

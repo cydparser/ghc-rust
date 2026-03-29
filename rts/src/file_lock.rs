@@ -13,28 +13,28 @@ mod tests;
 struct Lock {
     device: StgWord64,
     inode: StgWord64,
-    readers: c_int,
+    readers: i32,
 }
 
-static mut obj_hash: *mut HashTable = null::<HashTable>() as *mut HashTable;
+static mut obj_hash: *mut HashTable = null_mut::<HashTable>();
 
-static mut key_hash: *mut HashTable = null::<HashTable>() as *mut HashTable;
+static mut key_hash: *mut HashTable = null_mut::<HashTable>();
 
 #[inline]
-unsafe fn cmpLocks(mut w1: StgWord, mut w2: StgWord) -> c_int {
+unsafe fn cmpLocks(mut w1: StgWord, mut w2: StgWord) -> i32 {
     let mut l1 = w1 as *mut Lock;
     let mut l2 = w2 as *mut Lock;
 
-    return ((*l1).device == (*l2).device && (*l1).inode == (*l2).inode) as c_int;
+    return ((*l1).device == (*l2).device && (*l1).inode == (*l2).inode) as i32;
 }
 
 #[inline]
-unsafe fn hashLock(mut table: *const HashTable, mut w: StgWord) -> c_int {
+unsafe fn hashLock(mut table: *const HashTable, mut w: StgWord) -> i32 {
     let mut l = w as *mut Lock;
     let mut key: StgWord = (*l).inode as StgWord
-        ^ (*l).inode as StgWord >> 32 as c_int
+        ^ (*l).inode as StgWord >> 32
         ^ (*l).device as StgWord
-        ^ (*l).device as StgWord >> 32 as c_int;
+        ^ (*l).device as StgWord >> 32;
 
     return hashWord(table, key);
 }
@@ -53,7 +53,6 @@ unsafe fn freeFileLocking() {
         obj_hash,
         Some(freeLock as unsafe extern "C" fn(*mut c_void) -> ()),
     );
-
     freeHashTable(key_hash, None);
 }
 
@@ -64,8 +63,8 @@ pub unsafe extern "C" fn lockFile(
     mut id: StgWord64,
     mut dev: StgWord64,
     mut ino: StgWord64,
-    mut for_writing: c_int,
-) -> c_int {
+    mut for_writing: i32,
+) -> i32 {
     let mut key = Lock {
         device: 0,
         inode: 0,
@@ -84,19 +83,10 @@ pub unsafe extern "C" fn lockFile(
     ) as *mut Lock;
 
     if lock.is_null() {
-        lock = stgMallocBytes(
-            size_of::<Lock>() as size_t,
-            b"lockFile\0" as *const u8 as *const c_char as *mut c_char,
-        ) as *mut Lock;
-
+        lock = stgMallocBytes(size_of::<Lock>() as usize, c"lockFile".as_ptr()) as *mut Lock;
         (*lock).device = dev;
         (*lock).inode = ino;
-
-        (*lock).readers = if for_writing != 0 {
-            -(1 as c_int)
-        } else {
-            1 as c_int
-        };
+        (*lock).readers = if for_writing != 0 { -1 } else { 1 };
 
         insertHashTable_(
             obj_hash,
@@ -107,37 +97,37 @@ pub unsafe extern "C" fn lockFile(
 
         insertHashTable(key_hash, id as StgWord, lock as *const c_void);
 
-        return 0 as c_int;
+        return 0;
     } else {
-        if for_writing != 0 || (*lock).readers < 0 as c_int {
-            return -(1 as c_int);
+        if for_writing != 0 || (*lock).readers < 0 {
+            return -1;
         }
 
         insertHashTable(key_hash, id as StgWord, lock as *const c_void);
         (*lock).readers += 1;
 
-        return 0 as c_int;
+        return 0;
     };
 }
 
 #[ffi(ghc_lib, libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn unlockFile(mut id: StgWord64) -> c_int {
+pub unsafe extern "C" fn unlockFile(mut id: StgWord64) -> i32 {
     let mut lock = null_mut::<Lock>();
     lock = lookupHashTable(key_hash, id as StgWord) as *mut Lock;
 
     if lock.is_null() {
-        return 1 as c_int;
+        return 1;
     }
 
-    if (*lock).readers < 0 as c_int {
+    if (*lock).readers < 0 {
         (*lock).readers += 1;
     } else {
         (*lock).readers -= 1;
     }
 
-    if (*lock).readers == 0 as c_int {
+    if (*lock).readers == 0 {
         removeHashTable_(
             obj_hash,
             lock as StgWord,
@@ -151,5 +141,5 @@ pub unsafe extern "C" fn unlockFile(mut id: StgWord64) -> c_int {
 
     removeHashTable(key_hash, id as StgWord, null::<c_void>());
 
-    return 0 as c_int;
+    return 0;
 }

@@ -6,7 +6,7 @@ use crate::rts_symbol_info::{
 };
 use crate::rts_utils::stgMallocBytes;
 
-pub(crate) type _SymbolKind = c_uint;
+pub(crate) type _SymbolKind = u32;
 
 pub(crate) const KIND_IMPORT: _SymbolKind = 4;
 
@@ -43,12 +43,10 @@ unsafe fn setSymbolInfo(
         }
 
         if info.is_null() {
-            info = stgMallocBytes(
-                size_of::<SymbolInfo>() as size_t,
-                b"setSymbolInfo\0" as *const u8 as *const c_char as *mut c_char,
-            ) as *mut SymbolInfo;
+            info = stgMallocBytes(size_of::<SymbolInfo>() as usize, c"setSymbolInfo".as_ptr())
+                as *mut SymbolInfo;
 
-            (*info).kind = 0 as SymbolKind;
+            (*info).kind = 0;
         }
 
         updater.expect("non-null function pointer")(info);
@@ -72,7 +70,7 @@ unsafe fn isSymbolWeak(mut owner: *mut ObjectCode, mut label: *const c_void) -> 
                 lookupStrHashTable((*owner).extraInfos, label as *const c_char) as *mut SymbolInfo;
             !info.is_null()
         }
-        && (*info).kind as c_uint & KIND_WEAK as c_int as c_uint == KIND_WEAK as c_int as c_uint;
+        && (*info).kind as u32 & KIND_WEAK as i32 as u32 == KIND_WEAK as i32 as u32;
 }
 
 unsafe fn isSymbolImport(mut owner: *mut ObjectCode, mut label: *const c_void) -> bool {
@@ -86,30 +84,26 @@ unsafe fn isSymbolImport(mut owner: *mut ObjectCode, mut label: *const c_void) -
                 lookupStrHashTable((*owner).extraInfos, label as *const c_char) as *mut SymbolInfo;
             !info.is_null()
         }
-        && (*info).kind as c_uint & KIND_IMPORT as c_int as c_uint
-            == KIND_IMPORT as c_int as c_uint;
+        && (*info).kind as u32 & KIND_IMPORT as i32 as u32 == KIND_IMPORT as i32 as u32;
 }
 
 unsafe fn markWeak(mut info: *mut SymbolInfo) {
     if !info.is_null() {
-        (*info).kind =
-            transmute::<c_uint, SymbolKind>((*info).kind as c_uint | KIND_WEAK as c_int as c_uint);
+        (*info).kind = transmute::<u32, SymbolKind>((*info).kind as u32 | KIND_WEAK as i32 as u32);
     }
 }
 
 unsafe fn markImport(mut info: *mut SymbolInfo) {
     if !info.is_null() {
-        (*info).kind = transmute::<c_uint, SymbolKind>(
-            (*info).kind as c_uint | KIND_IMPORT as c_int as c_uint,
-        );
+        (*info).kind =
+            transmute::<u32, SymbolKind>((*info).kind as u32 | KIND_IMPORT as i32 as u32);
     }
 }
 
 unsafe fn unmarkImport(mut info: *mut SymbolInfo) {
     if !info.is_null() {
-        (*info).kind = transmute::<c_uint, SymbolKind>(
-            (*info).kind as c_uint & !(KIND_IMPORT as c_int) as c_uint,
-        );
+        (*info).kind =
+            transmute::<u32, SymbolKind>((*info).kind as u32 & !(KIND_IMPORT as i32) as u32);
     }
 }
 

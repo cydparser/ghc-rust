@@ -27,7 +27,7 @@ const RTS_FD_IS_READY: FdState = 0;
 
 const RTS_FD_IS_INVALID: FdState = 2;
 
-type FdState = c_uint;
+type FdState = u32;
 
 unsafe fn getLowResTimeOfDay() -> LowResTime {
     return getProcessElapsedTime() as LowResTime;
@@ -37,42 +37,42 @@ unsafe fn getDelayTarget(mut us: HsInt) -> LowResTime {
     let mut elapsed: Time = 0;
     elapsed = getProcessElapsedTime();
 
-    if us > (9223372036854775807 as Time - elapsed) / 1000 as Time {
-        return 9223372036854775807 as LowResTime;
+    if us > (9223372036854775807 - elapsed) / 1000 {
+        return 9223372036854775807;
     } else {
-        return (elapsed + us * 1000 as Time) as LowResTime;
+        return (elapsed + us * 1000) as LowResTime;
     };
 }
 
 unsafe fn wakeUpSleepingThreads(mut cap: *mut Capability, mut now: LowResTime) -> bool {
     let mut iomgr = (*cap).iomgr;
     let mut tso = null_mut::<StgTSO>();
-    let mut flag = r#false != 0;
+    let mut flag = false;
 
     while (*iomgr).sleeping_queue
         != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
     {
         tso = (*iomgr).sleeping_queue;
 
-        if (now as c_long - (*tso).block_info.target as c_long) < 0 as c_long {
+        if (now as i64 - (*tso).block_info.target as i64) < 0 {
             break;
         }
 
         (*iomgr).sleeping_queue = (*tso)._link as *mut StgTSO;
-        (*tso).why_blocked = 0 as StgWord32;
+        (*tso).why_blocked = 0;
         (*tso)._link =
             &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO as *mut StgTSO_;
         pushOnRunQueue(cap, tso);
-        flag = r#true != 0;
+        flag = true;
     }
 
     return flag;
 }
 
-unsafe fn fdOutOfRange(mut fd: c_int) -> ! {
+unsafe fn fdOutOfRange(mut fd: i32) -> ! {
     errorBelch(
-        b"file descriptor %d out of range for select (0--%d).\nRecompile with -threaded to work around this.\0"
-            as *const u8 as *const c_char,
+        c"file descriptor %d out of range for select (0--%d).\nRecompile with -threaded to work around this."
+            .as_ptr(),
         fd,
         FD_SETSIZE,
     );
@@ -80,29 +80,27 @@ unsafe fn fdOutOfRange(mut fd: c_int) -> ! {
     stg_exit(EXIT_FAILURE);
 }
 
-unsafe fn fdPollReadState(mut fd: c_int) -> FdState {
-    let mut r: c_int = 0;
+unsafe fn fdPollReadState(mut fd: i32) -> FdState {
+    let mut r: i32 = 0;
     let mut rfd = fd_set { fds_bits: [0; 32] };
-
     let mut now = timeval {
         tv_sec: 0,
         tv_usec: 0,
     };
-
     __darwin_fd_set(fd, &raw mut rfd);
-    now.tv_sec = 0 as __darwin_time_t;
-    now.tv_usec = 0 as c_int as __darwin_suseconds_t;
+    now.tv_sec = 0;
+    now.tv_usec = 0;
 
     loop {
         r = select(
-            fd + 1 as c_int,
+            fd + 1,
             &raw mut rfd,
             null_mut::<fd_set>(),
             null_mut::<fd_set>(),
             &raw mut now,
         );
 
-        if r != -(1 as c_int) {
+        if r != -1 {
             break;
         }
 
@@ -110,42 +108,40 @@ unsafe fn fdPollReadState(mut fd: c_int) -> FdState {
             EBADF => return RTS_FD_IS_INVALID,
             EINTR => {}
             _ => {
-                sysErrorBelch(b"select\0" as *const u8 as *const c_char);
+                sysErrorBelch(c"select".as_ptr());
                 stg_exit(EXIT_FAILURE);
             }
         }
     }
 
-    if r == 0 as c_int {
+    if r == 0 {
         return RTS_FD_IS_BLOCKING;
     } else {
         return RTS_FD_IS_READY;
     };
 }
 
-unsafe fn fdPollWriteState(mut fd: c_int) -> FdState {
-    let mut r: c_int = 0;
+unsafe fn fdPollWriteState(mut fd: i32) -> FdState {
+    let mut r: i32 = 0;
     let mut wfd = fd_set { fds_bits: [0; 32] };
-
     let mut now = timeval {
         tv_sec: 0,
         tv_usec: 0,
     };
-
     __darwin_fd_set(fd, &raw mut wfd);
-    now.tv_sec = 0 as __darwin_time_t;
-    now.tv_usec = 0 as c_int as __darwin_suseconds_t;
+    now.tv_sec = 0;
+    now.tv_usec = 0;
 
     loop {
         r = select(
-            fd + 1 as c_int,
+            fd + 1,
             null_mut::<fd_set>(),
             &raw mut wfd,
             null_mut::<fd_set>(),
             &raw mut now,
         );
 
-        if r != -(1 as c_int) {
+        if r != -1 {
             break;
         }
 
@@ -153,13 +149,13 @@ unsafe fn fdPollWriteState(mut fd: c_int) -> FdState {
             EBADF => return RTS_FD_IS_INVALID,
             EINTR => {}
             _ => {
-                sysErrorBelch(b"select\0" as *const u8 as *const c_char);
+                sysErrorBelch(c"select".as_ptr());
                 stg_exit(EXIT_FAILURE);
             }
         }
     }
 
-    if r == 0 as c_int {
+    if r == 0 {
         return RTS_FD_IS_BLOCKING;
     } else {
         return RTS_FD_IS_READY;
@@ -173,15 +169,13 @@ unsafe fn awaitCompletedTimeoutsOrIOSelect(mut cap: *mut Capability, mut wait: b
     let mut next = null_mut::<StgTSO>();
     let mut rfd = fd_set { fds_bits: [0; 32] };
     let mut wfd = fd_set { fds_bits: [0; 32] };
-    let mut numFound: c_int = 0;
-    let mut maxfd = -(1 as c_int);
-    let mut seen_bad_fd = r#false != 0;
-
+    let mut numFound: i32 = 0;
+    let mut maxfd = -1;
+    let mut seen_bad_fd = false;
     let mut tv = timeval {
         tv_sec: 0,
         tv_usec: 0,
     };
-
     let mut ptv = null_mut::<timeval>();
     let mut now: LowResTime = 0;
 
@@ -199,9 +193,9 @@ unsafe fn awaitCompletedTimeoutsOrIOSelect(mut cap: *mut Capability, mut wait: b
 
             match (*tso).why_blocked {
                 3 => {
-                    let mut fd = (*tso).block_info.fd as c_int;
+                    let mut fd = (*tso).block_info.fd as i32;
 
-                    if fd >= FD_SETSIZE || fd < 0 as c_int {
+                    if fd >= FD_SETSIZE || fd < 0 {
                         fdOutOfRange(fd);
                     }
 
@@ -209,9 +203,9 @@ unsafe fn awaitCompletedTimeoutsOrIOSelect(mut cap: *mut Capability, mut wait: b
                     __darwin_fd_set(fd, &raw mut rfd);
                 }
                 4 => {
-                    let mut fd_0 = (*tso).block_info.fd as c_int;
+                    let mut fd_0 = (*tso).block_info.fd as i32;
 
-                    if fd_0 >= FD_SETSIZE || fd_0 < 0 as c_int {
+                    if fd_0 >= FD_SETSIZE || fd_0 < 0 {
                         fdOutOfRange(fd_0);
                     }
 
@@ -219,7 +213,7 @@ unsafe fn awaitCompletedTimeoutsOrIOSelect(mut cap: *mut Capability, mut wait: b
                     __darwin_fd_set(fd_0, &raw mut wfd);
                 }
                 _ => {
-                    barf(b"AwaitEvent\0" as *const u8 as *const c_char);
+                    barf(c"AwaitEvent".as_ptr());
                 }
             }
 
@@ -227,24 +221,24 @@ unsafe fn awaitCompletedTimeoutsOrIOSelect(mut cap: *mut Capability, mut wait: b
         }
 
         if !wait {
-            tv.tv_sec = 0 as __darwin_time_t;
-            tv.tv_usec = 0 as c_int as __darwin_suseconds_t;
+            tv.tv_sec = 0;
+            tv.tv_usec = 0;
             ptv = &raw mut tv;
         } else if (*iomgr).sleeping_queue
             != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
         {
-            let max_seconds = 2678400 as time_t;
+            let max_seconds = 2678400;
             let mut min: Time = (*(*iomgr).sleeping_queue)
                 .block_info
                 .target
                 .wrapping_sub(now as StgWord) as Time;
-            tv.tv_sec = (min / TIME_RESOLUTION as Time) as __darwin_time_t;
+            tv.tv_sec = (min / TIME_RESOLUTION as Time) as i64;
 
             if tv.tv_sec < max_seconds {
-                tv.tv_usec = (min / 1000 as Time % 1000000 as Time) as __darwin_suseconds_t;
+                tv.tv_usec = (min / 1000 % 1000000) as i32;
             } else {
-                tv.tv_sec = max_seconds as __darwin_time_t;
-                tv.tv_usec = 0 as c_int as __darwin_suseconds_t;
+                tv.tv_sec = max_seconds as i64;
+                tv.tv_usec = 0;
             }
 
             ptv = &raw mut tv;
@@ -254,34 +248,34 @@ unsafe fn awaitCompletedTimeoutsOrIOSelect(mut cap: *mut Capability, mut wait: b
 
         loop {
             numFound = select(
-                maxfd + 1 as c_int,
+                maxfd + 1,
                 &raw mut rfd,
                 &raw mut wfd,
                 null_mut::<fd_set>(),
                 ptv,
             );
 
-            if !(numFound < 0 as c_int) {
+            if !(numFound < 0) {
                 break;
             }
 
             if *__error() != EINTR {
                 if *__error() == EBADF {
-                    seen_bad_fd = r#true != 0;
+                    seen_bad_fd = true;
                     break;
                 } else {
-                    sysErrorBelch(b"select\0" as *const u8 as *const c_char);
+                    sysErrorBelch(c"select".as_ptr());
                     stg_exit(EXIT_FAILURE);
                 }
             } else {
-                if RtsFlags.MiscFlags.install_signal_handlers as c_int != 0
+                if RtsFlags.MiscFlags.install_signal_handlers as i32 != 0
                     && next_pending_handler != &raw mut pending_handler_buf as *mut siginfo_t
                 {
                     startSignalHandlers(cap);
                     return;
                 }
 
-                if getSchedState() as c_uint >= SCHED_INTERRUPTING as c_int as c_uint {
+                if getSchedState() as u32 >= SCHED_INTERRUPTING as i32 as u32 {
                     return;
                 }
 
@@ -299,12 +293,12 @@ unsafe fn awaitCompletedTimeoutsOrIOSelect(mut cap: *mut Capability, mut wait: b
         while tso != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO {
             next = (*tso)._link as *mut StgTSO;
 
-            let mut fd_1: c_int = 0;
+            let mut fd_1: i32 = 0;
             let mut fd_state = RTS_FD_IS_BLOCKING;
 
             match (*tso).why_blocked {
                 3 => {
-                    fd_1 = (*tso).block_info.fd as c_int;
+                    fd_1 = (*tso).block_info.fd as i32;
 
                     if seen_bad_fd {
                         fd_state = fdPollReadState(fd_1);
@@ -313,7 +307,7 @@ unsafe fn awaitCompletedTimeoutsOrIOSelect(mut cap: *mut Capability, mut wait: b
                     }
                 }
                 4 => {
-                    fd_1 = (*tso).block_info.fd as c_int;
+                    fd_1 = (*tso).block_info.fd as i32;
 
                     if seen_bad_fd {
                         fd_state = fdPollWriteState(fd_1);
@@ -322,17 +316,17 @@ unsafe fn awaitCompletedTimeoutsOrIOSelect(mut cap: *mut Capability, mut wait: b
                     }
                 }
                 _ => {
-                    barf(b"awaitCompletedTimeoutsOrIOSelect\0" as *const u8 as *const c_char);
+                    barf(c"awaitCompletedTimeoutsOrIOSelect".as_ptr());
                 }
             }
 
-            match fd_state as c_uint {
+            match fd_state as u32 {
                 2 => {
                     raiseAsync(
                         cap,
                         tso,
                         (*ghc_hs_iface).blockedOnBadFD_closure,
-                        r#false != 0,
+                        false,
                         null_mut::<StgUpdateFrame>(),
                     );
                 }
@@ -367,9 +361,9 @@ unsafe fn awaitCompletedTimeoutsOrIOSelect(mut cap: *mut Capability, mut wait: b
             (*iomgr).blocked_queue_tl = prev;
         }
 
-        if !(wait as c_int != 0
-            && getSchedState() as c_uint == SCHED_RUNNING as c_int as c_uint
-            && emptyRunQueue(cap) as c_int != 0)
+        if !(wait as i32 != 0
+            && getSchedState() as u32 == SCHED_RUNNING as i32 as u32
+            && emptyRunQueue(cap) as i32 != 0)
         {
             break;
         }

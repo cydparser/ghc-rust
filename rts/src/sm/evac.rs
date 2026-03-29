@@ -43,9 +43,9 @@ use crate::sm::non_moving_mark::markQueuePushClosureGC;
 use crate::sm::storage::{STATIC_BITS, move_STACK, prev_static_flag, static_flag};
 use crate::trace::{DEBUG_RTS, trace_};
 
-const MAX_THUNK_SELECTOR_DEPTH: c_int = 16 as c_int;
+const MAX_THUNK_SELECTOR_DEPTH: i32 = 16;
 
-unsafe fn alloc_in_nonmoving_heap(mut size: uint32_t) -> StgPtr {
+unsafe fn alloc_in_nonmoving_heap(mut size: u32) -> StgPtr {
     let ref mut fresh7 = (*(&raw mut the_gc_thread as *mut gc_thread)).copied;
     *fresh7 = (*fresh7).wrapping_add(size as W_);
 
@@ -67,7 +67,7 @@ unsafe fn alloc_in_nonmoving_heap(mut size: uint32_t) -> StgPtr {
         (*seg_bd).u.scan = to;
     }
 
-    if major_gc as c_int != 0 && !deadlock_detect_gc {
+    if major_gc as i32 != 0 && !deadlock_detect_gc {
         markQueuePushClosureGC(
             &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
                 .upd_rem_set
@@ -80,7 +80,7 @@ unsafe fn alloc_in_nonmoving_heap(mut size: uint32_t) -> StgPtr {
 }
 
 #[inline]
-unsafe fn alloc_in_moving_heap(mut size: uint32_t, mut gen_no: uint32_t) -> StgPtr {
+unsafe fn alloc_in_moving_heap(mut size: u32, mut gen_no: u32) -> StgPtr {
     let mut ws: *mut gen_workspace = (&raw mut (*(&raw mut the_gc_thread as *mut gc_thread)).gens
         as *mut gen_workspace)
         .offset(gen_no as isize) as *mut gen_workspace;
@@ -95,7 +95,7 @@ unsafe fn alloc_in_moving_heap(mut size: uint32_t, mut gen_no: uint32_t) -> StgP
     return to;
 }
 
-unsafe fn alloc_for_copy_nonmoving(mut size: uint32_t, mut gen_no: uint32_t) -> StgPtr {
+unsafe fn alloc_for_copy_nonmoving(mut size: u32, mut gen_no: u32) -> StgPtr {
     if deadlock_detect_gc {
         return alloc_in_nonmoving_heap(size);
     }
@@ -104,7 +104,7 @@ unsafe fn alloc_for_copy_nonmoving(mut size: uint32_t, mut gen_no: uint32_t) -> 
         if (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion {
             gen_no = (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no;
         } else {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
         }
     }
 
@@ -116,8 +116,8 @@ unsafe fn alloc_for_copy_nonmoving(mut size: uint32_t, mut gen_no: uint32_t) -> 
 }
 
 #[inline]
-unsafe fn alloc_for_copy(mut size: uint32_t, mut gen_no: uint32_t) -> StgPtr {
-    if RtsFlags.GcFlags.useNonmoving as c_long != 0 {
+unsafe fn alloc_for_copy(mut size: u32, mut gen_no: u32) -> StgPtr {
+    if RtsFlags.GcFlags.useNonmoving as i64 != 0 {
         return alloc_for_copy_nonmoving(size, gen_no);
     }
 
@@ -125,7 +125,7 @@ unsafe fn alloc_for_copy(mut size: uint32_t, mut gen_no: uint32_t) -> StgPtr {
         if (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion {
             gen_no = (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no;
         } else {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
         }
     }
 
@@ -137,24 +137,24 @@ unsafe fn copy_tag(
     mut p: *mut *mut StgClosure,
     mut info: *const StgInfoTable,
     mut src: *mut StgClosure,
-    mut size: uint32_t,
-    mut gen_no: uint32_t,
+    mut size: u32,
+    mut gen_no: u32,
     mut tag: StgWord,
 ) {
     let mut to = null_mut::<StgWord>();
     let mut from = null_mut::<StgWord>();
-    let mut i: uint32_t = 0;
+    let mut i: u32 = 0;
     to = alloc_for_copy(size, gen_no);
     from = src as StgPtr;
-    *to.offset(0 as c_int as isize) = info as W_ as StgWord;
-    i = 1 as uint32_t;
+    *to.offset(0) = info as W_ as StgWord;
+    i = 1;
 
     while i < size {
         *to.offset(i as isize) = *from.offset(i as isize);
         i = i.wrapping_add(1);
     }
 
-    (*src).header.info = (to as StgWord | 1 as StgWord) as *const StgInfoTable;
+    (*src).header.info = (to as StgWord | 1) as *const StgInfoTable;
     *p = TAG_CLOSURE(tag, to as *mut StgClosure);
 }
 
@@ -162,19 +162,19 @@ unsafe fn copy_tag(
 unsafe fn copyPart(
     mut p: *mut *mut StgClosure,
     mut src: *mut StgClosure,
-    mut size_to_reserve: uint32_t,
-    mut size_to_copy: uint32_t,
-    mut gen_no: uint32_t,
+    mut size_to_reserve: u32,
+    mut size_to_copy: u32,
+    mut gen_no: u32,
 ) -> bool {
     let mut to = null_mut::<StgWord>();
     let mut from = null_mut::<StgWord>();
-    let mut i: uint32_t = 0;
+    let mut i: u32 = 0;
     let mut info: StgWord = 0;
     info = (*src).header.info as W_ as StgWord;
     to = alloc_for_copy(size_to_reserve, gen_no);
     from = src as StgPtr;
-    *to.offset(0 as c_int as isize) = info;
-    i = 1 as uint32_t;
+    *to.offset(0) = info;
+    i = 1;
 
     while i < size_to_copy {
         *to.offset(i as isize) = *from.offset(i as isize);
@@ -182,9 +182,9 @@ unsafe fn copyPart(
     }
 
     *p = to as *mut StgClosure;
-    (*src).header.info = (to as StgWord | 1 as StgWord) as *const StgInfoTable;
+    (*src).header.info = (to as StgWord | 1) as *const StgInfoTable;
 
-    return r#true != 0;
+    return true;
 }
 
 #[inline(always)]
@@ -192,10 +192,10 @@ unsafe fn copy(
     mut p: *mut *mut StgClosure,
     mut info: *const StgInfoTable,
     mut src: *mut StgClosure,
-    mut size: uint32_t,
-    mut gen_no: uint32_t,
+    mut size: u32,
+    mut gen_no: u32,
 ) {
-    copy_tag(p, info, src, size, gen_no, 0 as StgWord);
+    copy_tag(p, info, src, size, gen_no, 0);
 }
 
 #[inline(never)]
@@ -203,31 +203,31 @@ unsafe fn evacuate_large(mut p: StgPtr) {
     let mut bd = null_mut::<bdescr>();
     let mut r#gen = null_mut::<generation>();
     let mut new_gen = null_mut::<generation>();
-    let mut gen_no: uint32_t = 0;
-    let mut new_gen_no: uint32_t = 0;
+    let mut gen_no: u32 = 0;
+    let mut new_gen_no: u32 = 0;
     let mut ws = null_mut::<gen_workspace>();
     bd = Bdescr(p);
     r#gen = (*bd).r#gen as *mut generation;
-    gen_no = (*bd).gen_no as uint32_t;
+    gen_no = (*bd).gen_no as u32;
 
-    if (*bd).flags as c_int & BF_EVACUATED != 0 {
+    if (*bd).flags as i32 & BF_EVACUATED != 0 {
         if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
         }
 
         return;
     }
 
     dbl_link_remove(bd, &raw mut (*r#gen).large_objects);
-    new_gen_no = (*bd).dest_no as uint32_t;
+    new_gen_no = (*bd).dest_no as u32;
 
-    if deadlock_detect_gc as c_long != 0 {
+    if deadlock_detect_gc as i64 != 0 {
         new_gen_no = (*oldest_gen).no;
     } else if new_gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
         if (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion {
             new_gen_no = (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no;
         } else {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
         }
     }
 
@@ -236,12 +236,10 @@ unsafe fn evacuate_large(mut p: StgPtr) {
     new_gen = generations.offset(new_gen_no as isize) as *mut generation;
     (&raw mut (*bd).flags).or(BF_EVACUATED as StgWord16, Ordering::AcqRel);
 
-    if (RtsFlags.GcFlags.useNonmoving as c_int != 0 && new_gen == oldest_gen) as c_int as c_long
-        != 0
-    {
+    if (RtsFlags.GcFlags.useNonmoving as i32 != 0 && new_gen == oldest_gen) as i32 as i64 != 0 {
         (&raw mut (*bd).flags).or(BF_NONMOVING as StgWord16, Ordering::AcqRel);
 
-        if major_gc as c_int != 0 && !deadlock_detect_gc {
+        if major_gc as i32 != 0 && !deadlock_detect_gc {
             markQueuePushClosureGC(
                 &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
                     .upd_rem_set
@@ -253,7 +251,7 @@ unsafe fn evacuate_large(mut p: StgPtr) {
 
     initBdescr(bd, new_gen, (*new_gen).to as *mut generation);
 
-    if (*bd).flags as c_int & BF_PINNED != 0 {
+    if (*bd).flags as i32 & BF_PINNED != 0 {
         new_gen != r#gen;
         dbl_link_onto(bd, &raw mut (*new_gen).scavenged_large_objects);
         (*new_gen).n_scavenged_large_blocks = (*new_gen)
@@ -268,8 +266,8 @@ unsafe fn evacuate_large(mut p: StgPtr) {
 
 #[inline]
 unsafe fn evacuate_static_object(mut link_field: *mut *mut StgClosure, mut q: *mut StgClosure) {
-    if RtsFlags.GcFlags.useNonmoving as c_long != 0 {
-        if major_gc as c_int != 0 && !deadlock_detect_gc {
+    if RtsFlags.GcFlags.useNonmoving as i64 != 0 {
+        if major_gc as i32 != 0 && !deadlock_detect_gc {
             markQueuePushClosureGC(
                 &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
                     .upd_rem_set
@@ -283,7 +281,7 @@ unsafe fn evacuate_static_object(mut link_field: *mut *mut StgClosure, mut q: *m
 
     let mut link: StgWord = *(link_field as *mut StgWord);
 
-    if link & STATIC_BITS as StgWord | prev_static_flag as StgWord != 3 as StgWord {
+    if link & STATIC_BITS as StgWord | prev_static_flag as StgWord != 3 {
         let mut new_list_head: StgWord = q as StgWord | static_flag as StgWord;
         *link_field = (*(&raw mut the_gc_thread as *mut gc_thread)).static_objects;
 
@@ -298,14 +296,14 @@ unsafe fn evacuate_compact(mut p: StgPtr) {
     let mut bd = null_mut::<bdescr>();
     let mut r#gen = null_mut::<generation>();
     let mut new_gen = null_mut::<generation>();
-    let mut gen_no: uint32_t = 0;
-    let mut new_gen_no: uint32_t = 0;
+    let mut gen_no: u32 = 0;
+    let mut new_gen_no: u32 = 0;
     str = objectGetCompact(p as *mut StgClosure);
     bd = Bdescr(str as StgPtr);
-    gen_no = (*bd).gen_no as uint32_t;
+    gen_no = (*bd).gen_no as u32;
 
-    if (*bd).flags as c_int & BF_NONMOVING != 0 {
-        if major_gc as c_int != 0 && !deadlock_detect_gc {
+    if (*bd).flags as i32 & BF_NONMOVING != 0 {
+        if major_gc as i32 != 0 && !deadlock_detect_gc {
             markQueuePushClosureGC(
                 &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
                     .upd_rem_set
@@ -317,52 +315,47 @@ unsafe fn evacuate_compact(mut p: StgPtr) {
         return;
     }
 
-    if (*bd).flags as c_int & BF_EVACUATED != 0 {
-        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.compact as c_long != 0 {
-            trace_(
-                b"Compact %p already evacuated\0" as *const u8 as *const c_char as *mut c_char,
-                str,
-            );
+    if (*bd).flags as i32 & BF_EVACUATED != 0 {
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.compact as i64 != 0 {
+            trace_(c"Compact %p already evacuated".as_ptr(), str);
         }
 
         if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
         }
 
         return;
     }
 
     r#gen = (*bd).r#gen as *mut generation;
-    gen_no = (*bd).gen_no as uint32_t;
+    gen_no = (*bd).gen_no as u32;
 
-    if (*bd).flags as c_int & BF_EVACUATED != 0 {
+    if (*bd).flags as i32 & BF_EVACUATED != 0 {
         if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
         }
 
         return;
     }
 
     dbl_link_remove(bd, &raw mut (*r#gen).compact_objects);
-    new_gen_no = (*bd).dest_no as uint32_t;
+    new_gen_no = (*bd).dest_no as u32;
 
     if new_gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
         if (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion {
             new_gen_no = (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no;
         } else {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
         }
     }
 
     new_gen = generations.offset(new_gen_no as isize) as *mut generation;
-    (*bd).flags = ((*bd).flags as c_int | BF_EVACUATED) as StgWord16;
+    (*bd).flags = ((*bd).flags as i32 | BF_EVACUATED) as StgWord16;
 
-    if (RtsFlags.GcFlags.useNonmoving as c_int != 0 && new_gen == oldest_gen) as c_int as c_long
-        != 0
-    {
+    if (RtsFlags.GcFlags.useNonmoving as i32 != 0 && new_gen == oldest_gen) as i32 as i64 != 0 {
         (&raw mut (*bd).flags).or(BF_NONMOVING as StgWord16, Ordering::Relaxed);
 
-        if major_gc as c_int != 0 && !deadlock_detect_gc {
+        if major_gc as i32 != 0 && !deadlock_detect_gc {
             markQueuePushClosureGC(
                 &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
                     .upd_rem_set
@@ -392,7 +385,7 @@ unsafe fn evacuate_compact(mut p: StgPtr) {
 
 unsafe fn evacuate(mut p: *mut *mut StgClosure) {
     let mut bd = null_mut::<bdescr>();
-    let mut gen_no: uint32_t = 0;
+    let mut gen_no: u32 = 0;
     let mut q = null_mut::<StgClosure>();
     let mut info = null::<StgInfoTable>();
     let mut tag: StgWord = 0;
@@ -407,7 +400,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                 return;
             }
 
-            if unload_mark_needed as c_long != 0 {
+            if unload_mark_needed as i64 != 0 {
                 markObjectCode(q as *const c_void);
             }
 
@@ -415,10 +408,9 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
 
             match (*info).r#type {
                 21 => {
-                    if (*info).srt != 0 as StgSRTField {
+                    if (*info).srt != 0 {
                         evacuate_static_object(
-                            (&raw mut (*q).payload as *mut *mut StgClosure_)
-                                .offset(1 as c_int as isize)
+                            (&raw mut (*q).payload as *mut *mut StgClosure_).offset(1)
                                 as *mut *mut StgClosure,
                             q,
                         );
@@ -427,9 +419,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     return;
                 }
                 14 => {
-                    if (*info).srt != 0 as StgSRTField
-                        || (*info).layout.payload.ptrs != 0 as StgHalfWord
-                    {
+                    if (*info).srt != 0 || (*info).layout.payload.ptrs != 0 {
                         evacuate_static_object(STATIC_LINK(info, q), q);
                     }
 
@@ -437,7 +427,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                 }
                 28 => {
                     evacuate_static_object(
-                        (&raw mut (*q).payload as *mut *mut StgClosure_).offset(1 as c_int as isize)
+                        (&raw mut (*q).payload as *mut *mut StgClosure_).offset(1)
                             as *mut *mut StgClosure,
                         q,
                     );
@@ -451,9 +441,8 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                 3 | 6 | 7 => return,
                 _ => {
                     barf(
-                        b"evacuate(static): strange closure type %d\0" as *const u8
-                            as *const c_char,
-                        (*info).r#type as c_int,
+                        c"evacuate(static): strange closure type %d".as_ptr(),
+                        (*info).r#type as i32,
                     );
                 }
             }
@@ -461,13 +450,11 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
 
         bd = Bdescr(q as StgPtr);
 
-        let mut flags: uint16_t = (*bd).flags;
+        let mut flags: u16 = (*bd).flags;
 
-        if flags as c_int & (BF_LARGE | BF_MARKED | BF_EVACUATED | BF_COMPACT | BF_NONMOVING)
-            != 0 as c_int
-        {
-            if ((*bd).flags as c_int & 1024 as c_int) as c_long != 0 {
-                if major_gc as c_int != 0 && !deadlock_detect_gc {
+        if flags as i32 & (BF_LARGE | BF_MARKED | BF_EVACUATED | BF_COMPACT | BF_NONMOVING) != 0 {
+            if ((*bd).flags as i32 & 1024) as i64 != 0 {
+                if major_gc as i32 != 0 && !deadlock_detect_gc {
                     markQueuePushClosureGC(
                         &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
                             .upd_rem_set
@@ -479,22 +466,21 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                 return;
             }
 
-            if flags as c_int & BF_EVACUATED != 0 {
-                if ((*bd).gen_no as uint32_t)
-                    < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no
+            if flags as i32 & BF_EVACUATED != 0 {
+                if ((*bd).gen_no as u32) < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no
                 {
-                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 }
 
                 return;
             }
 
-            if flags as c_int & BF_COMPACT != 0 {
+            if flags as i32 & BF_COMPACT != 0 {
                 evacuate_compact(q as StgPtr);
                 return;
             }
 
-            if flags as c_int & BF_LARGE != 0 {
+            if flags as i32 & BF_LARGE != 0 {
                 evacuate_large(q as StgPtr);
                 return;
             }
@@ -507,18 +493,18 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
             return;
         }
 
-        gen_no = (*bd).dest_no as uint32_t;
+        gen_no = (*bd).dest_no as u32;
         info = (*q).header.info;
 
-        if info as StgWord & 1 as StgWord != 0 as StgWord {
+        if info as StgWord & 1 != 0 {
             let mut e = (info as StgWord).wrapping_sub(1 as StgWord) as *mut StgClosure;
             *p = TAG_CLOSURE(tag, e);
 
             if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-                if ((*Bdescr(e as StgPtr)).gen_no as uint32_t)
+                if ((*Bdescr(e as StgPtr)).gen_no as u32)
                     < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no
                 {
-                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 }
             }
 
@@ -528,22 +514,19 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
         match (*INFO_PTR_TO_STRUCT(info)).r#type {
             58 => {}
             3 => {
-                let mut w: StgWord = *(&raw mut (*q).payload as *mut *mut StgClosure_)
-                    .offset(0 as c_int as isize) as StgWord;
+                let mut w: StgWord =
+                    *(&raw mut (*q).payload as *mut *mut StgClosure_).offset(0) as StgWord;
 
                 if info == (*ghc_hs_iface).Czh_con_info && w as StgChar <= MAX_CHARLIKE as StgChar {
                     *p = TAG_CLOSURE(
                         tag,
-                        CHARLIKE_CLOSURE(w as StgChar as c_int) as *mut StgClosure,
+                        CHARLIKE_CLOSURE(w as StgChar as i32) as *mut StgClosure,
                     );
                 } else if info == (*ghc_hs_iface).Izh_con_info
                     && w as StgInt >= MIN_INTLIKE as StgInt
                     && w as StgInt <= MAX_INTLIKE as StgInt
                 {
-                    *p = TAG_CLOSURE(
-                        tag,
-                        INTLIKE_CLOSURE(w as StgInt as c_int) as *mut StgClosure,
-                    );
+                    *p = TAG_CLOSURE(tag, INTLIKE_CLOSURE(w as StgInt as i32) as *mut StgClosure);
                 } else {
                     copy_tag(
                         p,
@@ -553,7 +536,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                             .wrapping_add(size_of::<W_>() as usize)
                             .wrapping_sub(1 as usize)
                             .wrapping_div(size_of::<W_>() as usize)
-                            .wrapping_add(1 as usize) as uint32_t,
+                            .wrapping_add(1 as usize) as u32,
                         gen_no,
                         tag,
                     );
@@ -570,7 +553,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                         .wrapping_add(size_of::<W_>() as usize)
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize)
-                        .wrapping_add(1 as usize) as uint32_t,
+                        .wrapping_add(1 as usize) as u32,
                     gen_no,
                     tag,
                 );
@@ -586,7 +569,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                         .wrapping_add(size_of::<W_>() as usize)
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize)
-                        .wrapping_add(1 as usize) as uint32_t,
+                        .wrapping_add(1 as usize) as u32,
                     gen_no,
                 );
 
@@ -601,7 +584,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                         .wrapping_add(size_of::<W_>() as usize)
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize)
-                        .wrapping_add(2 as usize) as uint32_t,
+                        .wrapping_add(2 as usize) as u32,
                     gen_no,
                 );
 
@@ -616,7 +599,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                         .wrapping_add(size_of::<W_>() as usize)
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize)
-                        .wrapping_add(2 as usize) as uint32_t,
+                        .wrapping_add(2 as usize) as u32,
                     gen_no,
                     tag,
                 );
@@ -632,7 +615,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                         .wrapping_add(size_of::<W_>() as usize)
                         .wrapping_sub(1 as usize)
                         .wrapping_div(size_of::<W_>() as usize)
-                        .wrapping_add(2 as usize) as uint32_t,
+                        .wrapping_add(2 as usize) as u32,
                     gen_no,
                     tag,
                 );
@@ -644,7 +627,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     p,
                     info,
                     q,
-                    thunk_sizeW_fromITBL(INFO_PTR_TO_STRUCT(info)) as uint32_t,
+                    thunk_sizeW_fromITBL(INFO_PTR_TO_STRUCT(info)) as u32,
                     gen_no,
                 );
 
@@ -655,7 +638,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     p,
                     info,
                     q,
-                    sizeW_fromITBL(INFO_PTR_TO_STRUCT(info)) as uint32_t,
+                    sizeW_fromITBL(INFO_PTR_TO_STRUCT(info)) as u32,
                     gen_no,
                     tag,
                 );
@@ -667,10 +650,10 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                 let mut i = null::<StgInfoTable>();
                 r = (*(q as *mut StgInd)).indirectee;
 
-                if GET_CLOSURE_TAG(r) == 0 as StgWord {
+                if GET_CLOSURE_TAG(r) == 0 {
                     i = (*r).header.info;
 
-                    if i as StgWord & 1 as StgWord != 0 as StgWord {
+                    if i as StgWord & 1 != 0 {
                         r = (i as StgWord).wrapping_sub(1 as StgWord) as *mut StgClosure;
                         i = (*r).header.info;
                     }
@@ -688,7 +671,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                                 .wrapping_add(size_of::<W_>() as usize)
                                 .wrapping_sub(1 as usize)
                                 .wrapping_div(size_of::<W_>() as usize)
-                                as uint32_t,
+                                as u32,
                             gen_no,
                         );
 
@@ -704,18 +687,18 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     p,
                     info,
                     q,
-                    sizeW_fromITBL(INFO_PTR_TO_STRUCT(info)) as uint32_t,
+                    sizeW_fromITBL(INFO_PTR_TO_STRUCT(info)) as u32,
                     gen_no,
                 );
 
                 return;
             }
             23 => {
-                copy(p, info, q, bco_sizeW(q as *mut StgBCO) as uint32_t, gen_no);
+                copy(p, info, q, bco_sizeW(q as *mut StgBCO) as u32, gen_no);
                 return;
             }
             22 => {
-                eval_thunk_selector(p, q as *mut StgSelector, r#true != 0);
+                eval_thunk_selector(p, q as *mut StgSelector, true);
                 return;
             }
             27 => {
@@ -723,17 +706,14 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                 *p = q;
             }
             29 | 30 | 31 | 33 | 35 | 36 | 34 | 57 | 56 | 55 | 65 => {
-                barf(
-                    b"evacuate: stack frame at %p\n\0" as *const u8 as *const c_char,
-                    q,
-                );
+                barf(c"evacuate: stack frame at %p\n".as_ptr(), q);
             }
             25 => {
-                copy(p, info, q, pap_sizeW(q as *mut StgPAP) as uint32_t, gen_no);
+                copy(p, info, q, pap_sizeW(q as *mut StgPAP) as u32, gen_no);
                 return;
             }
             24 => {
-                copy(p, info, q, ap_sizeW(q as *mut StgAP) as uint32_t, gen_no);
+                copy(p, info, q, ap_sizeW(q as *mut StgAP) as u32, gen_no);
                 return;
             }
             26 => {
@@ -741,10 +721,9 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     p,
                     info,
                     q,
-                    ap_stack_sizeW(q as *mut StgAP_STACK) as uint32_t,
+                    ap_stack_sizeW(q as *mut StgAP_STACK) as u32,
                     gen_no,
                 );
-
                 return;
             }
             42 => {
@@ -752,10 +731,9 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     p,
                     info,
                     q,
-                    arr_words_sizeW(q as *mut StgArrBytes) as uint32_t,
+                    arr_words_sizeW(q as *mut StgArrBytes) as u32,
                     gen_no,
                 );
-
                 return;
             }
             43 | 44 | 46 | 45 => {
@@ -763,7 +741,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     p,
                     info,
                     q,
-                    mut_arr_ptrs_sizeW(q as *mut StgMutArrPtrs) as uint32_t,
+                    mut_arr_ptrs_sizeW(q as *mut StgMutArrPtrs) as u32,
                     gen_no,
                 );
 
@@ -774,7 +752,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     p,
                     info,
                     q,
-                    small_mut_arr_ptrs_sizeW(q as *mut StgSmallMutArrPtrs) as uint32_t,
+                    small_mut_arr_ptrs_sizeW(q as *mut StgSmallMutArrPtrs) as u32,
                     gen_no,
                 );
 
@@ -788,7 +766,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     (size_of::<StgTSO>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
                         .wrapping_sub(1 as usize)
-                        .wrapping_div(size_of::<W_>() as usize) as uint32_t,
+                        .wrapping_div(size_of::<W_>() as usize) as u32,
                     gen_no,
                 );
 
@@ -804,11 +782,11 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                 mine = copyPart(
                     p,
                     stack as *mut StgClosure,
-                    stack_sizeW(stack) as uint32_t,
+                    stack_sizeW(stack) as u32,
                     (size_of::<StgStack>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
                         .wrapping_sub(1 as usize)
-                        .wrapping_div(size_of::<W_>() as usize) as uint32_t,
+                        .wrapping_div(size_of::<W_>() as usize) as u32,
                     gen_no,
                 );
 
@@ -841,7 +819,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     (size_of::<StgTRecChunk>() as usize)
                         .wrapping_add(size_of::<W_>() as usize)
                         .wrapping_sub(1 as usize)
-                        .wrapping_div(size_of::<W_>() as usize) as uint32_t,
+                        .wrapping_div(size_of::<W_>() as usize) as u32,
                     gen_no,
                 );
 
@@ -852,7 +830,7 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     p,
                     info,
                     q,
-                    continuation_sizeW(q as *mut StgContinuation) as uint32_t,
+                    continuation_sizeW(q as *mut StgContinuation) as u32,
                     gen_no,
                 );
 
@@ -860,8 +838,8 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
             }
             _ => {
                 barf(
-                    b"evacuate: strange closure type %d\0" as *const u8 as *const c_char,
-                    (*INFO_PTR_TO_STRUCT(info)).r#type as c_int,
+                    c"evacuate: strange closure type %d".as_ptr(),
+                    (*INFO_PTR_TO_STRUCT(info)).r#type as i32,
                 );
             }
         }
@@ -870,16 +848,16 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
 
 unsafe fn evacuate_BLACKHOLE(mut p: *mut *mut StgClosure) {
     let mut bd = null_mut::<bdescr>();
-    let mut gen_no: uint32_t = 0;
+    let mut gen_no: u32 = 0;
     let mut q = null_mut::<StgClosure>();
     let mut info = null::<StgInfoTable>();
     q = *p;
     bd = Bdescr(q as StgPtr);
 
-    let flags: uint16_t = (*bd).flags;
+    let flags: u16 = (*bd).flags;
 
-    if ((*bd).flags as c_int & 1024 as c_int) as c_long != 0 {
-        if major_gc as c_int != 0 && !deadlock_detect_gc {
+    if ((*bd).flags as i32 & 1024) as i64 != 0 {
+        if major_gc as i32 != 0 && !deadlock_detect_gc {
             markQueuePushClosureGC(
                 &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
                     .upd_rem_set
@@ -891,20 +869,20 @@ unsafe fn evacuate_BLACKHOLE(mut p: *mut *mut StgClosure) {
         return;
     }
 
-    if flags as c_int & BF_LARGE != 0 {
+    if flags as i32 & BF_LARGE != 0 {
         evacuate_large(q as StgPtr);
         return;
     }
 
-    if flags as c_int & BF_EVACUATED != 0 {
-        if ((*bd).gen_no as uint32_t) < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+    if flags as i32 & BF_EVACUATED != 0 {
+        if ((*bd).gen_no as u32) < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
+            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
         }
 
         return;
     }
 
-    if flags as c_int & BF_MARKED != 0 {
+    if flags as i32 & BF_MARKED != 0 {
         if is_marked(q as StgPtr, bd) == 0 {
             mark(q as StgPtr, bd);
             push_mark_stack(q as StgPtr);
@@ -913,18 +891,18 @@ unsafe fn evacuate_BLACKHOLE(mut p: *mut *mut StgClosure) {
         return;
     }
 
-    gen_no = (*bd).dest_no as uint32_t;
+    gen_no = (*bd).dest_no as u32;
     info = (*q).header.info;
 
-    if info as StgWord & 1 as StgWord != 0 as StgWord {
+    if info as StgWord & 1 != 0 {
         let mut e = (info as StgWord).wrapping_sub(1 as StgWord) as *mut StgClosure;
         *p = e;
 
         if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-            if ((*Bdescr(e as StgPtr)).gen_no as uint32_t)
+            if ((*Bdescr(e as StgPtr)).gen_no as u32)
                 < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no
             {
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
             }
         }
 
@@ -938,7 +916,7 @@ unsafe fn evacuate_BLACKHOLE(mut p: *mut *mut StgClosure) {
         (size_of::<StgInd>() as usize)
             .wrapping_add(size_of::<W_>() as usize)
             .wrapping_sub(1 as usize)
-            .wrapping_div(size_of::<W_>() as usize) as uint32_t,
+            .wrapping_div(size_of::<W_>() as usize) as u32,
         gen_no,
     );
 }
@@ -946,12 +924,11 @@ unsafe fn evacuate_BLACKHOLE(mut p: *mut *mut StgClosure) {
 unsafe fn unchain_thunk_selectors(mut p: *mut StgSelector, mut val: *mut StgClosure) {
     while !p.is_null() {
         let mut prev = *(&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-            .offset(0 as c_int as isize) as *mut StgSelector;
+            .offset(0) as *mut StgSelector;
 
         if p as *mut StgClosure == val {
-            let ref mut fresh12 = *(&raw mut (*(p as *mut StgThunk)).payload
-                as *mut *mut StgClosure_)
-                .offset(0 as c_int as isize);
+            let ref mut fresh12 =
+                *(&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0);
             *fresh12 = val as *mut StgClosure_;
             SET_INFO_RELEASE(p as *mut StgClosure, &raw const stg_sel_0_upd_info);
         } else {
@@ -967,7 +944,7 @@ unsafe fn unchain_thunk_selectors(mut p: *mut StgSelector, mut val: *mut StgClos
 unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, mut evac: bool) {
     let mut val: *mut StgClosure = null_mut::<StgClosure>();
     let mut current_block: u64;
-    let mut field: uint32_t = 0;
+    let mut field: u32 = 0;
     let mut info = null_mut::<StgInfoTable>();
     let mut info_ptr: StgWord = 0;
     let mut selectee = null_mut::<StgClosure>();
@@ -979,12 +956,12 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
         bd = Bdescr(p as StgPtr);
 
         if p as W_ >= mblock_address_space.0.begin && (p as W_) < mblock_address_space.0.end {
-            let flags: uint16_t = (*bd).flags;
+            let flags: u16 = (*bd).flags;
 
-            if flags as c_int & (BF_EVACUATED | BF_NONMOVING) != 0 {
+            if flags as i32 & (BF_EVACUATED | BF_NONMOVING) != 0 {
                 unchain_thunk_selectors(prev_thunk_selector, p as *mut StgClosure);
 
-                if flags as c_int & BF_NONMOVING != 0 {
+                if flags as i32 & BF_NONMOVING != 0 {
                     markQueuePushClosureGC(
                         &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
                             .upd_rem_set
@@ -995,17 +972,17 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
 
                 *q = p as *mut StgClosure;
 
-                if evac as c_int != 0
-                    && ((*bd).gen_no as uint32_t)
+                if evac as i32 != 0
+                    && ((*bd).gen_no as u32)
                         < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no
                 {
-                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#true != 0;
+                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
                 }
 
                 return;
             }
 
-            if flags as c_int & BF_MARKED != 0 {
+            if flags as i32 & BF_MARKED != 0 {
                 *q = p as *mut StgClosure;
 
                 if evac {
@@ -1021,13 +998,13 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
         SET_INFO(p as *mut StgClosure, &raw const stg_WHITEHOLE_info);
         field = (*INFO_PTR_TO_STRUCT(info_ptr as *mut StgInfoTable))
             .layout
-            .selector_offset as uint32_t;
+            .selector_offset as u32;
         selectee = UNTAG_CLOSURE((*p).selectee);
 
         loop {
             info = *(&raw mut (*selectee).header.info as *mut *mut StgInfoTable);
 
-            if info as StgWord & 1 as StgWord != 0 as StgWord {
+            if info as StgWord & 1 != 0 {
                 current_block = 17090990969405305017;
                 break '_selector_chain;
             } else {
@@ -1047,10 +1024,10 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
                         let mut i = null::<StgInfoTable>();
                         r = (*(selectee as *mut StgInd)).indirectee;
 
-                        if GET_CLOSURE_TAG(r) == 0 as StgWord {
+                        if GET_CLOSURE_TAG(r) == 0 {
                             i = (*r).header.info;
 
-                            if i as StgWord & 1 as StgWord != 0 as StgWord {
+                            if i as StgWord & 1 != 0 {
                                 r = (i as StgWord).wrapping_sub(1 as StgWord) as *mut StgClosure;
                                 i = (*r).header.info;
                             }
@@ -1092,7 +1069,7 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
                             eval_thunk_selector(
                                 &raw mut val_0,
                                 selectee as *mut StgSelector,
-                                r#false != 0,
+                                false,
                             );
 
                             let ref mut fresh11 =
@@ -1113,9 +1090,8 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
                     }
                     _ => {
                         barf(
-                            b"eval_thunk_selector: strange selectee %d\0" as *const u8
-                                as *const c_char,
-                            (*info).r#type as c_int,
+                            c"eval_thunk_selector: strange selectee %d".as_ptr(),
+                            (*info).r#type as i32,
                         );
                     }
                 }
@@ -1130,7 +1106,7 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
             .header
             .info as *mut StgWord);
 
-            if info_ptr & 1 as StgWord != 0 as StgWord {
+            if info_ptr & 1 != 0 {
                 current_block = 7427571413727699167;
                 break '_selector_chain;
             }
@@ -1151,8 +1127,8 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
             val = (*(val as *mut StgInd)).indirectee;
         }
 
-        let ref mut fresh8 = *(&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
-            .offset(0 as c_int as isize);
+        let ref mut fresh8 =
+            *(&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0);
         *fresh8 = prev_thunk_selector as *mut StgClosure as *mut StgClosure_;
         prev_thunk_selector = p;
         p = val as *mut StgSelector;
@@ -1168,8 +1144,8 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
                     q,
                     info_ptr as *const StgInfoTable,
                     p as *mut StgClosure,
-                    THUNK_SELECTOR_sizeW() as uint32_t,
-                    (*bd).dest_no as uint32_t,
+                    THUNK_SELECTOR_sizeW() as u32,
+                    (*bd).dest_no as u32,
                 );
             }
 
@@ -1186,9 +1162,8 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
             return;
         }
         _ => {
-            let ref mut fresh9 = *(&raw mut (*(p as *mut StgClosure)).payload
-                as *mut *mut StgClosure_)
-                .offset(0 as c_int as isize);
+            let ref mut fresh9 =
+                *(&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0);
             *fresh9 = prev_thunk_selector as *mut StgClosure as *mut StgClosure_;
             prev_thunk_selector = p;
             *q = val;

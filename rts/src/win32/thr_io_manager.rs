@@ -14,15 +14,15 @@ mod tests;
 
 static mut io_manager_event: HANDLE = unsafe { INVALID_HANDLE_VALUE };
 
-const EVENT_BUFSIZ: c_int = 256 as c_int;
+const EVENT_BUFSIZ: i32 = 256;
 
 static mut event_buf_mutex: Mutex = _RTL_SRWLOCK {
-    Ptr: null::<c_void>() as *mut c_void,
+    Ptr: null_mut::<c_void>(),
 };
 
 static mut event_buf: [StgWord32; 256] = [0; 256];
 
-static mut next_event: uint32_t = 0;
+static mut next_event: u32 = 0;
 
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
@@ -34,13 +34,13 @@ pub unsafe extern "C" fn getIOManagerEvent() -> *mut c_void {
     if io_manager_event == INVALID_HANDLE_VALUE {
         hRes = CreateEventA(
             null_mut::<_SECURITY_ATTRIBUTES>(),
-            r#true,
-            r#false,
+            true,
+            false,
             null::<CHAR>(),
         );
 
         if hRes.is_null() {
-            sysErrorBelch(b"getIOManagerEvent\0" as *const u8 as *const c_char);
+            sysErrorBelch(c"getIOManagerEvent".as_ptr());
             stg_exit(EXIT_FAILURE);
         }
 
@@ -62,8 +62,8 @@ pub unsafe extern "C" fn readIOManagerEvent() -> HsWord32 {
     AcquireSRWLockExclusive(&raw mut event_buf_mutex);
 
     if io_manager_event != INVALID_HANDLE_VALUE {
-        if next_event == 0 as uint32_t {
-            res = 0 as HsWord32;
+        if next_event == 0 {
+            res = 0;
         } else {
             loop {
                 next_event = next_event.wrapping_sub(1);
@@ -74,9 +74,9 @@ pub unsafe extern "C" fn readIOManagerEvent() -> HsWord32 {
                 }
             }
 
-            if next_event == 0 as uint32_t {
+            if next_event == 0 {
                 if ResetEvent(io_manager_event) == 0 {
-                    sysErrorBelch(b"readIOManagerEvent\0" as *const u8 as *const c_char);
+                    sysErrorBelch(c"readIOManagerEvent".as_ptr());
                     stg_exit(EXIT_FAILURE);
                 }
             }
@@ -97,15 +97,15 @@ pub unsafe extern "C" fn sendIOManagerEvent(mut event: HsWord32) {
     AcquireSRWLockExclusive(&raw mut event_buf_mutex);
 
     if io_manager_event != INVALID_HANDLE_VALUE {
-        if next_event == EVENT_BUFSIZ as uint32_t {
-            errorBelch(b"event buffer overflowed; event dropped\0" as *const u8 as *const c_char);
+        if next_event == EVENT_BUFSIZ as u32 {
+            errorBelch(c"event buffer overflowed; event dropped".as_ptr());
         } else {
             let fresh28 = next_event;
             next_event = next_event.wrapping_add(1);
             event_buf[fresh28 as usize] = event;
 
             if SetEvent(io_manager_event) == 0 {
-                sysErrorBelch(b"sendIOManagerEvent: SetEvent\0" as *const u8 as *const c_char);
+                sysErrorBelch(c"sendIOManagerEvent: SetEvent".as_ptr());
                 stg_exit(EXIT_FAILURE);
             }
         }
@@ -145,7 +145,7 @@ unsafe fn ioManagerDie() {
 
 unsafe fn ioManagerStart() {
     initMutex(&raw mut event_buf_mutex);
-    next_event = 0 as uint32_t;
+    next_event = 0;
 
     let mut cap = null_mut::<Capability>();
 

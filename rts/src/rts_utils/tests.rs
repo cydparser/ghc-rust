@@ -69,21 +69,21 @@ fn equivalent_reportHeapOverflow() {
 fn test_genericRaise() {
     let g = &mut Gen::new(100);
 
-    let actual: c_int = {
-        let sig: c_int = Arbitrary::arbitrary(g);
+    let actual: i32 = {
+        let sig: i32 = Arbitrary::arbitrary(g);
         unsafe { genericRaise(sig) }
     };
 
-    let expected: c_int = todo!();
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
 #[cfg(feature = "sys")]
 #[quickcheck]
 #[ignore]
-fn equivalent_genericRaise(sig: c_int) -> bool {
-    let expected: c_int = { unsafe { sys::genericRaise(sig) } };
-    let actual: c_int = { unsafe { genericRaise(sig) } };
+fn equivalent_genericRaise(sig: i32) -> bool {
+    let expected: i32 = { unsafe { sys::genericRaise(sig) } };
+    let actual: i32 = { unsafe { genericRaise(sig) } };
     actual == expected
 }
 
@@ -91,8 +91,8 @@ fn equivalent_genericRaise(sig: c_int) -> bool {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn test_rts_isProfiled() {
-    let actual: c_int = { unsafe { rts_isProfiled() } };
-    let expected: c_int = todo!();
+    let actual: i32 = { unsafe { rts_isProfiled() } };
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -100,8 +100,8 @@ fn test_rts_isProfiled() {
 #[test]
 #[ignore]
 fn equivalent_rts_isProfiled() {
-    let expected: c_int = { unsafe { sys::rts_isProfiled() } };
-    let actual: c_int = { unsafe { rts_isProfiled() } };
+    let expected: i32 = { unsafe { sys::rts_isProfiled() } };
+    let actual: i32 = { unsafe { rts_isProfiled() } };
     assert_eq!(actual, expected);
 }
 
@@ -109,8 +109,8 @@ fn equivalent_rts_isProfiled() {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn test_rts_isDynamic() {
-    let actual: c_int = { unsafe { rts_isDynamic() } };
-    let expected: c_int = todo!();
+    let actual: i32 = { unsafe { rts_isDynamic() } };
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -118,8 +118,8 @@ fn test_rts_isDynamic() {
 #[test]
 #[ignore]
 fn equivalent_rts_isDynamic() {
-    let expected: c_int = { unsafe { sys::rts_isDynamic() } };
-    let actual: c_int = { unsafe { rts_isDynamic() } };
+    let expected: i32 = { unsafe { sys::rts_isDynamic() } };
+    let actual: i32 = { unsafe { rts_isDynamic() } };
     assert_eq!(actual, expected);
 }
 
@@ -127,8 +127,8 @@ fn equivalent_rts_isDynamic() {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn test_rts_isThreaded() {
-    let actual: c_int = { unsafe { rts_isThreaded() } };
-    let expected: c_int = todo!();
+    let actual: i32 = { unsafe { rts_isThreaded() } };
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -136,8 +136,8 @@ fn test_rts_isThreaded() {
 #[test]
 #[ignore]
 fn equivalent_rts_isThreaded() {
-    let expected: c_int = { unsafe { sys::rts_isThreaded() } };
-    let actual: c_int = { unsafe { rts_isThreaded() } };
+    let expected: i32 = { unsafe { sys::rts_isThreaded() } };
+    let actual: i32 = { unsafe { rts_isThreaded() } };
     assert_eq!(actual, expected);
 }
 
@@ -145,8 +145,8 @@ fn equivalent_rts_isThreaded() {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn test_rts_isDebugged() {
-    let actual: c_int = { unsafe { rts_isDebugged() } };
-    let expected: c_int = todo!();
+    let actual: i32 = { unsafe { rts_isDebugged() } };
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -154,8 +154,8 @@ fn test_rts_isDebugged() {
 #[test]
 #[ignore]
 fn equivalent_rts_isDebugged() {
-    let expected: c_int = { unsafe { sys::rts_isDebugged() } };
-    let actual: c_int = { unsafe { rts_isDebugged() } };
+    let expected: i32 = { unsafe { sys::rts_isDebugged() } };
+    let actual: i32 = { unsafe { rts_isDebugged() } };
     assert_eq!(actual, expected);
 }
 
@@ -163,8 +163,8 @@ fn equivalent_rts_isDebugged() {
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
 fn test_rts_isTracing() {
-    let actual: c_int = { unsafe { rts_isTracing() } };
-    let expected: c_int = todo!();
+    let actual: i32 = { unsafe { rts_isTracing() } };
+    let expected: i32 = todo!();
     assert_eq!(expected, actual);
 }
 
@@ -172,7 +172,7 @@ fn test_rts_isTracing() {
 #[test]
 #[ignore]
 fn equivalent_rts_isTracing() {
-    let expected: c_int = { unsafe { sys::rts_isTracing() } };
-    let actual: c_int = { unsafe { rts_isTracing() } };
+    let expected: i32 = { unsafe { sys::rts_isTracing() } };
+    let actual: i32 = { unsafe { rts_isTracing() } };
     assert_eq!(actual, expected);
 }

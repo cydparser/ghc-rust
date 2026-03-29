@@ -7,7 +7,7 @@ use crate::prelude::*;
 use crate::report_memory_map::reportMemoryMap;
 use crate::sm::os_mem::roundUpToPage;
 
-pub(crate) type MemoryAccess = c_uint;
+pub(crate) type MemoryAccess = u32;
 
 pub(crate) const MEM_READ_WRITE_EXECUTE: MemoryAccess = 5;
 
@@ -28,70 +28,62 @@ struct MemoryRegion {
     last: *mut c_void,
 }
 
-const TRY_MAP_32BIT: c_int = MAP_32BIT;
+const TRY_MAP_32BIT: i32 = MAP_32BIT;
 
 static mut mmap_32bit_base: *mut c_void = unsafe { &raw const stg_upd_frame_info as *mut c_void };
 
 unsafe fn initLinkerMMap() {
-    if RtsFlags.MiscFlags.linkerMemBase != 0 as StgWord {
+    if RtsFlags.MiscFlags.linkerMemBase != 0 {
         mmap_32bit_base = RtsFlags.MiscFlags.linkerMemBase as *mut c_void;
     }
 }
 
 unsafe fn memoryAccessDescription(mut mode: MemoryAccess) -> *const c_char {
-    match mode as c_uint {
-        0 => return b"no-access\0" as *const u8 as *const c_char,
-        1 => return b"read-only\0" as *const u8 as *const c_char,
-        2 => return b"read-write\0" as *const u8 as *const c_char,
+    match mode as u32 {
+        0 => return c"no-access".as_ptr(),
+        1 => return c"read-only".as_ptr(),
+        2 => return c"read-write".as_ptr(),
         3 => {
-            return b"read-write-then-read-execute\0" as *const u8 as *const c_char;
+            return c"read-write-then-read-execute".as_ptr();
         }
-        4 => return b"read-execute\0" as *const u8 as *const c_char,
-        5 => return b"read-write-execute\0" as *const u8 as *const c_char,
+        4 => return c"read-execute".as_ptr(),
+        5 => return c"read-write-execute".as_ptr(),
         _ => {
-            barf(b"invalid MemoryAccess\0" as *const u8 as *const c_char);
+            barf(c"invalid MemoryAccess".as_ptr());
         }
     };
 }
 
-unsafe fn memoryAccessToProt(mut access: MemoryAccess) -> c_int {
-    match access as c_uint {
-        0 => return 0 as c_int,
+unsafe fn memoryAccessToProt(mut access: MemoryAccess) -> i32 {
+    match access as u32 {
+        0 => return 0,
         1 => return PROT_READ,
         2 => return PROT_READ | PROT_WRITE,
         3 => return PROT_READ | PROT_WRITE,
         4 => return PROT_READ | PROT_EXEC,
         5 => return PROT_READ | PROT_WRITE | PROT_EXEC,
         _ => {
-            barf(b"invalid MemoryAccess\0" as *const u8 as *const c_char);
+            barf(c"invalid MemoryAccess".as_ptr());
         }
     };
 }
 
 unsafe fn doMmap(
     mut map_addr: *mut c_void,
-    mut bytes: size_t,
-    mut prot: c_int,
-    mut flags: uint32_t,
-    mut fd: c_int,
-    mut offset: c_int,
+    mut bytes: usize,
+    mut prot: i32,
+    mut flags: u32,
+    mut fd: i32,
+    mut offset: i32,
 ) -> *mut c_void {
-    flags |= MAP_PRIVATE as uint32_t;
+    flags |= MAP_PRIVATE as u32;
 
-    let mut result = mmap(map_addr, bytes, prot, flags as c_int, fd, offset as off_t);
+    let mut result = mmap(map_addr, bytes, prot, flags as i32, fd, offset as off_t);
 
     if result == MAP_FAILED {
-        sysErrorBelch(
-            b"mmap %zx bytes at %p\0" as *const u8 as *const c_char,
-            bytes,
-            map_addr,
-        );
-
+        sysErrorBelch(c"mmap %zx bytes at %p".as_ptr(), bytes, map_addr);
         reportMemoryMap();
-
-        errorBelch(
-            b"Try specifying an address with +RTS -xm<addr> -RTS\0" as *const u8 as *const c_char,
-        );
+        errorBelch(c"Try specifying an address with +RTS -xm<addr> -RTS".as_ptr());
 
         return NULL;
     }
@@ -108,8 +100,7 @@ unsafe fn nearImage() -> *mut MemoryRegion {
 
     if region.end.is_null() {
         region.start = mmap_32bit_base;
-        region.end =
-            (region.start as *mut uint8_t).offset(0x80000000 as c_uint as isize) as *mut c_void;
+        region.end = (region.start as *mut u8).offset(0x80000000) as *mut c_void;
         region.last = region.start;
     }
 
@@ -117,11 +108,11 @@ unsafe fn nearImage() -> *mut MemoryRegion {
 }
 
 unsafe fn mmapAnywhere(
-    mut bytes: size_t,
+    mut bytes: usize,
     mut access: MemoryAccess,
-    mut flags: uint32_t,
-    mut fd: c_int,
-    mut offset: c_int,
+    mut flags: u32,
+    mut fd: i32,
+    mut offset: i32,
 ) -> *mut c_void {
     let mut prot = memoryAccessToProt(access);
 
@@ -130,13 +121,13 @@ unsafe fn mmapAnywhere(
 
 unsafe fn mmapInRegion(
     mut region: *mut MemoryRegion,
-    mut bytes: size_t,
+    mut bytes: usize,
     mut access: MemoryAccess,
-    mut flags: uint32_t,
-    mut fd: c_int,
-    mut offset: c_int,
+    mut flags: u32,
+    mut fd: i32,
+    mut offset: i32,
 ) -> *mut c_void {
-    let mut wrapped = r#false != 0;
+    let mut wrapped = false;
     let mut prot = memoryAccessToProt(access);
     let mut p = (*region).last;
 
@@ -146,7 +137,7 @@ unsafe fn mmapInRegion(
         if result.is_null() {
             return NULL;
         } else if result >= (*region).start && result < (*region).end {
-            (*region).last = (result as *mut uint8_t).offset(bytes as isize) as *mut c_void;
+            (*region).last = (result as *mut u8).offset(bytes as isize) as *mut c_void;
 
             return result;
         } else if wrapped {
@@ -154,8 +145,8 @@ unsafe fn mmapInRegion(
             reportMemoryMap();
 
             errorBelch(
-                b"mmapForLinker: failed to mmap() memory between %p and %p; asked for %zu bytes at %p. Try specifying an address with +RTS -xm<addr> -RTS\0"
-                    as *const u8 as *const c_char,
+                c"mmapForLinker: failed to mmap() memory between %p and %p; asked for %zu bytes at %p. Try specifying an address with +RTS -xm<addr> -RTS"
+                    .as_ptr(),
                 (*region).start,
                 (*region).end,
                 bytes,
@@ -164,9 +155,9 @@ unsafe fn mmapInRegion(
 
             return NULL;
         } else if result < (*region).start {
-            p = (p as *mut uint8_t).offset(bytes as isize) as *mut c_void;
+            p = (p as *mut u8).offset(bytes as isize) as *mut c_void;
         } else if result >= (*region).end {
-            wrapped = r#true != 0;
+            wrapped = true;
             p = (*region).start;
         }
 
@@ -175,11 +166,11 @@ unsafe fn mmapInRegion(
 }
 
 unsafe fn mmapForLinker(
-    mut bytes: size_t,
+    mut bytes: usize,
     mut access: MemoryAccess,
-    mut flags: uint32_t,
-    mut fd: c_int,
-    mut offset: c_int,
+    mut flags: u32,
+    mut fd: i32,
+    mut offset: i32,
 ) -> *mut c_void {
     bytes = roundUpToPage(bytes);
 
@@ -191,8 +182,8 @@ unsafe fn mmapForLinker(
         region = nearImage();
     }
 
-    if !region.is_null() && (*region).end <= 0xffffffff as c_uint as *mut c_void {
-        flags |= TRY_MAP_32BIT as uint32_t;
+    if !region.is_null() && (*region).end <= 0xffffffff {
+        flags |= TRY_MAP_32BIT as u32;
     }
 
     let mut result = null_mut::<c_void>();
@@ -206,45 +197,44 @@ unsafe fn mmapForLinker(
     return result;
 }
 
-unsafe fn mmapAnon(mut bytes: size_t) -> *mut c_void {
+unsafe fn mmapAnon(mut bytes: usize) -> *mut c_void {
     return mmapAnywhere(
         bytes,
         MEM_READ_WRITE_THEN_READ_EXECUTE,
-        MAP_ANONYMOUS as uint32_t,
-        -(1 as c_int),
-        0 as c_int,
+        MAP_ANONYMOUS as u32,
+        -1,
+        0,
     );
 }
 
-unsafe fn mmapAnonForLinker(mut bytes: size_t) -> *mut c_void {
+unsafe fn mmapAnonForLinker(mut bytes: usize) -> *mut c_void {
     return mmapForLinker(
         bytes,
         MEM_READ_WRITE_THEN_READ_EXECUTE,
-        MAP_ANONYMOUS as uint32_t,
-        -(1 as c_int),
-        0 as c_int,
+        MAP_ANONYMOUS as u32,
+        -1,
+        0,
     );
 }
 
-unsafe fn munmapForLinker(mut addr: *mut c_void, mut bytes: size_t, mut caller: *const c_char) {
+unsafe fn munmapForLinker(mut addr: *mut c_void, mut bytes: usize, mut caller: *const c_char) {
     let mut r = munmap(addr, bytes);
 
-    if r == -(1 as c_int) {
-        sysErrorBelch(b"munmap: %s\0" as *const u8 as *const c_char, caller);
+    if r == -1 {
+        sysErrorBelch(c"munmap: %s".as_ptr(), caller);
     }
 }
 
-unsafe fn mprotectForLinker(mut start: *mut c_void, mut len: size_t, mut mode: MemoryAccess) {
-    if len == 0 as size_t {
+unsafe fn mprotectForLinker(mut start: *mut c_void, mut len: usize, mut mode: MemoryAccess) {
+    if len == 0 {
         return;
     }
 
     let mut prot = memoryAccessToProt(mode);
 
-    if mprotect(start, len, prot) == -(1 as c_int) {
+    if mprotect(start, len, prot) == -1 {
         sysErrorBelch(
-            b"mprotectForLinker: failed to protect %zd bytes at %p as %s\0" as *const u8
-                as *const c_char,
+            c"mprotectForLinker: failed to protect %zd bytes at %p as %s".as_ptr(),
             len,
             start,
             memoryAccessDescription(mode),

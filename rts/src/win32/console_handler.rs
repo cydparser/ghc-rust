@@ -11,7 +11,7 @@ use crate::win32::mio_manager::interruptIOManagerEvent;
 #[cfg(test)]
 mod tests;
 
-static mut deliver_event: bool = r#true != 0;
+static mut deliver_event: bool = true;
 
 static mut console_handler: StgInt = STG_SIG_DFL as StgInt;
 
@@ -25,41 +25,37 @@ unsafe fn finiUserSignals() {}
 
 unsafe fn shutdown_handler(mut dwCtrlType: DWORD) -> BOOL {
     match dwCtrlType {
-        2 => return r#false,
+        2 => return false,
         0 | 1 => {
-            if getSchedState() as c_uint >= SCHED_INTERRUPTING as c_int as c_uint {
+            if getSchedState() as u32 >= SCHED_INTERRUPTING as i32 as u32 {
                 stg_exit(EXIT_INTERRUPTED);
             } else {
                 interruptStgRts();
             }
 
-            return r#true;
+            return true;
         }
-        _ => return r#false,
+        _ => return false,
     };
 }
 
 unsafe fn initDefaultHandlers() {
     if SetConsoleCtrlHandler(
         Some(shutdown_handler as unsafe extern "C" fn(DWORD) -> BOOL),
-        r#true,
+        true,
     ) == 0
     {
-        errorBelch(
-            b"warning: failed to install default console handler\0" as *const u8 as *const c_char,
-        );
+        errorBelch(c"warning: failed to install default console handler".as_ptr());
     }
 }
 
 unsafe fn resetDefaultHandlers() {
     if SetConsoleCtrlHandler(
         Some(shutdown_handler as unsafe extern "C" fn(DWORD) -> BOOL),
-        r#false,
+        false,
     ) == 0
     {
-        errorBelch(
-            b"warning: failed to uninstall default console handler\0" as *const u8 as *const c_char,
-        );
+        errorBelch(c"warning: failed to uninstall default console handler".as_ptr());
     }
 }
 
@@ -67,70 +63,62 @@ unsafe fn resetDefaultHandlers() {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn blockUserSignals() {
-    deliver_event = r#false != 0;
+    deliver_event = false;
 }
 
 #[ffi(libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn unblockUserSignals() {
-    deliver_event = r#true != 0;
+    deliver_event = true;
 }
 
 unsafe fn awaitUserSignals() {}
 
 unsafe fn generic_handler(mut dwCtrlType: DWORD) -> BOOL {
     match dwCtrlType {
-        2 => return r#false,
+        2 => return false,
         _ => {
             if !deliver_event {
-                return r#true;
+                return true;
             }
 
-            sendIOManagerEvent((dwCtrlType << 1 as c_int | 1 as DWORD) as StgWord8 as HsWord32);
+            sendIOManagerEvent((dwCtrlType << 1 | 1) as StgWord8 as HsWord32);
             interruptIOManagerEvent();
 
-            return r#true;
+            return true;
         }
     };
 }
 
-unsafe fn rts_InstallConsoleEvent(mut action: c_int, mut handler: *mut StgStablePtr) -> c_int {
+unsafe fn rts_InstallConsoleEvent(mut action: i32, mut handler: *mut StgStablePtr) -> i32 {
     let mut previous_hdlr: StgInt = console_handler;
 
     match action {
         STG_SIG_IGN => {
             console_handler = STG_SIG_IGN as StgInt;
 
-            if SetConsoleCtrlHandler(None, r#true) == 0 {
-                errorBelch(
-                    b"warning: unable to ignore console events\0" as *const u8 as *const c_char,
-                );
+            if SetConsoleCtrlHandler(None, true) == 0 {
+                errorBelch(c"warning: unable to ignore console events".as_ptr());
             }
         }
         STG_SIG_DFL => {
             console_handler = STG_SIG_IGN as StgInt;
 
-            if SetConsoleCtrlHandler(None, r#false) == 0 {
-                errorBelch(
-                    b"warning: unable to restore default console event handling\0" as *const u8
-                        as *const c_char,
-                );
+            if SetConsoleCtrlHandler(None, false) == 0 {
+                errorBelch(c"warning: unable to restore default console event handling".as_ptr());
             }
         }
         STG_SIG_HAN => {
             console_handler = STG_SIG_HAN as StgInt;
 
-            if previous_hdlr < 0 as StgInt || previous_hdlr == STG_SIG_HAN as StgInt {
+            if previous_hdlr < 0 || previous_hdlr == STG_SIG_HAN as StgInt {
                 if SetConsoleCtrlHandler(
                     Some(generic_handler as unsafe extern "C" fn(DWORD) -> BOOL),
-                    r#true,
+                    true,
                 ) == 0
                 {
-                    errorBelch(
-                        b"warning: unable to install console event handler\0" as *const u8
-                            as *const c_char,
-                    );
+                    errorBelch(c"warning: unable to install console event handler".as_ptr());
                 }
             }
         }
@@ -141,7 +129,7 @@ unsafe fn rts_InstallConsoleEvent(mut action: c_int, mut handler: *mut StgStable
         || previous_hdlr == STG_SIG_IGN as StgInt
         || previous_hdlr == STG_SIG_HAN as StgInt
     {
-        return previous_hdlr as c_int;
+        return previous_hdlr as i32;
     } else {
         if !handler.is_null() {
             *handler = previous_hdlr as StgStablePtr;
@@ -151,4 +139,4 @@ unsafe fn rts_InstallConsoleEvent(mut action: c_int, mut handler: *mut StgStable
     };
 }
 
-unsafe fn rts_ConsoleHandlerDone(mut ev: c_int) {}
+unsafe fn rts_ConsoleHandlerDone(mut ev: i32) {}

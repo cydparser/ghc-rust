@@ -6,7 +6,7 @@ use crate::stable_ptr::freeStablePtr;
 #[cfg(test)]
 mod tests;
 
-type StoreKey = c_uint;
+type StoreKey = u32;
 
 const MaxStoreKey: StoreKey = 12;
 
@@ -34,23 +34,23 @@ const GHCConcWindowsPendingDelaysStore: StoreKey = 1;
 
 const GHCConcSignalSignalHandlerStore: StoreKey = 0;
 
-static mut store: [StgStablePtr; 12] = [null::<c_void>() as *mut c_void; 12];
+static mut store: [StgStablePtr; 12] = [null_mut::<c_void>(); 12];
 
 unsafe fn initGlobalStore() {
-    let mut i: uint32_t = 0;
-    i = 0 as uint32_t;
+    let mut i: u32 = 0;
+    i = 0;
 
-    while i < MaxStoreKey as c_int as uint32_t {
+    while i < MaxStoreKey as i32 as u32 {
         store[i as usize] = null_mut::<c_void>();
         i = i.wrapping_add(1);
     }
 }
 
 unsafe fn exitGlobalStore() {
-    let mut i: uint32_t = 0;
-    i = 0 as uint32_t;
+    let mut i: u32 = 0;
+    i = 0;
 
-    while i < MaxStoreKey as c_int as uint32_t {
+    while i < MaxStoreKey as i32 as u32 {
         if !store[i as usize].is_null() {
             freeStablePtr(store[i as usize]);
             store[i as usize] = null_mut::<c_void>();
@@ -177,8 +177,8 @@ pub unsafe extern "C" fn getOrSetLibHSghcGlobalHasNoStateHack(
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
-pub static mut ghc_unique_counter64: HsWord64 = 0 as HsWord64;
+pub static mut ghc_unique_counter64: HsWord64 = 0;
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
-pub static mut ghc_unique_inc: HsInt = 1 as HsInt;
+pub static mut ghc_unique_inc: HsInt = 1;

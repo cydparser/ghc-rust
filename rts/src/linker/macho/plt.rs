@@ -5,21 +5,21 @@ use crate::linker_internals::{ObjectCode, Section};
 use crate::prelude::*;
 use crate::rts_utils::{stgCallocBytes, stgFree};
 
-unsafe fn numberOfStubsForSection(mut oc: *mut ObjectCode, mut sectionIndex: c_uint) -> c_uint {
-    let mut n = 0 as c_uint;
+unsafe fn numberOfStubsForSection(mut oc: *mut ObjectCode, mut sectionIndex: u32) -> u32 {
+    let mut n = 0;
     let mut section: *mut MachOSection =
         (*(*oc).info).macho_sections.offset(sectionIndex as isize) as *mut MachOSection;
 
     let mut relocation_info =
         (*oc).image.offset((*section).reloff as isize) as *mut MachORelocationInfo;
 
-    if (*section).size > 0 as uint64_t {
-        let mut i: size_t = 0 as size_t;
+    if (*section).size > 0 {
+        let mut i: usize = 0;
 
-        while i < (*section).nreloc as size_t {
+        while i < (*section).nreloc as usize {
             if needStubForRelAarch64(relocation_info.offset(i as isize) as *mut MachORelocationInfo)
             {
-                n = n.wrapping_add(1 as c_uint);
+                n = n.wrapping_add(1 as u32);
             }
 
             i = i.wrapping_add(1);
@@ -29,15 +29,11 @@ unsafe fn numberOfStubsForSection(mut oc: *mut ObjectCode, mut sectionIndex: c_u
     return n;
 }
 
-unsafe fn findStub(
-    mut section: *mut Section,
-    mut addr: *mut *mut c_void,
-    mut flags: uint8_t,
-) -> bool {
+unsafe fn findStub(mut section: *mut Section, mut addr: *mut *mut c_void, mut flags: u8) -> bool {
     let mut s = (*(*section).info).stubs;
 
     while !s.is_null() {
-        if (*s).target == *addr && (*s).flags as c_int == flags as c_int {
+        if (*s).target == *addr && (*s).flags as i32 == flags as i32 {
             *addr = (*s).addr;
 
             return EXIT_SUCCESS != 0;
@@ -49,29 +45,18 @@ unsafe fn findStub(
     return EXIT_FAILURE != 0;
 }
 
-unsafe fn makeStub(
-    mut section: *mut Section,
-    mut addr: *mut *mut c_void,
-    mut flags: uint8_t,
-) -> bool {
-    let mut s = stgCallocBytes(
-        size_of::<Stub>() as size_t,
-        1 as size_t,
-        b"makeStub\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut Stub;
+unsafe fn makeStub(mut section: *mut Section, mut addr: *mut *mut c_void, mut flags: u8) -> bool {
+    let mut s = stgCallocBytes(size_of::<Stub>() as usize, 1, c"makeStub".as_ptr()) as *mut Stub;
 
-    if !s.is_null() as c_int as c_long != 0 {
+    if !s.is_null() as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/linker/macho/plt.c\0" as *const u8 as *const c_char,
-            55 as c_uint,
-        );
+        _assertFail(c"rts/linker/macho/plt.c".as_ptr(), 55);
     }
 
     (*s).target = *addr;
     (*s).flags = flags;
     (*s).next = null_mut::<_Stub>();
-    (*s).addr = ((*(*section).info).stub_offset as *mut uint8_t)
+    (*s).addr = ((*(*section).info).stub_offset as *mut u8)
         .offset(stubSizeAarch64.wrapping_mul((*(*section).info).nstubs) as isize)
         as *mut c_void;
 
@@ -85,12 +70,9 @@ unsafe fn makeStub(
     }
 
     if (*(*section).info).stubs.is_null() {
-        if ((*(*section).info).nstubs == 0 as size_t) as c_int as c_long != 0 {
+        if ((*(*section).info).nstubs == 0) as i32 as i64 != 0 {
         } else {
-            _assertFail(
-                b"rts/linker/macho/plt.c\0" as *const u8 as *const c_char,
-                65 as c_uint,
-            );
+            _assertFail(c"rts/linker/macho/plt.c".as_ptr(), 65);
         }
 
         (*(*section).info).stubs = s;
@@ -104,14 +86,14 @@ unsafe fn makeStub(
         (*tail).next = s as *mut _Stub;
     }
 
-    (*(*section).info).nstubs = (*(*section).info).nstubs.wrapping_add(1 as size_t);
+    (*(*section).info).nstubs = (*(*section).info).nstubs.wrapping_add(1 as usize);
     *addr = (*s).addr;
 
     return EXIT_SUCCESS != 0;
 }
 
 unsafe fn freeStubs(mut section: *mut Section) {
-    if section.is_null() || (*(*section).info).nstubs == 0 as size_t {
+    if section.is_null() || (*(*section).info).nstubs == 0 {
         return;
     }
 
@@ -124,5 +106,5 @@ unsafe fn freeStubs(mut section: *mut Section) {
     }
 
     (*(*section).info).stubs = null_mut::<Stub>();
-    (*(*section).info).nstubs = 0 as size_t;
+    (*(*section).info).nstubs = 0;
 }

@@ -20,7 +20,7 @@ use crate::sm::gc_utils::recordMutableGen_GC;
 use crate::sm::gct_decl::the_gc_thread;
 use crate::trace::{DEBUG_RTS, trace_};
 
-type WeakStage = c_uint;
+type WeakStage = u32;
 
 const WeakDone: WeakStage = 2;
 
@@ -31,13 +31,13 @@ const WeakPtrs: WeakStage = 0;
 static mut weak_stage: WeakStage = WeakPtrs;
 
 unsafe fn initWeakForGC() {
-    let mut oldest: uint32_t = N;
+    let mut oldest: u32 = N;
 
-    if RtsFlags.GcFlags.useNonmoving as c_int != 0 && N == (*oldest_gen).no {
-        oldest = (*oldest_gen).no.wrapping_sub(1 as uint32_t);
+    if RtsFlags.GcFlags.useNonmoving as i32 != 0 && N == (*oldest_gen).no {
+        oldest = (*oldest_gen).no.wrapping_sub(1 as u32);
     }
 
-    let mut g: uint32_t = 0 as uint32_t;
+    let mut g: u32 = 0;
 
     while g <= oldest {
         let mut r#gen: *mut generation = generations.offset(g as isize) as *mut generation;
@@ -53,41 +53,41 @@ unsafe fn traverseWeakPtrList(
     mut dead_weak_ptr_list: *mut *mut StgWeak,
     mut resurrected_threads: *mut *mut StgTSO,
 ) -> bool {
-    let mut flag = r#false != 0;
+    let mut flag = false;
 
-    match weak_stage as c_uint {
-        2 => return r#false != 0,
+    match weak_stage as u32 {
+        2 => return false,
         1 => {
-            let mut g: uint32_t = 0;
-            g = 0 as uint32_t;
+            let mut g: u32 = 0;
+            g = 0;
 
             while g <= N {
                 tidyThreadList(generations.offset(g as isize) as *mut generation);
                 g = g.wrapping_add(1);
             }
 
-            g = 0 as uint32_t;
+            g = 0;
 
             while g <= N {
                 if tidyWeakList(generations.offset(g as isize) as *mut generation) {
-                    flag = r#true != 0;
+                    flag = true;
                 }
 
                 g = g.wrapping_add(1);
             }
 
             if flag {
-                return r#true != 0;
+                return true;
             }
 
-            g = 0 as uint32_t;
+            g = 0;
 
             while g <= N {
                 if resurrectUnreachableThreads(
                     generations.offset(g as isize) as *mut generation,
                     resurrected_threads,
                 ) {
-                    flag = r#true != 0;
+                    flag = true;
                 }
 
                 g = g.wrapping_add(1);
@@ -96,28 +96,28 @@ unsafe fn traverseWeakPtrList(
             weak_stage = WeakPtrs;
 
             if flag {
-                return r#true != 0;
+                return true;
             }
         }
         0 => {}
         _ => {
-            barf(b"traverseWeakPtrList\0" as *const u8 as *const c_char);
+            barf(c"traverseWeakPtrList".as_ptr());
         }
     }
 
-    let mut g_0: uint32_t = 0;
-    g_0 = 0 as uint32_t;
+    let mut g_0: u32 = 0;
+    g_0 = 0;
 
     while g_0 <= N {
         if tidyWeakList(generations.offset(g_0 as isize) as *mut generation) {
-            flag = r#true != 0;
+            flag = true;
         }
 
         g_0 = g_0.wrapping_add(1);
     }
 
-    if flag as c_int == r#false {
-        g_0 = 0 as uint32_t;
+    if flag as i32 == false {
+        g_0 = 0;
 
         while g_0 <= N {
             collectDeadWeakPtrs(
@@ -131,7 +131,7 @@ unsafe fn traverseWeakPtrList(
         weak_stage = WeakDone;
     }
 
-    return r#true != 0;
+    return true;
 }
 
 unsafe fn collectDeadWeakPtrs(
@@ -161,13 +161,13 @@ unsafe fn resurrectUnreachableThreads(
 ) -> bool {
     let mut t = null_mut::<StgTSO>();
     let mut next = null_mut::<StgTSO>();
-    let mut flag = r#false != 0;
+    let mut flag = false;
     t = (*r#gen).old_threads;
 
     while t != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO {
         next = (*t).global_link as *mut StgTSO;
 
-        match (*t).what_next as c_int {
+        match (*t).what_next as i32 {
             ThreadKilled | ThreadComplete => {
                 (*t).global_link = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
                     as *mut StgTSO_;
@@ -177,7 +177,7 @@ unsafe fn resurrectUnreachableThreads(
                 evacuate(&raw mut tmp as *mut *mut StgClosure);
                 (*tmp).global_link = *resurrected_threads as *mut StgTSO_;
                 *resurrected_threads = tmp;
-                flag = r#true != 0;
+                flag = true;
             }
         }
 
@@ -190,8 +190,8 @@ unsafe fn resurrectUnreachableThreads(
 }
 
 unsafe fn tidyWeakList(mut r#gen: *mut generation) -> bool {
-    if RtsFlags.GcFlags.useNonmoving as c_int != 0 && r#gen == oldest_gen {
-        return r#false != 0;
+    if RtsFlags.GcFlags.useNonmoving as i32 != 0 && r#gen == oldest_gen {
+        return false;
     }
 
     let mut w = null_mut::<StgWeak>();
@@ -199,7 +199,7 @@ unsafe fn tidyWeakList(mut r#gen: *mut generation) -> bool {
     let mut next_w = null_mut::<StgWeak>();
     let mut info = null::<StgInfoTable>();
     let mut new = null_mut::<StgClosure>();
-    let mut flag = r#false != 0;
+    let mut flag = false;
     last_w = &raw mut (*r#gen).old_weak_ptr_list;
     w = (*r#gen).old_weak_ptr_list;
 
@@ -221,21 +221,15 @@ unsafe fn tidyWeakList(mut r#gen: *mut generation) -> bool {
                         (*w).key = new;
                         new_gen = (*Bdescr(w as StgPtr)).r#gen as *mut generation;
                         (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = (*new_gen).no;
-                        (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = r#false != 0;
+                        (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
                         scavengeLiveWeak(w);
 
                         if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
-                            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.weak as c_long != 0 {
-                                trace_(
-                                    b"putting weak pointer %p into mutable list\0" as *const u8
-                                        as *const c_char
-                                        as *mut c_char,
-                                    w,
-                                );
+                            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.weak as i64 != 0 {
+                                trace_(c"putting weak pointer %p into mutable list".as_ptr(), w);
                             }
 
-                            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac =
-                                r#false != 0;
+                            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
                             recordMutableGen_GC(w as *mut StgClosure, (*new_gen).no);
                         }
 
@@ -243,14 +237,12 @@ unsafe fn tidyWeakList(mut r#gen: *mut generation) -> bool {
                         next_w = (*w).link as *mut StgWeak;
                         (*w).link = (*new_gen).weak_ptr_list as *mut _StgWeak;
                         (*new_gen).weak_ptr_list = w;
-                        flag = r#true != 0;
+                        flag = true;
 
                         if (*r#gen).no != (*new_gen).no {
-                            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.weak as c_long != 0 {
+                            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.weak as i64 != 0 {
                                 trace_(
-                                    b"moving weak pointer %p from %d to %d\0" as *const u8
-                                        as *const c_char
-                                        as *mut c_char,
+                                    c"moving weak pointer %p from %d to %d".as_ptr(),
                                     w,
                                     (*r#gen).no,
                                     (*new_gen).no,
@@ -258,10 +250,9 @@ unsafe fn tidyWeakList(mut r#gen: *mut generation) -> bool {
                             }
                         }
 
-                        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.weak as c_long != 0 {
+                        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.weak as i64 != 0 {
                             trace_(
-                                b"weak pointer still alive at %p -> %p\0" as *const u8
-                                    as *const c_char as *mut c_char,
+                                c"weak pointer still alive at %p -> %p".as_ptr(),
                                 w,
                                 (*w).key,
                             );
@@ -273,7 +264,7 @@ unsafe fn tidyWeakList(mut r#gen: *mut generation) -> bool {
                 }
                 _ => {
                     barf(
-                        b"tidyWeakList: not WEAK: %d, %p\0" as *const u8 as *const c_char,
+                        c"tidyWeakList: not WEAK: %d, %p".as_ptr(),
                         (*info).r#type,
                         w,
                     );
@@ -316,10 +307,10 @@ unsafe fn tidyThreadList(mut r#gen: *mut generation) {
 }
 
 unsafe fn collectFreshWeakPtrs() {
-    let mut i: uint32_t = 0;
-    i = 0 as uint32_t;
+    let mut i: u32 = 0;
+    i = 0;
 
-    while i < getNumCapabilities() as uint32_t {
+    while i < getNumCapabilities() as u32 {
         let mut cap = getCapability(i);
 
         if !(*cap).weak_ptr_list_tl.is_null() {
@@ -334,11 +325,12 @@ unsafe fn collectFreshWeakPtrs() {
 }
 
 unsafe fn markWeakPtrList() {
-    let mut g: uint32_t = 0;
-    g = 0 as uint32_t;
+    let mut g: u32 = 0;
+    g = 0;
 
     while g <= N {
         let mut r#gen: *mut generation = generations.offset(g as isize) as *mut generation;
+
         let mut w = null_mut::<StgWeak>();
         let mut last_w = null_mut::<*mut StgWeak>();
         last_w = &raw mut (*r#gen).weak_ptr_list;

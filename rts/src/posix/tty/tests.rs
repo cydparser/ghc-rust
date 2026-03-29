@@ -7,7 +7,7 @@ fn test___hscore_get_saved_termios() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let fd: c_int = Arbitrary::arbitrary(g);
+        let fd: i32 = Arbitrary::arbitrary(g);
         let result: &c_void = unsafe { &*__hscore_get_saved_termios(fd) };
         todo!()
     };
@@ -20,7 +20,7 @@ fn test___hscore_get_saved_termios() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent___hscore_get_saved_termios(fd: c_int) -> bool {
+fn equivalent___hscore_get_saved_termios(fd: i32) -> bool {
     let expected = {
         let result: &c_void = unsafe { &*sys::__hscore_get_saved_termios(fd) };
         todo!()
@@ -41,7 +41,7 @@ fn test___hscore_set_saved_termios() {
     let g = &mut Gen::new(100);
 
     let actual = {
-        let fd: c_int = Arbitrary::arbitrary(g);
+        let fd: i32 = Arbitrary::arbitrary(g);
         let ts: c_void = todo!();
         unsafe { __hscore_set_saved_termios(fd, &raw mut ts) };
         todo!()
@@ -55,7 +55,7 @@ fn test___hscore_set_saved_termios() {
 #[quickcheck]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
-fn equivalent___hscore_set_saved_termios(fd: c_int) -> bool {
+fn equivalent___hscore_set_saved_termios(fd: i32) -> bool {
     let expected = {
         let mut ts: c_void = todo!();
         unsafe { sys::__hscore_set_saved_termios(fd, &raw mut ts) };

@@ -8,22 +8,22 @@ use crate::win32::mio_manager::{
 
 /// cbindgen:no-export
 struct CompletedReq {
-    reqID: c_uint,
+    reqID: u32,
     len: HsInt,
     errCode: HsInt,
 }
 
-const MAX_REQUESTS: c_int = 200 as c_int;
+const MAX_REQUESTS: i32 = 200;
 
 static mut queue_lock: Mutex = _RTL_SRWLOCK {
-    Ptr: null::<c_void>() as *mut c_void,
+    Ptr: null_mut::<c_void>(),
 };
 
 static mut completed_req_event: HANDLE = unsafe { INVALID_HANDLE_VALUE };
 
 static mut abandon_req_wait: HANDLE = unsafe { INVALID_HANDLE_VALUE };
 
-static mut wait_handles: [HANDLE; 2] = [null::<c_void>() as *mut c_void; 2];
+static mut wait_handles: [HANDLE; 2] = [null_mut::<c_void>(); 2];
 
 static mut completedTable: [CompletedReq; 200] = [CompletedReq {
     reqID: 0,
@@ -31,15 +31,15 @@ static mut completedTable: [CompletedReq; 200] = [CompletedReq {
     errCode: 0,
 }; 200];
 
-static mut completed_hw: c_int = 0;
+static mut completed_hw: i32 = 0;
 
-static mut completed_table_sema: HANDLE = null::<c_void>() as *mut c_void;
+static mut completed_table_sema: HANDLE = null_mut::<c_void>();
 
-static mut issued_reqs: c_int = 0;
+static mut issued_reqs: i32 = 0;
 
 unsafe fn onIOComplete(
-    mut reqID: c_uint,
-    mut fd: c_int,
+    mut reqID: u32,
+    mut fd: i32,
     mut len: HsInt,
     mut buf: *mut c_void,
     mut errCode: HsInt,
@@ -52,8 +52,8 @@ unsafe fn onIOComplete(
         _ => {
             fprintf(
                 __stderrp,
-                b"onIOComplete: failed to grab table semaphore (res=%d, err=%ld), dropping request 0x%lx\n\0"
-                    as *const u8 as *const c_char,
+                c"onIOComplete: failed to grab table semaphore (res=%d, err=%ld), dropping request 0x%lx\n"
+                    .as_ptr(),
                 reqID,
                 dwRes,
                 GetLastError(),
@@ -69,8 +69,7 @@ unsafe fn onIOComplete(
     if completed_hw == MAX_REQUESTS {
         fprintf(
             __stderrp,
-            b"onIOComplete: ERROR -- Request table overflow (%d); dropping.\n\0" as *const u8
-                as *const c_char,
+            c"onIOComplete: ERROR -- Request table overflow (%d); dropping.\n".as_ptr(),
             reqID,
         );
 
@@ -82,7 +81,7 @@ unsafe fn onIOComplete(
         completed_hw += 1;
         issued_reqs -= 1;
 
-        if completed_hw == 1 as c_int {
+        if completed_hw == 1 {
             SetEvent(completed_req_event);
         }
     }
@@ -91,12 +90,12 @@ unsafe fn onIOComplete(
 }
 
 unsafe fn addIORequest(
-    mut fd: c_int,
+    mut fd: i32,
     mut forWriting: bool,
     mut isSock: bool,
     mut len: HsInt,
     mut buf: *mut c_char,
-) -> c_uint {
+) -> u32 {
     AcquireSRWLockExclusive(&raw mut queue_lock);
     issued_reqs += 1;
     ReleaseSRWLockExclusive(&raw mut queue_lock);
@@ -108,10 +107,10 @@ unsafe fn addIORequest(
         len,
         buf,
         Some(onIOComplete as unsafe extern "C" fn(c_uint, c_int, HsInt, *mut c_void, HsInt) -> ()),
-    ) as c_uint;
+    ) as u32;
 }
 
-unsafe fn addDelayRequest(mut usecs: HsInt) -> c_uint {
+unsafe fn addDelayRequest(mut usecs: HsInt) -> u32 {
     AcquireSRWLockExclusive(&raw mut queue_lock);
     issued_reqs += 1;
     ReleaseSRWLockExclusive(&raw mut queue_lock);
@@ -119,10 +118,10 @@ unsafe fn addDelayRequest(mut usecs: HsInt) -> c_uint {
     return AddDelayRequest(
         usecs,
         Some(onIOComplete as unsafe extern "C" fn(c_uint, c_int, HsInt, *mut c_void, HsInt) -> ()),
-    ) as c_uint;
+    ) as u32;
 }
 
-unsafe fn addDoProcRequest(mut proc: *mut c_void, mut param: *mut c_void) -> c_uint {
+unsafe fn addDoProcRequest(mut proc: *mut c_void, mut param: *mut c_void) -> u32 {
     AcquireSRWLockExclusive(&raw mut queue_lock);
     issued_reqs += 1;
     ReleaseSRWLockExclusive(&raw mut queue_lock);
@@ -131,12 +130,12 @@ unsafe fn addDoProcRequest(mut proc: *mut c_void, mut param: *mut c_void) -> c_u
         proc,
         param,
         Some(onIOComplete as unsafe extern "C" fn(c_uint, c_int, HsInt, *mut c_void, HsInt) -> ()),
-    ) as c_uint;
+    ) as u32;
 }
 
-unsafe fn startupAsyncIO() -> c_int {
+unsafe fn startupAsyncIO() -> i32 {
     if !StartIOManager() {
-        return 0 as c_int;
+        return 0;
     }
 
     InitializeSRWLock(&raw mut queue_lock);
@@ -155,9 +154,9 @@ unsafe fn startupAsyncIO() -> c_int {
         null::<CHAR>(),
     );
 
-    wait_handles[0 as c_int as usize] = completed_req_event;
-    wait_handles[1 as c_int as usize] = abandon_req_wait;
-    completed_hw = 0 as c_int;
+    wait_handles[0] = completed_req_event;
+    wait_handles[1] = abandon_req_wait;
+    completed_hw = 0;
 
     completed_table_sema = CreateSemaphoreA(
         null_mut::<_SECURITY_ATTRIBUTES>(),
@@ -171,8 +170,8 @@ unsafe fn startupAsyncIO() -> c_int {
 
         fprintf(
             __stderrp,
-            b"startupAsyncIO: CreateSemaphore failed 0x%x\n\0" as *const u8 as *const c_char,
-            rc as c_int,
+            c"startupAsyncIO: CreateSemaphore failed 0x%x\n".as_ptr(),
+            rc as i32,
         );
 
         fflush(__stderrp);
@@ -180,7 +179,7 @@ unsafe fn startupAsyncIO() -> c_int {
 
     return (completed_req_event != INVALID_HANDLE_VALUE
         && abandon_req_wait != INVALID_HANDLE_VALUE
-        && !completed_table_sema.is_null()) as c_int;
+        && !completed_table_sema.is_null()) as i32;
 }
 
 unsafe fn shutdownAsyncIO(mut wait_threads: bool) {
@@ -202,7 +201,7 @@ unsafe fn shutdownAsyncIO(mut wait_threads: bool) {
     }
 }
 
-unsafe fn awaitRequests(mut wait: bool) -> c_int {
+unsafe fn awaitRequests(mut wait: bool) -> i32 {
     panic!("Reached end of non-void function without returning");
 }
 

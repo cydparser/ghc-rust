@@ -7,7 +7,7 @@ use crate::linker_internals::{Section, fini_t, init_t};
 use crate::prelude::*;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 
-pub(crate) type InitFiniKind = c_uint;
+pub(crate) type InitFiniKind = u32;
 
 pub(crate) const INITFINI_FINI_ARRAY: InitFiniKind = 5;
 
@@ -24,12 +24,12 @@ pub(crate) const INITFINI_INIT: InitFiniKind = 0;
 /// cbindgen:no-export
 pub(crate) struct InitFiniList {
     pub(crate) section: *mut Section,
-    pub(crate) priority: uint32_t,
+    pub(crate) priority: u32,
     pub(crate) kind: InitFiniKind,
     pub(crate) next: *mut InitFiniList,
 }
 
-type SortOrder = c_uint;
+type SortOrder = u32;
 
 const DECREASING: SortOrder = 1;
 
@@ -39,12 +39,10 @@ unsafe fn addInitFini(
     mut head: *mut *mut InitFiniList,
     mut section: *mut Section,
     mut kind: InitFiniKind,
-    mut priority: uint32_t,
+    mut priority: u32,
 ) {
-    let mut slist = stgMallocBytes(
-        size_of::<InitFiniList>() as size_t,
-        b"addInitFini\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut InitFiniList;
+    let mut slist = stgMallocBytes(size_of::<InitFiniList>() as usize, c"addInitFini".as_ptr())
+        as *mut InitFiniList;
 
     (*slist).section = section;
     (*slist).kind = kind;
@@ -54,18 +52,18 @@ unsafe fn addInitFini(
 }
 
 unsafe fn sortInitFiniList(mut slist: *mut *mut InitFiniList, mut order: SortOrder) {
-    let mut done = r#false != 0;
+    let mut done = false;
 
     while !done {
         let mut last = slist;
-        done = r#true != 0;
+        done = true;
 
         while !(*last).is_null() && !(**last).next.is_null() {
             let mut s0 = *last;
             let mut s1 = (*s0).next;
             let mut flip: bool = false;
 
-            match order as c_uint {
+            match order as u32 {
                 0 => {
                     flip = (*s0).priority > (*s1).priority;
                 }
@@ -79,7 +77,7 @@ unsafe fn sortInitFiniList(mut slist: *mut *mut InitFiniList, mut order: SortOrd
                 (*s0).next = (*s1).next;
                 (*s1).next = s0;
                 *last = s1;
-                done = r#false != 0;
+                done = false;
             } else {
                 last = &raw mut (*s0).next;
             }
@@ -96,8 +94,8 @@ unsafe fn freeInitFiniList(mut slist: *mut InitFiniList) {
 }
 
 unsafe fn runInitFini(mut head: *mut *mut InitFiniList) -> bool {
-    let mut argc: c_int = 0;
-    let mut envc: c_int = 0;
+    let mut argc: i32 = 0;
+    let mut envc: i32 = 0;
     let mut argv = null_mut::<*mut c_char>();
     let mut envv = null_mut::<*mut c_char>();
     getProgArgv(&raw mut argc, &raw mut argv);
@@ -108,7 +106,7 @@ unsafe fn runInitFini(mut head: *mut *mut InitFiniList) -> bool {
     while !slist.is_null() {
         let mut section = (*slist).section;
 
-        match (*slist).kind as c_uint {
+        match (*slist).kind as u32 {
             0 => {
                 let mut init = (*section).start as *mut init_t;
                 (*init).expect("non-null function pointer")(argc, argv, envv);
@@ -118,14 +116,15 @@ unsafe fn runInitFini(mut head: *mut *mut InitFiniList) -> bool {
                 (*fini).expect("non-null function pointer")();
             }
             2 => {
-                let mut init_startC = (*section).start as *mut uint8_t;
+                let mut init_startC = (*section).start as *mut u8;
                 let mut init_start = init_startC as *mut init_t;
                 let mut init_end = init_startC.offset((*section).size as isize) as *mut init_t;
-                let mut init_0 = init_end.offset(-(1 as c_int as isize));
+
+                let mut init_0 = init_end.offset(-1);
 
                 while init_0 >= init_start {
-                    if !(transmute::<init_t, intptr_t>(*init_0) == 0 as intptr_t
-                        || transmute::<init_t, intptr_t>(*init_0) == -(1 as c_int) as intptr_t)
+                    if !(transmute::<init_t, isize>(*init_0) == 0
+                        || transmute::<init_t, isize>(*init_0) == -1 as isize)
                     {
                         (*init_0).expect("non-null function pointer")(argc, argv, envv);
                     }
@@ -137,11 +136,12 @@ unsafe fn runInitFini(mut head: *mut *mut InitFiniList) -> bool {
                 let mut fini_startC = (*section).start as *mut c_char;
                 let mut fini_start = fini_startC as *mut fini_t;
                 let mut fini_end = fini_startC.offset((*section).size as isize) as *mut fini_t;
+
                 let mut fini_0 = fini_start;
 
                 while fini_0 < fini_end {
-                    if !(transmute::<fini_t, intptr_t>(*fini_0) == 0 as intptr_t
-                        || transmute::<fini_t, intptr_t>(*fini_0) == -(1 as c_int) as intptr_t)
+                    if !(transmute::<fini_t, isize>(*fini_0) == 0
+                        || transmute::<fini_t, isize>(*fini_0) == -1 as isize)
                     {
                         (*fini_0).expect("non-null function pointer")();
                     }
@@ -153,15 +153,13 @@ unsafe fn runInitFini(mut head: *mut *mut InitFiniList) -> bool {
                 let mut init_startC_0 = (*section).start as *mut c_char;
                 let mut init_start_0 = init_startC_0 as *mut init_t;
                 let mut init_end_0 = init_startC_0.offset((*section).size as isize) as *mut init_t;
+
                 let mut init_1 = init_start_0;
 
                 while init_1 < init_end_0 {
-                    if (*init_1).is_some() as c_int as c_long != 0 {
+                    if (*init_1).is_some() as i32 as i64 != 0 {
                     } else {
-                        _assertFail(
-                            b"rts/linker/InitFini.c\0" as *const u8 as *const c_char,
-                            159 as c_uint,
-                        );
+                        _assertFail(c"rts/linker/InitFini.c".as_ptr(), 159);
                     }
 
                     (*init_1).expect("non-null function pointer")(argc, argv, envv);
@@ -172,15 +170,13 @@ unsafe fn runInitFini(mut head: *mut *mut InitFiniList) -> bool {
                 let mut fini_startC_0 = (*section).start as *mut c_char;
                 let mut fini_start_0 = fini_startC_0 as *mut fini_t;
                 let mut fini_end_0 = fini_startC_0.offset((*section).size as isize) as *mut fini_t;
-                let mut fini_1 = fini_end_0.offset(-(1 as c_int as isize));
+
+                let mut fini_1 = fini_end_0.offset(-1);
 
                 while fini_1 >= fini_start_0 {
-                    if (*fini_1).is_some() as c_int as c_long != 0 {
+                    if (*fini_1).is_some() as i32 as i64 != 0 {
                     } else {
-                        _assertFail(
-                            b"rts/linker/InitFini.c\0" as *const u8 as *const c_char,
-                            170 as c_uint,
-                        );
+                        _assertFail(c"rts/linker/InitFini.c".as_ptr(), 170);
                     }
 
                     (*fini_1).expect("non-null function pointer")();
@@ -188,7 +184,7 @@ unsafe fn runInitFini(mut head: *mut *mut InitFiniList) -> bool {
                 }
             }
             _ => {
-                barf(b"unknown InitFiniKind\0" as *const u8 as *const c_char);
+                barf(c"unknown InitFiniKind".as_ptr());
             }
         }
 
@@ -199,7 +195,7 @@ unsafe fn runInitFini(mut head: *mut *mut InitFiniList) -> bool {
     *head = null_mut::<InitFiniList>();
     freeProgEnvv(envc, envv as *mut *mut c_char);
 
-    return r#true != 0;
+    return true;
 }
 
 unsafe fn runInit(mut head: *mut *mut InitFiniList) -> bool {

@@ -18,7 +18,7 @@ use crate::sm::non_moving::{
 use crate::sm::non_moving_mark::nonmovingInitUpdRemSet;
 use crate::sm::storage::accountAllocation;
 
-type AllocLockMode = c_uint;
+type AllocLockMode = u32;
 
 const SM_LOCK: AllocLockMode = 2;
 
@@ -28,22 +28,19 @@ const NO_LOCK: AllocLockMode = 0;
 
 #[inline]
 unsafe fn acquire_alloc_lock(mut mode: AllocLockMode) {
-    match mode as c_uint {
+    match mode as u32 {
         2 | 1 | 0 | _ => {}
     };
 }
 
 #[inline]
 unsafe fn release_alloc_lock(mut mode: AllocLockMode) {
-    match mode as c_uint {
+    match mode as u32 {
         2 | 1 | 0 | _ => {}
     };
 }
 
-unsafe fn nonmovingAllocSegment(
-    mut mode: AllocLockMode,
-    mut node: uint32_t,
-) -> *mut NonmovingSegment {
+unsafe fn nonmovingAllocSegment(mut mode: AllocLockMode, mut node: u32) -> *mut NonmovingSegment {
     let mut ret = null_mut::<NonmovingSegment>();
     ret = nonmovingPopFreeSegment();
 
@@ -62,6 +59,7 @@ unsafe fn nonmovingAllocSegment(
 
         let mut alloc_blocks: W_ = BLOCKS_PER_MBLOCK
             .wrapping_sub(BLOCKS_PER_MBLOCK.wrapping_rem(NONMOVING_SEGMENT_BLOCKS as W_));
+
         (*oldest_gen).n_blocks = ((*oldest_gen).n_blocks as StgWord)
             .wrapping_add(alloc_blocks as StgWord) as memcount
             as memcount;
@@ -69,7 +67,7 @@ unsafe fn nonmovingAllocSegment(
             .wrapping_add((BLOCK_SIZE_W as W_).wrapping_mul(alloc_blocks) as StgWord)
             as memcount as memcount;
 
-        let mut i: StgWord32 = 0 as StgWord32;
+        let mut i: StgWord32 = 0;
 
         while (i as W_) < alloc_blocks {
             initBdescr(bd.offset(i as isize) as *mut bdescr, oldest_gen, oldest_gen);
@@ -92,37 +90,36 @@ unsafe fn nonmovingAllocSegment(
 
 unsafe fn nonmovingClearBitmap(mut seg: *mut NonmovingSegment) {
     let mut n = nonmovingSegmentBlockCount(seg);
-
     memset(
-        &raw mut (*seg).bitmap as *mut uint8_t as *mut c_void,
-        0 as c_int,
-        n as size_t,
+        &raw mut (*seg).bitmap as *mut u8 as *mut c_void,
+        0,
+        n as usize,
     );
 }
 
-unsafe fn nonmovingInitSegment(mut seg: *mut NonmovingSegment, mut allocator_idx: uint16_t) {
+unsafe fn nonmovingInitSegment(mut seg: *mut NonmovingSegment, mut allocator_idx: u16) {
     let mut bd = Bdescr(seg as StgPtr);
     (*seg).link = null_mut::<NonmovingSegment>();
     (*seg).todo_link = null_mut::<NonmovingSegment>();
-    (*seg).next_free = 0 as nonmoving_block_idx;
+    (*seg).next_free = 0;
     (*bd).c2rust_unnamed.nonmoving_segment.allocator_idx = allocator_idx as StgWord16;
-    (*bd).c2rust_unnamed.nonmoving_segment.next_free_snap = 0 as StgWord16;
-    (*bd).u.scan = nonmovingSegmentGetBlock(seg, 0 as nonmoving_block_idx) as StgPtr;
+    (*bd).c2rust_unnamed.nonmoving_segment.next_free_snap = 0;
+    (*bd).u.scan = nonmovingSegmentGetBlock(seg, 0) as StgPtr;
     nonmovingClearBitmap(seg);
 }
 
 unsafe fn nonmovingInitCapability(mut cap: *mut Capability) {
     let mut segs = stgMallocBytes(
-        (size_of::<*mut NonmovingSegment>() as size_t).wrapping_mul(nonmoving_alloca_cnt as size_t),
-        b"current segment array\0" as *const u8 as *const c_char as *mut c_char,
+        (size_of::<*mut NonmovingSegment>() as usize).wrapping_mul(nonmoving_alloca_cnt as usize),
+        c"current segment array".as_ptr(),
     ) as *mut *mut NonmovingSegment;
 
-    let mut i = 0 as c_uint;
+    let mut i = 0;
 
-    while i < nonmoving_alloca_cnt as c_uint {
+    while i < nonmoving_alloca_cnt as u32 {
         let ref mut fresh9 = *segs.offset(i as isize);
         *fresh9 = nonmovingAllocSegment(NO_LOCK, (*cap).node);
-        nonmovingInitSegment(*segs.offset(i as isize), i as uint16_t);
+        nonmovingInitSegment(*segs.offset(i as isize), i as u16);
         i = i.wrapping_add(1);
     }
 
@@ -131,26 +128,25 @@ unsafe fn nonmovingInitCapability(mut cap: *mut Capability) {
     nonmovingInitUpdRemSet(&raw mut (*cap).upd_rem_set);
 }
 
-unsafe fn advance_next_free(mut seg: *mut NonmovingSegment, blk_count: c_uint) -> bool {
-    let mut bitmap: *const uint8_t = &raw mut (*seg).bitmap as *mut uint8_t;
+unsafe fn advance_next_free(mut seg: *mut NonmovingSegment, blk_count: u32) -> bool {
+    let mut bitmap: *const u8 = &raw mut (*seg).bitmap as *mut u8;
 
     let mut c = memchr(
-        bitmap.offset(((*seg).next_free as c_int + 1 as c_int) as isize) as *const uint8_t
-            as *const c_void,
-        0 as c_int,
+        bitmap.offset(((*seg).next_free as i32 + 1) as isize) as *const u8 as *const c_void,
+        0,
         blk_count
-            .wrapping_sub((*seg).next_free as c_uint)
-            .wrapping_sub(1 as c_uint) as size_t,
-    ) as *const uint8_t;
+            .wrapping_sub((*seg).next_free as u32)
+            .wrapping_sub(1 as u32) as usize,
+    ) as *const u8;
 
     if c.is_null() {
         (*seg).next_free = blk_count as nonmoving_block_idx;
 
-        return r#true != 0;
+        return true;
     } else {
-        (*seg).next_free = c.offset_from(bitmap) as c_long as nonmoving_block_idx;
+        (*seg).next_free = c.offset_from(bitmap) as i64 as nonmoving_block_idx;
 
-        return r#false != 0;
+        return false;
     };
 }
 
@@ -199,25 +195,23 @@ unsafe fn nonmovingAllocate_(
     mut cap: *mut Capability,
     mut sz: StgWord,
 ) -> *mut c_void {
-    let mut block_size: c_uint = 0;
+    let mut block_size: u32 = 0;
 
     if sz.wrapping_mul(size_of::<StgWord>() as StgWord)
         <= (NONMOVING_ALLOCA0 as usize).wrapping_add(
-            ((nonmoving_alloca_dense_cnt as c_int - 1 as c_int) as usize).wrapping_mul(size_of::<
-                StgWord,
-            >(
-            )
-                as usize),
+            ((nonmoving_alloca_dense_cnt as i32 - 1 as i32) as usize)
+                .wrapping_mul(size_of::<StgWord>() as usize),
         ) as StgWord
     {
-        block_size = (size_of::<StgWord>() as StgWord).wrapping_mul(sz) as c_uint;
+        block_size = (size_of::<StgWord>() as StgWord).wrapping_mul(sz) as u32;
     } else {
         let mut log_block_size =
-            log2_ceil(sz.wrapping_mul(size_of::<StgWord>() as StgWord) as c_ulong) as c_uint;
-        block_size = ((1 as c_int) << log_block_size) as c_uint;
+            log2_ceil(sz.wrapping_mul(size_of::<StgWord>() as StgWord) as u64) as u32;
+
+        block_size = (1 << log_block_size) as u32;
     }
 
-    let mut alloca_idx = nonmovingAllocatorForSize(block_size as uint16_t) as c_uint;
+    let mut alloca_idx = nonmovingAllocatorForSize(block_size as u16) as u32;
     let mut alloca: *mut NonmovingAllocator =
         nonmovingHeap.allocators.offset(alloca_idx as isize) as *mut NonmovingAllocator;
 
@@ -226,8 +220,8 @@ unsafe fn nonmovingAllocate_(
 
     let mut ret = nonmovingSegmentGetBlock_(
         current,
-        block_size as uint16_t,
-        block_count as uint16_t,
+        block_size as u16,
+        block_count as u16,
         (*current).next_free,
     );
 
@@ -235,7 +229,7 @@ unsafe fn nonmovingAllocate_(
 
     if full {
         let mut new_blocks =
-            block_count.wrapping_sub((*nonmovingSegmentInfo(current)).next_free_snap as c_uint);
+            block_count.wrapping_sub((*nonmovingSegmentInfo(current)).next_free_snap as u32);
 
         atomic_inc(
             &raw mut (*oldest_gen).live_estimate as StgVolatilePtr,
@@ -249,7 +243,7 @@ unsafe fn nonmovingAllocate_(
 
         if new_current.is_null() {
             new_current = nonmovingAllocSegment(mode, (*cap).node);
-            nonmovingInitSegment(new_current, alloca_idx as uint16_t);
+            nonmovingInitSegment(new_current, alloca_idx as u16);
         }
 
         (*new_current).link = null_mut::<NonmovingSegment>();
@@ -267,7 +261,7 @@ unsafe fn nonmovingAllocateGC(mut cap: *mut Capability, mut sz: StgWord) -> *mut
 
 unsafe fn nonmovingAllocate(mut cap: *mut Capability, mut sz: StgWord) -> *mut c_void {
     accountAllocation(cap, sz as W_);
-    (*cap).total_allocated = (*cap).total_allocated.wrapping_add(sz as uint64_t);
+    (*cap).total_allocated = (*cap).total_allocated.wrapping_add(sz as u64);
 
     return nonmovingAllocate_(SM_LOCK, cap, sz);
 }

@@ -46,13 +46,13 @@ pub(crate) struct RTSSummaryStats_ {
     pub(crate) hc_elapsed_ns: Time,
     pub(crate) exit_cpu_ns: Time,
     pub(crate) exit_elapsed_ns: Time,
-    pub(crate) gc_cpu_percent: c_double,
-    pub(crate) gc_elapsed_percent: c_double,
-    pub(crate) fragmentation_bytes: uint64_t,
-    pub(crate) average_bytes_used: uint64_t,
-    pub(crate) alloc_rate: uint64_t,
-    pub(crate) productivity_cpu_percent: c_double,
-    pub(crate) productivity_elapsed_percent: c_double,
+    pub(crate) gc_cpu_percent: f64,
+    pub(crate) gc_elapsed_percent: f64,
+    pub(crate) fragmentation_bytes: u64,
+    pub(crate) average_bytes_used: u64,
+    pub(crate) alloc_rate: u64,
+    pub(crate) productivity_cpu_percent: f64,
+    pub(crate) productivity_elapsed_percent: f64,
     pub(crate) gc_summary_stats: *mut GenerationSummaryStats,
 }
 
@@ -60,8 +60,8 @@ pub(crate) type GenerationSummaryStats = GenerationSummaryStats_;
 
 /// cbindgen:no-export
 pub(crate) struct GenerationSummaryStats_ {
-    pub(crate) collections: uint32_t,
-    pub(crate) par_collections: uint32_t,
+    pub(crate) collections: u32,
+    pub(crate) par_collections: u32,
     pub(crate) cpu_ns: Time,
     pub(crate) elapsed_ns: Time,
     pub(crate) max_pause_ns: Time,
@@ -148,127 +148,123 @@ static mut stats: RTSStats = _RTSStats {
     nonmoving_gc_max_elapsed_ns: 0,
 };
 
-static mut GC_end_faults: W_ = 0 as W_;
+static mut GC_end_faults: W_ = 0;
 
-static mut GC_coll_cpu: *mut Time = null::<Time>() as *mut Time;
+static mut GC_coll_cpu: *mut Time = null_mut::<Time>();
 
-static mut GC_coll_elapsed: *mut Time = null::<Time>() as *mut Time;
+static mut GC_coll_elapsed: *mut Time = null_mut::<Time>();
 
-static mut GC_coll_max_pause: *mut Time = null::<Time>() as *mut Time;
+static mut GC_coll_max_pause: *mut Time = null_mut::<Time>();
 
 unsafe fn stat_getElapsedTime() -> Time {
     return getProcessElapsedTime() - start_init_elapsed;
 }
 
 unsafe fn initStats0() {
-    start_init_cpu = 0 as Time;
-    start_init_elapsed = 0 as Time;
-    end_init_cpu = 0 as Time;
-    end_init_elapsed = 0 as Time;
-    start_nonmoving_gc_cpu = 0 as Time;
-    start_nonmoving_gc_elapsed = 0 as Time;
-    start_nonmoving_gc_sync_elapsed = 0 as Time;
-    start_exit_cpu = 0 as Time;
-    start_exit_elapsed = 0 as Time;
-    start_exit_gc_cpu = 0 as Time;
-    start_exit_gc_elapsed = 0 as Time;
-    end_exit_cpu = 0 as Time;
-    end_exit_elapsed = 0 as Time;
-    GC_end_faults = 0 as W_;
+    start_init_cpu = 0;
+    start_init_elapsed = 0;
+    end_init_cpu = 0;
+    end_init_elapsed = 0;
+    start_nonmoving_gc_cpu = 0;
+    start_nonmoving_gc_elapsed = 0;
+    start_nonmoving_gc_sync_elapsed = 0;
+    start_exit_cpu = 0;
+    start_exit_elapsed = 0;
+    start_exit_gc_cpu = 0;
+    start_exit_gc_elapsed = 0;
+    end_exit_cpu = 0;
+    end_exit_elapsed = 0;
+    GC_end_faults = 0;
 
     stats = _RTSStats {
-        gcs: 0 as uint32_t,
-        major_gcs: 0 as uint32_t,
-        allocated_bytes: 0 as uint64_t,
-        max_live_bytes: 0 as uint64_t,
-        max_large_objects_bytes: 0 as uint64_t,
-        max_compact_bytes: 0 as uint64_t,
-        max_slop_bytes: 0 as uint64_t,
-        max_mem_in_use_bytes: 0 as uint64_t,
-        cumulative_live_bytes: 0 as uint64_t,
-        copied_bytes: 0 as uint64_t,
-        par_copied_bytes: 0 as uint64_t,
-        cumulative_par_max_copied_bytes: 0 as uint64_t,
-        cumulative_par_balanced_copied_bytes: 0 as uint64_t,
-        init_cpu_ns: 0 as Time,
-        init_elapsed_ns: 0 as Time,
-        mutator_cpu_ns: 0 as Time,
-        mutator_elapsed_ns: 0 as Time,
-        gc_cpu_ns: 0 as Time,
-        gc_elapsed_ns: 0 as Time,
-        cpu_ns: 0 as Time,
-        elapsed_ns: 0 as Time,
+        gcs: 0,
+        major_gcs: 0,
+        allocated_bytes: 0,
+        max_live_bytes: 0,
+        max_large_objects_bytes: 0,
+        max_compact_bytes: 0,
+        max_slop_bytes: 0,
+        max_mem_in_use_bytes: 0,
+        cumulative_live_bytes: 0,
+        copied_bytes: 0,
+        par_copied_bytes: 0,
+        cumulative_par_max_copied_bytes: 0,
+        cumulative_par_balanced_copied_bytes: 0,
+        init_cpu_ns: 0,
+        init_elapsed_ns: 0,
+        mutator_cpu_ns: 0,
+        mutator_elapsed_ns: 0,
+        gc_cpu_ns: 0,
+        gc_elapsed_ns: 0,
+        cpu_ns: 0,
+        elapsed_ns: 0,
         gc: GCDetails_ {
-            r#gen: 0 as uint32_t,
-            threads: 0 as uint32_t,
-            allocated_bytes: 0 as uint64_t,
-            live_bytes: 0 as uint64_t,
-            large_objects_bytes: 0 as uint64_t,
-            compact_bytes: 0 as uint64_t,
-            slop_bytes: 0 as uint64_t,
-            mem_in_use_bytes: 0 as uint64_t,
-            copied_bytes: 0 as uint64_t,
-            block_fragmentation_bytes: 0 as uint64_t,
-            par_max_copied_bytes: 0 as uint64_t,
-            par_balanced_copied_bytes: 0 as uint64_t,
-            sync_elapsed_ns: 0 as Time,
-            cpu_ns: 0 as Time,
-            elapsed_ns: 0 as Time,
+            r#gen: 0,
+            threads: 0,
+            allocated_bytes: 0,
+            live_bytes: 0,
+            large_objects_bytes: 0,
+            compact_bytes: 0,
+            slop_bytes: 0,
+            mem_in_use_bytes: 0,
+            copied_bytes: 0,
+            block_fragmentation_bytes: 0,
+            par_max_copied_bytes: 0,
+            par_balanced_copied_bytes: 0,
+            sync_elapsed_ns: 0,
+            cpu_ns: 0,
+            elapsed_ns: 0,
             nonmoving_gc_sync_cpu_ns: 0,
-            nonmoving_gc_sync_elapsed_ns: 0 as Time,
-            nonmoving_gc_cpu_ns: 0 as Time,
-            nonmoving_gc_elapsed_ns: 0 as Time,
+            nonmoving_gc_sync_elapsed_ns: 0,
+            nonmoving_gc_cpu_ns: 0,
+            nonmoving_gc_elapsed_ns: 0,
         },
-        any_work: 0 as uint64_t,
-        scav_find_work: 0 as uint64_t,
-        max_n_todo_overflow: 0 as uint64_t,
+        any_work: 0,
+        scav_find_work: 0,
+        max_n_todo_overflow: 0,
         nonmoving_gc_sync_cpu_ns: 0,
-        nonmoving_gc_sync_elapsed_ns: 0 as Time,
-        nonmoving_gc_sync_max_elapsed_ns: 0 as Time,
-        nonmoving_gc_cpu_ns: 0 as Time,
-        nonmoving_gc_elapsed_ns: 0 as Time,
-        nonmoving_gc_max_elapsed_ns: 0 as Time,
+        nonmoving_gc_sync_elapsed_ns: 0,
+        nonmoving_gc_sync_max_elapsed_ns: 0,
+        nonmoving_gc_cpu_ns: 0,
+        nonmoving_gc_elapsed_ns: 0,
+        nonmoving_gc_max_elapsed_ns: 0,
     };
 }
 
 unsafe fn initStats1() {
-    if RtsFlags.GcFlags.giveStats >= VERBOSE_GC_STATS as uint32_t {
+    if RtsFlags.GcFlags.giveStats >= VERBOSE_GC_STATS as u32 {
         statsPrintf(
-            b"    Alloc    Copied     Live     GC     GC      TOT      TOT  Page Flts\n\0"
-                as *const u8 as *const c_char as *mut c_char,
+            c"    Alloc    Copied     Live     GC     GC      TOT      TOT  Page Flts\n".as_ptr(),
         );
 
-        statsPrintf(
-            b"    bytes     bytes     bytes   user   elap     user     elap\n\0" as *const u8
-                as *const c_char as *mut c_char,
-        );
+        statsPrintf(c"    bytes     bytes     bytes   user   elap     user     elap\n".as_ptr());
     }
 
     GC_coll_cpu = stgMallocBytes(
-        (size_of::<Time>() as size_t).wrapping_mul(RtsFlags.GcFlags.generations as size_t),
-        b"initStats\0" as *const u8 as *const c_char as *mut c_char,
+        (size_of::<Time>() as usize).wrapping_mul(RtsFlags.GcFlags.generations as usize),
+        c"initStats".as_ptr(),
     ) as *mut Time;
 
     GC_coll_elapsed = stgMallocBytes(
-        (size_of::<Time>() as size_t).wrapping_mul(RtsFlags.GcFlags.generations as size_t),
-        b"initStats\0" as *const u8 as *const c_char as *mut c_char,
+        (size_of::<Time>() as usize).wrapping_mul(RtsFlags.GcFlags.generations as usize),
+        c"initStats".as_ptr(),
     ) as *mut Time;
 
     GC_coll_max_pause = stgMallocBytes(
-        (size_of::<Time>() as size_t).wrapping_mul(RtsFlags.GcFlags.generations as size_t),
-        b"initStats\0" as *const u8 as *const c_char as *mut c_char,
+        (size_of::<Time>() as usize).wrapping_mul(RtsFlags.GcFlags.generations as usize),
+        c"initStats".as_ptr(),
     ) as *mut Time;
 
     initGenerationStats();
 }
 
 unsafe fn initGenerationStats() {
-    let mut i: uint32_t = 0 as uint32_t;
+    let mut i: u32 = 0;
 
     while i < RtsFlags.GcFlags.generations {
-        *GC_coll_cpu.offset(i as isize) = 0 as Time;
-        *GC_coll_elapsed.offset(i as isize) = 0 as Time;
-        *GC_coll_max_pause.offset(i as isize) = 0 as Time;
+        *GC_coll_cpu.offset(i as isize) = 0;
+        *GC_coll_elapsed.offset(i as isize) = 0;
+        *GC_coll_max_pause.offset(i as isize) = 0;
         i = i.wrapping_add(1);
     }
 }
@@ -342,10 +338,10 @@ unsafe fn stat_endNonmovingGcSync() {
 
     let mut sync_elapsed: Time = stats.gc.nonmoving_gc_sync_elapsed_ns;
 
-    if RtsFlags.GcFlags.giveStats == VERBOSE_GC_STATS as uint32_t {
+    if RtsFlags.GcFlags.giveStats == VERBOSE_GC_STATS as u32 {
         statsPrintf(
-            b"# sync %6.3f\n\0" as *const u8 as *const c_char as *mut c_char,
-            sync_elapsed as c_double / TIME_RESOLUTION as c_double,
+            c"# sync %6.3f\n".as_ptr(),
+            sync_elapsed as f64 / TIME_RESOLUTION as f64,
         );
     }
 
@@ -354,31 +350,31 @@ unsafe fn stat_endNonmovingGcSync() {
 
 unsafe fn stat_startGCWorker(mut cap: *mut Capability, mut gct: *mut gc_thread) {
     let mut stats_enabled =
-        RtsFlags.GcFlags.giveStats != NO_GC_STATS as uint32_t || rtsConfig.gcDoneHook.is_some();
+        RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32 || rtsConfig.gcDoneHook.is_some();
 
-    if stats_enabled as c_int != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
+    if stats_enabled as i32 != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
         (*gct).gc_start_cpu = getCurrentThreadCPUTime();
     }
 }
 
 unsafe fn stat_endGCWorker(mut cap: *mut Capability, mut gct: *mut gc_thread) {
     let mut stats_enabled =
-        RtsFlags.GcFlags.giveStats != NO_GC_STATS as uint32_t || rtsConfig.gcDoneHook.is_some();
+        RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32 || rtsConfig.gcDoneHook.is_some();
 
-    if stats_enabled as c_int != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
+    if stats_enabled as i32 != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
         (*gct).gc_end_cpu = getCurrentThreadCPUTime();
     }
 }
 
 unsafe fn stat_startGC(mut cap: *mut Capability, mut gct: *mut gc_thread) {
     if RtsFlags.GcFlags.ringBell {
-        debugBelch(b"\x07\0" as *const u8 as *const c_char);
+        debugBelch(c"\u{7}".as_ptr());
     }
 
     let mut stats_enabled =
-        RtsFlags.GcFlags.giveStats != NO_GC_STATS as uint32_t || rtsConfig.gcDoneHook.is_some();
+        RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32 || rtsConfig.gcDoneHook.is_some();
 
-    if stats_enabled as c_int != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
+    if stats_enabled as i32 != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
         (*gct).gc_start_cpu = getCurrentThreadCPUTime();
     }
 
@@ -389,7 +385,7 @@ unsafe fn stat_startGC(mut cap: *mut Capability, mut gct: *mut gc_thread) {
         ((*gct).gc_start_elapsed - start_init_elapsed) as StgWord64,
     );
 
-    if RtsFlags.GcFlags.giveStats != NO_GC_STATS as uint32_t {
+    if RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32 {
         (*gct).gc_start_faults = getPageFaults();
     }
 
@@ -402,8 +398,8 @@ unsafe fn stat_endGC(
     mut live: W_,
     mut copied: W_,
     mut slop: W_,
-    mut r#gen: uint32_t,
-    mut par_n_threads: uint32_t,
+    mut r#gen: u32,
+    mut par_n_threads: u32,
     mut gc_threads: *mut *mut gc_thread,
     mut par_max_copied: W_,
     mut par_balanced_copied: W_,
@@ -414,29 +410,27 @@ unsafe fn stat_endGC(
     stats.gc.r#gen = r#gen;
     stats.gc.threads = par_n_threads;
 
-    let mut tot_alloc_bytes: uint64_t =
-        calcTotalAllocated().wrapping_mul(size_of::<W_>() as uint64_t);
+    let mut tot_alloc_bytes: u64 = calcTotalAllocated().wrapping_mul(size_of::<W_>() as u64);
     stats.gc.allocated_bytes = tot_alloc_bytes.wrapping_sub(stats.allocated_bytes);
-    stats.gc.live_bytes = live.wrapping_mul(size_of::<W_>() as W_) as uint64_t;
+    stats.gc.live_bytes = live.wrapping_mul(size_of::<W_>() as W_) as u64;
     stats.gc.large_objects_bytes =
-        calcTotalLargeObjectsW().wrapping_mul(size_of::<W_>() as StgWord) as uint64_t;
-    stats.gc.compact_bytes =
-        calcTotalCompactW().wrapping_mul(size_of::<W_>() as StgWord) as uint64_t;
-    stats.gc.slop_bytes = slop.wrapping_mul(size_of::<W_>() as W_) as uint64_t;
-    stats.gc.mem_in_use_bytes = mblocks_allocated.wrapping_mul(MBLOCK_SIZE as W_) as uint64_t;
-    stats.gc.copied_bytes = copied.wrapping_mul(size_of::<W_>() as W_) as uint64_t;
-    stats.gc.par_max_copied_bytes = par_max_copied.wrapping_mul(size_of::<W_>() as W_) as uint64_t;
+        calcTotalLargeObjectsW().wrapping_mul(size_of::<W_>() as StgWord) as u64;
+    stats.gc.compact_bytes = calcTotalCompactW().wrapping_mul(size_of::<W_>() as StgWord) as u64;
+    stats.gc.slop_bytes = slop.wrapping_mul(size_of::<W_>() as W_) as u64;
+    stats.gc.mem_in_use_bytes = mblocks_allocated.wrapping_mul(MBLOCK_SIZE as W_) as u64;
+    stats.gc.copied_bytes = copied.wrapping_mul(size_of::<W_>() as W_) as u64;
+    stats.gc.par_max_copied_bytes = par_max_copied.wrapping_mul(size_of::<W_>() as W_) as u64;
     stats.gc.par_balanced_copied_bytes =
-        par_balanced_copied.wrapping_mul(size_of::<W_>() as W_) as uint64_t;
+        par_balanced_copied.wrapping_mul(size_of::<W_>() as W_) as u64;
     stats.gc.block_fragmentation_bytes = mblocks_allocated
         .wrapping_mul(BLOCKS_PER_MBLOCK)
         .wrapping_sub(n_alloc_blocks)
-        .wrapping_mul(BLOCK_SIZE as W_) as uint64_t;
+        .wrapping_mul(BLOCK_SIZE as W_) as u64;
 
     let mut stats_enabled =
-        RtsFlags.GcFlags.giveStats != NO_GC_STATS as uint32_t || rtsConfig.gcDoneHook.is_some();
+        RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32 || rtsConfig.gcDoneHook.is_some();
 
-    if stats_enabled as c_int != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
+    if stats_enabled as i32 != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
         let mut current_cpu: Time = 0;
         let mut current_elapsed: Time = 0;
         getProcessTimes(&raw mut current_cpu, &raw mut current_elapsed);
@@ -445,22 +439,22 @@ unsafe fn stat_endGC(
         stats.gc.sync_elapsed_ns =
             (*initiating_gct).gc_start_elapsed - (*initiating_gct).gc_sync_start_elapsed;
         stats.gc.elapsed_ns = current_elapsed - (*initiating_gct).gc_start_elapsed;
-        stats.gc.cpu_ns = 0 as Time;
+        stats.gc.cpu_ns = 0;
 
-        let mut i = 0 as c_uint;
+        let mut i = 0;
 
-        while (i as uint32_t) < par_n_threads {
+        while (i as u32) < par_n_threads {
             let mut gct = *gc_threads.offset(i as isize);
             stats.gc.cpu_ns += (*gct).gc_end_cpu - (*gct).gc_start_cpu;
-            (*gct).gc_end_cpu = 0 as Time;
-            (*gct).gc_start_cpu = 0 as Time;
+            (*gct).gc_end_cpu = 0;
+            (*gct).gc_start_cpu = 0;
             i = i.wrapping_add(1);
         }
     }
 
     stats.gcs = stats.gcs.wrapping_add(1);
     stats.allocated_bytes = tot_alloc_bytes;
-    stats.max_mem_in_use_bytes = peak_mblocks_allocated.wrapping_mul(MBLOCK_SIZE as W_) as uint64_t;
+    stats.max_mem_in_use_bytes = peak_mblocks_allocated.wrapping_mul(MBLOCK_SIZE as W_) as u64;
     *GC_coll_cpu.offset(r#gen as isize) += stats.gc.cpu_ns;
     *GC_coll_elapsed.offset(r#gen as isize) += stats.gc.elapsed_ns;
 
@@ -470,7 +464,7 @@ unsafe fn stat_endGC(
 
     stats.copied_bytes = stats.copied_bytes.wrapping_add(stats.gc.copied_bytes);
 
-    if par_n_threads > 1 as uint32_t {
+    if par_n_threads > 1 {
         stats.par_copied_bytes = stats.par_copied_bytes.wrapping_add(stats.gc.copied_bytes);
         stats.cumulative_par_max_copied_bytes = stats
             .cumulative_par_max_copied_bytes
@@ -478,25 +472,22 @@ unsafe fn stat_endGC(
         stats.cumulative_par_balanced_copied_bytes = stats
             .cumulative_par_balanced_copied_bytes
             .wrapping_add(stats.gc.par_balanced_copied_bytes);
-        stats.any_work = stats.any_work.wrapping_add(any_work as uint64_t);
-        stats.scav_find_work = stats
-            .scav_find_work
-            .wrapping_add(scav_find_work as uint64_t);
-
+        stats.any_work = stats.any_work.wrapping_add(any_work as u64);
+        stats.scav_find_work = stats.scav_find_work.wrapping_add(scav_find_work as u64);
         stats.max_n_todo_overflow = stats.max_n_todo_overflow.wrapping_add(
             ({
                 let mut _a: W_ = max_n_todo_overflow as W_;
                 let mut _b: W_ = stats.max_n_todo_overflow as W_;
 
                 if _a <= _b { _b } else { _a as W_ }
-            }) as uint64_t,
+            }) as u64,
         );
     }
 
     stats.gc_cpu_ns += stats.gc.cpu_ns;
     stats.gc_elapsed_ns += stats.gc.elapsed_ns;
 
-    if r#gen == RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t) {
+    if r#gen == RtsFlags.GcFlags.generations.wrapping_sub(1 as u32) {
         stats.major_gcs = stats.major_gcs.wrapping_add(1);
 
         if stats.gc.live_bytes > stats.max_live_bytes {
@@ -538,27 +529,26 @@ unsafe fn stat_endGC(
 
         traceEventGcEndAtT(cap, stats.elapsed_ns as StgWord64);
 
-        if r#gen == RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t) {
+        if r#gen == RtsFlags.GcFlags.generations.wrapping_sub(1 as u32) {
             traceEventHeapLive(cap, CAPSET_HEAP_DEFAULT, stats.gc.live_bytes as W_);
         }
 
-        if RtsFlags.GcFlags.giveStats == VERBOSE_GC_STATS as uint32_t {
+        if RtsFlags.GcFlags.giveStats == VERBOSE_GC_STATS as u32 {
             let mut faults = getPageFaults();
 
             statsPrintf(
-                b"%9llu %9llu %9llu\0" as *const u8 as *const c_char as *mut c_char,
+                c"%9llu %9llu %9llu".as_ptr(),
                 stats.gc.allocated_bytes,
                 stats.gc.copied_bytes,
                 stats.gc.live_bytes,
             );
 
             statsPrintf(
-                b" %6.3f %6.3f %8.3f %8.3f %4llu %4llu  (Gen: %2d)\n\0" as *const u8
-                    as *const c_char as *mut c_char,
-                stats.gc.cpu_ns as c_double / TIME_RESOLUTION as c_double,
-                stats.gc.elapsed_ns as c_double / TIME_RESOLUTION as c_double,
-                stats.cpu_ns as c_double / TIME_RESOLUTION as c_double,
-                stats.elapsed_ns as c_double / TIME_RESOLUTION as c_double,
+                c" %6.3f %6.3f %8.3f %8.3f %4llu %4llu  (Gen: %2d)\n".as_ptr(),
+                stats.gc.cpu_ns as f64 / TIME_RESOLUTION as f64,
+                stats.gc.elapsed_ns as f64 / TIME_RESOLUTION as f64,
+                stats.cpu_ns as f64 / TIME_RESOLUTION as f64,
+                stats.elapsed_ns as f64 / TIME_RESOLUTION as f64,
                 faults.wrapping_sub((*initiating_gct).gc_start_faults),
                 (*initiating_gct)
                     .gc_start_faults
@@ -589,23 +579,18 @@ unsafe fn stat_endGC(
 }
 
 unsafe fn init_RTSSummaryStats(mut sum: *mut RTSSummaryStats) {
-    let sizeof_gc_summary_stats: size_t = (RtsFlags.GcFlags.generations as size_t)
-        .wrapping_mul(size_of::<GenerationSummaryStats>() as size_t);
-
-    memset(
-        sum as *mut c_void,
-        0 as c_int,
-        size_of::<RTSSummaryStats>() as size_t,
-    );
+    let sizeof_gc_summary_stats: usize = (RtsFlags.GcFlags.generations as usize)
+        .wrapping_mul(size_of::<GenerationSummaryStats>() as usize);
+    memset(sum as *mut c_void, 0, size_of::<RTSSummaryStats>() as usize);
 
     (*sum).gc_summary_stats = stgMallocBytes(
         sizeof_gc_summary_stats,
-        b"alloc_RTSSummaryStats.gc_summary_stats\0" as *const u8 as *const c_char as *mut c_char,
+        c"alloc_RTSSummaryStats.gc_summary_stats".as_ptr(),
     ) as *mut GenerationSummaryStats;
 
     memset(
         (*sum).gc_summary_stats as *mut c_void,
-        0 as c_int,
+        0,
         sizeof_gc_summary_stats,
     );
 }
@@ -616,41 +601,39 @@ unsafe fn free_RTSSummaryStats(mut sum: *mut RTSSummaryStats) {
 }
 
 unsafe fn report_summary(mut sum: *const RTSSummaryStats) {
-    let mut g: uint32_t = 0;
+    let mut g: u32 = 0;
     let mut temp: [c_char; 512] = [0; 512];
 
     showStgWord64(
         stats.allocated_bytes as StgWord64,
         &raw mut temp as *mut c_char,
-        r#true != 0,
+        true,
     );
 
     statsPrintf(
-        b"%16s bytes allocated in the heap\n\0" as *const u8 as *const c_char as *mut c_char,
+        c"%16s bytes allocated in the heap\n".as_ptr(),
         &raw mut temp as *mut c_char,
     );
 
     showStgWord64(
         stats.copied_bytes as StgWord64,
         &raw mut temp as *mut c_char,
-        r#true != 0,
+        true,
     );
-
     statsPrintf(
-        b"%16s bytes copied during GC\n\0" as *const u8 as *const c_char as *mut c_char,
+        c"%16s bytes copied during GC\n".as_ptr(),
         &raw mut temp as *mut c_char,
     );
 
-    if stats.major_gcs > 0 as uint32_t {
+    if stats.major_gcs > 0 {
         showStgWord64(
             stats.max_live_bytes as StgWord64,
             &raw mut temp as *mut c_char,
-            r#true != 0,
+            true,
         );
 
         statsPrintf(
-            b"%16s bytes maximum residency (%u sample(s))\n\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c"%16s bytes maximum residency (%u sample(s))\n".as_ptr(),
             &raw mut temp as *mut c_char,
             stats.major_gcs,
         );
@@ -659,386 +642,348 @@ unsafe fn report_summary(mut sum: *const RTSSummaryStats) {
     showStgWord64(
         stats.max_slop_bytes as StgWord64,
         &raw mut temp as *mut c_char,
-        r#true != 0,
+        true,
     );
-
     statsPrintf(
-        b"%16s bytes maximum slop\n\0" as *const u8 as *const c_char as *mut c_char,
+        c"%16s bytes maximum slop\n".as_ptr(),
         &raw mut temp as *mut c_char,
     );
 
     statsPrintf(
-        b"%16llu MiB total memory in use (%llu MiB lost due to fragmentation)\n\n\0" as *const u8
-            as *const c_char as *mut c_char,
+        c"%16llu MiB total memory in use (%llu MiB lost due to fragmentation)\n\n".as_ptr(),
         stats
             .max_mem_in_use_bytes
-            .wrapping_div((1024 as c_int * 1024 as c_int) as uint64_t),
+            .wrapping_div((1024 as i32 * 1024 as i32) as u64),
         (*sum)
             .fragmentation_bytes
-            .wrapping_div((1024 as c_int * 1024 as c_int) as uint64_t),
+            .wrapping_div((1024 as i32 * 1024 as i32) as u64),
     );
 
     statsPrintf(
-        b"                                     Tot time (elapsed)  Avg pause  Max pause\n\0"
-            as *const u8 as *const c_char as *mut c_char,
+        c"                                     Tot time (elapsed)  Avg pause  Max pause\n".as_ptr(),
     );
 
-    g = 0 as uint32_t;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         let mut gen_stats: *const GenerationSummaryStats =
             (*sum).gc_summary_stats.offset(g as isize) as *mut GenerationSummaryStats;
 
         statsPrintf(
-            b"  Gen %2d     %5d colls, %5d par   %6.3fs  %6.3fs     %3.4fs    %3.4fs\n\0"
-                as *const u8 as *const c_char as *mut c_char,
+            c"  Gen %2d     %5d colls, %5d par   %6.3fs  %6.3fs     %3.4fs    %3.4fs\n".as_ptr(),
             g,
             (*gen_stats).collections,
             (*gen_stats).par_collections,
-            (*gen_stats).cpu_ns as c_double / TIME_RESOLUTION as c_double,
-            (*gen_stats).elapsed_ns as c_double / TIME_RESOLUTION as c_double,
-            (*gen_stats).avg_pause_ns as c_double / TIME_RESOLUTION as c_double,
-            (*gen_stats).max_pause_ns as c_double / TIME_RESOLUTION as c_double,
+            (*gen_stats).cpu_ns as f64 / TIME_RESOLUTION as f64,
+            (*gen_stats).elapsed_ns as f64 / TIME_RESOLUTION as f64,
+            (*gen_stats).avg_pause_ns as f64 / TIME_RESOLUTION as f64,
+            (*gen_stats).max_pause_ns as f64 / TIME_RESOLUTION as f64,
         );
 
         g = g.wrapping_add(1);
     }
 
     if RtsFlags.GcFlags.useNonmoving {
-        let nonmoving_gen: uint32_t = RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t);
+        let nonmoving_gen: u32 = RtsFlags.GcFlags.generations.wrapping_sub(1 as u32);
         let n_major_colls =
-            (*(*sum).gc_summary_stats.offset(nonmoving_gen as isize)).collections as c_int;
+            (*(*sum).gc_summary_stats.offset(nonmoving_gen as isize)).collections as i32;
 
         statsPrintf(
-            b"  Gen %2d     %5d syncs,                      %6.3fs     %3.4fs    %3.4fs\n\0"
-                as *const u8 as *const c_char as *mut c_char,
+            c"  Gen %2d     %5d syncs,                      %6.3fs     %3.4fs    %3.4fs\n".as_ptr(),
             nonmoving_gen,
             n_major_colls,
-            stats.nonmoving_gc_sync_elapsed_ns as c_double / TIME_RESOLUTION as c_double,
-            stats.nonmoving_gc_sync_elapsed_ns as c_double
-                / TIME_RESOLUTION as c_double
-                / n_major_colls as c_double,
-            stats.nonmoving_gc_sync_max_elapsed_ns as c_double / TIME_RESOLUTION as c_double,
+            stats.nonmoving_gc_sync_elapsed_ns as f64 / TIME_RESOLUTION as f64,
+            stats.nonmoving_gc_sync_elapsed_ns as f64
+                / TIME_RESOLUTION as f64
+                / n_major_colls as f64,
+            stats.nonmoving_gc_sync_max_elapsed_ns as f64 / TIME_RESOLUTION as f64,
         );
 
         statsPrintf(
-            b"  Gen %2d      concurrent,             %6.3fs  %6.3fs     %3.4fs    %3.4fs\n\0"
-                as *const u8 as *const c_char as *mut c_char,
+            c"  Gen %2d      concurrent,             %6.3fs  %6.3fs     %3.4fs    %3.4fs\n"
+                .as_ptr(),
             nonmoving_gen,
-            stats.nonmoving_gc_cpu_ns as c_double / TIME_RESOLUTION as c_double,
-            stats.nonmoving_gc_elapsed_ns as c_double / TIME_RESOLUTION as c_double,
-            stats.nonmoving_gc_elapsed_ns as c_double
-                / TIME_RESOLUTION as c_double
-                / n_major_colls as c_double,
-            stats.nonmoving_gc_max_elapsed_ns as c_double / TIME_RESOLUTION as c_double,
+            stats.nonmoving_gc_cpu_ns as f64 / TIME_RESOLUTION as f64,
+            stats.nonmoving_gc_elapsed_ns as f64 / TIME_RESOLUTION as f64,
+            stats.nonmoving_gc_elapsed_ns as f64 / TIME_RESOLUTION as f64 / n_major_colls as f64,
+            stats.nonmoving_gc_max_elapsed_ns as f64 / TIME_RESOLUTION as f64,
         );
     }
 
-    statsPrintf(b"\n\0" as *const u8 as *const c_char as *mut c_char);
+    statsPrintf(c"\n".as_ptr());
 
     statsPrintf(
-        b"  INIT    time  %7.3fs  (%7.3fs elapsed)\n\0" as *const u8 as *const c_char
-            as *mut c_char,
-        stats.init_cpu_ns as c_double / TIME_RESOLUTION as c_double,
-        stats.init_elapsed_ns as c_double / TIME_RESOLUTION as c_double,
+        c"  INIT    time  %7.3fs  (%7.3fs elapsed)\n".as_ptr(),
+        stats.init_cpu_ns as f64 / TIME_RESOLUTION as f64,
+        stats.init_elapsed_ns as f64 / TIME_RESOLUTION as f64,
     );
 
     statsPrintf(
-        b"  MUT     time  %7.3fs  (%7.3fs elapsed)\n\0" as *const u8 as *const c_char
-            as *mut c_char,
-        stats.mutator_cpu_ns as c_double / TIME_RESOLUTION as c_double,
-        stats.mutator_elapsed_ns as c_double / TIME_RESOLUTION as c_double,
+        c"  MUT     time  %7.3fs  (%7.3fs elapsed)\n".as_ptr(),
+        stats.mutator_cpu_ns as f64 / TIME_RESOLUTION as f64,
+        stats.mutator_elapsed_ns as f64 / TIME_RESOLUTION as f64,
     );
 
     statsPrintf(
-        b"  GC      time  %7.3fs  (%7.3fs elapsed)\n\0" as *const u8 as *const c_char
-            as *mut c_char,
-        stats.gc_cpu_ns as c_double / TIME_RESOLUTION as c_double,
-        stats.gc_elapsed_ns as c_double / TIME_RESOLUTION as c_double,
+        c"  GC      time  %7.3fs  (%7.3fs elapsed)\n".as_ptr(),
+        stats.gc_cpu_ns as f64 / TIME_RESOLUTION as f64,
+        stats.gc_elapsed_ns as f64 / TIME_RESOLUTION as f64,
     );
 
     if RtsFlags.GcFlags.useNonmoving {
         statsPrintf(
-            b"  CONC GC time  %7.3fs  (%7.3fs elapsed)\n\0" as *const u8 as *const c_char
-                as *mut c_char,
-            stats.nonmoving_gc_cpu_ns as c_double / TIME_RESOLUTION as c_double,
-            stats.nonmoving_gc_elapsed_ns as c_double / TIME_RESOLUTION as c_double,
+            c"  CONC GC time  %7.3fs  (%7.3fs elapsed)\n".as_ptr(),
+            stats.nonmoving_gc_cpu_ns as f64 / TIME_RESOLUTION as f64,
+            stats.nonmoving_gc_elapsed_ns as f64 / TIME_RESOLUTION as f64,
         );
     }
 
     statsPrintf(
-        b"  EXIT    time  %7.3fs  (%7.3fs elapsed)\n\0" as *const u8 as *const c_char
-            as *mut c_char,
-        (*sum).exit_cpu_ns as c_double / TIME_RESOLUTION as c_double,
-        (*sum).exit_elapsed_ns as c_double / TIME_RESOLUTION as c_double,
+        c"  EXIT    time  %7.3fs  (%7.3fs elapsed)\n".as_ptr(),
+        (*sum).exit_cpu_ns as f64 / TIME_RESOLUTION as f64,
+        (*sum).exit_elapsed_ns as f64 / TIME_RESOLUTION as f64,
     );
 
     statsPrintf(
-        b"  Total   time  %7.3fs  (%7.3fs elapsed)\n\n\0" as *const u8 as *const c_char
-            as *mut c_char,
-        stats.cpu_ns as c_double / TIME_RESOLUTION as c_double,
-        stats.elapsed_ns as c_double / TIME_RESOLUTION as c_double,
+        c"  Total   time  %7.3fs  (%7.3fs elapsed)\n\n".as_ptr(),
+        stats.cpu_ns as f64 / TIME_RESOLUTION as f64,
+        stats.elapsed_ns as f64 / TIME_RESOLUTION as f64,
     );
 
     statsPrintf(
-        b"  %%GC     time     %5.1f%%  (%.1f%% elapsed)\n\n\0" as *const u8 as *const c_char
-            as *mut c_char,
-        (*sum).gc_cpu_percent * 100 as c_int as c_double,
-        (*sum).gc_elapsed_percent * 100 as c_int as c_double,
+        c"  %%GC     time     %5.1f%%  (%.1f%% elapsed)\n\n".as_ptr(),
+        (*sum).gc_cpu_percent * 100,
+        (*sum).gc_elapsed_percent * 100,
     );
 
     showStgWord64(
         (*sum).alloc_rate as StgWord64,
         &raw mut temp as *mut c_char,
-        r#true != 0,
+        true,
     );
 
     statsPrintf(
-        b"  Alloc rate    %s bytes per MUT second\n\n\0" as *const u8 as *const c_char
-            as *mut c_char,
+        c"  Alloc rate    %s bytes per MUT second\n\n".as_ptr(),
         &raw mut temp as *mut c_char,
     );
 
     statsPrintf(
-        b"  Productivity %5.1f%% of total user, %.1f%% of total elapsed\n\n\0" as *const u8
-            as *const c_char as *mut c_char,
-        (*sum).productivity_cpu_percent * 100 as c_int as c_double,
-        (*sum).productivity_elapsed_percent * 100 as c_int as c_double,
+        c"  Productivity %5.1f%% of total user, %.1f%% of total elapsed\n\n".as_ptr(),
+        (*sum).productivity_cpu_percent * 100,
+        (*sum).productivity_elapsed_percent * 100,
     );
 
     if RtsFlags.MiscFlags.internalCounters {
-        statsPrintf(
-            b"Internal Counters require the threaded RTS\0" as *const u8 as *const c_char
-                as *mut c_char,
-        );
+        statsPrintf(c"Internal Counters require the threaded RTS".as_ptr());
     }
 }
 
 unsafe fn report_machine_readable(mut sum: *const RTSSummaryStats) {
-    let mut g: uint32_t = 0;
+    let mut g: u32 = 0;
 
     statsPrintf(
-        b" [(\"%s\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        b"bytes allocated\0" as *const u8 as *const c_char,
+        c" [(\"%s\", \"%llu\")\n".as_ptr(),
+        c"bytes allocated".as_ptr(),
         stats.allocated_bytes,
     );
 
-    statsPrintf(
-        b" ,(\"num_GCs\", \"%u\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        stats.gcs,
-    );
+    statsPrintf(c" ,(\"num_GCs\", \"%u\")\n".as_ptr(), stats.gcs);
 
     statsPrintf(
-        b" ,(\"average_bytes_used\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"average_bytes_used\", \"%llu\")\n".as_ptr(),
         (*sum).average_bytes_used,
     );
 
     statsPrintf(
-        b" ,(\"max_bytes_used\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"max_bytes_used\", \"%llu\")\n".as_ptr(),
         stats.max_live_bytes,
     );
-
     statsPrintf(
-        b" ,(\"num_byte_usage_samples\", \"%u\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"num_byte_usage_samples\", \"%u\")\n".as_ptr(),
         stats.major_gcs,
     );
 
     statsPrintf(
-        b" ,(\"peak_megabytes_allocated\", \"%llu\")\n\0" as *const u8 as *const c_char
-            as *mut c_char,
+        c" ,(\"peak_megabytes_allocated\", \"%llu\")\n".as_ptr(),
         stats
             .max_mem_in_use_bytes
-            .wrapping_div((1024 as c_int * 1024 as c_int) as uint64_t),
+            .wrapping_div((1024 as i32 * 1024 as i32) as u64),
     );
 
     statsPrintf(
-        b" ,(\"init_cpu_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        stats.init_cpu_ns as c_double / 1000000000 as c_int as c_double,
+        c" ,(\"init_cpu_seconds\", \"%f\")\n".as_ptr(),
+        stats.init_cpu_ns as f64 / 1000000000,
     );
 
     statsPrintf(
-        b" ,(\"init_wall_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        stats.init_elapsed_ns as c_double / 1000000000 as c_int as c_double,
+        c" ,(\"init_wall_seconds\", \"%f\")\n".as_ptr(),
+        stats.init_elapsed_ns as f64 / 1000000000,
     );
 
     statsPrintf(
-        b" ,(\"mut_cpu_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        stats.mutator_cpu_ns as c_double / 1000000000 as c_int as c_double,
+        c" ,(\"mut_cpu_seconds\", \"%f\")\n".as_ptr(),
+        stats.mutator_cpu_ns as f64 / 1000000000,
     );
 
     statsPrintf(
-        b" ,(\"mut_wall_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        stats.mutator_elapsed_ns as c_double / 1000000000 as c_int as c_double,
+        c" ,(\"mut_wall_seconds\", \"%f\")\n".as_ptr(),
+        stats.mutator_elapsed_ns as f64 / 1000000000,
     );
 
     statsPrintf(
-        b" ,(\"GC_cpu_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        stats.gc_cpu_ns as c_double / 1000000000 as c_int as c_double,
+        c" ,(\"GC_cpu_seconds\", \"%f\")\n".as_ptr(),
+        stats.gc_cpu_ns as f64 / 1000000000,
     );
 
     statsPrintf(
-        b" ,(\"GC_wall_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        stats.gc_elapsed_ns as c_double / 1000000000 as c_int as c_double,
+        c" ,(\"GC_wall_seconds\", \"%f\")\n".as_ptr(),
+        stats.gc_elapsed_ns as f64 / 1000000000,
     );
 
     statsPrintf(
-        b" ,(\"exit_cpu_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        (*sum).exit_cpu_ns as c_double / 1000000000 as c_int as c_double,
+        c" ,(\"exit_cpu_seconds\", \"%f\")\n".as_ptr(),
+        (*sum).exit_cpu_ns as f64 / 1000000000,
     );
 
     statsPrintf(
-        b" ,(\"exit_wall_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        (*sum).exit_elapsed_ns as c_double / 1000000000 as c_int as c_double,
+        c" ,(\"exit_wall_seconds\", \"%f\")\n".as_ptr(),
+        (*sum).exit_elapsed_ns as f64 / 1000000000,
     );
 
     statsPrintf(
-        b" ,(\"total_cpu_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        stats.cpu_ns as c_double / 1000000000 as c_int as c_double,
+        c" ,(\"total_cpu_seconds\", \"%f\")\n".as_ptr(),
+        stats.cpu_ns as f64 / 1000000000,
     );
 
     statsPrintf(
-        b" ,(\"total_wall_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        stats.elapsed_ns as c_double / 1000000000 as c_int as c_double,
+        c" ,(\"total_wall_seconds\", \"%f\")\n".as_ptr(),
+        stats.elapsed_ns as f64 / 1000000000,
     );
 
+    statsPrintf(c" ,(\"major_gcs\", \"%u\")\n".as_ptr(), stats.major_gcs);
     statsPrintf(
-        b" ,(\"major_gcs\", \"%u\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        stats.major_gcs,
-    );
-
-    statsPrintf(
-        b" ,(\"allocated_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"allocated_bytes\", \"%llu\")\n".as_ptr(),
         stats.allocated_bytes,
     );
-
     statsPrintf(
-        b" ,(\"max_live_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"max_live_bytes\", \"%llu\")\n".as_ptr(),
         stats.max_live_bytes,
     );
 
     statsPrintf(
-        b" ,(\"max_large_objects_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char
-            as *mut c_char,
+        c" ,(\"max_large_objects_bytes\", \"%llu\")\n".as_ptr(),
         stats.max_large_objects_bytes,
     );
 
     statsPrintf(
-        b" ,(\"max_compact_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"max_compact_bytes\", \"%llu\")\n".as_ptr(),
         stats.max_compact_bytes,
     );
 
     statsPrintf(
-        b" ,(\"max_slop_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"max_slop_bytes\", \"%llu\")\n".as_ptr(),
         stats.max_slop_bytes,
     );
 
     statsPrintf(
-        b" ,(\"max_mem_in_use_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"max_mem_in_use_bytes\", \"%llu\")\n".as_ptr(),
         stats.max_mem_in_use_bytes,
     );
 
     statsPrintf(
-        b" ,(\"cumulative_live_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"cumulative_live_bytes\", \"%llu\")\n".as_ptr(),
         stats.cumulative_live_bytes,
     );
 
     statsPrintf(
-        b" ,(\"copied_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"copied_bytes\", \"%llu\")\n".as_ptr(),
         stats.copied_bytes,
     );
 
     statsPrintf(
-        b" ,(\"par_copied_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"par_copied_bytes\", \"%llu\")\n".as_ptr(),
         stats.par_copied_bytes,
     );
 
     statsPrintf(
-        b" ,(\"cumulative_par_max_copied_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char
-            as *mut c_char,
+        c" ,(\"cumulative_par_max_copied_bytes\", \"%llu\")\n".as_ptr(),
         stats.cumulative_par_max_copied_bytes,
     );
 
     statsPrintf(
-        b" ,(\"cumulative_par_balanced_copied_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char
-            as *mut c_char,
+        c" ,(\"cumulative_par_balanced_copied_bytes\", \"%llu\")\n".as_ptr(),
         stats.cumulative_par_balanced_copied_bytes,
     );
 
     statsPrintf(
-        b" ,(\"gc_cpu_percent\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"gc_cpu_percent\", \"%f\")\n".as_ptr(),
+        (*sum).gc_cpu_percent,
+    );
+    statsPrintf(
+        c" ,(\"gc_wall_percent\", \"%f\")\n".as_ptr(),
         (*sum).gc_cpu_percent,
     );
 
     statsPrintf(
-        b" ,(\"gc_wall_percent\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
-        (*sum).gc_cpu_percent,
-    );
-
-    statsPrintf(
-        b" ,(\"fragmentation_bytes\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"fragmentation_bytes\", \"%llu\")\n".as_ptr(),
         (*sum).fragmentation_bytes,
     );
 
     statsPrintf(
-        b" ,(\"alloc_rate\", \"%llu\")\n\0" as *const u8 as *const c_char as *mut c_char,
+        c" ,(\"alloc_rate\", \"%llu\")\n".as_ptr(),
         (*sum).alloc_rate,
     );
 
     statsPrintf(
-        b" ,(\"productivity_cpu_percent\", \"%f\")\n\0" as *const u8 as *const c_char
-            as *mut c_char,
+        c" ,(\"productivity_cpu_percent\", \"%f\")\n".as_ptr(),
         (*sum).productivity_cpu_percent,
     );
 
     statsPrintf(
-        b" ,(\"productivity_wall_percent\", \"%f\")\n\0" as *const u8 as *const c_char
-            as *mut c_char,
+        c" ,(\"productivity_wall_percent\", \"%f\")\n".as_ptr(),
         (*sum).productivity_elapsed_percent,
     );
 
-    g = 0 as uint32_t;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         let mut gc_sum: *const GenerationSummaryStats =
             (*sum).gc_summary_stats.offset(g as isize) as *mut GenerationSummaryStats;
 
         statsPrintf(
-            b" ,(\"gen_%u_collections\", \"%u\")\n\0" as *const u8 as *const c_char as *mut c_char,
+            c" ,(\"gen_%u_collections\", \"%u\")\n".as_ptr(),
             g,
             (*gc_sum).collections,
         );
 
         statsPrintf(
-            b" ,(\"gen_%u_par_collections\", \"%u\")\n\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c" ,(\"gen_%u_par_collections\", \"%u\")\n".as_ptr(),
             g,
             (*gc_sum).par_collections,
         );
 
         statsPrintf(
-            b" ,(\"gen_%u_cpu_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
+            c" ,(\"gen_%u_cpu_seconds\", \"%f\")\n".as_ptr(),
             g,
-            (*gc_sum).cpu_ns as c_double / 1000000000 as c_int as c_double,
+            (*gc_sum).cpu_ns as f64 / 1000000000,
         );
 
         statsPrintf(
-            b" ,(\"gen_%u_wall_seconds\", \"%f\")\n\0" as *const u8 as *const c_char as *mut c_char,
+            c" ,(\"gen_%u_wall_seconds\", \"%f\")\n".as_ptr(),
             g,
-            (*gc_sum).elapsed_ns as c_double / 1000000000 as c_int as c_double,
+            (*gc_sum).elapsed_ns as f64 / 1000000000,
         );
 
         statsPrintf(
-            b" ,(\"gen_%u_max_pause_seconds\", \"%f\")\n\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c" ,(\"gen_%u_max_pause_seconds\", \"%f\")\n".as_ptr(),
             g,
-            (*gc_sum).max_pause_ns as c_double / 1000000000 as c_int as c_double,
+            (*gc_sum).max_pause_ns as f64 / 1000000000,
         );
 
         statsPrintf(
-            b" ,(\"gen_%u_avg_pause_seconds\", \"%f\")\n\0" as *const u8 as *const c_char
-                as *mut c_char,
+            c" ,(\"gen_%u_avg_pause_seconds\", \"%f\")\n".as_ptr(),
             g,
-            (*gc_sum).avg_pause_ns as c_double / 1000000000 as c_int as c_double,
+            (*gc_sum).avg_pause_ns as f64 / 1000000000,
         );
 
         g = g.wrapping_add(1);
@@ -1047,91 +992,64 @@ unsafe fn report_machine_readable(mut sum: *const RTSSummaryStats) {
     if RtsFlags.GcFlags.useNonmoving {
         let n_major_colls = (*(*sum)
             .gc_summary_stats
-            .offset(RtsFlags.GcFlags.generations.wrapping_sub(1 as uint32_t) as isize))
-        .collections as c_int;
+            .offset(RtsFlags.GcFlags.generations.wrapping_sub(1 as u32) as isize))
+        .collections as i32;
 
         statsPrintf(
-            b" ,(\"nonmoving_sync_wall_seconds\", \"%f\")\n\0" as *const u8 as *const c_char
-                as *mut c_char,
-            stats.nonmoving_gc_sync_elapsed_ns as c_double / 1000000000 as c_int as c_double,
+            c" ,(\"nonmoving_sync_wall_seconds\", \"%f\")\n".as_ptr(),
+            stats.nonmoving_gc_sync_elapsed_ns as f64 / 1000000000,
         );
 
         statsPrintf(
-            b" ,(\"nonmoving_sync_max_pause_seconds\", \"%f\")\n\0" as *const u8 as *const c_char
-                as *mut c_char,
-            stats.nonmoving_gc_sync_max_elapsed_ns as c_double / 1000000000 as c_int as c_double,
+            c" ,(\"nonmoving_sync_max_pause_seconds\", \"%f\")\n".as_ptr(),
+            stats.nonmoving_gc_sync_max_elapsed_ns as f64 / 1000000000,
         );
 
         statsPrintf(
-            b" ,(\"nonmoving_sync_avg_pause_seconds\", \"%f\")\n\0" as *const u8 as *const c_char
-                as *mut c_char,
-            stats.nonmoving_gc_sync_elapsed_ns as c_double
-                / 1000000000 as c_int as c_double
-                / n_major_colls as c_double,
+            c" ,(\"nonmoving_sync_avg_pause_seconds\", \"%f\")\n".as_ptr(),
+            stats.nonmoving_gc_sync_elapsed_ns as f64 / 1000000000 / n_major_colls as f64,
         );
 
         statsPrintf(
-            b" ,(\"nonmoving_concurrent_cpu_seconds\", \"%f\")\n\0" as *const u8 as *const c_char
-                as *mut c_char,
-            stats.nonmoving_gc_cpu_ns as c_double / 1000000000 as c_int as c_double,
+            c" ,(\"nonmoving_concurrent_cpu_seconds\", \"%f\")\n".as_ptr(),
+            stats.nonmoving_gc_cpu_ns as f64 / 1000000000,
         );
 
         statsPrintf(
-            b" ,(\"nonmoving_concurrent_wall_seconds\", \"%f\")\n\0" as *const u8 as *const c_char
-                as *mut c_char,
-            stats.nonmoving_gc_elapsed_ns as c_double / 1000000000 as c_int as c_double,
+            c" ,(\"nonmoving_concurrent_wall_seconds\", \"%f\")\n".as_ptr(),
+            stats.nonmoving_gc_elapsed_ns as f64 / 1000000000,
         );
 
         statsPrintf(
-            b" ,(\"nonmoving_concurrent_max_pause_seconds\", \"%f\")\n\0" as *const u8
-                as *const c_char as *mut c_char,
-            stats.nonmoving_gc_max_elapsed_ns as c_double / 1000000000 as c_int as c_double,
+            c" ,(\"nonmoving_concurrent_max_pause_seconds\", \"%f\")\n".as_ptr(),
+            stats.nonmoving_gc_max_elapsed_ns as f64 / 1000000000,
         );
 
         statsPrintf(
-            b" ,(\"nonmoving_concurrent_avg_pause_seconds\", \"%f\")\n\0" as *const u8
-                as *const c_char as *mut c_char,
-            stats.nonmoving_gc_elapsed_ns as c_double
-                / 1000000000 as c_int as c_double
-                / n_major_colls as c_double,
+            c" ,(\"nonmoving_concurrent_avg_pause_seconds\", \"%f\")\n".as_ptr(),
+            stats.nonmoving_gc_elapsed_ns as f64 / 1000000000 / n_major_colls as f64,
         );
     }
 
-    statsPrintf(b" ]\n\0" as *const u8 as *const c_char as *mut c_char);
+    statsPrintf(c" ]\n".as_ptr());
 }
 
 unsafe fn report_one_line(mut sum: *const RTSSummaryStats) {
     statsPrintf(
-        b"<<ghc: %llu bytes, %u GCs, %llu/%llu avg/max bytes residency (%u samples), %lluM in use, %.3f INIT (%.3f elapsed), %.3f MUT (%.3f elapsed), %.3f GC (%.3f elapsed) :ghc>>\n\0"
-            as *const u8 as *const c_char as *mut c_char,
+        c"<<ghc: %llu bytes, %u GCs, %llu/%llu avg/max bytes residency (%u samples), %lluM in use, %.3f INIT (%.3f elapsed), %.3f MUT (%.3f elapsed), %.3f GC (%.3f elapsed) :ghc>>\n"
+            .as_ptr(),
         stats.allocated_bytes,
         stats.gcs,
         (*sum).average_bytes_used,
         stats.max_live_bytes,
         stats.major_gcs,
-        stats
-            .max_mem_in_use_bytes
-            .wrapping_div(
-                (1024 as c_int * 1024 as c_int) as uint64_t,
-            ),
-        stats.init_cpu_ns as c_double
-
-            / TIME_RESOLUTION as c_double,
-        stats.init_elapsed_ns as c_double
-
-            / TIME_RESOLUTION as c_double,
-        stats.mutator_cpu_ns as c_double
-
-            / TIME_RESOLUTION as c_double,
-        stats.mutator_elapsed_ns as c_double
-
-            / TIME_RESOLUTION as c_double,
-        stats.gc_cpu_ns as c_double
-
-            / TIME_RESOLUTION as c_double,
-        stats.gc_elapsed_ns as c_double
-
-            / TIME_RESOLUTION as c_double,
+        stats.max_mem_in_use_bytes.wrapping_div((1024 as i32 * 1024 as i32) as u64),
+        stats.init_cpu_ns as f64 / TIME_RESOLUTION as f64,
+        stats.init_elapsed_ns as f64 / TIME_RESOLUTION as f64,
+        stats.mutator_cpu_ns as f64 / TIME_RESOLUTION as f64,
+        stats.mutator_elapsed_ns as f64 / TIME_RESOLUTION as f64,
+        stats.gc_cpu_ns as f64 / TIME_RESOLUTION as f64,
+        stats.gc_elapsed_ns as f64 / TIME_RESOLUTION as f64,
     );
 }
 
@@ -1155,19 +1073,19 @@ unsafe fn stat_exitReport() {
 
     init_RTSSummaryStats(&raw mut sum);
 
-    if RtsFlags.GcFlags.giveStats != NO_GC_STATS as uint32_t {
+    if RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32 {
         let mut now_cpu_ns: Time = 0;
         let mut now_elapsed_ns: Time = 0;
         getProcessTimes(&raw mut now_cpu_ns, &raw mut now_elapsed_ns);
         stats.cpu_ns = now_cpu_ns - start_init_cpu;
         stats.elapsed_ns = now_elapsed_ns - start_init_elapsed;
 
-        if stats.cpu_ns <= 0 as Time {
-            stats.cpu_ns = 1 as Time;
+        if stats.cpu_ns <= 0 {
+            stats.cpu_ns = 1;
         }
 
-        if stats.elapsed_ns <= 0 as Time {
-            stats.elapsed_ns = 1 as Time;
+        if stats.elapsed_ns <= 0 {
+            stats.elapsed_ns = 1;
         }
 
         let mut exit_gc_cpu: Time = stats.gc_cpu_ns - start_exit_gc_cpu;
@@ -1181,8 +1099,8 @@ unsafe fn stat_exitReport() {
         stats.mutator_elapsed_ns =
             start_exit_elapsed - end_init_elapsed - (stats.gc_elapsed_ns - exit_gc_elapsed);
 
-        if stats.mutator_cpu_ns < 0 as Time {
-            stats.mutator_cpu_ns = 0 as Time;
+        if stats.mutator_cpu_ns < 0 {
+            stats.mutator_cpu_ns = 0;
         }
 
         let mut prof_cpu: Time = sum.rp_cpu_ns + sum.hc_cpu_ns;
@@ -1190,63 +1108,58 @@ unsafe fn stat_exitReport() {
         stats.gc_cpu_ns -= prof_cpu;
         stats.gc_elapsed_ns -= prof_elapsed;
 
-        let mut tot_alloc_bytes: uint64_t =
-            calcTotalAllocated().wrapping_mul(size_of::<W_>() as uint64_t);
+        let mut tot_alloc_bytes: u64 = calcTotalAllocated().wrapping_mul(size_of::<W_>() as u64);
         stats.gc.allocated_bytes = tot_alloc_bytes.wrapping_sub(stats.allocated_bytes);
         stats.allocated_bytes = tot_alloc_bytes;
 
-        if RtsFlags.GcFlags.giveStats >= VERBOSE_GC_STATS as uint32_t {
+        if RtsFlags.GcFlags.giveStats >= VERBOSE_GC_STATS as u32 {
             statsPrintf(
-                b"%9llu %9.9s %9.9s\0" as *const u8 as *const c_char as *mut c_char,
+                c"%9llu %9.9s %9.9s".as_ptr(),
                 stats.gc.allocated_bytes,
-                b"\0" as *const u8 as *const c_char,
-                b"\0" as *const u8 as *const c_char,
+                c"".as_ptr(),
+                c"".as_ptr(),
             );
 
-            statsPrintf(
-                b" %6.3f %6.3f\n\n\0" as *const u8 as *const c_char as *mut c_char,
-                0.0f64,
-                0.0f64,
-            );
+            statsPrintf(c" %6.3f %6.3f\n\n".as_ptr(), 0.0f64, 0.0f64);
         }
 
-        sum.gc_cpu_percent = (stats.gc_cpu_ns / stats.cpu_ns) as c_double;
-        sum.gc_elapsed_percent = (stats.gc_elapsed_ns / stats.elapsed_ns) as c_double;
+        sum.gc_cpu_percent = (stats.gc_cpu_ns / stats.cpu_ns) as f64;
+        sum.gc_elapsed_percent = (stats.gc_elapsed_ns / stats.elapsed_ns) as f64;
         sum.fragmentation_bytes = peak_mblocks_allocated
             .wrapping_mul(BLOCKS_PER_MBLOCK)
             .wrapping_mul(BLOCK_SIZE_W as W_)
             .wrapping_sub(hw_alloc_blocks.wrapping_mul(BLOCK_SIZE_W as W_))
-            .wrapping_mul(size_of::<W_>() as uint64_t);
+            .wrapping_mul(size_of::<W_>() as u64);
 
-        sum.average_bytes_used = (if stats.major_gcs == 0 as uint32_t {
-            0 as uint64_t
+        sum.average_bytes_used = (if stats.major_gcs == 0 {
+            0
         } else {
             stats
                 .cumulative_live_bytes
-                .wrapping_div(stats.major_gcs as uint64_t)
+                .wrapping_div(stats.major_gcs as u64)
         });
 
-        sum.alloc_rate = (if stats.mutator_cpu_ns == 0 as Time {
-            0 as uint64_t
+        sum.alloc_rate = (if stats.mutator_cpu_ns == 0 {
+            0
         } else {
-            (stats.allocated_bytes as c_double
-                / (stats.mutator_cpu_ns as c_double / TIME_RESOLUTION as c_double))
-                as uint64_t
+            (stats.allocated_bytes as f64 / (stats.mutator_cpu_ns as f64 / TIME_RESOLUTION as f64))
+                as u64
         });
 
         sum.productivity_cpu_percent =
-            (stats.cpu_ns - stats.gc_cpu_ns - stats.init_cpu_ns - sum.exit_cpu_ns) as c_double
-                / TIME_RESOLUTION as c_double
-                / (stats.cpu_ns as c_double / TIME_RESOLUTION as c_double);
+            (stats.cpu_ns - stats.gc_cpu_ns - stats.init_cpu_ns - sum.exit_cpu_ns) as f64
+                / TIME_RESOLUTION as f64
+                / (stats.cpu_ns as f64 / TIME_RESOLUTION as f64);
         sum.productivity_elapsed_percent =
             (stats.elapsed_ns - stats.gc_elapsed_ns - stats.init_elapsed_ns - sum.exit_elapsed_ns)
-                as c_double
-                / TIME_RESOLUTION as c_double
-                / (stats.elapsed_ns as c_double / TIME_RESOLUTION as c_double);
-        let mut g: uint32_t = 0 as uint32_t;
+                as f64
+                / TIME_RESOLUTION as f64
+                / (stats.elapsed_ns as f64 / TIME_RESOLUTION as f64);
+        let mut g: u32 = 0;
 
         while g < RtsFlags.GcFlags.generations {
             let mut r#gen: *const generation = generations.offset(g as isize) as *mut generation;
+
             let mut gen_stats: *mut GenerationSummaryStats =
                 sum.gc_summary_stats.offset(g as isize) as *mut GenerationSummaryStats;
             (*gen_stats).collections = (*r#gen).collections;
@@ -1255,8 +1168,8 @@ unsafe fn stat_exitReport() {
             (*gen_stats).elapsed_ns = *GC_coll_elapsed.offset(g as isize);
             (*gen_stats).max_pause_ns = *GC_coll_max_pause.offset(g as isize);
 
-            (*gen_stats).avg_pause_ns = if (*r#gen).collections == 0 as uint32_t {
-                0 as Time
+            (*gen_stats).avg_pause_ns = if (*r#gen).collections == 0 {
+                0
             } else {
                 *GC_coll_elapsed.offset(g as isize) / (*r#gen).collections as Time
             };
@@ -1264,11 +1177,11 @@ unsafe fn stat_exitReport() {
             g = g.wrapping_add(1);
         }
 
-        if RtsFlags.GcFlags.giveStats >= SUMMARY_GC_STATS as uint32_t {
+        if RtsFlags.GcFlags.giveStats >= SUMMARY_GC_STATS as u32 {
             report_summary(&raw mut sum);
         }
 
-        if RtsFlags.GcFlags.giveStats == ONELINE_GC_STATS as uint32_t {
+        if RtsFlags.GcFlags.giveStats == ONELINE_GC_STATS as u32 {
             if RtsFlags.MiscFlags.machineReadable {
                 report_machine_readable(&raw mut sum);
             } else {
@@ -1301,11 +1214,11 @@ unsafe fn stat_exitReport() {
 unsafe fn stat_exit() {}
 
 unsafe fn statDescribeGens() {
-    let mut g: uint32_t = 0;
-    let mut r#mut: uint32_t = 0;
-    let mut lge: uint32_t = 0;
-    let mut compacts: uint32_t = 0;
-    let mut i: uint32_t = 0;
+    let mut g: u32 = 0;
+    let mut r#mut: u32 = 0;
+    let mut lge: u32 = 0;
+    let mut compacts: u32 = 0;
+    let mut i: u32 = 0;
     let mut gen_slop: W_ = 0;
     let mut tot_live: W_ = 0;
     let mut tot_slop: W_ = 0;
@@ -1315,18 +1228,18 @@ unsafe fn statDescribeGens() {
     let mut r#gen = null_mut::<generation>();
 
     debugBelch(
-        b"----------------------------------------------------------------------\n  Gen     Max  Mut-list  Blocks    Large  Compacts      Live      Slop\n       Blocks     Bytes          Objects                              \n----------------------------------------------------------------------\n\0"
-            as *const u8 as *const c_char,
+        c"----------------------------------------------------------------------\n  Gen     Max  Mut-list  Blocks    Large  Compacts      Live      Slop\n       Blocks     Bytes          Objects                              \n----------------------------------------------------------------------\n"
+            .as_ptr(),
     );
 
-    tot_live = 0 as W_;
-    tot_slop = 0 as W_;
-    g = 0 as uint32_t;
+    tot_live = 0;
+    tot_slop = 0;
+    g = 0;
 
     while g < RtsFlags.GcFlags.generations {
         r#gen = generations.offset(g as isize) as *mut generation;
         bd = (*r#gen).large_objects;
-        lge = 0 as uint32_t;
+        lge = 0;
 
         while !bd.is_null() {
             lge = lge.wrapping_add(1);
@@ -1334,7 +1247,7 @@ unsafe fn statDescribeGens() {
         }
 
         bd = (*r#gen).compact_objects;
-        compacts = 0 as uint32_t;
+        compacts = 0;
 
         while !bd.is_null() {
             compacts = compacts.wrapping_add(1);
@@ -1343,20 +1256,19 @@ unsafe fn statDescribeGens() {
 
         gen_live = genLiveWords(r#gen) as W_;
         gen_blocks = genLiveBlocks(r#gen) as W_;
-        r#mut = 0 as uint32_t;
-        i = 0 as uint32_t;
+        r#mut = 0;
+        i = 0;
 
-        while i < getNumCapabilities() as uint32_t {
+        while i < getNumCapabilities() as u32 {
             r#mut = (r#mut as StgWord).wrapping_add(countOccupied(
                 *(*getCapability(i)).mut_lists.offset(g as isize),
-            )) as uint32_t as uint32_t;
+            )) as u32 as u32;
 
             bd = (*getCapability(i)).pinned_object_block;
 
             if !bd.is_null() {
-                gen_live = gen_live.wrapping_add(
-                    (*bd).c2rust_unnamed.free.offset_from((*bd).start) as c_long as W_,
-                );
+                gen_live = gen_live
+                    .wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).start) as i64 as W_);
 
                 gen_blocks = gen_blocks.wrapping_add((*bd).blocks as W_);
             }
@@ -1366,19 +1278,13 @@ unsafe fn statDescribeGens() {
             i = i.wrapping_add(1);
         }
 
-        debugBelch(
-            b"%5d %7llu %9d\0" as *const u8 as *const c_char,
-            g,
-            (*r#gen).max_blocks,
-            r#mut,
-        );
-
+        debugBelch(c"%5d %7llu %9d".as_ptr(), g, (*r#gen).max_blocks, r#mut);
         gen_slop = gen_blocks
             .wrapping_mul(BLOCK_SIZE_W as W_)
             .wrapping_sub(gen_live);
 
         debugBelch(
-            b"%8llu %8d  %8d %9llu %9llu\n\0" as *const u8 as *const c_char,
+            c"%8llu %8d  %8d %9llu %9llu\n".as_ptr(),
             gen_blocks,
             lge,
             compacts,
@@ -1392,47 +1298,45 @@ unsafe fn statDescribeGens() {
     }
 
     debugBelch(
-        b"----------------------------------------------------------------------\n\0" as *const u8
-            as *const c_char,
+        c"----------------------------------------------------------------------\n".as_ptr(),
     );
 
     debugBelch(
-        b"%51s%9llu %9llu\n\0" as *const u8 as *const c_char,
-        b"\0" as *const u8 as *const c_char,
+        c"%51s%9llu %9llu\n".as_ptr(),
+        c"".as_ptr(),
         tot_live.wrapping_mul(size_of::<W_>() as W_),
         tot_slop.wrapping_mul(size_of::<W_>() as W_),
     );
 
     debugBelch(
-        b"----------------------------------------------------------------------\n\0" as *const u8
-            as *const c_char,
+        c"----------------------------------------------------------------------\n".as_ptr(),
     );
 
-    debugBelch(b"\n\0" as *const u8 as *const c_char);
+    debugBelch(c"\n".as_ptr());
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn getAllocations() -> uint64_t {
+pub unsafe extern "C" fn getAllocations() -> u64 {
     let mut n: StgWord64 = stats.allocated_bytes as StgWord64;
 
-    return n as uint64_t;
+    return n as u64;
 }
 
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn getRTSStatsEnabled() -> c_int {
-    return (RtsFlags.GcFlags.giveStats != NO_GC_STATS as uint32_t) as c_int;
+pub unsafe extern "C" fn getRTSStatsEnabled() -> i32 {
+    return (RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32) as i32;
 }
 
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getRTSStats(mut s: *mut RTSStats) {
-    let mut current_elapsed: Time = 0 as Time;
-    let mut current_cpu: Time = 0 as Time;
+    let mut current_elapsed: Time = 0;
+    let mut current_cpu: Time = 0;
     *s = stats;
     getProcessTimes(&raw mut current_cpu, &raw mut current_elapsed);
     (*s).cpu_ns = current_cpu - end_init_cpu;
@@ -1441,8 +1345,8 @@ pub unsafe extern "C" fn getRTSStats(mut s: *mut RTSStats) {
     (*s).mutator_elapsed_ns = current_elapsed - end_init_elapsed - stats.gc_elapsed_ns;
 }
 
-unsafe fn statsPrintf(mut s: *mut c_char, mut args: ...) -> c_int {
-    let mut ret = 0 as c_int;
+unsafe fn statsPrintf(mut s: *mut c_char, mut args: ...) -> i32 {
+    let mut ret = 0;
     let mut sf = RtsFlags.GcFlags.statsFile;
     let mut ap: VaListImpl;
     ap = args.clone();

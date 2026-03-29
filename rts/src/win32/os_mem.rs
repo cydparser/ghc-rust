@@ -9,19 +9,19 @@ use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::sm::os_mem::roundUpToAlign;
 
 #[inline]
-pub(crate) unsafe fn roundDownToPage(mut x: size_t) -> size_t {
+pub(crate) unsafe fn roundDownToPage(mut x: usize) -> usize {
     let mut size = getPageSize();
 
-    return x & !size.wrapping_sub(1 as size_t);
+    return x & !size.wrapping_sub(1 as usize);
 }
 
 #[inline]
-pub(crate) unsafe fn roundUpToAlign(mut size: size_t, mut align: size_t) -> size_t {
-    return size.wrapping_add(align).wrapping_sub(1 as size_t) & !align.wrapping_sub(1 as size_t);
+pub(crate) unsafe fn roundUpToAlign(mut size: usize, mut align: usize) -> usize {
+    return size.wrapping_add(align).wrapping_sub(1 as usize) & !align.wrapping_sub(1 as usize);
 }
 
 #[inline]
-pub(crate) unsafe fn roundUpToPage(mut x: size_t) -> size_t {
+pub(crate) unsafe fn roundUpToPage(mut x: usize) -> usize {
     return roundUpToAlign(x, getPageSize());
 }
 
@@ -43,21 +43,21 @@ struct alloc_rec_ {
     next: *mut alloc_rec_,
 }
 
-static mut allocs: *mut alloc_rec = null::<alloc_rec>() as *mut alloc_rec;
+static mut allocs: *mut alloc_rec = null_mut::<alloc_rec>();
 
-static mut free_blocks: *mut block_rec = null::<block_rec>() as *mut block_rec;
+static mut free_blocks: *mut block_rec = null_mut::<block_rec>();
 
 unsafe fn osMemInit() {
     allocs = null_mut::<alloc_rec>();
     free_blocks = null_mut::<block_rec>();
 }
 
-unsafe fn allocNew(mut n: uint32_t) -> *mut alloc_rec {
+unsafe fn allocNew(mut n: u32) -> *mut alloc_rec {
     let mut rec = null_mut::<alloc_rec>();
 
     rec = stgMallocBytes(
-        size_of::<alloc_rec>() as size_t,
-        b"getMBlocks: allocNew\0" as *const u8 as *const c_char as *mut c_char,
+        size_of::<alloc_rec>() as usize,
+        c"getMBlocks: allocNew".as_ptr(),
     ) as *mut alloc_rec;
 
     (*rec).size = (n as W_)
@@ -75,13 +75,12 @@ unsafe fn allocNew(mut n: uint32_t) -> *mut alloc_rec {
         stgFree(rec as *mut c_void);
         rec = null_mut::<alloc_rec>();
 
-        if GetLastError() == 8 as DWORD {
-            errorBelch(b"Out of memory\n\0" as *const u8 as *const c_char);
+        if GetLastError() == 8 {
+            errorBelch(c"Out of memory\n".as_ptr());
             stg_exit(EXIT_HEAPOVERFLOW);
         } else {
             sysErrorBelch(
-                b"getMBlocks: VirtualAlloc MEM_RESERVE %d blocks failed\0" as *const u8
-                    as *const c_char,
+                c"getMBlocks: VirtualAlloc MEM_RESERVE %d blocks failed".as_ptr(),
                 n,
             );
         }
@@ -93,7 +92,7 @@ unsafe fn allocNew(mut n: uint32_t) -> *mut alloc_rec {
         };
 
         temp.base = null_mut::<c_char>();
-        temp.size = 0 as W_;
+        temp.size = 0;
         temp.next = allocs as *mut alloc_rec_;
 
         let mut it = null_mut::<alloc_rec>();
@@ -121,7 +120,7 @@ unsafe fn insertFree(mut alloc_base: *mut c_char, mut alloc_size: W_) {
     let mut it = null_mut::<block_rec>();
     let mut prev = null_mut::<block_rec>();
     temp.base = null_mut::<c_char>();
-    temp.size = 0 as W_;
+    temp.size = 0;
     temp.next = free_blocks as *mut block_rec_;
     it = free_blocks;
     prev = &raw mut temp;
@@ -148,8 +147,8 @@ unsafe fn insertFree(mut alloc_base: *mut c_char, mut alloc_size: W_) {
         let mut rec = null_mut::<block_rec>();
 
         rec = stgMallocBytes(
-            size_of::<block_rec>() as size_t,
-            b"getMBlocks: insertFree\0" as *const u8 as *const c_char as *mut c_char,
+            size_of::<block_rec>() as usize,
+            c"getMBlocks: insertFree".as_ptr(),
         ) as *mut block_rec;
 
         (*rec).base = alloc_base;
@@ -161,7 +160,7 @@ unsafe fn insertFree(mut alloc_base: *mut c_char, mut alloc_size: W_) {
     free_blocks = temp.next as *mut block_rec;
 }
 
-unsafe fn findFreeBlocks(mut n: uint32_t) -> *mut c_void {
+unsafe fn findFreeBlocks(mut n: u32) -> *mut c_void {
     let mut ret = null_mut::<c_void>();
     let mut it = null_mut::<block_rec>();
 
@@ -174,15 +173,15 @@ unsafe fn findFreeBlocks(mut n: uint32_t) -> *mut c_void {
     let mut prev = null_mut::<block_rec>();
     let mut required_size: W_ = 0;
     it = free_blocks;
-    required_size = (n as c_ulong).wrapping_mul(MBLOCK_SIZE) as W_;
+    required_size = (n as u64).wrapping_mul(MBLOCK_SIZE) as W_;
     temp.next = free_blocks as *mut block_rec_;
     temp.base = null_mut::<c_char>();
-    temp.size = 0 as W_;
+    temp.size = 0;
     prev = &raw mut temp;
 
     while !it.is_null() {
         if !(it.is_null() || (*it).size < required_size) {
-            if (*it).base as W_ & MBLOCK_MASK as W_ == 0 as W_ {
+            if (*it).base as W_ & MBLOCK_MASK as W_ == 0 {
                 ret = (*it).base as *mut c_void;
 
                 if (*it).size == required_size {
@@ -197,18 +196,17 @@ unsafe fn findFreeBlocks(mut n: uint32_t) -> *mut c_void {
             } else {
                 let mut need_base = null_mut::<c_char>();
                 let mut next = null_mut::<block_rec>();
-                let mut new_size: c_int = 0;
+                let mut new_size: i32 = 0;
                 need_base = (((*it).base as W_ & !MBLOCK_MASK as W_) as *mut c_char)
                     .offset(MBLOCK_SIZE as isize);
-                new_size = need_base.offset_from((*it).base) as c_long as c_int;
+                new_size = need_base.offset_from((*it).base) as i64 as i32;
 
                 let mut total_size: W_ = (new_size as W_).wrapping_add(required_size);
 
                 if !(total_size > (*it).size) {
                     next = stgMallocBytes(
-                        size_of::<block_rec>() as size_t,
-                        b"getMBlocks: findFreeBlocks: splitting\0" as *const u8 as *const c_char
-                            as *mut c_char,
+                        size_of::<block_rec>() as usize,
+                        c"getMBlocks: findFreeBlocks: splitting".as_ptr(),
                     ) as *mut block_rec;
 
                     (*next).base = need_base.offset(required_size as isize);
@@ -239,12 +237,12 @@ unsafe fn commitBlocks(mut base: *mut c_char, mut size: W_) {
         it = (*it).next as *mut alloc_rec;
     }
 
-    while !it.is_null() && size > 0 as W_ {
+    while !it.is_null() && size > 0 {
         let mut size_delta: W_ = 0;
         let mut temp = null_mut::<c_void>();
         size_delta = (*it)
             .size
-            .wrapping_sub(base.offset_from((*it).base) as c_long as W_);
+            .wrapping_sub(base.offset_from((*it).base) as i64 as W_);
 
         if size_delta > size {
             size_delta = size;
@@ -258,10 +256,7 @@ unsafe fn commitBlocks(mut base: *mut c_char, mut size: W_) {
         ) as *mut c_void;
 
         if temp.is_null() {
-            sysErrorBelch(
-                b"getMBlocks: VirtualAlloc MEM_COMMIT failed\0" as *const u8 as *const c_char,
-            );
-
+            sysErrorBelch(c"getMBlocks: VirtualAlloc MEM_COMMIT failed".as_ptr());
             stg_exit(EXIT_HEAPOVERFLOW);
         }
 
@@ -271,7 +266,7 @@ unsafe fn commitBlocks(mut base: *mut c_char, mut size: W_) {
     }
 }
 
-unsafe fn osGetMBlocks(mut n: uint32_t) -> *mut c_void {
+unsafe fn osGetMBlocks(mut n: u32) -> *mut c_void {
     let mut ret = null_mut::<c_void>();
     ret = findFreeBlocks(n);
 
@@ -288,8 +283,8 @@ unsafe fn osGetMBlocks(mut n: uint32_t) -> *mut c_void {
     }
 
     if !ret.is_null() {
-        if ret as W_ & MBLOCK_MASK as W_ != 0 as W_ {
-            barf(b"getMBlocks: misaligned block returned\0" as *const u8 as *const c_char);
+        if ret as W_ & MBLOCK_MASK as W_ != 0 {
+            barf(c"getMBlocks: misaligned block returned".as_ptr());
         }
 
         commitBlocks(
@@ -309,32 +304,26 @@ unsafe fn decommitBlocks(mut addr: *mut c_char, mut nBytes: W_) {
         p = (*p).next as *mut alloc_rec;
     }
 
-    while nBytes > 0 as W_ {
+    while nBytes > 0 {
         if p.is_null() || (*p).base > addr {
-            errorBelch(b"Memory to be freed isn't allocated\n\0" as *const u8 as *const c_char);
+            errorBelch(c"Memory to be freed isn't allocated\n".as_ptr());
             stg_exit(EXIT_FAILURE);
         }
 
         if (*p).base.offset((*p).size as isize) >= addr.offset(nBytes as isize) {
             if VirtualFree(addr as LPVOID, nBytes as SIZE_T, MEM_DECOMMIT as DWORD) == 0 {
-                sysErrorBelch(
-                    b"osFreeMBlocks: VirtualFree MEM_DECOMMIT failed\0" as *const u8
-                        as *const c_char,
-                );
+                sysErrorBelch(c"osFreeMBlocks: VirtualFree MEM_DECOMMIT failed".as_ptr());
 
                 stg_exit(EXIT_FAILURE);
             }
 
-            nBytes = 0 as W_;
+            nBytes = 0;
         } else {
             let mut bytesToFree: W_ =
-                (*p).base.offset((*p).size as isize).offset_from(addr) as c_long as W_;
+                (*p).base.offset((*p).size as isize).offset_from(addr) as i64 as W_;
 
             if VirtualFree(addr as LPVOID, bytesToFree as SIZE_T, MEM_DECOMMIT as DWORD) == 0 {
-                sysErrorBelch(
-                    b"osFreeMBlocks: VirtualFree MEM_DECOMMIT failed\0" as *const u8
-                        as *const c_char,
-                );
+                sysErrorBelch(c"osFreeMBlocks: VirtualFree MEM_DECOMMIT failed".as_ptr());
 
                 stg_exit(EXIT_FAILURE);
             }
@@ -346,7 +335,7 @@ unsafe fn decommitBlocks(mut addr: *mut c_char, mut nBytes: W_) {
     }
 }
 
-unsafe fn osFreeMBlocks(mut addr: *mut c_void, mut n: uint32_t) {
+unsafe fn osFreeMBlocks(mut addr: *mut c_void, mut n: u32) {
     let mut nBytes: W_ = (n as W_).wrapping_mul(MBLOCK_SIZE as W_);
     insertFree(addr as *mut c_char, nBytes);
     decommitBlocks(addr as *mut c_char, nBytes);
@@ -374,10 +363,10 @@ unsafe fn osReleaseFreeMemory() {
     let mut a_end = null_mut::<c_char>();
     let mut fb_end = null_mut::<c_char>();
     head_a.base = null_mut::<c_char>();
-    head_a.size = 0 as W_;
+    head_a.size = 0;
     head_a.next = allocs as *mut alloc_rec_;
     head_fb.base = null_mut::<c_char>();
-    head_fb.size = 0 as W_;
+    head_fb.size = 0;
     head_fb.next = free_blocks as *mut block_rec_;
     prev_a = &raw mut head_a;
     a = allocs;
@@ -405,34 +394,31 @@ unsafe fn osReleaseFreeMemory() {
                     stgFree(fb as *mut c_void);
                     fb = (*prev_fb).next as *mut block_rec;
                 } else {
-                    (*fb).size = (*a).base.offset_from((*fb).base) as c_long as W_;
+                    (*fb).size = (*a).base.offset_from((*fb).base) as i64 as W_;
                 }
             } else {
                 if (*fb).base != (*a).base {
                     let mut new_fb = null_mut::<block_rec>();
 
                     new_fb = stgMallocBytes(
-                        size_of::<block_rec>() as size_t,
-                        b"osReleaseFreeMemory\0" as *const u8 as *const c_char as *mut c_char,
+                        size_of::<block_rec>() as usize,
+                        c"osReleaseFreeMemory".as_ptr(),
                     ) as *mut block_rec;
 
                     (*new_fb).base = (*fb).base;
-                    (*new_fb).size = (*a).base.offset_from((*fb).base) as c_long as W_;
+                    (*new_fb).size = (*a).base.offset_from((*fb).base) as i64 as W_;
                     (*new_fb).next = fb as *mut block_rec_;
                     (*prev_fb).next = new_fb as *mut block_rec_;
                 }
 
-                (*fb).size = fb_end.offset_from(a_end) as c_long as W_;
+                (*fb).size = fb_end.offset_from(a_end) as i64 as W_;
                 (*fb).base = a_end;
             }
 
             (*prev_a).next = (*a).next;
 
-            if VirtualFree((*a).base as LPVOID, 0 as SIZE_T, MEM_RELEASE as DWORD) == 0 {
-                sysErrorBelch(
-                    b"freeAllMBlocks: VirtualFree MEM_RELEASE failed\0" as *const u8
-                        as *const c_char,
-                );
+            if VirtualFree((*a).base as LPVOID, 0, MEM_RELEASE as DWORD) == 0 {
+                sysErrorBelch(c"freeAllMBlocks: VirtualFree MEM_RELEASE failed".as_ptr());
 
                 stg_exit(EXIT_FAILURE);
             }
@@ -467,11 +453,8 @@ unsafe fn osFreeAllMBlocks() {
     it_0 = allocs;
 
     while !it_0.is_null() {
-        if VirtualFree((*it_0).base as LPVOID, 0 as SIZE_T, MEM_RELEASE as DWORD) == 0 {
-            sysErrorBelch(
-                b"freeAllMBlocks: VirtualFree MEM_RELEASE failed\0" as *const u8 as *const c_char,
-            );
-
+        if VirtualFree((*it_0).base as LPVOID, 0, MEM_RELEASE as DWORD) == 0 {
+            sysErrorBelch(c"freeAllMBlocks: VirtualFree MEM_RELEASE failed".as_ptr());
             stg_exit(EXIT_FAILURE);
         }
 
@@ -481,10 +464,10 @@ unsafe fn osFreeAllMBlocks() {
     }
 }
 
-unsafe fn getPageSize() -> size_t {
-    static mut pagesize: size_t = 0 as size_t;
+unsafe fn getPageSize() -> usize {
+    static mut pagesize: usize = 0;
 
-    if pagesize == 0 as size_t {
+    if pagesize == 0 {
         let mut sSysInfo = _SYSTEM_INFO {
             c2rust_unnamed: C2RustUnnamed_9 { dwOemId: 0 },
             dwPageSize: 0,
@@ -499,14 +482,14 @@ unsafe fn getPageSize() -> size_t {
         };
 
         GetSystemInfo(&raw mut sSysInfo);
-        pagesize = sSysInfo.dwPageSize as size_t;
+        pagesize = sSysInfo.dwPageSize as usize;
     }
 
     return pagesize;
 }
 
 unsafe fn getPhysicalMemorySize() -> StgWord64 {
-    static mut physMemSize: StgWord64 = 0 as StgWord64;
+    static mut physMemSize: StgWord64 = 0;
 
     if physMemSize == 0 {
         let mut status = _MEMORYSTATUSEX {
@@ -524,12 +507,9 @@ unsafe fn getPhysicalMemorySize() -> StgWord64 {
         status.dwLength = size_of::<MEMORYSTATUSEX>() as DWORD;
 
         if GlobalMemoryStatusEx(&raw mut status) == 0 {
-            errorBelch(
-                b"warning: getPhysicalMemorySize: cannot get physical memory size\0" as *const u8
-                    as *const c_char,
-            );
+            errorBelch(c"warning: getPhysicalMemorySize: cannot get physical memory size".as_ptr());
 
-            return 0 as StgWord64;
+            return 0;
         }
 
         physMemSize = status.ullTotalPhys as StgWord64;
@@ -551,12 +531,12 @@ unsafe fn osReserveHeapMemory(mut startAddress: *mut c_void, mut len: *mut W_) -
     ) as *mut c_void;
 
     if heap_base.is_null() {
-        if GetLastError() == 8 as DWORD {
-            errorBelch(b"out of memory\0" as *const u8 as *const c_char);
+        if GetLastError() == 8 {
+            errorBelch(c"out of memory".as_ptr());
         } else {
             sysErrorBelch(
-                b"osReserveHeapMemory: VirtualAlloc MEM_RESERVE %llu bytes                 at address %p bytes failed\0"
-                    as *const u8 as *const c_char,
+                c"osReserveHeapMemory: VirtualAlloc MEM_RESERVE %llu bytes                 at address %p bytes failed"
+                    .as_ptr(),
                 (*len).wrapping_add(MBLOCK_SIZE as W_),
                 startAddress,
             );
@@ -585,8 +565,8 @@ unsafe fn osCommitMemory(mut at: *mut c_void, mut size: W_) {
 
     if temp.is_null() {
         sysErrorBelch(
-            b"osCommitMemory: VirtualAlloc MEM_COMMIT failed to commit %llu bytes of memory  (error code: %lu)\0"
-                as *const u8 as *const c_char,
+            c"osCommitMemory: VirtualAlloc MEM_COMMIT failed to commit %llu bytes of memory  (error code: %lu)"
+                .as_ptr(),
             size,
             GetLastError(),
         );
@@ -597,52 +577,49 @@ unsafe fn osCommitMemory(mut at: *mut c_void, mut size: W_) {
 
 unsafe fn osDecommitMemory(mut at: *mut c_void, mut size: W_) {
     if VirtualFree(at as LPVOID, size as SIZE_T, MEM_DECOMMIT as DWORD) == 0 {
-        sysErrorBelch(
-            b"osDecommitMemory: VirtualFree MEM_DECOMMIT failed\0" as *const u8 as *const c_char,
-        );
-
+        sysErrorBelch(c"osDecommitMemory: VirtualFree MEM_DECOMMIT failed".as_ptr());
         stg_exit(EXIT_FAILURE);
     }
 }
 
 unsafe fn osReleaseHeapMemory() {
-    VirtualFree(heap_base as LPVOID, 0 as SIZE_T, MEM_RELEASE as DWORD);
+    VirtualFree(heap_base as LPVOID, 0, MEM_RELEASE as DWORD);
 }
 
 unsafe fn osBuiltWithNumaSupport() -> bool {
-    return r#true != 0;
+    return true;
 }
 
 unsafe fn osNumaAvailable() -> bool {
-    return osNumaNodes() > 1 as uint32_t;
+    return osNumaNodes() > 1;
 }
 
-unsafe fn osNumaNodes() -> uint32_t {
-    static mut numNumaNodes: ULONG = 0 as ULONG;
+unsafe fn osNumaNodes() -> u32 {
+    static mut numNumaNodes: ULONG = 0;
 
     if numNumaNodes == 0 {
         if GetNumaHighestNodeNumber(&raw mut numNumaNodes) != 0 {
             numNumaNodes = numNumaNodes.wrapping_add(1 as ULONG);
         } else {
-            numNumaNodes = 1 as ULONG;
+            numNumaNodes = 1;
         }
     }
 
-    return numNumaNodes as uint32_t;
+    return numNumaNodes as u32;
 }
 
-unsafe fn osNumaMask() -> uint64_t {
+unsafe fn osNumaMask() -> u64 {
     if osNumaNodes() as usize > (size_of::<StgWord>() as usize).wrapping_mul(8 as usize) {
         barf(
-            b"osNumaMask: too many NUMA nodes (%d)\0" as *const u8 as *const c_char,
+            c"osNumaMask: too many NUMA nodes (%d)".as_ptr(),
             osNumaNodes(),
         );
     }
 
-    return (((1 as c_int) << osNumaNodes()) - 1 as c_int) as uint64_t;
+    return ((1 << osNumaNodes()) - 1) as u64;
 }
 
-unsafe fn osBindMBlocksToNode(mut addr: *mut c_void, mut size: StgWord, mut node: uint32_t) {
+unsafe fn osBindMBlocksToNode(mut addr: *mut c_void, mut size: StgWord, mut node: u32) {
     if osNumaAvailable() {
         let mut temp = null_mut::<c_void>();
 
@@ -657,12 +634,12 @@ unsafe fn osBindMBlocksToNode(mut addr: *mut c_void, mut size: StgWord, mut node
             ) as *mut c_void;
 
             if temp.is_null() {
-                if GetLastError() == 8 as DWORD {
-                    errorBelch(b"out of memory\0" as *const u8 as *const c_char);
+                if GetLastError() == 8 {
+                    errorBelch(c"out of memory".as_ptr());
                 } else {
                     sysErrorBelch(
-                        b"osBindMBlocksToNode: VirtualAllocExNuma MEM_RESERVE %llu bytes at address %p bytes failed\0"
-                            as *const u8 as *const c_char,
+                        c"osBindMBlocksToNode: VirtualAllocExNuma MEM_RESERVE %llu bytes at address %p bytes failed"
+                            .as_ptr(),
                         size,
                         addr,
                     );

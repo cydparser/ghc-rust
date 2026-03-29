@@ -6,17 +6,17 @@ use crate::prelude::*;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::sm::gc::evac_fn;
 
-static mut stable_ptr_table: *mut spEntry = null::<spEntry>() as *mut spEntry;
+static mut stable_ptr_table: *mut spEntry = null_mut::<spEntry>();
 
-static mut stable_ptr_free: *mut spEntry = null::<spEntry>() as *mut spEntry;
+static mut stable_ptr_free: *mut spEntry = null_mut::<spEntry>();
 
-static mut SPT_size: c_uint = 0 as c_uint;
+static mut SPT_size: u32 = 0;
 
-const INIT_SPT_SIZE: c_int = 64 as c_int;
+const INIT_SPT_SIZE: i32 = 64;
 
-static mut old_SPTs: [*mut spEntry; 64] = [null::<spEntry>() as *mut spEntry; 64];
+static mut old_SPTs: [*mut spEntry; 64] = [null_mut::<spEntry>(); 64];
 
-static mut n_old_SPTs: uint32_t = 0 as uint32_t;
+static mut n_old_SPTs: u32 = 0;
 
 unsafe fn stablePtrLock() {
     initStablePtrTable();
@@ -25,10 +25,10 @@ unsafe fn stablePtrLock() {
 unsafe fn stablePtrUnlock() {}
 
 #[inline]
-unsafe fn initSpEntryFreeList(mut table: *mut spEntry, mut n: uint32_t) {
+unsafe fn initSpEntryFreeList(mut table: *mut spEntry, mut n: u32) {
     let mut free = null_mut::<spEntry>();
     let mut p = null_mut::<spEntry>();
-    p = table.offset(n as isize).offset(-(1 as c_int as isize));
+    p = table.offset(n as isize).offset(-1);
 
     while p >= table {
         (*p).addr = free as P_ as StgPtr;
@@ -40,34 +40,34 @@ unsafe fn initSpEntryFreeList(mut table: *mut spEntry, mut n: uint32_t) {
 }
 
 unsafe fn initStablePtrTable() {
-    if SPT_size > 0 as c_uint {
+    if SPT_size > 0 {
         return;
     }
 
-    SPT_size = INIT_SPT_SIZE as c_uint;
+    SPT_size = INIT_SPT_SIZE as u32;
 
     stable_ptr_table = stgMallocBytes(
-        (SPT_size as size_t).wrapping_mul(size_of::<spEntry>() as size_t),
-        b"initStablePtrTable\0" as *const u8 as *const c_char as *mut c_char,
+        (SPT_size as usize).wrapping_mul(size_of::<spEntry>() as usize),
+        c"initStablePtrTable".as_ptr(),
     ) as *mut spEntry;
 
-    initSpEntryFreeList(stable_ptr_table, INIT_SPT_SIZE as uint32_t);
+    initSpEntryFreeList(stable_ptr_table, INIT_SPT_SIZE as u32);
 }
 
 unsafe fn enlargeStablePtrTable() {
-    let mut old_SPT_size: uint32_t = SPT_size as uint32_t;
+    let mut old_SPT_size: u32 = SPT_size as u32;
     let mut new_stable_ptr_table = null_mut::<spEntry>();
-    SPT_size = SPT_size.wrapping_mul(2 as c_uint);
+    SPT_size = SPT_size.wrapping_mul(2 as u32);
 
     new_stable_ptr_table = stgMallocBytes(
-        (SPT_size as size_t).wrapping_mul(size_of::<spEntry>() as size_t),
-        b"enlargeStablePtrTable\0" as *const u8 as *const c_char as *mut c_char,
+        (SPT_size as usize).wrapping_mul(size_of::<spEntry>() as usize),
+        c"enlargeStablePtrTable".as_ptr(),
     ) as *mut spEntry;
 
     memcpy(
         new_stable_ptr_table as *mut c_void,
         stable_ptr_table as *const c_void,
-        (old_SPT_size as size_t).wrapping_mul(size_of::<spEntry>() as size_t),
+        (old_SPT_size as usize).wrapping_mul(size_of::<spEntry>() as usize),
     );
 
     let fresh6 = n_old_SPTs;
@@ -78,15 +78,15 @@ unsafe fn enlargeStablePtrTable() {
 }
 
 unsafe fn freeOldSPTs() {
-    let mut i: uint32_t = 0;
-    i = 0 as uint32_t;
+    let mut i: u32 = 0;
+    i = 0;
 
     while i < n_old_SPTs {
         stgFree(old_SPTs[i as usize] as *mut c_void);
         i = i.wrapping_add(1);
     }
 
-    n_old_SPTs = 0 as uint32_t;
+    n_old_SPTs = 0;
 }
 
 unsafe fn exitStablePtrTable() {
@@ -95,7 +95,7 @@ unsafe fn exitStablePtrTable() {
     }
 
     stable_ptr_table = null_mut::<spEntry>();
-    SPT_size = 0 as c_uint;
+    SPT_size = 0;
     freeOldSPTs();
 }
 
@@ -127,7 +127,7 @@ unsafe fn getStablePtr(mut p: StgPtr) -> StgStablePtr {
         enlargeStablePtrTable();
     }
 
-    let mut sp: StgWord = stable_ptr_free.offset_from(stable_ptr_table) as c_long as StgWord;
+    let mut sp: StgWord = stable_ptr_free.offset_from(stable_ptr_table) as i64 as StgWord;
     stable_ptr_free = (*stable_ptr_free).addr as *mut spEntry;
 
     let ref mut fresh5 = (*stable_ptr_table.offset(sp as isize)).addr;

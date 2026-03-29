@@ -72,7 +72,7 @@ type EventType = _EventType;
 /// cbindgen:no-export
 struct _EventType {
     etNum: EventTypeNum,
-    size: uint32_t,
+    size: u32,
     desc: *mut c_char,
 }
 
@@ -85,19 +85,18 @@ static mut eventlog_enabled: bool = false;
 
 static mut event_log_writer: *const EventLogWriter = null::<EventLogWriter>();
 
-static mut eventlog_header_funcs: *mut eventlog_init_func_t =
-    null::<eventlog_init_func_t>() as *mut eventlog_init_func_t;
+static mut eventlog_header_funcs: *mut eventlog_init_func_t = null_mut::<eventlog_init_func_t>();
 
-const EVENT_LOG_SIZE: c_int = 2 as c_int * (1024 as c_int * 1024 as c_int);
+const EVENT_LOG_SIZE: i32 = 2 * (1024 * 1024);
 
-static mut flushCount: c_int = 0 as c_int;
+static mut flushCount: i32 = 0;
 
-static mut capEventBuf: *mut EventsBuf = null::<EventsBuf>() as *mut EventsBuf;
+static mut capEventBuf: *mut EventsBuf = null_mut::<EventsBuf>();
 
 static mut eventBuf: EventsBuf = _EventsBuf {
-    begin: null::<StgInt8>() as *mut StgInt8,
-    pos: null::<StgInt8>() as *mut StgInt8,
-    marker: null::<StgInt8>() as *mut StgInt8,
+    begin: null_mut::<StgInt8>(),
+    pos: null_mut::<StgInt8>(),
+    marker: null_mut::<StgInt8>(),
     size: 0,
     capno: 0,
 };
@@ -111,46 +110,40 @@ unsafe fn postWord8(mut eb: *mut EventsBuf, mut i: StgWord8) {
 
 #[inline]
 unsafe fn postWord16(mut eb: *mut EventsBuf, mut i: StgWord16) {
-    postWord8(eb, (i as c_int >> 8 as c_int) as StgWord8);
+    postWord8(eb, (i as i32 >> 8) as StgWord8);
     postWord8(eb, i as StgWord8);
 }
 
 #[inline]
 unsafe fn postWord32(mut eb: *mut EventsBuf, mut i: StgWord32) {
-    postWord16(eb, (i >> 16 as c_int) as StgWord16);
+    postWord16(eb, (i >> 16) as StgWord16);
     postWord16(eb, i as StgWord16);
 }
 
 #[inline]
 unsafe fn postWord64(mut eb: *mut EventsBuf, mut i: StgWord64) {
-    postWord32(eb, (i >> 32 as c_int) as StgWord32);
+    postWord32(eb, (i >> 32) as StgWord32);
     postWord32(eb, i as StgWord32);
 }
 
 #[inline]
-unsafe fn postBuf(mut eb: *mut EventsBuf, mut buf: *const StgWord8, mut size: uint32_t) {
+unsafe fn postBuf(mut eb: *mut EventsBuf, mut buf: *const StgWord8, mut size: u32) {
     memcpy(
         (*eb).pos as *mut c_void,
         buf as *const c_void,
-        size as size_t,
+        size as usize,
     );
-
     (*eb).pos = (*eb).pos.offset(size as isize);
 }
 
 #[inline]
 unsafe fn postStringLen(mut eb: *mut EventsBuf, mut buf: *const c_char, mut len: StgWord) {
     if !buf.is_null() {
-        memcpy(
-            (*eb).pos as *mut c_void,
-            buf as *const c_void,
-            len as size_t,
-        );
-
+        memcpy((*eb).pos as *mut c_void, buf as *const c_void, len as usize);
         (*eb).pos = (*eb).pos.offset(len as isize);
     }
 
-    *(*eb).pos = 0 as StgInt8;
+    *(*eb).pos = 0;
     (*eb).pos = (*eb).pos.offset(1);
 }
 
@@ -233,13 +226,13 @@ unsafe fn initEventLogWriter() {
     }
 }
 
-unsafe fn writeEventLog(mut eventlog: *mut c_void, mut eventlog_size: size_t) -> bool {
+unsafe fn writeEventLog(mut eventlog: *mut c_void, mut eventlog_size: usize) -> bool {
     if !event_log_writer.is_null() && (*event_log_writer).writeEventLog.is_some() {
         return (*event_log_writer)
             .writeEventLog
             .expect("non-null function pointer")(eventlog, eventlog_size);
     } else {
-        return r#false != 0;
+        return false;
     };
 }
 
@@ -264,7 +257,7 @@ unsafe fn postHeaderEvents() {
     postInt32(&raw mut eventBuf, EVENT_HEADER_BEGIN as StgInt32);
     postInt32(&raw mut eventBuf, EVENT_HET_BEGIN as StgInt32);
 
-    let mut t = 0 as c_int;
+    let mut t = 0;
 
     while t < NUM_GHC_EVENT_TAGS {
         if !eventTypes[t as usize].desc.is_null() {
@@ -286,8 +279,8 @@ unsafe fn postInitEvent(mut post_init: EventlogInitPost) {
     let mut new_func = null_mut::<eventlog_init_func_t>();
 
     new_func = stgMallocBytes(
-        size_of::<eventlog_init_func_t>() as size_t,
-        b"eventlog_init_func\0" as *const u8 as *const c_char as *mut c_char,
+        size_of::<eventlog_init_func_t>() as usize,
+        c"eventlog_init_func".as_ptr(),
     ) as *mut eventlog_init_func_t;
 
     (*new_func).init_func = post_init;
@@ -323,17 +316,16 @@ unsafe fn resetInitEvents() {
     eventlog_header_funcs = null_mut::<eventlog_init_func_t>();
 }
 
-unsafe fn get_n_capabilities() -> uint32_t {
-    return 1 as uint32_t;
+unsafe fn get_n_capabilities() -> u32 {
+    return 1;
 }
 
 unsafe fn initEventLogging() {
-    moreCapEventBufs(0 as uint32_t, get_n_capabilities());
-
+    moreCapEventBufs(0, get_n_capabilities());
     initEventsBuf(
         &raw mut eventBuf,
         EVENT_LOG_SIZE as StgWord64,
-        -(1 as c_int) as EventCapNo,
+        -1 as EventCapNo,
     );
 }
 
@@ -350,25 +342,25 @@ unsafe fn startEventLogging_() -> bool {
     postHeaderEvents();
     printAndClearEventBuf(&raw mut eventBuf);
 
-    return r#true != 0;
+    return true;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn startEventLogging(mut ev_writer: *const EventLogWriter) -> bool {
-    if 0 as c_int != 0 as c_int {
-        return r#false != 0;
+    if 0 != 0 {
+        return false;
     }
 
-    if eventlog_enabled as c_int != 0 || !event_log_writer.is_null() {
-        return r#false != 0;
+    if eventlog_enabled as i32 != 0 || !event_log_writer.is_null() {
+        return false;
     }
 
     event_log_writer = ev_writer;
 
     let mut ret = startEventLogging_();
-    eventlog_enabled = r#true != 0;
+    eventlog_enabled = true;
     repostInitEvents();
 
     return ret;
@@ -387,9 +379,9 @@ unsafe fn restartEventLogging() {
 
 unsafe fn finishCapEventLogging() {
     if eventlog_enabled {
-        let mut c: uint32_t = 0 as uint32_t;
+        let mut c: u32 = 0;
 
-        while c < getNumCapabilities() as uint32_t {
+        while c < getNumCapabilities() as u32 {
             if !(*capEventBuf.offset(c as isize)).begin.is_null() {
                 printAndClearEventBuf(capEventBuf.offset(c as isize) as *mut EventsBuf);
                 stgFree((*capEventBuf.offset(c as isize)).begin as *mut c_void);
@@ -411,9 +403,9 @@ pub unsafe extern "C" fn endEventLogging() {
         return;
     }
 
-    eventlog_enabled = r#false != 0;
+    eventlog_enabled = false;
 
-    if getSchedState() as c_uint != SCHED_SHUTTING_DOWN as c_int as c_uint {
+    if getSchedState() as u32 != SCHED_SHUTTING_DOWN as i32 as u32 {
         flushEventLog(null_mut::<*mut Capability>());
     }
 
@@ -423,21 +415,21 @@ pub unsafe extern "C" fn endEventLogging() {
     event_log_writer = null::<EventLogWriter>();
 }
 
-unsafe fn moreCapEventBufs(mut from: uint32_t, mut to: uint32_t) {
-    if from > 0 as uint32_t {
+unsafe fn moreCapEventBufs(mut from: u32, mut to: u32) {
+    if from > 0 {
         capEventBuf = stgReallocBytes(
             capEventBuf as *mut c_void,
-            (to as size_t).wrapping_mul(size_of::<EventsBuf>() as size_t),
-            b"moreCapEventBufs\0" as *const u8 as *const c_char as *mut c_char,
+            (to as usize).wrapping_mul(size_of::<EventsBuf>() as usize),
+            c"moreCapEventBufs".as_ptr(),
         ) as *mut EventsBuf;
     } else {
         capEventBuf = stgMallocBytes(
-            (to as size_t).wrapping_mul(size_of::<EventsBuf>() as size_t),
-            b"moreCapEventBufs\0" as *const u8 as *const c_char as *mut c_char,
+            (to as usize).wrapping_mul(size_of::<EventsBuf>() as usize),
+            c"moreCapEventBufs".as_ptr(),
         ) as *mut EventsBuf;
     }
 
-    let mut c: uint32_t = from;
+    let mut c: u32 = from;
 
     while c < to {
         initEventsBuf(
@@ -449,8 +441,8 @@ unsafe fn moreCapEventBufs(mut from: uint32_t, mut to: uint32_t) {
         c = c.wrapping_add(1);
     }
 
-    if from > 0 as uint32_t {
-        let mut c_0: uint32_t = from;
+    if from > 0 {
+        let mut c_0: u32 = from;
 
         while c_0 < to {
             postBlockMarker(capEventBuf.offset(c_0 as isize) as *mut EventsBuf);
@@ -482,7 +474,7 @@ unsafe fn postSchedEvent(
     ensureRoomForEvent(eb, tag);
     postEventHeader(eb, tag);
 
-    match tag as c_int {
+    match tag as i32 {
         EVENT_CREATE_THREAD | EVENT_RUN_THREAD | EVENT_THREAD_RUNNABLE => {
             postThreadID(eb, thread as EventThreadID);
         }
@@ -499,10 +491,7 @@ unsafe fn postSchedEvent(
             postThreadID(eb, info2 as EventThreadID);
         }
         _ => {
-            barf(
-                b"postSchedEvent: unknown event tag %d\0" as *const u8 as *const c_char,
-                tag as c_int,
-            );
+            barf(c"postSchedEvent: unknown event tag %d".as_ptr(), tag as i32);
         }
     };
 }
@@ -512,7 +501,7 @@ unsafe fn postSparkEvent(mut cap: *mut Capability, mut tag: EventTypeNum, mut in
     ensureRoomForEvent(eb, tag);
     postEventHeader(eb, tag);
 
-    match tag as c_int {
+    match tag as i32 {
         EVENT_CREATE_SPARK_THREAD => {
             postThreadID(eb, info1 as EventThreadID);
         }
@@ -523,10 +512,7 @@ unsafe fn postSparkEvent(mut cap: *mut Capability, mut tag: EventTypeNum, mut in
         EVENT_SPARK_CREATE | EVENT_SPARK_DUD | EVENT_SPARK_OVERFLOW | EVENT_SPARK_RUN
         | EVENT_SPARK_FIZZLE | EVENT_SPARK_GC => {}
         _ => {
-            barf(
-                b"postSparkEvent: unknown event tag %d\0" as *const u8 as *const c_char,
-                tag as c_int,
-            );
+            barf(c"postSparkEvent: unknown event tag %d".as_ptr(), tag as i32);
         }
     };
 }
@@ -552,15 +538,12 @@ unsafe fn postCapEvent(mut tag: EventTypeNum, mut capno: EventCapNo) {
     ensureRoomForEvent(&raw mut eventBuf, tag);
     postEventHeader(&raw mut eventBuf, tag);
 
-    match tag as c_int {
+    match tag as i32 {
         EVENT_CAP_CREATE | EVENT_CAP_DELETE | EVENT_CAP_ENABLE | EVENT_CAP_DISABLE => {
             postCapNo(&raw mut eventBuf, capno);
         }
         _ => {
-            barf(
-                b"postCapEvent: unknown event tag %d\0" as *const u8 as *const c_char,
-                tag as c_int,
-            );
+            barf(c"postCapEvent: unknown event tag %d".as_ptr(), tag as i32);
         }
     };
 }
@@ -570,7 +553,7 @@ unsafe fn postCapsetEvent(mut tag: EventTypeNum, mut capset: EventCapsetID, mut 
     postEventHeader(&raw mut eventBuf, tag);
     postCapsetID(&raw mut eventBuf, capset);
 
-    match tag as c_int {
+    match tag as i32 {
         EVENT_CAPSET_CREATE => {
             postCapsetType(&raw mut eventBuf, info as EventCapsetType);
         }
@@ -583,8 +566,8 @@ unsafe fn postCapsetEvent(mut tag: EventTypeNum, mut capset: EventCapsetID, mut 
         }
         _ => {
             barf(
-                b"postCapsetEvent: unknown event tag %d\0" as *const u8 as *const c_char,
-                tag as c_int,
+                c"postCapsetEvent: unknown event tag %d".as_ptr(),
+                tag as i32,
             );
         }
     };
@@ -595,14 +578,11 @@ unsafe fn postCapsetStrEvent(
     mut capset: EventCapsetID,
     mut msg: *mut c_char,
 ) {
-    let mut strsize = strlen(msg) as c_int;
-    let mut size = (strsize as usize).wrapping_add(size_of::<EventCapsetID>() as usize) as c_int;
+    let mut strsize = strlen(msg) as i32;
+    let mut size = (strsize as usize).wrapping_add(size_of::<EventCapsetID>() as usize) as i32;
 
     if size > EVENT_PAYLOAD_SIZE_MAX {
-        errorBelch(
-            b"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out\0" as *const u8 as *const c_char,
-        );
-
+        errorBelch(c"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out".as_ptr());
         return;
     }
 
@@ -610,7 +590,7 @@ unsafe fn postCapsetStrEvent(
         printAndClearEventBuf(&raw mut eventBuf);
 
         if hasRoomForVariableEvent(&raw mut eventBuf, size as StgWord) == 0 {
-            errorBelch(b"Event size exceeds buffer size, bail out\0" as *const u8 as *const c_char);
+            errorBelch(c"Event size exceeds buffer size, bail out".as_ptr());
             return;
         }
     }
@@ -618,25 +598,25 @@ unsafe fn postCapsetStrEvent(
     postEventHeader(&raw mut eventBuf, tag);
     postPayloadSize(&raw mut eventBuf, size as EventPayloadSize);
     postCapsetID(&raw mut eventBuf, capset);
-    postBuf(&raw mut eventBuf, msg as *mut StgWord8, strsize as uint32_t);
+    postBuf(&raw mut eventBuf, msg as *mut StgWord8, strsize as u32);
 }
 
 unsafe fn postCapsetVecEvent(
     mut tag: EventTypeNum,
     mut capset: EventCapsetID,
-    mut argc: c_int,
+    mut argc: i32,
     mut argv: *mut *mut c_char,
 ) {
-    let mut size = size_of::<EventCapsetID>() as c_int;
-    let mut i = 0 as c_int;
+    let mut size = size_of::<EventCapsetID>() as i32;
+    let mut i = 0;
 
     while i < argc {
-        let mut increment = (1 as size_t).wrapping_add(strlen(*argv.offset(i as isize))) as c_int;
+        let mut increment = (1 as usize).wrapping_add(strlen(*argv.offset(i as isize))) as i32;
 
         if size + increment > EVENT_PAYLOAD_SIZE_MAX {
             errorBelch(
-                b"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, record only %llu out of %llu args\0"
-                    as *const u8 as *const c_char,
+                c"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, record only %llu out of %llu args"
+                    .as_ptr(),
                 i as StgWord,
                 argc as StgWord,
             );
@@ -653,7 +633,7 @@ unsafe fn postCapsetVecEvent(
         printAndClearEventBuf(&raw mut eventBuf);
 
         if hasRoomForVariableEvent(&raw mut eventBuf, size as StgWord) == 0 {
-            errorBelch(b"Event size exceeds buffer size, bail out\0" as *const u8 as *const c_char);
+            errorBelch(c"Event size exceeds buffer size, bail out".as_ptr());
             return;
         }
     }
@@ -662,13 +642,13 @@ unsafe fn postCapsetVecEvent(
     postPayloadSize(&raw mut eventBuf, size as EventPayloadSize);
     postCapsetID(&raw mut eventBuf, capset);
 
-    let mut i_0 = 0 as c_int;
+    let mut i_0 = 0;
 
     while i_0 < argc {
         postBuf(
             &raw mut eventBuf,
             *argv.offset(i_0 as isize) as *mut StgWord8,
-            (1 as size_t).wrapping_add(strlen(*argv.offset(i_0 as isize))) as uint32_t,
+            (1 as usize).wrapping_add(strlen(*argv.offset(i_0 as isize))) as u32,
         );
 
         i_0 += 1;
@@ -699,23 +679,20 @@ unsafe fn postHeapEvent(
     ensureRoomForEvent(eb, tag);
     postEventHeader(eb, tag);
 
-    match tag as c_int {
+    match tag as i32 {
         EVENT_HEAP_ALLOCATED | EVENT_HEAP_SIZE | EVENT_BLOCKS_SIZE | EVENT_HEAP_LIVE => {
             postCapsetID(eb, heap_capset);
             postWord64(eb, info1 as StgWord64);
         }
         _ => {
-            barf(
-                b"postHeapEvent: unknown event tag %d\0" as *const u8 as *const c_char,
-                tag as c_int,
-            );
+            barf(c"postHeapEvent: unknown event tag %d".as_ptr(), tag as i32);
         }
     };
 }
 
 unsafe fn postEventHeapInfo(
     mut heap_capset: EventCapsetID,
-    mut gens: uint32_t,
+    mut gens: u32,
     mut maxHeapSize: W_,
     mut allocAreaSize: W_,
     mut mblockSize: W_,
@@ -734,11 +711,11 @@ unsafe fn postEventHeapInfo(
 unsafe fn postEventGcStats(
     mut cap: *mut Capability,
     mut heap_capset: EventCapsetID,
-    mut r#gen: uint32_t,
+    mut r#gen: u32,
     mut copied: W_,
     mut slop: W_,
     mut fragmentation: W_,
-    mut par_n_threads: uint32_t,
+    mut par_n_threads: u32,
     mut par_max_copied: W_,
     mut par_tot_copied: W_,
     mut par_balanced_copied: W_,
@@ -760,9 +737,9 @@ unsafe fn postEventGcStats(
 unsafe fn postEventMemReturn(
     mut cap: *mut Capability,
     mut heap_capset: EventCapsetID,
-    mut current_mblocks: uint32_t,
-    mut needed_mblocks: uint32_t,
-    mut returned_mblocks: uint32_t,
+    mut current_mblocks: u32,
+    mut needed_mblocks: u32,
+    mut returned_mblocks: u32,
 ) {
     let mut eb: *mut EventsBuf = capEventBuf.offset((*cap).no as isize) as *mut EventsBuf;
     ensureRoomForEvent(eb, EVENT_MEM_RETURN as EventTypeNum);
@@ -825,7 +802,7 @@ unsafe fn postEventAtTimestamp(
     postWord64(eb, ts as StgWord64);
 }
 
-const BUF: c_int = 512 as c_int;
+const BUF: i32 = 512;
 
 unsafe fn postLogMsg(
     mut eb: *mut EventsBuf,
@@ -835,16 +812,16 @@ unsafe fn postLogMsg(
 ) {
     let mut buf: [c_char; 512] = [0; 512];
 
-    let mut size: uint32_t = vsnprintf(
+    let mut size: u32 = vsnprintf(
         &raw mut buf as *mut c_char,
-        BUF as size_t,
+        BUF as usize,
         msg,
         ap.as_va_list(),
-    ) as uint32_t;
+    ) as u32;
 
-    if size > BUF as uint32_t {
-        buf[(BUF - 1 as c_int) as usize] = '\0' as i32 as c_char;
-        size = BUF as uint32_t;
+    if size > BUF as u32 {
+        buf[(BUF - 1) as usize] = '\0' as i32 as c_char;
+        size = BUF as u32;
     }
 
     ensureRoomForVariableEvent(eb, size as StgWord);
@@ -872,13 +849,10 @@ unsafe fn postCapMsg(mut cap: *mut Capability, mut msg: *mut c_char, mut ap: VaL
 }
 
 unsafe fn postUserEvent(mut cap: *mut Capability, mut r#type: EventTypeNum, mut msg: *mut c_char) {
-    let size = strlen(msg) as size_t;
+    let size = strlen(msg) as usize;
 
-    if size > EVENT_PAYLOAD_SIZE_MAX as size_t {
-        errorBelch(
-            b"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out\0" as *const u8 as *const c_char,
-        );
-
+    if size > EVENT_PAYLOAD_SIZE_MAX as usize {
+        errorBelch(c"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out".as_ptr());
         return;
     }
 
@@ -888,27 +862,24 @@ unsafe fn postUserEvent(mut cap: *mut Capability, mut r#type: EventTypeNum, mut 
         printAndClearEventBuf(eb);
 
         if hasRoomForVariableEvent(eb, size as StgWord) == 0 {
-            errorBelch(b"Event size exceeds buffer size, bail out\0" as *const u8 as *const c_char);
+            errorBelch(c"Event size exceeds buffer size, bail out".as_ptr());
             return;
         }
     }
 
     postEventHeader(eb, r#type);
     postPayloadSize(eb, size as EventPayloadSize);
-    postBuf(eb, msg as *mut StgWord8, size as uint32_t);
+    postBuf(eb, msg as *mut StgWord8, size as u32);
 }
 
 unsafe fn postUserBinaryEvent(
     mut cap: *mut Capability,
     mut r#type: EventTypeNum,
-    mut msg: *mut uint8_t,
-    mut size: size_t,
+    mut msg: *mut u8,
+    mut size: usize,
 ) {
-    if size > EVENT_PAYLOAD_SIZE_MAX as size_t {
-        errorBelch(
-            b"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out\0" as *const u8 as *const c_char,
-        );
-
+    if size > EVENT_PAYLOAD_SIZE_MAX as usize {
+        errorBelch(c"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out".as_ptr());
         return;
     }
 
@@ -918,30 +889,27 @@ unsafe fn postUserBinaryEvent(
         printAndClearEventBuf(eb);
 
         if hasRoomForVariableEvent(eb, size as StgWord) == 0 {
-            errorBelch(b"Event size exceeds buffer size, bail out\0" as *const u8 as *const c_char);
+            errorBelch(c"Event size exceeds buffer size, bail out".as_ptr());
             return;
         }
     }
 
     postEventHeader(eb, r#type);
     postPayloadSize(eb, size as EventPayloadSize);
-    postBuf(eb, msg as *mut StgWord8, size as uint32_t);
+    postBuf(eb, msg as *mut StgWord8, size as u32);
 }
 
 unsafe fn postThreadLabel(
     mut cap: *mut Capability,
     mut id: EventThreadID,
     mut label: *mut c_char,
-    mut len: size_t,
+    mut len: usize,
 ) {
-    let strsize = len as c_int;
-    let size = (strsize as usize).wrapping_add(size_of::<EventThreadID>() as usize) as c_int;
+    let strsize = len as i32;
+    let size = (strsize as usize).wrapping_add(size_of::<EventThreadID>() as usize) as i32;
 
     if size > EVENT_PAYLOAD_SIZE_MAX {
-        errorBelch(
-            b"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out\0" as *const u8 as *const c_char,
-        );
-
+        errorBelch(c"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out".as_ptr());
         return;
     }
 
@@ -951,7 +919,7 @@ unsafe fn postThreadLabel(
         printAndClearEventBuf(eb);
 
         if hasRoomForVariableEvent(eb, size as StgWord) == 0 {
-            errorBelch(b"Event size exceeds buffer size, bail out\0" as *const u8 as *const c_char);
+            errorBelch(c"Event size exceeds buffer size, bail out".as_ptr());
             return;
         }
     }
@@ -959,7 +927,7 @@ unsafe fn postThreadLabel(
     postEventHeader(eb, EVENT_THREAD_LABEL as EventTypeNum);
     postPayloadSize(eb, size as EventPayloadSize);
     postThreadID(eb, id);
-    postBuf(eb, label as *mut StgWord8, strsize as uint32_t);
+    postBuf(eb, label as *mut StgWord8, strsize as u32);
 }
 
 unsafe fn postConcUpdRemSetFlush(mut cap: *mut Capability) {
@@ -975,24 +943,22 @@ unsafe fn postConcMarkEnd(mut marked_obj_count: StgWord32) {
     postWord32(&raw mut eventBuf, marked_obj_count);
 }
 
-unsafe fn postNonmovingHeapCensus(mut blk_size: uint16_t, mut census: *const NonmovingAllocCensus) {
+unsafe fn postNonmovingHeapCensus(mut blk_size: u16, mut census: *const NonmovingAllocCensus) {
     postEventHeader(
         &raw mut eventBuf,
         EVENT_NONMOVING_HEAP_CENSUS as EventTypeNum,
     );
-
     postWord16(&raw mut eventBuf, blk_size as StgWord16);
     postWord32(&raw mut eventBuf, (*census).n_active_segs as StgWord32);
     postWord32(&raw mut eventBuf, (*census).n_filled_segs as StgWord32);
     postWord32(&raw mut eventBuf, (*census).n_live_blocks as StgWord32);
 }
 
-unsafe fn postNonmovingPrunedSegments(mut pruned_segments: uint32_t, mut free_segments: uint32_t) {
+unsafe fn postNonmovingPrunedSegments(mut pruned_segments: u32, mut free_segments: u32) {
     postEventHeader(
         &raw mut eventBuf,
         EVENT_NONMOVING_PRUNED_SEGMENTS as EventTypeNum,
     );
-
     postWord32(&raw mut eventBuf, pruned_segments as StgWord32);
     postWord32(&raw mut eventBuf, free_segments as StgWord32);
 }
@@ -1004,12 +970,10 @@ unsafe fn closeBlockMarker(mut ebuf: *mut EventsBuf) {
             .marker
             .offset(size_of::<EventTypeNum>() as usize as isize)
             .offset(size_of::<EventTimestamp>() as usize as isize);
-
         postWord32(
             ebuf,
-            save_pos.offset_from((*ebuf).marker) as c_long as StgWord32,
+            save_pos.offset_from((*ebuf).marker) as i64 as StgWord32,
         );
-
         postTimestamp(ebuf);
         (*ebuf).pos = save_pos;
         (*ebuf).marker = null_mut::<StgInt8>();
@@ -1021,8 +985,8 @@ unsafe fn postBlockMarker(mut eb: *mut EventsBuf) {
     closeBlockMarker(eb);
     (*eb).marker = (*eb).pos;
     postEventHeader(eb, EVENT_BLOCK_MARKER as EventTypeNum);
-    postWord32(eb, 0 as StgWord32);
-    postWord64(eb, 0 as StgWord64);
+    postWord32(eb, 0);
+    postWord64(eb, 0);
     postCapNo(eb, (*eb).capno);
 }
 
@@ -1038,10 +1002,7 @@ unsafe fn getHeapProfBreakdown() -> HeapProfBreakdown {
         9 => return HEAP_PROF_BREAKDOWN_INFO_TABLE,
         10 => return HEAP_PROF_BREAKDOWN_ERA,
         _ => {
-            barf(
-                b"getHeapProfBreakdown: unknown heap profiling mode\0" as *const u8
-                    as *const c_char,
-            );
+            barf(c"getHeapProfBreakdown: unknown heap profiling mode".as_ptr());
         }
     };
 }
@@ -1052,46 +1013,46 @@ unsafe fn postHeapProfBegin(mut profile_id: StgWord8) {
     let mut modSelector_len: StgWord = (if !(*flags).modSelector.is_null() {
         strlen((*flags).modSelector)
     } else {
-        0 as size_t
+        0
     }) as StgWord;
 
     let mut descrSelector_len: StgWord = (if !(*flags).descrSelector.is_null() {
         strlen((*flags).descrSelector)
     } else {
-        0 as size_t
+        0
     }) as StgWord;
 
     let mut typeSelector_len: StgWord = (if !(*flags).typeSelector.is_null() {
         strlen((*flags).typeSelector)
     } else {
-        0 as size_t
+        0
     }) as StgWord;
 
     let mut ccSelector_len: StgWord = (if !(*flags).ccSelector.is_null() {
         strlen((*flags).ccSelector)
     } else {
-        0 as size_t
+        0
     }) as StgWord;
 
     let mut ccsSelector_len: StgWord = (if !(*flags).ccsSelector.is_null() {
         strlen((*flags).ccsSelector)
     } else {
-        0 as size_t
+        0
     }) as StgWord;
 
     let mut retainerSelector_len: StgWord = (if !(*flags).retainerSelector.is_null() {
         strlen((*flags).retainerSelector)
     } else {
-        0 as size_t
+        0
     }) as StgWord;
 
     let mut bioSelector_len: StgWord = (if !(*flags).bioSelector.is_null() {
         strlen((*flags).bioSelector)
     } else {
-        0 as size_t
+        0
     }) as StgWord;
 
-    let mut len: StgWord = ((1 as c_int + 8 as c_int + 4 as c_int) as StgWord)
+    let mut len: StgWord = ((1 as i32 + 8 as i32 + 4 as i32) as StgWord)
         .wrapping_add(modSelector_len)
         .wrapping_add(descrSelector_len)
         .wrapping_add(typeSelector_len)
@@ -1101,12 +1062,9 @@ unsafe fn postHeapProfBegin(mut profile_id: StgWord8) {
         .wrapping_add(bioSelector_len)
         .wrapping_add(7 as StgWord);
 
-    if (ensureRoomForVariableEvent(&raw mut eventBuf, len) == 0) as c_int as c_long != 0 {
+    if (ensureRoomForVariableEvent(&raw mut eventBuf, len) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/eventlog/EventLog.c\0" as *const u8 as *const c_char,
-            1244 as c_uint,
-        );
+        _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1244);
     }
 
     postEventHeader(&raw mut eventBuf, EVENT_HEAP_PROF_BEGIN as EventTypeNum);
@@ -1119,13 +1077,11 @@ unsafe fn postHeapProfBegin(mut profile_id: StgWord8) {
     postStringLen(&raw mut eventBuf, (*flags).typeSelector, typeSelector_len);
     postStringLen(&raw mut eventBuf, (*flags).ccSelector, ccSelector_len);
     postStringLen(&raw mut eventBuf, (*flags).ccsSelector, ccsSelector_len);
-
     postStringLen(
         &raw mut eventBuf,
         (*flags).retainerSelector,
         retainerSelector_len,
     );
-
     postStringLen(&raw mut eventBuf, (*flags).bioSelector, bioSelector_len);
 }
 
@@ -1134,12 +1090,10 @@ unsafe fn postHeapProfSampleBegin(mut era: StgInt) {
         &raw mut eventBuf,
         EVENT_HEAP_PROF_SAMPLE_BEGIN as EventTypeNum,
     );
-
     postEventHeader(
         &raw mut eventBuf,
         EVENT_HEAP_PROF_SAMPLE_BEGIN as EventTypeNum,
     );
-
     postWord64(&raw mut eventBuf, era as StgWord64);
 }
 
@@ -1153,7 +1107,6 @@ unsafe fn postHeapBioProfSampleBegin(mut era: StgInt, mut time: StgWord64) {
         &raw mut eventBuf,
         EVENT_HEAP_BIO_PROF_SAMPLE_BEGIN as EventTypeNum,
     );
-
     postWord64(&raw mut eventBuf, era as StgWord64);
     postWord64(&raw mut eventBuf, time);
 }
@@ -1163,12 +1116,10 @@ unsafe fn postHeapProfSampleEnd(mut era: StgInt) {
         &raw mut eventBuf,
         EVENT_HEAP_PROF_SAMPLE_END as EventTypeNum,
     );
-
     postEventHeader(
         &raw mut eventBuf,
         EVENT_HEAP_PROF_SAMPLE_END as EventTypeNum,
     );
-
     postWord64(&raw mut eventBuf, era as StgWord64);
 }
 
@@ -1178,23 +1129,19 @@ unsafe fn postHeapProfSampleString(
     mut residency: StgWord64,
 ) {
     let mut label_len: StgWord = strlen(label) as StgWord;
-    let mut len: StgWord = ((1 as c_int + 8 as c_int) as StgWord)
+    let mut len: StgWord = ((1 as i32 + 8 as i32) as StgWord)
         .wrapping_add(label_len)
         .wrapping_add(1 as StgWord);
 
-    if (ensureRoomForVariableEvent(&raw mut eventBuf, len) == 0) as c_int as c_long != 0 {
+    if (ensureRoomForVariableEvent(&raw mut eventBuf, len) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/eventlog/EventLog.c\0" as *const u8 as *const c_char,
-            1296 as c_uint,
-        );
+        _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1296);
     }
 
     postEventHeader(
         &raw mut eventBuf,
         EVENT_HEAP_PROF_SAMPLE_STRING as EventTypeNum,
     );
-
     postPayloadSize(&raw mut eventBuf, len as EventPayloadSize);
     postWord8(&raw mut eventBuf, profile_id);
     postWord64(&raw mut eventBuf, residency);
@@ -1205,7 +1152,7 @@ unsafe fn postIPE(mut ipe: *const InfoProvEnt) {
     let mut closure_desc_buf: [c_char; 11] = [0; 11];
     formatClosureDescIpe(ipe, &raw mut closure_desc_buf as *mut c_char);
 
-    let MAX_IPE_STRING_LEN: StgWord = 65535 as StgWord;
+    let MAX_IPE_STRING_LEN: StgWord = 65535;
     let mut table_name_len: StgWord =
         if (strlen((*ipe).prov.table_name) as StgWord) < MAX_IPE_STRING_LEN {
             strlen((*ipe).prov.table_name) as StgWord
@@ -1253,7 +1200,7 @@ unsafe fn postIPE(mut ipe: *const InfoProvEnt) {
             MAX_IPE_STRING_LEN
         };
 
-    let mut extra_comma: StgWord = 1 as StgWord;
+    let mut extra_comma: StgWord = 1;
     let mut len: StgWord = (8 as StgWord)
         .wrapping_add(table_name_len)
         .wrapping_add(1 as StgWord)
@@ -1271,22 +1218,17 @@ unsafe fn postIPE(mut ipe: *const InfoProvEnt) {
         .wrapping_add(src_span_len)
         .wrapping_add(1 as StgWord);
 
-    if (ensureRoomForVariableEvent(&raw mut eventBuf, len) == 0) as c_int as c_long != 0 {
+    if (ensureRoomForVariableEvent(&raw mut eventBuf, len) == 0) as i32 as i64 != 0 {
     } else {
-        _assertFail(
-            b"rts/eventlog/EventLog.c\0" as *const u8 as *const c_char,
-            1472 as c_uint,
-        );
+        _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1472);
     }
 
     postEventHeader(&raw mut eventBuf, EVENT_IPE as EventTypeNum);
     postPayloadSize(&raw mut eventBuf, len as EventPayloadSize);
-
     postWord64(
         &raw mut eventBuf,
         INFO_PTR_TO_STRUCT((*ipe).info) as StgWord64,
     );
-
     postStringLen(&raw mut eventBuf, (*ipe).prov.table_name, table_name_len);
 
     postStringLen(
@@ -1302,11 +1244,11 @@ unsafe fn postIPE(mut ipe: *const InfoProvEnt) {
     postBuf(
         &raw mut eventBuf,
         (*ipe).prov.src_file as *const StgWord8,
-        src_file_len as uint32_t,
+        src_file_len as u32,
     );
 
     let mut colon: StgWord8 = ':' as i32 as StgWord8;
-    postBuf(&raw mut eventBuf, &raw mut colon, 1 as uint32_t);
+    postBuf(&raw mut eventBuf, &raw mut colon, 1);
     postStringLen(&raw mut eventBuf, (*ipe).prov.src_span, src_span_len);
 }
 
@@ -1314,14 +1256,10 @@ unsafe fn printAndClearEventBuf(mut ebuf: *mut EventsBuf) {
     closeBlockMarker(ebuf);
 
     if !(*ebuf).begin.is_null() && (*ebuf).pos != (*ebuf).begin {
-        let mut elog_size: size_t = (*ebuf).pos.offset_from((*ebuf).begin) as c_long as size_t;
+        let mut elog_size: usize = (*ebuf).pos.offset_from((*ebuf).begin) as i64 as usize;
 
         if !writeEventLog((*ebuf).begin as *mut c_void, elog_size) {
-            debugBelch(
-                b"printAndClearEventLog: could not flush event log\n\0" as *const u8
-                    as *const c_char,
-            );
-
+            debugBelch(c"printAndClearEventLog: could not flush event log\n".as_ptr());
             resetEventsBuf(ebuf);
             flushEventLogWriter();
             return;
@@ -1334,11 +1272,7 @@ unsafe fn printAndClearEventBuf(mut ebuf: *mut EventsBuf) {
 }
 
 unsafe fn initEventsBuf(mut eb: *mut EventsBuf, mut size: StgWord64, mut capno: EventCapNo) {
-    (*eb).pos = stgMallocBytes(
-        size as size_t,
-        b"initEventsBuf\0" as *const u8 as *const c_char as *mut c_char,
-    ) as *mut StgInt8;
-
+    (*eb).pos = stgMallocBytes(size as usize, c"initEventsBuf".as_ptr()) as *mut StgInt8;
     (*eb).begin = (*eb).pos;
     (*eb).size = size;
     (*eb).marker = null_mut::<StgInt8>();
@@ -1352,15 +1286,14 @@ unsafe fn resetEventsBuf(mut eb: *mut EventsBuf) {
 }
 
 unsafe fn hasRoomForEvent(mut eb: *mut EventsBuf, mut eNum: EventTypeNum) -> StgBool {
-    let mut size: uint32_t = (size_of::<EventTypeNum>() as usize)
+    let mut size: u32 = (size_of::<EventTypeNum>() as usize)
         .wrapping_add(size_of::<EventTimestamp>() as usize)
-        .wrapping_add(eventTypes[eNum as usize].size as usize)
-        as uint32_t;
+        .wrapping_add(eventTypes[eNum as usize].size as usize) as u32;
 
     if (*eb).pos.offset(size as isize) > (*eb).begin.offset((*eb).size as isize) {
-        return 0 as StgBool;
+        return 0;
     } else {
-        return 1 as StgBool;
+        return 1;
     };
 }
 
@@ -1372,9 +1305,9 @@ unsafe fn hasRoomForVariableEvent(mut eb: *mut EventsBuf, mut payload_bytes: Stg
         .wrapping_add(payload_bytes);
 
     if (*eb).pos.offset(size as isize) > (*eb).begin.offset((*eb).size as isize) {
-        return 0 as StgBool;
+        return 0;
     } else {
-        return 1 as StgBool;
+        return 1;
     };
 }
 
@@ -1384,16 +1317,16 @@ unsafe fn ensureRoomForEvent(mut eb: *mut EventsBuf, mut tag: EventTypeNum) {
     }
 }
 
-unsafe fn ensureRoomForVariableEvent(mut eb: *mut EventsBuf, mut size: StgWord) -> c_int {
+unsafe fn ensureRoomForVariableEvent(mut eb: *mut EventsBuf, mut size: StgWord) -> i32 {
     if hasRoomForVariableEvent(eb, size) == 0 {
         printAndClearEventBuf(eb);
 
         if hasRoomForVariableEvent(eb, size) == 0 {
-            return 1 as c_int;
+            return 1;
         }
     }
 
-    return 0 as c_int;
+    return 0;
 }
 
 unsafe fn postEventType(mut eb: *mut EventsBuf, mut et: *mut EventType) {
@@ -1401,17 +1334,17 @@ unsafe fn postEventType(mut eb: *mut EventsBuf, mut et: *mut EventType) {
     postEventTypeNum(eb, (*et).etNum);
     postWord16(eb, (*et).size as StgWord16);
 
-    let desclen = strlen((*et).desc) as c_int;
+    let desclen = strlen((*et).desc) as i32;
     postWord32(eb, desclen as StgWord32);
 
-    let mut d = 0 as c_int;
+    let mut d = 0;
 
     while d < desclen {
         postInt8(eb, *(*et).desc.offset(d as isize) as StgInt8);
         d += 1;
     }
 
-    postWord32(eb, 0 as StgWord32);
+    postWord32(eb, 0);
     postInt32(eb, EVENT_ET_END as StgInt32);
 }
 
@@ -1427,10 +1360,10 @@ unsafe fn flushAllCapsEventsBufs() {
 
     printAndClearEventBuf(&raw mut eventBuf);
 
-    let mut i = 0 as c_uint;
+    let mut i = 0;
 
     while i < getNumCapabilities() {
-        flushLocalEventsBuf(getCapability(i as uint32_t));
+        flushLocalEventsBuf(getCapability(i as u32));
         i = i.wrapping_add(1);
     }
 
@@ -1446,39 +1379,39 @@ pub unsafe extern "C" fn flushEventLog(mut cap: *mut *mut Capability) {
     }
 
     printAndClearEventBuf(&raw mut eventBuf);
-    flushLocalEventsBuf(getCapability(0 as uint32_t));
+    flushLocalEventsBuf(getCapability(0));
     flushEventLogWriter();
 }
 
 unsafe fn run_static_initializers() {
     eventTypes = [
         _EventType {
-            etNum: 0 as EventTypeNum,
-            size: size_of::<EventThreadID>() as uint32_t,
-            desc: b"Create thread\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 0,
+            size: size_of::<EventThreadID>() as u32,
+            desc: c"Create thread".as_ptr(),
         },
         _EventType {
-            etNum: 1 as EventTypeNum,
-            size: size_of::<EventThreadID>() as uint32_t,
-            desc: b"Run thread\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 1,
+            size: size_of::<EventThreadID>() as u32,
+            desc: c"Run thread".as_ptr(),
         },
         _EventType {
-            etNum: 2 as EventTypeNum,
+            etNum: 2,
             size: (size_of::<EventThreadID>() as usize)
                 .wrapping_add(size_of::<StgWord16>() as usize)
-                .wrapping_add(size_of::<EventThreadID>() as usize) as uint32_t,
-            desc: b"Stop thread\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<EventThreadID>() as usize) as u32,
+            desc: c"Stop thread".as_ptr(),
         },
         _EventType {
-            etNum: 3 as EventTypeNum,
-            size: size_of::<EventThreadID>() as uint32_t,
-            desc: b"Thread runnable\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 3,
+            size: size_of::<EventThreadID>() as u32,
+            desc: c"Thread runnable".as_ptr(),
         },
         _EventType {
-            etNum: 4 as EventTypeNum,
+            etNum: 4,
             size: (size_of::<EventThreadID>() as usize)
-                .wrapping_add(size_of::<EventCapNo>() as usize) as uint32_t,
-            desc: b"Migrate thread\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<EventCapNo>() as usize) as u32,
+            desc: c"Migrate thread".as_ptr(),
         },
         _EventType {
             etNum: 0,
@@ -1496,30 +1429,30 @@ unsafe fn run_static_initializers() {
             desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 8 as EventTypeNum,
+            etNum: 8,
             size: (size_of::<EventThreadID>() as usize)
-                .wrapping_add(size_of::<EventCapNo>() as usize) as uint32_t,
-            desc: b"Wakeup thread\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<EventCapNo>() as usize) as u32,
+            desc: c"Wakeup thread".as_ptr(),
         },
         _EventType {
-            etNum: 9 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Starting GC\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 9,
+            size: 0,
+            desc: c"Starting GC".as_ptr(),
         },
         _EventType {
-            etNum: 10 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Finished GC\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 10,
+            size: 0,
+            desc: c"Finished GC".as_ptr(),
         },
         _EventType {
-            etNum: 11 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Request sequential GC\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 11,
+            size: 0,
+            desc: c"Request sequential GC".as_ptr(),
         },
         _EventType {
-            etNum: 12 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Request parallel GC\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 12,
+            size: 0,
+            desc: c"Request parallel GC".as_ptr(),
         },
         _EventType {
             etNum: 0,
@@ -1532,14 +1465,14 @@ unsafe fn run_static_initializers() {
             desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 15 as EventTypeNum,
-            size: size_of::<EventThreadID>() as uint32_t,
-            desc: b"Create spark thread\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 15,
+            size: size_of::<EventThreadID>() as u32,
+            desc: c"Create spark thread".as_ptr(),
         },
         _EventType {
-            etNum: 16 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"Log message\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 16,
+            size: 0xffff,
+            desc: c"Log message".as_ptr(),
         },
         _EventType {
             etNum: 0,
@@ -1547,31 +1480,31 @@ unsafe fn run_static_initializers() {
             desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 18 as EventTypeNum,
+            etNum: 18,
             size: (size_of::<StgWord32>() as usize)
                 .wrapping_add(size_of::<EventTimestamp>() as usize)
-                .wrapping_add(size_of::<EventCapNo>() as usize) as uint32_t,
-            desc: b"Block marker\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<EventCapNo>() as usize) as u32,
+            desc: c"Block marker".as_ptr(),
         },
         _EventType {
-            etNum: 19 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"User message\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 19,
+            size: 0xffff,
+            desc: c"User message".as_ptr(),
         },
         _EventType {
-            etNum: 20 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"GC idle\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 20,
+            size: 0,
+            desc: c"GC idle".as_ptr(),
         },
         _EventType {
-            etNum: 21 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"GC working\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 21,
+            size: 0,
+            desc: c"GC working".as_ptr(),
         },
         _EventType {
-            etNum: 22 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"GC done\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 22,
+            size: 0,
+            desc: c"GC done".as_ptr(),
         },
         _EventType {
             etNum: 0,
@@ -1584,172 +1517,168 @@ unsafe fn run_static_initializers() {
             desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 25 as EventTypeNum,
+            etNum: 25,
             size: (size_of::<EventCapsetID>() as usize)
-                .wrapping_add(size_of::<EventCapsetType>() as usize) as uint32_t,
-            desc: b"Create capability set\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<EventCapsetType>() as usize) as u32,
+            desc: c"Create capability set".as_ptr(),
         },
         _EventType {
-            etNum: 26 as EventTypeNum,
-            size: size_of::<EventCapsetID>() as uint32_t,
-            desc: b"Delete capability set\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 26,
+            size: size_of::<EventCapsetID>() as u32,
+            desc: c"Delete capability set".as_ptr(),
         },
         _EventType {
-            etNum: 27 as EventTypeNum,
+            etNum: 27,
             size: (size_of::<EventCapsetID>() as usize)
-                .wrapping_add(size_of::<EventCapNo>() as usize) as uint32_t,
-            desc: b"Add capability to capability set\0" as *const u8 as *const c_char
-                as *mut c_char,
+                .wrapping_add(size_of::<EventCapNo>() as usize) as u32,
+            desc: c"Add capability to capability set".as_ptr(),
         },
         _EventType {
-            etNum: 28 as EventTypeNum,
+            etNum: 28,
             size: (size_of::<EventCapsetID>() as usize)
-                .wrapping_add(size_of::<EventCapNo>() as usize) as uint32_t,
-            desc: b"Remove capability from capability set\0" as *const u8 as *const c_char
-                as *mut c_char,
+                .wrapping_add(size_of::<EventCapNo>() as usize) as u32,
+            desc: c"Remove capability from capability set".as_ptr(),
         },
         _EventType {
-            etNum: 29 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"RTS name and version\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 29,
+            size: 0xffff,
+            desc: c"RTS name and version".as_ptr(),
         },
         _EventType {
-            etNum: 30 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"Program arguments\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 30,
+            size: 0xffff,
+            desc: c"Program arguments".as_ptr(),
         },
         _EventType {
-            etNum: 31 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"Program environment variables\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 31,
+            size: 0xffff,
+            desc: c"Program environment variables".as_ptr(),
         },
         _EventType {
-            etNum: 32 as EventTypeNum,
+            etNum: 32,
             size: (size_of::<EventCapsetID>() as usize)
-                .wrapping_add(size_of::<StgWord32>() as usize) as uint32_t,
-            desc: b"Process ID\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<StgWord32>() as usize) as u32,
+            desc: c"Process ID".as_ptr(),
         },
         _EventType {
-            etNum: 33 as EventTypeNum,
+            etNum: 33,
             size: (size_of::<EventCapsetID>() as usize)
-                .wrapping_add(size_of::<StgWord32>() as usize) as uint32_t,
-            desc: b"Parent process ID\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<StgWord32>() as usize) as u32,
+            desc: c"Parent process ID".as_ptr(),
         },
         _EventType {
-            etNum: 34 as EventTypeNum,
+            etNum: 34,
             size: (size_of::<StgWord64>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
-                .wrapping_add(size_of::<StgWord64>() as usize) as uint32_t,
-            desc: b"Spark counters\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<StgWord64>() as usize) as u32,
+            desc: c"Spark counters".as_ptr(),
         },
         _EventType {
-            etNum: 35 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Spark create\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 35,
+            size: 0,
+            desc: c"Spark create".as_ptr(),
         },
         _EventType {
-            etNum: 36 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Spark dud\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 36,
+            size: 0,
+            desc: c"Spark dud".as_ptr(),
         },
         _EventType {
-            etNum: 37 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Spark overflow\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 37,
+            size: 0,
+            desc: c"Spark overflow".as_ptr(),
         },
         _EventType {
-            etNum: 38 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Spark run\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 38,
+            size: 0,
+            desc: c"Spark run".as_ptr(),
         },
         _EventType {
-            etNum: 39 as EventTypeNum,
-            size: size_of::<EventCapNo>() as uint32_t,
-            desc: b"Spark steal\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 39,
+            size: size_of::<EventCapNo>() as u32,
+            desc: c"Spark steal".as_ptr(),
         },
         _EventType {
-            etNum: 40 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Spark fizzle\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 40,
+            size: 0,
+            desc: c"Spark fizzle".as_ptr(),
         },
         _EventType {
-            etNum: 41 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Spark GC\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 41,
+            size: 0,
+            desc: c"Spark GC".as_ptr(),
         },
         _EventType {
-            etNum: 42 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"Intern string\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 42,
+            size: 0xffff,
+            desc: c"Intern string".as_ptr(),
         },
         _EventType {
-            etNum: 43 as EventTypeNum,
+            etNum: 43,
             size: (size_of::<EventCapsetID>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
-                .wrapping_add(size_of::<StgWord32>() as usize) as uint32_t,
-            desc: b"Wall clock time\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<StgWord32>() as usize) as u32,
+            desc: c"Wall clock time".as_ptr(),
         },
         _EventType {
-            etNum: 44 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"Thread label\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 44,
+            size: 0xffff,
+            desc: c"Thread label".as_ptr(),
         },
         _EventType {
-            etNum: 45 as EventTypeNum,
-            size: size_of::<EventCapNo>() as uint32_t,
-            desc: b"Create capability\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 45,
+            size: size_of::<EventCapNo>() as u32,
+            desc: c"Create capability".as_ptr(),
         },
         _EventType {
-            etNum: 46 as EventTypeNum,
-            size: size_of::<EventCapNo>() as uint32_t,
-            desc: b"Delete capability\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 46,
+            size: size_of::<EventCapNo>() as u32,
+            desc: c"Delete capability".as_ptr(),
         },
         _EventType {
-            etNum: 47 as EventTypeNum,
-            size: size_of::<EventCapNo>() as uint32_t,
-            desc: b"Disable capability\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 47,
+            size: size_of::<EventCapNo>() as u32,
+            desc: c"Disable capability".as_ptr(),
         },
         _EventType {
-            etNum: 48 as EventTypeNum,
-            size: size_of::<EventCapNo>() as uint32_t,
-            desc: b"Enable capability\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 48,
+            size: size_of::<EventCapNo>() as u32,
+            desc: c"Enable capability".as_ptr(),
         },
         _EventType {
-            etNum: 49 as EventTypeNum,
+            etNum: 49,
             size: (size_of::<EventCapsetID>() as usize)
-                .wrapping_add(size_of::<StgWord64>() as usize) as uint32_t,
-            desc: b"Total heap memory ever allocated\0" as *const u8 as *const c_char
-                as *mut c_char,
+                .wrapping_add(size_of::<StgWord64>() as usize) as u32,
+            desc: c"Total heap memory ever allocated".as_ptr(),
         },
         _EventType {
-            etNum: 50 as EventTypeNum,
+            etNum: 50,
             size: (size_of::<EventCapsetID>() as usize)
-                .wrapping_add(size_of::<StgWord64>() as usize) as uint32_t,
-            desc: b"Current heap size (number of allocated mblocks)\0" as *const u8 as *const c_char
-                as *mut c_char,
+                .wrapping_add(size_of::<StgWord64>() as usize) as u32,
+            desc: c"Current heap size (number of allocated mblocks)".as_ptr(),
         },
         _EventType {
-            etNum: 51 as EventTypeNum,
+            etNum: 51,
             size: (size_of::<EventCapsetID>() as usize)
-                .wrapping_add(size_of::<StgWord64>() as usize) as uint32_t,
-            desc: b"Current heap live data\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<StgWord64>() as usize) as u32,
+            desc: c"Current heap live data".as_ptr(),
         },
         _EventType {
-            etNum: 52 as EventTypeNum,
+            etNum: 52,
             size: (size_of::<EventCapsetID>() as usize)
                 .wrapping_add(size_of::<StgWord16>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
-                .wrapping_add(size_of::<StgWord64>() as usize) as uint32_t,
-            desc: b"Heap static parameters\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<StgWord64>() as usize) as u32,
+            desc: c"Heap static parameters".as_ptr(),
         },
         _EventType {
-            etNum: 53 as EventTypeNum,
+            etNum: 53,
             size: (size_of::<EventCapsetID>() as usize)
                 .wrapping_add(size_of::<StgWord16>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
@@ -1758,43 +1687,42 @@ unsafe fn run_static_initializers() {
                 .wrapping_add(size_of::<StgWord32>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
-                .wrapping_add(size_of::<StgWord64>() as usize) as uint32_t,
-            desc: b"GC statistics\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<StgWord64>() as usize) as u32,
+            desc: c"GC statistics".as_ptr(),
         },
         _EventType {
-            etNum: 54 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Synchronise stop-the-world GC\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 54,
+            size: 0,
+            desc: c"Synchronise stop-the-world GC".as_ptr(),
         },
         _EventType {
-            etNum: 55 as EventTypeNum,
+            etNum: 55,
             size: (size_of::<EventTaskId>() as usize)
                 .wrapping_add(size_of::<EventCapNo>() as usize)
-                .wrapping_add(size_of::<EventKernelThreadId>() as usize)
-                as uint32_t,
-            desc: b"Task create\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<EventKernelThreadId>() as usize) as u32,
+            desc: c"Task create".as_ptr(),
         },
         _EventType {
-            etNum: 56 as EventTypeNum,
+            etNum: 56,
             size: (size_of::<EventTaskId>() as usize)
                 .wrapping_add(size_of::<EventCapNo>() as usize)
-                .wrapping_add(size_of::<EventCapNo>() as usize) as uint32_t,
-            desc: b"Task migrate\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<EventCapNo>() as usize) as u32,
+            desc: c"Task migrate".as_ptr(),
         },
         _EventType {
-            etNum: 57 as EventTypeNum,
-            size: size_of::<EventTaskId>() as uint32_t,
-            desc: b"Task delete\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 57,
+            size: size_of::<EventTaskId>() as u32,
+            desc: c"Task delete".as_ptr(),
         },
         _EventType {
-            etNum: 58 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"User marker\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 58,
+            size: 0xffff,
+            desc: c"User marker".as_ptr(),
         },
         _EventType {
-            etNum: 59 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Empty event for bug #9003\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 59,
+            size: 0,
+            desc: c"Empty event for bug #9003".as_ptr(),
         },
         _EventType {
             etNum: 0,
@@ -1947,20 +1875,18 @@ unsafe fn run_static_initializers() {
             desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 90 as EventTypeNum,
+            etNum: 90,
             size: (size_of::<EventCapsetID>() as usize)
                 .wrapping_add(size_of::<StgWord32>() as usize)
                 .wrapping_add(size_of::<StgWord32>() as usize)
-                .wrapping_add(size_of::<StgWord32>() as usize) as uint32_t,
-            desc: b"The RTS attempted to return heap memory to the OS\0" as *const u8
-                as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<StgWord32>() as usize) as u32,
+            desc: c"The RTS attempted to return heap memory to the OS".as_ptr(),
         },
         _EventType {
-            etNum: 91 as EventTypeNum,
+            etNum: 91,
             size: (size_of::<EventCapsetID>() as usize)
-                .wrapping_add(size_of::<StgWord64>() as usize) as uint32_t,
-            desc: b"Report the size of the heap in blocks\0" as *const u8 as *const c_char
-                as *mut c_char,
+                .wrapping_add(size_of::<StgWord64>() as usize) as u32,
+            desc: c"Report the size of the heap in blocks".as_ptr(),
         },
         _EventType {
             etNum: 0,
@@ -2303,116 +2229,55 @@ unsafe fn run_static_initializers() {
             desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 160 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"Start of heap profile\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 160,
+            size: 0xffff,
+            desc: c"Start of heap profile".as_ptr(),
         },
         _EventType {
-            etNum: 161 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"Cost-centre definition\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 161,
+            size: 0xffff,
+            desc: c"Cost-centre definition".as_ptr(),
         },
         _EventType {
-            etNum: 162 as EventTypeNum,
-            size: size_of::<StgWord64>() as uint32_t,
-            desc: b"Start of heap profile sample\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 162,
+            size: size_of::<StgWord64>() as u32,
+            desc: c"Start of heap profile sample".as_ptr(),
         },
         _EventType {
-            etNum: 163 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"Heap profile cost-centre sample\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 163,
+            size: 0xffff,
+            desc: c"Heap profile cost-centre sample".as_ptr(),
         },
         _EventType {
-            etNum: 164 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"Heap profile string sample\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 164,
+            size: 0xffff,
+            desc: c"Heap profile string sample".as_ptr(),
         },
         _EventType {
-            etNum: 165 as EventTypeNum,
-            size: size_of::<StgWord64>() as uint32_t,
-            desc: b"End of heap profile sample\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 165,
+            size: size_of::<StgWord64>() as u32,
+            desc: c"End of heap profile sample".as_ptr(),
         },
         _EventType {
-            etNum: 166 as EventTypeNum,
+            etNum: 166,
             size: (size_of::<StgWord64>() as usize).wrapping_add(size_of::<StgWord64>() as usize)
-                as uint32_t,
-            desc: b"Start of heap profile (biographical) sample\0" as *const u8 as *const c_char
-                as *mut c_char,
+                as u32,
+            desc: c"Start of heap profile (biographical) sample".as_ptr(),
         },
         _EventType {
-            etNum: 167 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"Time profile cost-centre stack\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 167,
+            size: 0xffff,
+            desc: c"Time profile cost-centre stack".as_ptr(),
         },
         _EventType {
-            etNum: 168 as EventTypeNum,
-            size: size_of::<StgWord64>() as uint32_t,
-            desc: b"Start of a time profile\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 168,
+            size: size_of::<StgWord64>() as u32,
+            desc: c"Start of a time profile".as_ptr(),
         },
         _EventType {
-            etNum: 169 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"An IPE entry\0" as *const u8 as *const c_char as *mut c_char,
-        },
-        _EventType {
-            etNum: 0,
-            size: 0,
-            desc: null_mut::<c_char>(),
-        },
-        _EventType {
-            etNum: 0,
-            size: 0,
-            desc: null_mut::<c_char>(),
-        },
-        _EventType {
-            etNum: 0,
-            size: 0,
-            desc: null_mut::<c_char>(),
-        },
-        _EventType {
-            etNum: 0,
-            size: 0,
-            desc: null_mut::<c_char>(),
-        },
-        _EventType {
-            etNum: 0,
-            size: 0,
-            desc: null_mut::<c_char>(),
-        },
-        _EventType {
-            etNum: 0,
-            size: 0,
-            desc: null_mut::<c_char>(),
-        },
-        _EventType {
-            etNum: 0,
-            size: 0,
-            desc: null_mut::<c_char>(),
-        },
-        _EventType {
-            etNum: 0,
-            size: 0,
-            desc: null_mut::<c_char>(),
-        },
-        _EventType {
-            etNum: 0,
-            size: 0,
-            desc: null_mut::<c_char>(),
-        },
-        _EventType {
-            etNum: 0,
-            size: 0,
-            desc: null_mut::<c_char>(),
-        },
-        _EventType {
-            etNum: 0,
-            size: 0,
-            desc: null_mut::<c_char>(),
-        },
-        _EventType {
-            etNum: 181 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"User binary message\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 169,
+            size: 0xffff,
+            desc: c"An IPE entry".as_ptr(),
         },
         _EventType {
             etNum: 0,
@@ -2470,6 +2335,41 @@ unsafe fn run_static_initializers() {
             desc: null_mut::<c_char>(),
         },
         _EventType {
+            etNum: 181,
+            size: 0xffff,
+            desc: c"User binary message".as_ptr(),
+        },
+        _EventType {
+            etNum: 0,
+            size: 0,
+            desc: null_mut::<c_char>(),
+        },
+        _EventType {
+            etNum: 0,
+            size: 0,
+            desc: null_mut::<c_char>(),
+        },
+        _EventType {
+            etNum: 0,
+            size: 0,
+            desc: null_mut::<c_char>(),
+        },
+        _EventType {
+            etNum: 0,
+            size: 0,
+            desc: null_mut::<c_char>(),
+        },
+        _EventType {
+            etNum: 0,
+            size: 0,
+            desc: null_mut::<c_char>(),
+        },
+        _EventType {
+            etNum: 0,
+            size: 0,
+            desc: null_mut::<c_char>(),
+        },
+        _EventType {
             etNum: 0,
             size: 0,
             desc: null_mut::<c_char>(),
@@ -2505,56 +2405,78 @@ unsafe fn run_static_initializers() {
             desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 200 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Begin concurrent mark phase\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 0,
+            size: 0,
+            desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 201 as EventTypeNum,
-            size: size_of::<StgWord32>() as uint32_t,
-            desc: b"End concurrent mark phase\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 0,
+            size: 0,
+            desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 202 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Begin concurrent GC synchronisation\0" as *const u8 as *const c_char
-                as *mut c_char,
+            etNum: 0,
+            size: 0,
+            desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 203 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"End concurrent mark synchronisation\0" as *const u8 as *const c_char
-                as *mut c_char,
+            etNum: 0,
+            size: 0,
+            desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 204 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Begin concurrent sweep phase\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 0,
+            size: 0,
+            desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 205 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"End concurrent sweep phase\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 200,
+            size: 0,
+            desc: c"Begin concurrent mark phase".as_ptr(),
         },
         _EventType {
-            etNum: 206 as EventTypeNum,
-            size: size_of::<EventCapNo>() as uint32_t,
-            desc: b"Update remembered set flushed\0" as *const u8 as *const c_char as *mut c_char,
+            etNum: 201,
+            size: size_of::<StgWord32>() as u32,
+            desc: c"End concurrent mark phase".as_ptr(),
         },
         _EventType {
-            etNum: 207 as EventTypeNum,
+            etNum: 202,
+            size: 0,
+            desc: c"Begin concurrent GC synchronisation".as_ptr(),
+        },
+        _EventType {
+            etNum: 203,
+            size: 0,
+            desc: c"End concurrent mark synchronisation".as_ptr(),
+        },
+        _EventType {
+            etNum: 204,
+            size: 0,
+            desc: c"Begin concurrent sweep phase".as_ptr(),
+        },
+        _EventType {
+            etNum: 205,
+            size: 0,
+            desc: c"End concurrent sweep phase".as_ptr(),
+        },
+        _EventType {
+            etNum: 206,
+            size: size_of::<EventCapNo>() as u32,
+            desc: c"Update remembered set flushed".as_ptr(),
+        },
+        _EventType {
+            etNum: 207,
             size: (size_of::<StgWord16>() as usize)
                 .wrapping_add(size_of::<StgWord32>() as usize)
                 .wrapping_add(size_of::<StgWord32>() as usize)
-                .wrapping_add(size_of::<StgWord32>() as usize) as uint32_t,
-            desc: b"Nonmoving heap census\0" as *const u8 as *const c_char as *mut c_char,
+                .wrapping_add(size_of::<StgWord32>() as usize) as u32,
+            desc: c"Nonmoving heap census".as_ptr(),
         },
         _EventType {
-            etNum: 208 as EventTypeNum,
+            etNum: 208,
             size: (size_of::<StgWord32>() as usize).wrapping_add(size_of::<StgWord32>() as usize)
-                as uint32_t,
-            desc: b"Report the amount of segments pruned and remaining on the free list.\0"
-                as *const u8 as *const c_char as *mut c_char,
+                as u32,
+            desc: c"Report the amount of segments pruned and remaining on the free list.".as_ptr(),
         },
         _EventType {
             etNum: 0,
@@ -2562,25 +2484,22 @@ unsafe fn run_static_initializers() {
             desc: null_mut::<c_char>(),
         },
         _EventType {
-            etNum: 210 as EventTypeNum,
-            size: 0xffff as uint32_t,
-            desc: b"Ticky-ticky entry counter definition\0" as *const u8 as *const c_char
-                as *mut c_char,
+            etNum: 210,
+            size: 0xffff,
+            desc: c"Ticky-ticky entry counter definition".as_ptr(),
         },
         _EventType {
-            etNum: 211 as EventTypeNum,
+            etNum: 211,
             size: (size_of::<StgWord64>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
                 .wrapping_add(size_of::<StgWord64>() as usize)
-                .wrapping_add(size_of::<StgWord64>() as usize) as uint32_t,
-            desc: b"Ticky-ticky entry counter sample\0" as *const u8 as *const c_char
-                as *mut c_char,
+                .wrapping_add(size_of::<StgWord64>() as usize) as u32,
+            desc: c"Ticky-ticky entry counter sample".as_ptr(),
         },
         _EventType {
-            etNum: 212 as EventTypeNum,
-            size: 0 as uint32_t,
-            desc: b"Ticky-ticky entry counter begin sample\0" as *const u8 as *const c_char
-                as *mut c_char,
+            etNum: 212,
+            size: 0,
+            desc: c"Ticky-ticky entry counter begin sample".as_ptr(),
         },
     ];
 }
