@@ -1,6 +1,8 @@
 use generate_refactor::{args_rs, format, has_ffi_attr};
 use proc_macro2::Span;
+use std::ffi::CStr;
 use std::hash::{DefaultHasher, Hash, Hasher};
+use syn::LitCStr;
 
 use std::{fs, iter, mem};
 use syn::visit_mut::{self, VisitMut};
@@ -77,7 +79,8 @@ impl VisitMut for Refactor {
         if let Some(replace) = match expr {
             Expr::Binary(binary) => replace_c_bool_ne_0(binary),
             Expr::Call(expr_call) => replace_atomic_operations(expr_call),
-            Expr::Cast(expr_cast) => replace_lit_casts(self.preserve_lit_num_casts, expr_cast)
+            Expr::Cast(expr_cast) => replace_b_str_with_c_str(expr_cast)
+                .or_else(|| replace_lit_casts(self.preserve_lit_num_casts, expr_cast))
                 .or_else(|| replace_null_as_mut_ptr(expr_cast)),
             Expr::Paren(expr_paren) if matches!(expr_paren.expr.as_ref(), Expr::Lit(_)) => {
                 // Replace `(lit)` with `lit`. The group was probably needed for a cast that was removed.
@@ -273,6 +276,56 @@ fn replace_c_bool(expr_path: &ExprPath) -> Option<Expr> {
         attrs: vec![],
         lit: Lit::Bool(syn::LitBool::new(value, Span::call_site())),
     }))
+}
+
+/// Replace byte strings cast to `*c_char` with `CStr`.
+///
+/// E.g. `b"s\0" as *const u8 as *const c_char as *mut c_char` -> `c"s".as_ptr()`
+fn replace_b_str_with_c_str(expr_cast: &mut ExprCast) -> Option<Expr> {
+    match (expr_cast.expr.as_ref(), expr_cast.ty.as_ref()) {
+        (mut expr, Type::Ptr(type_ptr))
+            if matches!(type_ptr.elem.as_ref(), Type::Path(type_path) if type_path
+                .path
+                .get_ident()
+                .is_some_and(|ident| ident == "c_char")) =>
+        {
+            // Recurse to find inner
+            let lit_byte_str = loop {
+                match expr {
+                    Expr::Cast(inner_cast) => {
+                        expr = inner_cast.expr.as_ref();
+                    }
+                    Expr::Lit(ExprLit {
+                        lit: Lit::ByteStr(lit_byte_str),
+                        ..
+                    }) => {
+                        break lit_byte_str;
+                    }
+                    _ => {
+                        return None;
+                    }
+                }
+            };
+            let bytes = lit_byte_str.value();
+            let cstr = CStr::from_bytes_with_nul(&bytes).ok()?;
+
+            bytes.last().filter(|&&b| b == 0)?;
+
+            Some(Expr::MethodCall(syn::ExprMethodCall {
+                attrs: vec![],
+                receiver: Box::new(Expr::Lit(ExprLit {
+                    attrs: vec![],
+                    lit: Lit::CStr(LitCStr::new(cstr, Span::call_site())),
+                })),
+                dot_token: Default::default(),
+                method: Ident::new("as_ptr", Span::call_site()),
+                turbofish: None,
+                paren_token: Default::default(),
+                args: Default::default(),
+            }))
+        }
+        _ => None,
+    }
 }
 
 fn replace_lit_casts(preserve_lit_num_casts: bool, expr_cast: &mut ExprCast) -> Option<Expr> {
