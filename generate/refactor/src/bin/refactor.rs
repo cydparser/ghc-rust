@@ -1,24 +1,43 @@
-use std::{fs, iter, mem};
-
+use generate_refactor::{args_rs, format, has_ffi_attr};
 use proc_macro2::Span;
+use std::hash::{DefaultHasher, Hash, Hasher};
+
+use std::{fs, iter, mem};
 use syn::visit_mut::{self, VisitMut};
 use syn::{
-    Expr, ExprBinary, ExprCall, ExprCast, ExprLit, ExprPath, Ident, Lit, Path, PathSegment, Type,
-    TypePath, TypePtr, punctuated::Punctuated,
+    Expr, ExprBinary, ExprCall, ExprCast, ExprLit, ExprPath, Ident, Item, Lit, Path, PathSegment,
+    Type, TypePath, TypePtr, punctuated::Punctuated,
 };
-
-use generate_refactor::{args_rs, format, has_ffi_attr};
 
 fn main() {
     for path in args_rs().unwrap() {
-        eprintln!("  * Refactoring {}", path.display());
+        eprint!("  * Refactoring {} ", path.display());
+
         let mut syn_file = syn::parse_file(&fs::read_to_string(&path).unwrap()).unwrap();
         let mut visitor = Refactor::new();
 
-        for item in syn_file.items.iter_mut() {
-            visit_mut::visit_item_mut(&mut visitor, item);
+        fn hash(item: &Item) -> u64 {
+            let mut hasher = DefaultHasher::new();
+            item.hash(&mut hasher);
+
+            hasher.finish()
         }
+
+        for item in syn_file.items.iter_mut() {
+            // Repeatedly refactor until Item remains unchanged.
+            loop {
+                let init_hash = hash(item);
+                visit_mut::visit_item_mut(&mut visitor, item);
+
+                if init_hash == hash(item) {
+                    break;
+                }
+                eprint!(".");
+            }
+        }
+
         fs::write(path, format(syn_file).as_bytes()).unwrap();
+        eprintln!();
     }
 }
 
