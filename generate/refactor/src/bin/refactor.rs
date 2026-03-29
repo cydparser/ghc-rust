@@ -3,8 +3,8 @@ use std::{fs, iter, mem};
 use proc_macro2::Span;
 use syn::visit_mut::{self, VisitMut};
 use syn::{
-    Expr, ExprBinary, ExprCast, ExprLit, ExprPath, Ident, Lit, Path, PathArguments, PathSegment,
-    Type, TypePath, TypePtr, punctuated::Punctuated,
+    Expr, ExprBinary, ExprCall, ExprCast, ExprLit, ExprPath, Ident, Lit, Path, PathSegment, Type,
+    TypePath, TypePtr, punctuated::Punctuated,
 };
 
 use generate_refactor::{args_rs, format, has_ffi_attr};
@@ -268,33 +268,40 @@ fn replace_lit_casts(preserve_lit_num_casts: bool, expr_cast: &mut ExprCast) -> 
     }
 }
 
-/// Replace `null::<T>() as *mut T` with `null_mut()`.
+/// Replace `null::<T>() as *mut T` with `null_mut::<T()`.
 fn replace_null_as_mut_ptr(expr_cast: &mut ExprCast) -> Option<Expr> {
     match (expr_cast.expr.as_ref(), expr_cast.ty.as_ref()) {
         (
-            Expr::Path(expr_path),
+            Expr::Call(ExprCall { func, args, .. }),
             Type::Ptr(TypePtr {
                 mutability: Some(_),
                 ..
             }),
-        ) if expr_path
-            .path
-            .segments
-            .last()
-            .is_some_and(|ps| ps.ident == "null") =>
-        {
-            Some(Expr::Path(ExprPath {
-                attrs: vec![],
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments: iter::once(PathSegment {
-                        ident: Ident::new("null", Span::call_site()),
-                        arguments: PathArguments::None,
-                    })
-                    .collect(),
-                },
-            }))
+        ) if args.is_empty() => {
+            if let Expr::Path(expr_path) = func.as_ref()
+                && let Some(ps) = expr_path.path.segments.last()
+                && ps.ident == "null"
+            {
+                Some(Expr::Call(ExprCall {
+                    attrs: vec![],
+                    func: Box::new(Expr::Path(ExprPath {
+                        attrs: vec![],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: iter::once(PathSegment {
+                                ident: Ident::new("null_mut", Span::call_site()),
+                                arguments: ps.arguments.clone(),
+                            })
+                            .collect(),
+                        },
+                    })),
+                    paren_token: Default::default(),
+                    args: Default::default(),
+                }))
+            } else {
+                None
+            }
         }
         _ => None,
     }
