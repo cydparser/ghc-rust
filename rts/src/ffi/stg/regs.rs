@@ -14,9 +14,9 @@ mod tests;
 /// cbindgen:no-export
 #[repr(C)]
 pub struct StgFunTable {
-    stgEagerBlackholeInfo: StgWord,
-    stgGCEnter1: StgFunPtr,
-    stgGCFun: StgFunPtr,
+    pub(crate) stgEagerBlackholeInfo: StgWord,
+    pub(crate) stgGCEnter1: StgFunPtr,
+    pub(crate) stgGCFun: StgFunPtr,
 }
 
 #[ffi(compiler, ghc_lib, testsuite, utils)]
