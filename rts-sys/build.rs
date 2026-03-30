@@ -4,11 +4,10 @@ use std::path::PathBuf;
 use std::{env, fs};
 
 fn main() {
-    // TODO: Use features for ways.
     let ghc = utils::GhcConfig::new(Ways {
-        threaded: true,
-        debug: true,
-        profiling: true,
+        threaded: cfg!(feature = "way_threaded"),
+        debug: cfg!(feature = "way_debug"),
+        profiling: cfg!(feature = "way_profiling"),
         dynamic: true,
     });
 

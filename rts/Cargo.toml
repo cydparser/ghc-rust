@@ -10,9 +10,12 @@ license-file = "LICENSE"
 # crate-type = ["lib", "staticlib", "cdylib"]
 
 [features]
-default = ["sys"]
+default = ["sys", "way_debug", "way_profiling", "way_threaded"]
 sys = ["dep:ghc-rts-sys"]
 tracing = ["dep:tracing", "ghc-macros/tracing"]
+way_debug = ["ghc-rts-sys/way_debug"]
+way_profiling = ["ghc-rts-sys/way_profiling"]
+way_threaded = ["ghc-rts-sys/way_threaded"]
 
 [build-dependencies]
 build-utils.workspace = true

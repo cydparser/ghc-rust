@@ -11,3 +11,8 @@ build-utils.workspace = true
 
 [dependencies]
 libc.workspace = true
+
+[features]
+way_debug = []
+way_profiling = []
+way_threaded = []
