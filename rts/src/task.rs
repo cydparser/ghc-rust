@@ -1,17 +1,12 @@
 use crate::capability::Capability_;
-use crate::capability::Capability_;
 use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::messages::errorBelch;
 use crate::ffi::rts::stg_exit;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::rts_api::{Capability, NoStatus, SchedulerStatus};
-use crate::ffi::rts_api::{Capability, SchedulerStatus};
-use crate::ffi::stg::types::StgWord64;
 use crate::ffi::stg::types::StgWord64;
 use crate::prelude::*;
+use crate::rts_messages::errorBelch;
 use crate::rts_utils::{stgFree, stgMallocBytes};
-use crate::task::{InCall, InCall_, Task, Task_, TaskId, myTask, setMyTask};
 use crate::trace::{DEBUG_RTS, trace_};
 
 #[cfg(test)]
@@ -33,15 +28,6 @@ pub struct InCall_ {
     pub(crate) next: *mut InCall_,
 }
 
-#[cfg(test)]
-impl Arbitrary for InCall_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        InCall_ {
-            _address: Arbitrary::arbitrary(g),
-        }
-    }
-}
-
 /// cbindgen:no-export
 pub(crate) struct Task_ {
     pub(crate) cap: *mut Capability_,
@@ -53,7 +39,7 @@ pub(crate) struct Task_ {
     pub(crate) running_finalizers: bool,
     pub(crate) preferred_capability: i32,
     pub(crate) next: *mut Task_,
-    pub(crate) all_next: *mut Task_,
+    pub(crate) all_next: Option<NonNull<Task_>>,
     pub(crate) all_prev: *mut Task_,
 }
 
@@ -88,7 +74,7 @@ pub(crate) unsafe fn serialisableTaskId(mut task: *mut Task) -> TaskId {
     return task as usize as TaskId;
 }
 
-static mut all_tasks: *mut Task = null_mut::<Task>();
+static mut all_tasks: Option<NonNull<Task>> = None;
 
 static mut taskCount: u32 = 0;
 
@@ -113,21 +99,19 @@ unsafe fn initTaskManager() {
 }
 
 unsafe fn freeTaskManager() -> u32 {
-    let mut task = null_mut::<Task>();
-    let mut next = null_mut::<Task>();
+    let mut maybe_task = all_tasks;
     let mut tasksRunning: u32 = 0;
-    task = all_tasks;
 
-    while !task.is_null() {
-        next = (*task).all_next as *mut Task;
+    while let Some(task) = maybe_task {
+        let next = task.all_next;
 
         if (*task).stopped {
-            freeTask(task);
+            freeTask(task.as_ptr());
         } else {
             tasksRunning = tasksRunning.wrapping_add(1);
         }
 
-        task = next;
+        maybe_task = next;
     }
 
     if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
@@ -137,7 +121,7 @@ unsafe fn freeTaskManager() -> u32 {
         );
     }
 
-    all_tasks = null_mut::<Task>();
+    all_tasks = None;
     tasksInitialized = 0;
 
     return tasksRunning;
@@ -179,7 +163,7 @@ unsafe fn freeMyTask() {
     if !(*task).all_prev.is_null() {
         (*(*task).all_prev).all_next = (*task).all_next;
     } else {
-        all_tasks = (*task).all_next as *mut Task;
+        all_tasks = (*task).all_next;
     }
 
     if !(*task).all_next.is_null() {
@@ -214,15 +198,14 @@ unsafe fn freeTask(mut task: *mut Task) {
 }
 
 unsafe fn newTask(mut worker: bool) -> *mut Task {
-    let mut task = null_mut::<Task>();
-
-    task = stgMallocBytes(
+    let mut task = stgMallocBytes(
         (size_of::<Task>() as usize)
             .wrapping_add(63 as usize)
             .wrapping_div(64 as usize)
             .wrapping_mul(64 as usize),
-        c"newTask".as_ptr(),
-    ) as *mut Task;
+        c"newTask",
+    )
+    .cast();
 
     (*task).cap = null_mut::<Capability_>();
     (*task).worker = worker;
@@ -234,7 +217,7 @@ unsafe fn newTask(mut worker: bool) -> *mut Task {
     (*task).preferred_capability = -1;
     (*task).next = null_mut::<Task_>();
     (*task).all_prev = null_mut::<Task_>();
-    (*task).all_next = all_tasks as *mut Task_;
+    (*task).all_next = all_tasks;
 
     if !all_tasks.is_null() {
         (*all_tasks).all_prev = task as *mut Task_;
@@ -269,7 +252,7 @@ unsafe fn newInCall(mut task: *mut Task) {
         (*task).spare_incalls = (*incall).next;
         (*task).n_spare_incalls = (*task).n_spare_incalls.wrapping_sub(1);
     } else {
-        incall = stgMallocBytes(size_of::<InCall>() as usize, c"newInCall".as_ptr()) as *mut InCall;
+        incall = stgMallocBytes(size_of::<InCall>() as usize, c"newInCall") as *mut InCall;
     }
 
     (*incall).tso = null_mut::<StgTSO>();

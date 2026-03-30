@@ -111,7 +111,7 @@ unsafe fn showIOManager() -> *mut c_char {
     };
 }
 
-unsafe fn initCapabilityIOManager(mut cap: *mut Capability) {
+pub(crate) unsafe fn initCapabilityIOManager(mut cap: *mut Capability) {
     if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as i64 != 0 {
         trace_(
             c"initialising I/O manager %s for cap %d".as_ptr(),
@@ -183,7 +183,7 @@ unsafe fn wakeupIOManager() {
     };
 }
 
-unsafe fn markCapabilityIOManager(
+pub(crate) unsafe fn markCapabilityIOManager(
     mut evac: evac_fn,
     mut user: *mut c_void,
     mut cap: *mut Capability,

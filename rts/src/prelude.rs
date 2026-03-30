@@ -12,7 +12,7 @@ pub use libc::{memcpy, memset};
 pub use quickcheck_macros::quickcheck;
 pub use std::ffi::{CStr, CString, c_char, c_int, c_uint, c_void};
 pub use std::mem::{offset_of, transmute};
-pub use std::ptr::{null, null_mut};
+pub use std::ptr::{NonNull, null, null_mut};
 pub use std::sync::atomic::Ordering;
 
 pub fn before_exit<T: AsRef<str>>(msg: T) {

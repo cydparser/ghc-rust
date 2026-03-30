@@ -1,55 +1,41 @@
-use crate::capability::{
-    _CapIOManager, CapIOManager, Capability_, PendingSync, SyncType, contextSwitchCapability,
-    getCapability, interruptCapability, recordMutableCap, stopCapability,
-};
 use crate::ffi::rts::config::MAX_N_CAPABILITIES;
 use crate::ffi::rts::constants::MAX_NUMA_NODES;
-use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::CostCentreStack_;
 use crate::ffi::rts::storage::block::{
     BLOCK_SIZE_W, Bdescr, allocBlockOnNode_lock, bdescr, bdescr_,
 };
-use crate::ffi::rts::storage::block::{
-    BLOCK_SIZE_W, Bdescr, allocBlockOnNode_lock, bdescr, bdescr_,
-};
-use crate::ffi::rts::storage::closures::{StgTRecChunk, StgTRecHeader, StgTVarWatchQueue, StgWeak};
 use crate::ffi::rts::storage::closures::{StgTRecChunk, StgTRecHeader, StgTVarWatchQueue, StgWeak};
 use crate::ffi::rts::storage::gc::nursery_;
 use crate::ffi::rts::storage::tso::StgTSO_;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts_api::Capability;
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
     __stg_EAGER_BLACKHOLE_info, __stg_gc_enter_1, __stg_gc_fun, stg_END_STM_CHUNK_LIST_closure,
     stg_END_STM_WATCH_QUEUE_closure, stg_END_TSO_QUEUE_closure, stg_NO_TREC_closure,
 };
-use crate::ffi::stg::regs::{StgFunTable, StgRegTable};
 use crate::ffi::stg::regs::{StgFunTable, StgRegTable, StgUnion};
 use crate::ffi::stg::types::{StgFunPtr, StgPtr, StgWord, StgWord128, StgWord256, StgWord512};
-use crate::ffi::stg::types::{StgPtr, StgWord};
+use crate::io_manager::_CapIOManager;
 use crate::io_manager::{initCapabilityIOManager, markCapabilityIOManager};
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
+use crate::rts_messages::barf;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::sm::gc::evac_fn;
 use crate::sm::non_moving::NonmovingSegment;
-use crate::sm::non_moving::NonmovingSegment;
-use crate::sm::non_moving_mark::UpdRemSet;
 use crate::sm::non_moving_mark::{
     C2RustUnnamed_2, C2RustUnnamed_5, MarkQueue_, MarkQueueBlock, MarkQueueEnt, UpdRemSet,
 };
 use crate::sm::os_mem::{osNumaMask, osNumaNodes};
 use crate::stm::stmPreGCHook;
 use crate::task::{InCall, Task};
-use crate::task::{InCall, Task};
 use crate::trace::{
     CAPSET_CLOCKDOMAIN_DEFAULT, CAPSET_OSPROCESS_DEFAULT, CapsetType, CapsetTypeClockdomain,
     CapsetTypeOsProcess, traceCapCreate, traceCapDelete, traceCapsetAssignCap, traceCapsetCreate,
     traceCapsetDelete, traceCapsetRemoveCap,
 };
+use std::sync::atomic::{AtomicI32, AtomicPtr};
 
 #[cfg(test)]
 mod tests;
@@ -81,8 +67,8 @@ pub(crate) struct Capability_ {
     pub(crate) pinned_object_empty: *mut bdescr,
     pub(crate) weak_ptr_list_hd: *mut StgWeak,
     pub(crate) weak_ptr_list_tl: *mut StgWeak,
-    pub(crate) context_switch: i32,
-    pub(crate) interrupt: i32,
+    pub(crate) context_switch: AtomicI32,
+    pub(crate) interrupt: AtomicI32,
     pub(crate) total_allocated: u64,
     pub(crate) iomgr: *mut CapIOManager,
     pub(crate) free_tvar_watch_queues: *mut StgTVarWatchQueue,
@@ -118,10 +104,10 @@ pub(crate) unsafe fn regTableToCapability(mut reg: *mut StgRegTable) -> *mut Cap
 }
 
 #[inline]
-pub(crate) unsafe fn releaseCapability(mut cap: *mut Capability) {}
+pub(crate) unsafe fn releaseCapability(cap: *mut Capability) {}
 
 #[inline]
-pub(crate) unsafe fn releaseAndWakeupCapability(mut cap: *mut Capability) {}
+pub(crate) unsafe fn releaseAndWakeupCapability(cap: *mut Capability) {}
 
 #[inline]
 pub(crate) unsafe fn releaseCapability_(mut cap: *mut Capability, mut always_wakeup: bool) {}
@@ -167,13 +153,16 @@ pub(crate) unsafe fn recordClosureMutated(mut cap: *mut Capability, mut p: *mut 
 
 #[inline]
 pub(crate) unsafe fn stopCapability(mut cap: *mut Capability) {
-    (&raw mut (*cap).r.rHpLim).store(null_mut::<StgWord>(), Ordering::Relaxed);
+    (*cap)
+        .r
+        .rHpLim
+        .store(null_mut::<StgWord>(), Ordering::Relaxed);
 }
 
 #[inline]
 pub(crate) unsafe fn interruptCapability(mut cap: *mut Capability) {
     stopCapability(cap);
-    (&raw mut (*cap).interrupt).store(1, Ordering::Relaxed);
+    ((*cap).interrupt).store(1, Ordering::Relaxed);
 }
 
 #[inline]
@@ -182,11 +171,7 @@ pub(crate) unsafe fn contextSwitchCapability(mut cap: *mut Capability, mut immed
         stopCapability(cap);
     }
 
-    (&raw mut (*cap).context_switch).store(1, Ordering::Relaxed);
-}
-
-extern "C" {
-    pub(crate) type _CapIOManager;
+    (*cap).context_switch.store(1, Ordering::Relaxed);
 }
 
 #[ffi(compiler)]
@@ -314,7 +299,7 @@ pub static mut MainCapability: Capability = Capability_ {
         rSp: null_mut::<StgWord>(),
         rSpLim: null_mut::<StgWord>(),
         rHp: null_mut::<StgWord>(),
-        rHpLim: null_mut::<StgWord>(),
+        rHpLim: AtomicPtr::new(null_mut()),
         rCCCS: null_mut::<CostCentreStack_>(),
         rCurrentTSO: null_mut::<StgTSO_>(),
         rNursery: null_mut::<nursery_>(),
@@ -357,8 +342,8 @@ pub static mut MainCapability: Capability = Capability_ {
     pinned_object_empty: null_mut::<bdescr>(),
     weak_ptr_list_hd: null_mut::<StgWeak>(),
     weak_ptr_list_tl: null_mut::<StgWeak>(),
-    context_switch: 0,
-    interrupt: 0,
+    context_switch: AtomicI32::new(0),
+    interrupt: AtomicI32::new(0),
     total_allocated: 0,
     iomgr: null_mut::<CapIOManager>(),
     free_tvar_watch_queues: null_mut::<StgTVarWatchQueue>(),
@@ -418,12 +403,12 @@ unsafe fn initCapability(mut cap: *mut Capability, mut i: u32) {
 
     (*cap).mut_lists = stgMallocBytes(
         (size_of::<*mut bdescr>() as usize).wrapping_mul(RtsFlags.GcFlags.generations as usize),
-        c"initCapability".as_ptr(),
+        c"initCapability",
     ) as *mut *mut bdescr;
 
     (*cap).saved_mut_lists = stgMallocBytes(
         (size_of::<*mut bdescr>() as usize).wrapping_mul(RtsFlags.GcFlags.generations as usize),
-        c"initCapability".as_ptr(),
+        c"initCapability",
     ) as *mut *mut bdescr;
 
     (*cap).current_segments = null_mut::<*mut NonmovingSegment>();
@@ -444,8 +429,8 @@ unsafe fn initCapability(mut cap: *mut Capability, mut i: u32) {
         &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk;
     (*cap).free_trec_headers = &raw mut stg_NO_TREC_closure as *mut c_void as *mut StgTRecHeader;
     (*cap).transaction_tokens = 0;
-    (*cap).context_switch = 0;
-    (*cap).interrupt = 0;
+    (*cap).context_switch = AtomicI32::new(0);
+    (*cap).interrupt = AtomicI32::new(0);
     (*cap).pinned_object_block = null_mut::<bdescr>();
     (*cap).pinned_object_blocks = null_mut::<bdescr>();
     (*cap).pinned_object_empty = null_mut::<bdescr>();
@@ -507,10 +492,8 @@ unsafe fn initCapabilities() {
 
     n_capabilities = 1;
 
-    capabilities = stgMallocBytes(
-        size_of::<Capability>() as usize,
-        c"initCapabilities".as_ptr(),
-    ) as *mut *mut Capability;
+    capabilities = stgMallocBytes(size_of::<Capability>() as usize, c"initCapabilities")
+        as *mut *mut Capability;
 
     let ref mut fresh6 = *capabilities.offset(0);
     *fresh6 = &raw mut MainCapability;
@@ -525,7 +508,7 @@ unsafe fn initCapabilities() {
     }
 }
 
-unsafe fn moreCapabilities(mut from: u32, mut to: u32) {}
+unsafe fn moreCapabilities(from: u32, to: u32) {}
 
 unsafe fn contextSwitchAllCapabilities() {
     let mut i: u32 = 0;

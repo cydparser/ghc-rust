@@ -145,7 +145,7 @@ pub unsafe extern "C" fn hs_init_ghc(
     if argc.is_null() || argv.is_null() {
         let mut my_argc = 1;
 
-        let mut my_argv: [*mut c_char; 2] = [c"<unknown>".as_ptr(), null_mut::<c_char>()];
+        let mut my_argv: [*const c_char; 2] = [c"<unknown>".as_ptr(), null_mut::<c_char>()];
 
         setFullProgArgv(my_argc, &raw mut my_argv as *mut *mut c_char);
 
@@ -343,25 +343,21 @@ unsafe fn exitBySignal(mut sig: i32) -> ! {
     sigset |= __sigbits(sig) as sigset_t;
     sigprocmask(SIG_UNBLOCK, &raw mut sigset, null_mut::<sigset_t>());
 
-    match sig {
-        SIGSTOP | SIGTSTP | SIGTTIN | SIGTTOU | SIGCONT => {
-            exit(0xff);
-        }
-        _ => {
-            kill(getpid(), sig);
-            exit(0xff);
-        }
-    };
+    if !matches(sig, SIGSTOP | SIGTSTP | SIGTTIN | SIGTTOU | SIGCONT) {
+        kill(getpid(), sig);
+    }
+
+    exit(0xff)
 }
 
-static mut exitFn: Option<unsafe extern "C" fn(c_int) -> ()> = None;
+static mut exitFn: Option<extern "C" fn(c_int) -> ()> = None;
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn stg_exit(mut n: i32) -> ! {
-    if exitFn.is_some() {
-        Some(exitFn.expect("non-null function pointer")).expect("non-null function pointer")(n);
+pub extern "C" fn stg_exit(mut n: i32) -> ! {
+    if let Some(exitFn) = unsafe { exitFn } {
+        exitFn(n);
     }
 
-    exit(n);
+    exit(n)
 }

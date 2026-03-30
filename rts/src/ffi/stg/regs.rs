@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicPtr;
+
 use crate::ffi::rts::prof::ccs::CostCentreStack_;
 use crate::ffi::rts::storage::block::bdescr_;
 use crate::ffi::rts::storage::gc::nursery_;
@@ -77,7 +79,7 @@ pub struct StgRegTable {
     pub rSp: StgPtr,
     pub rSpLim: StgPtr,
     pub rHp: StgPtr,
-    pub rHpLim: StgPtr,
+    pub rHpLim: AtomicPtr<StgWord>,
     pub rCCCS: *mut CostCentreStack_,
     pub rCurrentTSO: *mut StgTSO_,
     pub rNursery: *mut nursery_,

@@ -16,19 +16,20 @@ use crate::rts_flags::rtsConfig;
 #[cfg(test)]
 mod tests;
 
-unsafe fn stgMallocBytes(mut n: usize, mut msg: *mut c_char) -> *mut c_void {
-    let mut space = malloc(n);
-
-    if space.is_null() {
-        if n == 0 {
-            return NULL;
-        }
-
-        rtsConfig.mallocFailHook.expect("non-null function pointer")(n as W_, msg);
-        stg_exit(EXIT_INTERNAL_ERROR);
+pub(crate) fn stgMallocBytes(n: usize, mut msg: &CStr) -> NonNull<c_void> {
+    if let Some(space) = NonNull::new(malloc(n)) {
+        return space;
     }
 
-    return space;
+    if n == 0 {
+        return NonNull::dangling();
+    }
+
+    if let Some(mallocFailHook) = rtsConfig.mallocFailHook {
+        mallocFailHook(n as W_, msg);
+    }
+
+    stg_exit(EXIT_INTERNAL_ERROR);
 }
 
 unsafe fn stgReallocBytes(mut p: *mut c_void, mut n: usize, mut msg: *mut c_char) -> *mut c_void {
@@ -59,21 +60,7 @@ unsafe fn stgCallocBytes(mut count: usize, mut size: usize, mut msg: *mut c_char
     return space;
 }
 
-unsafe fn stgStrndup(mut s: *const c_char, mut n: usize) -> *mut c_char {
-    let mut l = strnlen(s, n);
-    let mut d = stgMallocBytes(l.wrapping_add(1 as usize), c"stgStrndup".as_ptr()) as *mut c_char;
-
-    if d.is_null() {
-        return null_mut::<c_char>();
-    }
-
-    memcpy(d as *mut c_void, s as *const c_void, l);
-    *d.offset(l as isize) = 0;
-
-    return d;
-}
-
-unsafe fn stgFree(mut p: *mut c_void) {
+pub(crate) unsafe fn stgFree(mut p: *mut c_void) {
     free(p);
 }
 
@@ -178,64 +165,64 @@ unsafe fn showStgWord64(
     mut with_commas: bool,
 ) -> *mut c_char {
     if with_commas {
-        if x < 1e3f64 {
+        if x < 10.pow(3) {
             sprintf(s, c"%llu".as_ptr(), x);
-        } else if x < 1e6f64 {
+        } else if x < 10.pow(6) {
             sprintf(
                 s,
                 c"%llu,%03llu".as_ptr(),
                 x.wrapping_div(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
-        } else if x < 1e9f64 {
+        } else if x < 10.pow(9) {
             sprintf(
                 s,
                 c"%llu,%03llu,%03llu".as_ptr(),
-                (x as f64 / 1e6f64) as StgWord64,
+                (x as f64 / 10.pow(6)) as StgWord64,
                 x.wrapping_div(1000 as StgWord64)
                     .wrapping_rem(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
-        } else if x < 1e12f64 {
+        } else if x < 10.pow(12) {
             sprintf(
                 s,
                 c"%llu,%03llu,%03llu,%03llu".as_ptr(),
-                x.wrapping_div(1e9f64),
-                x.wrapping_div(1e6f64).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(1e3f64).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(9)),
+                x.wrapping_div(10.pow(6)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(3)).wrapping_rem(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
-        } else if x < 1e15f64 {
+        } else if x < 10.pow(15) {
             sprintf(
                 s,
                 c"%llu,%03llu,%03llu,%03llu,%03llu".as_ptr(),
-                x.wrapping_div(1e12f64),
-                x.wrapping_div(1e9f64).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(1e6f64).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(1e3f64).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(12)),
+                x.wrapping_div(10.pow(9)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(6)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(3)).wrapping_rem(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
-        } else if x < 1e18f64 {
+        } else if x < 10.pow(18) {
             sprintf(
                 s,
                 c"%llu,%03llu,%03llu,%03llu,%03llu,%03llu".as_ptr(),
-                x.wrapping_div(1e15f64),
-                x.wrapping_div(1e12f64).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(1e9f64).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(1e6f64).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(1e3f64).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(15)),
+                x.wrapping_div(10.pow(12)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(9)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(6)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(3)).wrapping_rem(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
         } else {
             sprintf(
                 s,
                 c"%llu,%03llu,%03llu,%03llu,%03llu,%03llu,%03llu".as_ptr(),
-                x.wrapping_div(1e18f64),
-                x.wrapping_div(1e15f64).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(1e12f64).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(1e9f64).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(1e6f64).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(1e3f64).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(18)),
+                x.wrapping_div(10.pow(15)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(12)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(9)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(6)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10.pow(3)).wrapping_rem(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
         }
