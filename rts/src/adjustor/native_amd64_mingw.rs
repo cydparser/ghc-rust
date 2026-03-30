@@ -62,7 +62,7 @@ static mut complex_nofloat_ccall_adjustor_template: AdjustorTemplate = unsafe {
 
 static mut complex_nofloat_ccall_pool: *mut AdjustorPool = null_mut::<AdjustorPool>();
 
-unsafe fn initAdjustors() {
+pub(crate) unsafe fn initAdjustors() {
     simple_ccall_pool = new_adjustor_pool_from_template(&raw const simple_ccall_adjustor_template);
 
     complex_float_ccall_pool =

@@ -32,7 +32,7 @@ unsafe fn ffi_alloc_prep_closure(
 
 static mut allocatedExecs: *mut HashTable = null_mut::<HashTable>();
 
-unsafe fn initAdjustors() {
+pub(crate) unsafe fn initAdjustors() {
     allocatedExecs = allocHashTable();
 }
 
