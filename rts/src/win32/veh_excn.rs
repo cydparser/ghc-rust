@@ -78,9 +78,8 @@ unsafe fn __hs_exception_handler(mut exception_data: *mut _EXCEPTION_POINTERS) -
 unsafe fn __hs_exception_filter(mut exception_data: *mut _EXCEPTION_POINTERS) -> i64 {
     let mut result = EXCEPTION_CONTINUE_EXECUTION as i64;
 
-    if oldTopFilter.is_some() {
-        result = Some(oldTopFilter.expect("non-null function pointer"))
-            .expect("non-null function pointer")(exception_data) as i64;
+    if let Some(filter) = oldTopFilter {
+        result = filter(exception_data) as i64;
 
         if EXCEPTION_CONTINUE_SEARCH as i64 == result {
             result = EXCEPTION_CONTINUE_EXECUTION as i64;

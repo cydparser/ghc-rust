@@ -25,8 +25,7 @@ static mut sysErrorMsgFn: Option<RtsMsgFunction> =
 pub unsafe extern "C" fn barf(mut s: *const c_char, mut args: ...) -> ! {
     let mut ap: VaListImpl;
     ap = args.clone();
-    Some(fatalInternalErrorFn.expect("non-null function pointer"))
-        .expect("non-null function pointer")(s, ap.as_va_list());
+    fatalInternalErrorFn.expect("non-null fatalInternalErrorFn")(s, ap.as_va_list());
     stg_exit(EXIT_INTERNAL_ERROR);
 }
 
@@ -34,8 +33,7 @@ pub unsafe extern "C" fn barf(mut s: *const c_char, mut args: ...) -> ! {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn vbarf(mut s: *const c_char, mut ap: VaList) -> ! {
-    Some(fatalInternalErrorFn.expect("non-null function pointer"))
-        .expect("non-null function pointer")(s, ap.as_va_list());
+    fatalInternalErrorFn.expect("non-null fatalInternalErrorFn")(s, ap.as_va_list());
     stg_exit(EXIT_INTERNAL_ERROR);
 }
 
@@ -55,10 +53,7 @@ pub unsafe extern "C" fn _assertFail(mut filename: *const c_char, mut linenum: u
 pub unsafe extern "C" fn errorBelch(mut s: *const c_char, mut args: ...) {
     let mut ap: VaListImpl;
     ap = args.clone();
-    Some(errorMsgFn.expect("non-null function pointer")).expect("non-null function pointer")(
-        s,
-        ap.as_va_list(),
-    );
+    errorMsgFn.expect("non-null errorMsgFn")(s, ap.as_va_list());
 }
 
 unsafe fn _warnFail(mut filename: *const c_char, mut linenum: u32) {
@@ -70,26 +65,17 @@ unsafe fn _warnFail(mut filename: *const c_char, mut linenum: u32) {
 }
 
 unsafe fn verrorBelch(mut s: *const c_char, mut ap: VaList) {
-    Some(errorMsgFn.expect("non-null function pointer")).expect("non-null function pointer")(
-        s,
-        ap.as_va_list(),
-    );
+    errorMsgFn.expect("non-null errorMsgFn")(s, ap.as_va_list());
 }
 
 unsafe fn sysErrorBelch(mut s: *const c_char, mut args: ...) {
     let mut ap: VaListImpl;
     ap = args.clone();
-    Some(sysErrorMsgFn.expect("non-null function pointer")).expect("non-null function pointer")(
-        s,
-        ap.as_va_list(),
-    );
+    sysErrorMsgFn.expect("non-null sysErrorMsgFn")(s, ap.as_va_list());
 }
 
 unsafe fn vsysErrorBelch(mut s: *const c_char, mut ap: VaList) {
-    Some(sysErrorMsgFn.expect("non-null function pointer")).expect("non-null function pointer")(
-        s,
-        ap.as_va_list(),
-    );
+    sysErrorMsgFn.expect("non-null sysErrorMsgFn")(s, ap.as_va_list());
 }
 
 #[ffi(ghc_lib, testsuite)]
@@ -98,15 +84,12 @@ unsafe fn vsysErrorBelch(mut s: *const c_char, mut ap: VaList) {
 pub unsafe extern "C" fn debugBelch(mut s: *const c_char, mut args: ...) {
     let mut ap: VaListImpl;
     ap = args.clone();
-    Some(debugMsgFn.expect("non-null function pointer")).expect("non-null function pointer")(
-        s,
-        ap.as_va_list(),
-    );
+
+    debugMsgFn.expect("non-null debugMsgFn")(s, ap.as_va_list());
 }
 
 unsafe fn vdebugBelch(mut s: *const c_char, mut ap: VaList) -> i32 {
-    return Some(debugMsgFn.expect("non-null function pointer"))
-        .expect("non-null function pointer")(s, ap.as_va_list());
+    return debugMsgFn.expect("non-null debugMsgFn")(s, ap.as_va_list());
 }
 
 unsafe fn rtsFatalInternalErrorFn(mut s: *const c_char, mut ap: VaList) -> ! {

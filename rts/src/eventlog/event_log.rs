@@ -286,7 +286,7 @@ unsafe fn postInitEvent(mut post_init: EventlogInitPost) {
     (*new_func).init_func = post_init;
     (*new_func).next = eventlog_header_funcs as *mut eventlog_init_func;
     eventlog_header_funcs = new_func;
-    Some(post_init.expect("non-null function pointer")).expect("non-null function pointer")();
+    post_init.expect("non-null post_init")();
 }
 
 unsafe fn repostInitEvents() {
