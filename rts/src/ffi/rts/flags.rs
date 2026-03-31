@@ -1,6 +1,7 @@
 use crate::ffi::rts::time::Time;
 use crate::ffi::stg::types::{StgWord, StgWord64};
 use crate::prelude::*;
+pub use crate::rts_flags::RtsFlags;
 use libc::FILE;
 
 #[cfg(test)]
@@ -532,7 +533,3 @@ pub struct _RTS_FLAGS {
 
 #[ffi(compiler, ghc_lib)]
 pub type RTS_FLAGS = _RTS_FLAGS;
-
-// #[ffi(compiler, ghc_lib)]
-// #[unsafe(no_mangle)]
-// TODO(rust): pub static mut RtsFlags: RTS_FLAGS = 0;

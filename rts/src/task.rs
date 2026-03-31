@@ -1,17 +1,13 @@
 use crate::capability::Capability_;
-use crate::capability::Capability_;
 use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::messages::errorBelch;
 use crate::ffi::rts::stg_exit;
-use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts::types::{StgClosure, StgTSO};
+use crate::ffi::rts::storage::closures::StgClosure;
+use crate::ffi::rts::storage::tso::StgTSO;
 use crate::ffi::rts_api::{Capability, NoStatus, SchedulerStatus};
-use crate::ffi::rts_api::{Capability, SchedulerStatus};
-use crate::ffi::stg::types::StgWord64;
 use crate::ffi::stg::types::StgWord64;
 use crate::prelude::*;
+use crate::rts_messages::errorBelch;
 use crate::rts_utils::{stgFree, stgMallocBytes};
-use crate::task::{InCall, InCall_, Task, Task_, TaskId, myTask, setMyTask};
 use crate::trace::{DEBUG_RTS, trace_};
 
 #[cfg(test)]
@@ -31,15 +27,6 @@ pub struct InCall_ {
     pub(crate) prev_stack: *mut InCall_,
     pub(crate) prev: *mut InCall_,
     pub(crate) next: *mut InCall_,
-}
-
-#[cfg(test)]
-impl Arbitrary for InCall_ {
-    fn arbitrary(g: &mut Gen) -> Self {
-        InCall_ {
-            _address: Arbitrary::arbitrary(g),
-        }
-    }
 }
 
 /// cbindgen:no-export

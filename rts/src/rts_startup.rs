@@ -1,11 +1,10 @@
 use crate::adjustor::initAdjustors;
 use crate::builtin_closures::initBuiltinClosures;
-use crate::capability::getCapability;
+use crate::capability::{Capability, getCapability};
 use crate::check_vector_support::setVectorSupport;
 use crate::eventlog::event_log::{finishCapEventLogging, postInitEvent};
 use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::hpc::{exitHpc, startupHpc};
-use crate::ffi::rts::messages::errorBelch;
 use crate::ffi::rts::os_threads::freeThreadingResources;
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::stable_ptr::getStablePtr;
@@ -31,6 +30,7 @@ use crate::posix::tty::resetTerminalSettings;
 use crate::prelude::*;
 use crate::prof_heap::{endHeapProfiling, freeHeapProfiling, initHeapProfiling};
 use crate::rts_flags::{freeRtsArgs, initRtsFlagsDefaults, rtsConfig, setupRtsFlags};
+use crate::rts_messages::errorBelch;
 use crate::rts_signals::{
     freeSignalHandlers, initDefaultHandlers, initUserSignals, resetDefaultHandlers,
 };
@@ -49,6 +49,7 @@ use crate::trace::{
     endTracing, flushTrace, freeTracing, initTracing, traceOSProcessInfo, traceWallClockTime,
 };
 use crate::weak::runAllCFinalizers;
+use std::process::exit;
 
 #[cfg(test)]
 mod tests;
@@ -130,7 +131,7 @@ pub unsafe extern "C" fn hs_init_ghc(
         stg_exit(1);
     }
 
-    setlocale(LC_CTYPE, c"".as_ptr());
+    libc::setlocale(libc::LC_CTYPE, c"".as_ptr());
     init_ghc_hs_iface();
     initStats0();
     initializeTimer();
@@ -145,7 +146,7 @@ pub unsafe extern "C" fn hs_init_ghc(
     if argc.is_null() || argv.is_null() {
         let mut my_argc = 1;
 
-        let mut my_argv: [*mut c_char; 2] = [c"<unknown>".as_ptr(), null_mut::<c_char>()];
+        let mut my_argv: [*const c_char; 2] = [c"<unknown>".as_ptr(), null_mut::<c_char>()];
 
         setFullProgArgv(my_argc, &raw mut my_argv as *mut *mut c_char);
 
@@ -199,7 +200,7 @@ pub unsafe extern "C" fn hs_init_ghc(
 unsafe fn startupHaskell(
     mut argc: i32,
     mut argv: *mut *mut c_char,
-    mut init_root: Option<unsafe extern "C" fn() -> ()>,
+    _init_root: Option<unsafe extern "C" fn() -> ()>,
 ) {
     hs_init(&raw mut argc, &raw mut argv);
 }
@@ -277,8 +278,7 @@ unsafe fn hs_exit_(mut wait_foreign: bool) {
 }
 
 unsafe fn flushStdHandles() {
-    let mut cap = null_mut::<Capability>();
-    cap = rts_lock();
+    let mut cap = rts_lock();
 
     rts_evalIO(
         &raw mut cap,
@@ -327,41 +327,40 @@ pub unsafe extern "C" fn shutdownHaskellAndSignal(mut sig: i32, mut fastExit: i3
     exitBySignal(sig);
 }
 
-unsafe fn exitBySignal(mut sig: i32) -> ! {
-    let mut dfl = sigaction {
-        __sigaction_u: __sigaction_u { __sa_handler: None },
+unsafe fn exitBySignal(sig: i32) -> ! {
+    // TODO(rust): Remove libc use.
+    use libc::{
+        SIG_DFL, SIG_UNBLOCK, SIGCONT, SIGSTOP, SIGTSTP, SIGTTIN, SIGTTOU, getpid, kill, sigaction,
+        sigprocmask, sigset_t,
+    };
+
+    let mut dfl = libc::sigaction {
+        sa_sigaction: SIG_DFL,
         sa_mask: 0,
         sa_flags: 0,
     };
 
     let mut sigset: sigset_t = 0;
-    dfl.sa_mask = 0;
-    dfl.sa_flags = 0;
-    dfl.__sigaction_u.__sa_handler = SIG_DFL;
     sigaction(sig, &raw mut dfl, null_mut::<sigaction>());
     sigset = 0;
     sigset |= __sigbits(sig) as sigset_t;
     sigprocmask(SIG_UNBLOCK, &raw mut sigset, null_mut::<sigset_t>());
 
-    match sig {
-        SIGSTOP | SIGTSTP | SIGTTIN | SIGTTOU | SIGCONT => {
-            exit(0xff);
-        }
-        _ => {
-            kill(getpid(), sig);
-            exit(0xff);
-        }
-    };
+    if !matches!(sig, SIGSTOP | SIGTSTP | SIGTTIN | SIGTTOU | SIGCONT) {
+        kill(getpid(), sig);
+    }
+
+    exit(0xff)
 }
 
-static mut exitFn: Option<unsafe extern "C" fn(c_int) -> ()> = None;
+static mut exitFn: Option<extern "C" fn(c_int) -> ()> = None;
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn stg_exit(mut n: i32) -> ! {
-    if exitFn.is_some() {
-        Some(exitFn.expect("non-null function pointer")).expect("non-null function pointer")(n);
+pub extern "C" fn stg_exit(n: i32) -> ! {
+    if let Some(exit_fn) = unsafe { exitFn } {
+        exit_fn(n);
     }
 
-    exit(n);
+    exit(n)
 }

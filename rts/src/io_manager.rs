@@ -2,7 +2,6 @@ use crate::capability::CapIOManager;
 use crate::ffi::hs_ffi::HsInt;
 use crate::ffi::rts::constants::{BlockedOnRead, BlockedOnWrite};
 use crate::ffi::rts::flags::{IO_MANAGER_FLAG, IO_MNGR_FLAG_AUTO, IO_MNGR_FLAG_SELECT, RtsFlags};
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::stable_ptr::getStablePtr;
 use crate::ffi::rts::storage::tso::{StgTSO_, setTSOLink};
@@ -17,6 +16,7 @@ use crate::io_manager::{
 };
 use crate::posix::select::{LowResTime, awaitCompletedTimeoutsOrIOSelect, getDelayTarget};
 use crate::prelude::*;
+use crate::rts_messages::barf;
 use crate::rts_utils::stgMallocBytes;
 use crate::sm::gc::evac_fn;
 use crate::threads::{removeThreadFromDeQueue, removeThreadFromQueue};
@@ -111,7 +111,7 @@ unsafe fn showIOManager() -> *mut c_char {
     };
 }
 
-unsafe fn initCapabilityIOManager(mut cap: *mut Capability) {
+pub(crate) unsafe fn initCapabilityIOManager(mut cap: *mut Capability) {
     if DEBUG_RTS != 0 && RtsFlags.DebugFlags.iomanager as i64 != 0 {
         trace_(
             c"initialising I/O manager %s for cap %d".as_ptr(),
@@ -183,7 +183,7 @@ unsafe fn wakeupIOManager() {
     };
 }
 
-unsafe fn markCapabilityIOManager(
+pub(crate) unsafe fn markCapabilityIOManager(
     mut evac: evac_fn,
     mut user: *mut c_void,
     mut cap: *mut Capability,

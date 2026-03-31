@@ -39,10 +39,6 @@ use crate::ffi::rts::linker::{
     loadArchive, loadNativeObj, loadObj, lookupSymbol, lookupSymbolInNativeObj, pathchar, purgeObj,
     removeLibrarySearchPath, resolveObjs, unloadObj,
 };
-use crate::ffi::rts::messages::{
-    barf, debugBelch, errorBelch, rtsBadAlignmentBarf, rtsMemcpyRangeOverlap, rtsOutOfBoundsAccess,
-    sysErrorBelch,
-};
 use crate::ffi::rts::non_moving::{
     nonmoving_write_barrier_enabled, stg_copyArray_barrier, updateRemembSetPushClosure_,
     updateRemembSetPushThunk_,
@@ -228,6 +224,10 @@ use crate::interpreter::{
 use crate::posix::signals::signal_handlers;
 use crate::posix::signals::{nocldstop, nocldstop};
 use crate::prelude::*;
+use crate::rts_messages::{
+    barf, debugBelch, errorBelch, rtsBadAlignmentBarf, rtsMemcpyRangeOverlap, rtsOutOfBoundsAccess,
+    sysErrorBelch,
+};
 use crate::rts_symbols::{
     _RtsSymbolVal, _SymStrength, _SymType, RtsSymbolVal, STRENGTH_NORMAL, SYM_TYPE_CODE,
     SYM_TYPE_DATA, SymStrength, SymType, SymbolName,
