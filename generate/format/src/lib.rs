@@ -17,7 +17,7 @@ pub fn add_blank_lines(src: &str) -> String {
 
         if trimmed.is_empty() {
             // Preserve at most one blank line.
-            if prev_context.permit_newline() {
+            if prev_context != Context::Blank {
                 padded.push('\n');
                 prev_context = Context::Blank;
             }
@@ -162,6 +162,9 @@ pub unsafe extern \"C\" fn f() {
     }
     let a = ();
     let b = ();
+
+
+    let _ = ();
     let c = [
         (),
     ];
@@ -225,6 +228,8 @@ pub unsafe extern \"C\" fn f() {
 
     let a = ();
     let b = ();
+
+    let _ = ();
 
     let c = [
         (),
