@@ -4,6 +4,7 @@ use std::ffi::CStr;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::{fs, iter, mem};
 use syn::visit_mut::{self, VisitMut};
+use syn::{BinOp, ExprAssign, Stmt};
 use syn::{
     Block, Expr, ExprBinary, ExprCall, ExprCast, ExprLit, ExprPath, Ident, Item, Lit, LitCStr,
     Path, PathSegment, Type, TypePath, TypePtr, punctuated::Punctuated,
@@ -134,6 +135,17 @@ impl VisitMut for Refactor {
         self.ffi_scope(is_ffi, |s| {
             visit_mut::visit_item_mut(s, item);
         });
+    }
+
+    fn visit_stmt_mut(&mut self, stmt: &mut Stmt) {
+        if let Some(replace) = match stmt {
+            Stmt::Expr(Expr::Assign(expr_assign), semi) => {
+                replace_assign_op(expr_assign).map(|expr| Stmt::Expr(expr, *semi))
+            }
+            _ => None,
+        } {
+            *stmt = replace;
+        }
     }
 
     fn visit_type_bare_fn_mut(&mut self, type_bare_fn: &mut syn::TypeBareFn) {
@@ -281,6 +293,47 @@ fn replace_c_bool(expr_path: &ExprPath) -> Option<Expr> {
         attrs: vec![],
         lit: Lit::Bool(syn::LitBool::new(value, Span::call_site())),
     }))
+}
+
+/// Replace `x = x * rhs` with `x * rhs`.
+fn replace_assign_op(expr_assign: &ExprAssign) -> Option<Expr> {
+    let Expr::Binary(ExprBinary {
+        left: bin_left,
+        op,
+        right: bin_right,
+        ..
+    }) = expr_assign.right.as_ref()
+    else {
+        return None;
+    };
+
+    match (expr_assign.left.as_ref(), bin_left.as_ref()) {
+        (Expr::Path(left_path), Expr::Path(right_path))
+            if left_path.path.get_ident() == right_path.path.get_ident() =>
+        {
+            let op = match op {
+                BinOp::Add(_) => Some(BinOp::AddAssign(Default::default())),
+                BinOp::BitAnd(_) => Some(BinOp::BitAndAssign(Default::default())),
+                BinOp::BitOr(_) => Some(BinOp::BitOrAssign(Default::default())),
+                BinOp::BitXor(_) => Some(BinOp::BitXorAssign(Default::default())),
+                BinOp::Div(_) => Some(BinOp::DivAssign(Default::default())),
+                BinOp::Mul(_) => Some(BinOp::MulAssign(Default::default())),
+                BinOp::Rem(_) => Some(BinOp::RemAssign(Default::default())),
+                BinOp::Shl(_) => Some(BinOp::ShlAssign(Default::default())),
+                BinOp::Shr(_) => Some(BinOp::ShrAssign(Default::default())),
+                BinOp::Sub(_) => Some(BinOp::SubAssign(Default::default())),
+                _ => None,
+            }?;
+
+            Some(Expr::Binary(ExprBinary {
+                attrs: vec![],
+                left: expr_assign.left.clone(),
+                op,
+                right: bin_right.clone(),
+            }))
+        }
+        _ => None,
+    }
 }
 
 /// Replace byte strings cast to `*c_char` with `CStr`.
