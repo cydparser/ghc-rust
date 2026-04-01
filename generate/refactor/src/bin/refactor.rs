@@ -287,7 +287,7 @@ fn replace_b_str_with_c_str(expr_cast: &mut ExprCast) -> Option<Expr> {
             if matches!(type_ptr.elem.as_ref(), Type::Path(type_path) if type_path
                 .path
                 .get_ident()
-                .is_some_and(|ident| ident == "c_char")) =>
+                .is_some_and(|ident| ident == "c_char" || ident == "SymbolName")) =>
         {
             // Recurse to find inner
             let lit_byte_str = loop {
