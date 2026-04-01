@@ -631,7 +631,7 @@ unsafe fn appendRtsArg(mut arg: *mut c_char) {
     }
 
     let fresh12 = rts_argc;
-    rts_argc = rts_argc + 1;
+    rts_argc += 1;
 
     let ref mut fresh13 = *rts_argv.offset(fresh12 as isize);
     *fresh13 = arg;

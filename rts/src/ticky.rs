@@ -427,8 +427,8 @@ unsafe fn PrintTickyInfo() {
         tf,
         c"\n**************************************************\n".as_ptr(),
     );
-    ALLOC_HEAP_ctr = ALLOC_HEAP_ctr + ALLOC_RTS_ctr;
-    ALLOC_HEAP_tot = ALLOC_HEAP_tot + ALLOC_RTS_tot;
+    ALLOC_HEAP_ctr += ALLOC_RTS_ctr;
+    ALLOC_HEAP_tot += ALLOC_RTS_tot;
     fprintf(tf, c"%11lld ALLOC_HEAP_ctr\n".as_ptr(), ALLOC_HEAP_ctr);
     fprintf(tf, c"%11lld ALLOC_HEAP_tot\n".as_ptr(), ALLOC_HEAP_tot);
     fprintf(tf, c"%11lld HEAP_CHK_ctr\n".as_ptr(), HEAP_CHK_ctr);

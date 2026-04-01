@@ -132,7 +132,7 @@ unsafe fn singleton(mut r: retainer) -> *mut RetainerSet {
         hashTable[hk.wrapping_rem(HASH_TABLE_SIZE as StgWord) as usize] as *mut _RetainerSet;
 
     let fresh5 = nextId;
-    nextId = nextId + 1;
+    nextId += 1;
     (*rs).id = fresh5;
 
     let ref mut fresh6 = *(&raw mut (*rs).element as *mut retainer).offset(0);
@@ -227,7 +227,7 @@ unsafe fn addElement(mut r: retainer, mut rs: *mut RetainerSet) -> *mut Retainer
         hashTable[hk.wrapping_rem(HASH_TABLE_SIZE as StgWord) as usize] as *mut _RetainerSet;
 
     let fresh7 = nextId;
-    nextId = nextId + 1;
+    nextId += 1;
     (*nrs).id = fresh7;
     i = 0;
 

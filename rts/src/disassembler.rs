@@ -22,7 +22,7 @@ unsafe fn disInstr(mut bco: *mut StgBCO, mut pc: i32) -> i32 {
         as *mut *mut StgClosure as *mut StgPtr;
 
     let fresh6 = pc;
-    pc = pc + 1;
+    pc += 1;
     instr = *instrs.offset(fresh6 as isize);
 
     if instr as i32 & bci_FLAG_LARGE_ARGS != 0 {

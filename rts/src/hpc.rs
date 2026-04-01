@@ -103,7 +103,7 @@ unsafe fn expectString() -> *mut c_char {
     }
 
     let fresh6 = tmp_ix;
-    tmp_ix = tmp_ix + 1;
+    tmp_ix += 1;
     tmp[fresh6 as usize] = 0;
     expect('"' as i32 as c_char);
     res = stgMallocBytes(tmp_ix as usize, c"Hpc.expectString".as_ptr()) as *mut c_char;

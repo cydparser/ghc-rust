@@ -11,7 +11,7 @@ mod tests;
 unsafe fn fileTimeToRtsTime(mut ft: FILETIME) -> Time {
     let mut t: Time = 0;
     t = (ft.dwHighDateTime as Time) << 32 | ft.dwLowDateTime as Time;
-    t = t * 100;
+    t *= 100;
 
     return t;
 }
