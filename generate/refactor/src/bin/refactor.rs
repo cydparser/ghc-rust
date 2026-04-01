@@ -29,7 +29,7 @@ fn main() {
             // Repeatedly refactor until Item remains unchanged.
             loop {
                 let init_hash = hash(item);
-                visit_mut::visit_item_mut(&mut visitor, item);
+                visitor.visit_item_mut(item);
 
                 if init_hash == hash(item) {
                     break;
