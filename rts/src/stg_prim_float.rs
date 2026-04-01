@@ -1,3 +1,4 @@
+use crate::ffi::rts::_assertFail;
 use crate::ffi::stg::types::{StgDouble, StgFloat, StgInt, StgInt64};
 use crate::ffi::stg::{ASSIGN_Int64, I_, W_};
 use crate::prelude::*;
@@ -5,12 +6,12 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-union C2RustUnnamed_6 {
+union C2RustUnnamed_7 {
     d: f64,
     i: [u32; 2],
 }
 
-union C2RustUnnamed_7 {
+union C2RustUnnamed_8 {
     f: f32,
     i: i32,
 }
@@ -31,7 +32,6 @@ const L: i32 = 0;
 
 const H: i32 = 1;
 
-#[inline]
 unsafe fn truncExponent(mut e: I_) -> i32 {
     if (e > 2147483647) as i32 as i64 != 0 {
         e = INT_MAX as I_;
@@ -113,7 +113,23 @@ unsafe fn __decodeDouble_2Int(
     let mut high: u32 = 0;
     let mut sign: i32 = 0;
     let mut iexp: i32 = 0;
-    let mut u = C2RustUnnamed_6 { d: 0. };
+    let mut u = C2RustUnnamed_7 { d: 0. };
+
+    if (size_of::<u32>() as usize == 4) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/StgPrimFloat.c".as_ptr(), 146);
+    }
+
+    if (size_of::<StgDouble>() as usize == 8) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/StgPrimFloat.c".as_ptr(), 147);
+    }
+
+    if (size_of::<StgDouble>() as usize == 8) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/StgPrimFloat.c".as_ptr(), 148);
+    }
+
     u.d = dbl as f64;
     low = u.i[L as usize];
     high = u.i[H as usize];
@@ -176,7 +192,23 @@ unsafe fn __decodeDouble_Int64(mantissa: *mut StgInt64, dbl: StgDouble) -> StgIn
 unsafe fn __decodeFloat_Int(mut man: *mut I_, mut exp: *mut I_, mut flt: StgFloat) {
     let mut high: i32 = 0;
     let mut sign: i32 = 0;
-    let mut u = C2RustUnnamed_7 { f: 0. };
+    let mut u = C2RustUnnamed_8 { f: 0. };
+
+    if (size_of::<i32>() as usize == 4) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/StgPrimFloat.c".as_ptr(), 221);
+    }
+
+    if (size_of::<StgFloat>() as usize == 4) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/StgPrimFloat.c".as_ptr(), 222);
+    }
+
+    if (size_of::<StgFloat>() as usize == 4) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/StgPrimFloat.c".as_ptr(), 223);
+    }
+
     u.f = flt as f32;
     high = u.i;
 

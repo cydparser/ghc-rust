@@ -1,3 +1,4 @@
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::foreign_exports::ForeignExportsList;
 use crate::ffi::rts::stable_ptr::getStablePtr;
 use crate::ffi::stg::types::{StgPtr, StgStablePtr};
@@ -16,16 +17,36 @@ static mut loading_obj: *mut ObjectCode = null_mut::<ObjectCode>();
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn registerForeignExports(mut exports: *mut ForeignExportsList) {
+    if (*exports).next.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/ForeignExports.c".as_ptr(), 63);
+    }
+
+    if (*exports).oc.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/ForeignExports.c".as_ptr(), 64);
+    }
+
     (*exports).next = pending;
     (*exports).oc = loading_obj as *mut _ObjectCode;
     pending = exports;
 }
 
 unsafe fn foreignExportsLoadingObject(mut oc: *mut ObjectCode) {
+    if loading_obj.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/ForeignExports.c".as_ptr(), 82);
+    }
+
     loading_obj = oc;
 }
 
 unsafe fn foreignExportsFinishedLoadingObject() {
+    if !loading_obj.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/ForeignExports.c".as_ptr(), 88);
+    }
+
     loading_obj = null_mut::<ObjectCode>();
     processForeignExports();
 }
@@ -34,6 +55,11 @@ unsafe fn processForeignExports() {
     while !pending.is_null() {
         let mut cur = pending;
         pending = (*cur).next;
+
+        if (*cur).stable_ptrs.is_null() as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/ForeignExports.c".as_ptr(), 102);
+        }
 
         if !(*cur).oc.is_null() {
             (*cur).stable_ptrs = stgMallocBytes(
@@ -49,8 +75,8 @@ unsafe fn processForeignExports() {
                         as *mut StgStablePtr;
 
                 if !(*cur).oc.is_null() {
-                    let ref mut fresh5 = *(*cur).stable_ptrs.offset(i as isize);
-                    *fresh5 = sptr;
+                    let ref mut fresh12 = *(*cur).stable_ptrs.offset(i as isize);
+                    *fresh12 = sptr;
                 }
 
                 i += 1;

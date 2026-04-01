@@ -1,3 +1,4 @@
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::storage::block::{
     BF_FRAGMENTED, BF_MARKED, BF_SWEPT, BLOCK_SIZE_W, bdescr, bdescr_, freeGroup,
@@ -6,6 +7,7 @@ use crate::ffi::rts::storage::gc::{generation, memcount};
 use crate::ffi::stg::types::{StgWord, StgWord16};
 use crate::ffi::stg::{BITS_PER_BYTE, W_};
 use crate::prelude::*;
+use crate::sm::block_alloc::countBlocks;
 use crate::trace::{DEBUG_RTS, trace_};
 
 unsafe fn sweep(mut r#gen: *mut generation) {
@@ -18,6 +20,12 @@ unsafe fn sweep(mut r#gen: *mut generation) {
     let mut fragd: W_ = 0;
     let mut blocks: W_ = 0;
     let mut live: W_ = 0;
+
+    if (countBlocks((*r#gen).old_blocks) == (*r#gen).n_old_blocks) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Sweep.c".as_ptr(), 28);
+    }
+
     live = 0;
     freed = 0;
     fragd = 0;
@@ -109,4 +117,9 @@ unsafe fn sweep(mut r#gen: *mut generation) {
             }) as u64,
         );
     }
+
+    if (countBlocks((*r#gen).old_blocks) == (*r#gen).n_old_blocks) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Sweep.c".as_ptr(), 85);
+    };
 }

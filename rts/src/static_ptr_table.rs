@@ -1,3 +1,5 @@
+use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::stable_ptr::{deRefStablePtr, getStablePtr};
 use crate::ffi::stg::types::{StgPtr, StgStablePtr, StgWord, StgWord64};
 use crate::hash::{
@@ -13,14 +15,17 @@ mod tests;
 
 static mut spt: *mut HashTable = null_mut::<HashTable>();
 
-#[inline]
+static mut spt_lock: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
 unsafe fn hashFingerprint(mut table: *const HashTable, mut key: StgWord) -> i32 {
     let mut ptr: *const StgWord64 = key as *mut StgWord64;
 
     return hashWord(table, *ptr.offset(1));
 }
 
-#[inline]
 unsafe fn compareFingerprint(mut a: StgWord, mut b: StgWord) -> i32 {
     let mut ptra: *const StgWord64 = a as *mut StgWord64;
     let mut ptrb: *const StgWord64 = b as *mut StgWord64;
@@ -37,6 +42,18 @@ pub unsafe extern "C" fn hs_spt_insert_stableptr(
 ) {
     if spt.is_null() {
         spt = allocHashTable();
+        initMutex(&raw mut spt_lock);
+    }
+
+    let mut __r = pthread_mutex_lock(&raw mut spt_lock);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/StaticPtrTable.c".as_ptr(),
+            47,
+            __r,
+        );
     }
 
     insertHashTable_(
@@ -45,6 +62,14 @@ pub unsafe extern "C" fn hs_spt_insert_stableptr(
         entry as *const c_void,
         Some(hashFingerprint as unsafe extern "C" fn(*const HashTable, StgWord) -> c_int),
     );
+
+    if pthread_mutex_unlock(&raw mut spt_lock) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/StaticPtrTable.c".as_ptr(),
+            49,
+        );
+    }
 }
 
 #[ffi(compiler)]
@@ -70,6 +95,17 @@ unsafe fn freeSptEntry(mut entry: *mut c_void) {
 #[instrument]
 pub unsafe extern "C" fn hs_spt_remove(mut key: *mut StgWord64) {
     if !spt.is_null() {
+        let mut __r = pthread_mutex_lock(&raw mut spt_lock);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/StaticPtrTable.c".as_ptr(),
+                70,
+                __r,
+            );
+        }
+
         let mut entry = removeHashTable_(
             spt,
             key as StgWord,
@@ -77,6 +113,14 @@ pub unsafe extern "C" fn hs_spt_remove(mut key: *mut StgWord64) {
             Some(hashFingerprint as unsafe extern "C" fn(*const HashTable, StgWord) -> c_int),
             Some(compareFingerprint as unsafe extern "C" fn(StgWord, StgWord) -> c_int),
         ) as *mut StgStablePtr;
+
+        if pthread_mutex_unlock(&raw mut spt_lock) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/StaticPtrTable.c".as_ptr(),
+                73,
+            );
+        }
 
         if !entry.is_null() {
             freeSptEntry(entry as *mut c_void);
@@ -89,6 +133,17 @@ pub unsafe extern "C" fn hs_spt_remove(mut key: *mut StgWord64) {
 #[instrument]
 pub unsafe extern "C" fn hs_spt_lookup(mut key: *mut StgWord64) -> StgPtr {
     if !spt.is_null() {
+        let mut __r = pthread_mutex_lock(&raw mut spt_lock);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/StaticPtrTable.c".as_ptr(),
+                82,
+                __r,
+            );
+        }
+
         let mut entry = lookupHashTable_(
             spt,
             key as StgWord,
@@ -102,6 +157,14 @@ pub unsafe extern "C" fn hs_spt_lookup(mut key: *mut StgWord64) -> StgPtr {
             null_mut::<StgWord>()
         };
 
+        if pthread_mutex_unlock(&raw mut spt_lock) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/StaticPtrTable.c".as_ptr(),
+                86,
+            );
+        }
+
         return ret;
     } else {
         return null_mut::<StgWord>();
@@ -111,9 +174,28 @@ pub unsafe extern "C" fn hs_spt_lookup(mut key: *mut StgWord64) -> StgPtr {
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_spt_keys(mut keys: *mut StgPtr, mut szKeys: i32) -> i32 {
+pub unsafe extern "C" fn hs_spt_keys(mut keys: *mut StgPtr, mut szKeys: c_int) -> c_int {
     if !spt.is_null() {
+        let mut __r = pthread_mutex_lock(&raw mut spt_lock);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/StaticPtrTable.c".as_ptr(),
+                94,
+                __r,
+            );
+        }
+
         let ret = keysHashTable(spt, keys as *mut StgWord, szKeys) as i32;
+
+        if pthread_mutex_unlock(&raw mut spt_lock) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/StaticPtrTable.c".as_ptr(),
+                96,
+            );
+        }
 
         return ret;
     } else {
@@ -124,7 +206,7 @@ pub unsafe extern "C" fn hs_spt_keys(mut keys: *mut StgPtr, mut szKeys: i32) -> 
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_spt_key_count() -> i32 {
+pub unsafe extern "C" fn hs_spt_key_count() -> c_int {
     return if !spt.is_null() {
         keyCountHashTable(spt)
     } else {
@@ -140,5 +222,6 @@ unsafe fn exitStaticPtrTable() {
         );
 
         spt = null_mut::<HashTable>();
+        closeMutex(&raw mut spt_lock);
     }
 }

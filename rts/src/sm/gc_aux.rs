@@ -1,7 +1,9 @@
 use crate::check_unload::markObjectCode;
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::storage::block::{BF_EVACUATED, BF_LARGE, BF_MARKED, BF_NONMOVING, Bdescr};
 use crate::ffi::rts::storage::closure_macros::{
-    GET_CLOSURE_TAG, INFO_PTR_TO_STRUCT, SET_INFO, TAG_CLOSURE, UNTAG_CLOSURE,
+    GET_CLOSURE_TAG, INFO_PTR_TO_STRUCT, LOOKS_LIKE_CLOSURE_PTR, SET_INFO, TAG_CLOSURE,
+    UNTAG_CLOSURE,
 };
 use crate::ffi::rts::storage::closures::{StgInd, StgIndStatic};
 use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
@@ -28,6 +30,11 @@ unsafe fn isAlive(mut p: *mut StgClosure) -> *mut StgClosure {
         tag = GET_CLOSURE_TAG(p);
         q = UNTAG_CLOSURE(p);
 
+        if LOOKS_LIKE_CLOSURE_PTR(q as *const c_void) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/GCAux.c".as_ptr(), 45);
+        }
+
         if !(q as W_ >= mblock_address_space.0.begin && (q as W_) < mblock_address_space.0.end) {
             return p;
         }
@@ -50,7 +57,7 @@ unsafe fn isAlive(mut p: *mut StgClosure) -> *mut StgClosure {
             return p;
         }
 
-        info = (*q).header.info;
+        info = (&raw mut (*q).header.info).load(Ordering::Relaxed);
 
         if info as StgWord & 1 != 0 {
             return TAG_CLOSURE(
@@ -59,6 +66,7 @@ unsafe fn isAlive(mut p: *mut StgClosure) -> *mut StgClosure {
             );
         }
 
+        ::std::sync::atomic::fence(::std::sync::atomic::Ordering::Acquire);
         info = INFO_PTR_TO_STRUCT(info);
 
         match (*info).r#type {

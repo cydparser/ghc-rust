@@ -1,18 +1,19 @@
 use crate::arena::{Arena, arenaAlloc, arenaFree, newArena};
 use crate::eventlog::event_log::postInitEvent;
 use crate::ffi::rts::flags::{COST_CENTRES_ALL, COST_CENTRES_JSON, RtsFlags};
-use crate::ffi::rts::messages::debugBelch;
+use crate::ffi::rts::messages::{barf, debugBelch};
+use crate::ffi::rts::os_threads::{Mutex, initMutex};
 use crate::ffi::rts::prof::ccs::{
     CostCentre, CostCentre_, CostCentreStack, CostCentreStack_, IndexTable, IndexTable_,
     startProfTimer, stopProfTimer,
 };
-use crate::ffi::rts::prog_name;
 use crate::ffi::rts::storage::closure_macros::{
     UNTAG_CONST_CLOSURE, doingRetainerProfiling, get_itbl, itbl_to_con_itbl, stack_frame_sizeW,
 };
 use crate::ffi::rts::storage::closures::{StgUnderflowFrame, StgUpdateFrame};
 use crate::ffi::rts::storage::tso::StgStack;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
+use crate::ffi::rts::{_assertFail, prog_name};
 use crate::ffi::stg::regs::StgRegTable;
 use crate::ffi::stg::types::{StgBool, StgInt, StgWord, StgWord32, StgWord64};
 use crate::fs::__rts_fopen;
@@ -23,7 +24,7 @@ use crate::profiler_report::writeCCSReport;
 use crate::profiler_report_json::writeCCSReportJson;
 use crate::profiling::ProfilerTotals;
 use crate::rts_utils::stgMallocBytes;
-use crate::trace::{traceHeapProfCostCentre, traceProfBegin};
+use crate::trace::{traceBegin, traceEnd, traceHeapProfCostCentre, traceProfBegin};
 
 #[cfg(test)]
 mod tests;
@@ -49,6 +50,11 @@ static mut prof_file: *mut FILE = null_mut::<FILE>();
 static mut CC_LIST: *mut CostCentre = null_mut::<CostCentre>();
 
 static mut CCS_LIST: *mut CostCentreStack = null_mut::<CostCentreStack>();
+
+static mut ccs_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
 
 static mut CC_MAIN: [CostCentre; 1] = [CostCentre_ {
     ccID: 0,
@@ -280,6 +286,7 @@ unsafe fn dumpCostCentresToEventLog() {
 
 unsafe fn initProfiling() {
     prof_arena = newArena();
+    initMutex(&raw mut ccs_mutex);
     initProfilingLogFile();
     registerCC(&raw mut CC_MAIN as *mut CostCentre);
     registerCC(&raw mut CC_SYSTEM as *mut CostCentre);
@@ -295,10 +302,16 @@ unsafe fn initProfiling() {
     registerCCS(&raw mut CCS_PINNED as *mut CostCentreStack);
     registerCCS(&raw mut CCS_IDLE as *mut CostCentreStack);
     registerCCS(&raw mut CCS_MAIN as *mut CostCentreStack);
+
+    if (CCS_LIST == &raw mut CCS_MAIN as *mut CostCentreStack) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/Profiling.c".as_ptr(), 187);
+    }
+
     CCS_LIST = (*CCS_LIST).prevStack as *mut CostCentreStack;
 
-    let ref mut fresh8 = (*(&raw mut CCS_MAIN as *mut CostCentreStack)).prevStack;
-    *fresh8 = null_mut::<CostCentreStack_>();
+    let ref mut fresh1 = (*(&raw mut CCS_MAIN as *mut CostCentreStack)).prevStack;
+    *fresh1 = null_mut::<CostCentreStack_>();
 
     let ref mut fresh9 = (*(&raw mut CCS_MAIN as *mut CostCentreStack)).root;
     *fresh9 = &raw mut CCS_MAIN as *mut CostCentreStack as *mut CostCentreStack_;
@@ -311,6 +324,17 @@ unsafe fn initProfiling() {
 }
 
 unsafe fn refreshProfilingCCSs() {
+    let mut __r = pthread_mutex_lock(&raw mut ccs_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Profiling.c".as_ptr(),
+            207,
+            __r,
+        );
+    }
+
     postInitEvent(Some(
         dumpCostCentresToEventLog as unsafe extern "C" fn() -> (),
     ));
@@ -327,6 +351,14 @@ unsafe fn refreshProfilingCCSs() {
     }
 
     CCS_LIST = null_mut::<CostCentreStack>();
+
+    if pthread_mutex_unlock(&raw mut ccs_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Profiling.c".as_ptr(),
+            219,
+        );
+    }
 }
 
 unsafe fn freeProfiling() {
@@ -455,6 +487,11 @@ unsafe fn enterFunEqualStacks(
     mut ccsapp: *mut CostCentreStack,
     mut ccsfn: *mut CostCentreStack,
 ) -> *mut CostCentreStack {
+    if ((*ccsapp).depth == (*ccsfn).depth) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/Profiling.c".as_ptr(), 378);
+    }
+
     if ccsapp == ccsfn {
         return ccs0;
     }
@@ -475,8 +512,18 @@ unsafe fn enterFunCurShorter(
     mut n: StgWord,
 ) -> *mut CostCentreStack {
     if n == 0 {
+        if ((*ccsfn).depth == (*ccsapp).depth) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/Profiling.c".as_ptr(), 395);
+        }
+
         return enterFunEqualStacks(ccsapp, ccsapp, ccsfn);
     } else {
+        if ((*ccsfn).depth > (*ccsapp).depth) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/Profiling.c".as_ptr(), 398);
+        }
+
         return pushCostCentre(
             enterFunCurShorter(
                 ccsapp,
@@ -577,6 +624,16 @@ unsafe fn appendCCS(
     mut ccs1: *mut CostCentreStack,
     mut ccs2: *mut CostCentreStack,
 ) -> *mut CostCentreStack {
+    if RtsFlags.DebugFlags.prof {
+        if ccs1 != ccs2 {
+            debugBelch(c"Appending ".as_ptr());
+            debugCCS(ccs1);
+            debugBelch(c" to ".as_ptr());
+            debugCCS(ccs2);
+            debugBelch(c"\n".as_ptr());
+        }
+    }
+
     if ccs1 == ccs2 {
         return ccs1;
     }
@@ -598,9 +655,26 @@ pub unsafe extern "C" fn pushCostCentre(
     mut ccs: *mut CostCentreStack,
     mut cc: *mut CostCentre,
 ) -> *mut CostCentreStack {
+    if RtsFlags.DebugFlags.prof {
+        traceBegin(c"pushing %s on ".as_ptr(), (*cc).label);
+        debugCCS(ccs);
+        traceEnd();
+    }
+
     let mut ret = null_mut::<CostCentreStack>();
 
     if ccs.is_null() {
+        let mut __r = pthread_mutex_lock(&raw mut ccs_mutex);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/Profiling.c".as_ptr(),
+                536,
+                __r,
+            );
+        }
+
         ret = actualPush(ccs, cc);
     } else if (*ccs).cc == cc {
         return ccs;
@@ -611,10 +685,29 @@ pub unsafe extern "C" fn pushCostCentre(
         if !temp_ccs.is_null() {
             return temp_ccs;
         } else {
+            let mut __r_0 = pthread_mutex_lock(&raw mut ccs_mutex);
+
+            if __r_0 != 0 {
+                barf(
+                    c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                    c"rts/Profiling.c".as_ptr(),
+                    553,
+                    __r_0,
+                );
+            }
+
             if (*ccs).indexTable != ixtable {
                 temp_ccs = isInIndexTable(ixtable, cc);
 
                 if !temp_ccs.is_null() {
+                    if pthread_mutex_unlock(&raw mut ccs_mutex) != 0 {
+                        barf(
+                            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                            c"rts/Profiling.c".as_ptr(),
+                            563,
+                        );
+                    }
+
                     return temp_ccs;
                 }
             }
@@ -634,6 +727,14 @@ pub unsafe extern "C" fn pushCostCentre(
                 ret = actualPush(ccs, cc);
             }
         }
+    }
+
+    if pthread_mutex_unlock(&raw mut ccs_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Profiling.c".as_ptr(),
+            594,
+        );
     }
 
     return ret;
@@ -1048,4 +1149,22 @@ unsafe fn fprintCCS_stderr(
 
         depth = depth.wrapping_add(1);
     }
+}
+
+unsafe fn debugCCS(mut ccs: *mut CostCentreStack) {
+    debugBelch(c"<".as_ptr());
+
+    while !ccs.is_null() && ccs != &raw mut CCS_MAIN as *mut CostCentreStack {
+        debugBelch(c"%s.%s".as_ptr(), (*(*ccs).cc).module, (*(*ccs).cc).label);
+
+        if !(*ccs).prevStack.is_null()
+            && (*ccs).prevStack != &raw mut CCS_MAIN as *mut CostCentreStack
+        {
+            debugBelch(c",".as_ptr());
+        }
+
+        ccs = (*ccs).prevStack as *mut CostCentreStack;
+    }
+
+    debugBelch(c">".as_ptr());
 }

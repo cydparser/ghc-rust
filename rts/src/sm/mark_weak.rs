@@ -1,9 +1,10 @@
 use crate::capability::getCapability;
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::block::Bdescr;
-use crate::ffi::rts::storage::closure_macros::INFO_PTR_TO_STRUCT;
-use crate::ffi::rts::storage::closures::{_StgWeak, StgWeak};
+use crate::ffi::rts::storage::closure_macros::{INFO_PTR_TO_STRUCT, UNTAG_CLOSURE, get_itbl};
+use crate::ffi::rts::storage::closures::{_StgWeak, MessageThrowTo, StgWeak};
 use crate::ffi::rts::storage::gc::{g0, generation, generations, oldest_gen};
 use crate::ffi::rts::storage::tso::StgTSO_;
 use crate::ffi::rts::threads::getNumCapabilities;
@@ -11,13 +12,13 @@ use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::stg::misc_closures::{
     stg_DEAD_WEAK_info, stg_END_TSO_QUEUE_closure, stg_NO_FINALIZER_closure,
 };
-use crate::ffi::stg::types::StgPtr;
+use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord32};
 use crate::prelude::*;
 use crate::sm::evac::evacuate;
 use crate::sm::gc::{N, isAlive};
-use crate::sm::gc_thread::gc_thread;
 use crate::sm::gc_utils::recordMutableGen_GC;
-use crate::sm::gct_decl::the_gc_thread;
+use crate::sm::gct_decl::gct;
+use crate::sm::sanity::checkClosure;
 use crate::trace::{DEBUG_RTS, trace_};
 
 type WeakStage = u32;
@@ -191,6 +192,11 @@ unsafe fn resurrectUnreachableThreads(
 
 unsafe fn tidyWeakList(mut r#gen: *mut generation) -> bool {
     if RtsFlags.GcFlags.useNonmoving as i32 != 0 && r#gen == oldest_gen {
+        if (*r#gen).old_weak_ptr_list.is_null() as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/MarkWeak.c".as_ptr(), 300);
+        }
+
         return false;
     }
 
@@ -220,16 +226,16 @@ unsafe fn tidyWeakList(mut r#gen: *mut generation) -> bool {
                         let mut new_gen = null_mut::<generation>();
                         (*w).key = new;
                         new_gen = (*Bdescr(w as StgPtr)).r#gen as *mut generation;
-                        (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = (*new_gen).no;
-                        (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
+                        (*gct).evac_gen_no = (*new_gen).no;
+                        (*gct).failed_to_evac = false;
                         scavengeLiveWeak(w);
 
-                        if (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac {
+                        if (*gct).failed_to_evac {
                             if DEBUG_RTS != 0 && RtsFlags.DebugFlags.weak as i64 != 0 {
                                 trace_(c"putting weak pointer %p into mutable list".as_ptr(), w);
                             }
 
-                            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = false;
+                            (*gct).failed_to_evac = false;
                             recordMutableGen_GC(w as *mut StgClosure, (*new_gen).no);
                         }
 
@@ -290,7 +296,24 @@ unsafe fn tidyThreadList(mut r#gen: *mut generation) {
             t = tmp;
         }
 
+        if ((*get_itbl(t as *mut StgClosure)).r#type == 52) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/MarkWeak.c".as_ptr(), 412);
+        }
+
         next = (*t).global_link as *mut StgTSO;
+
+        if ((*t).blocked_exceptions
+            == &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
+                as *mut MessageThrowTo
+            || (*t).why_blocked == 10
+            || (*t).why_blocked == 11
+            || (*t).flags & 4 != 0) as i32 as i64
+            != 0
+        {
+        } else {
+            _assertFail(c"rts/sm/MarkWeak.c".as_ptr(), 422);
+        }
 
         if tmp.is_null() {
             prev = &raw mut (*t).global_link as *mut *mut StgTSO;
@@ -306,6 +329,35 @@ unsafe fn tidyThreadList(mut r#gen: *mut generation) {
     }
 }
 
+unsafe fn checkWeakPtrSanity(mut hd: *mut StgWeak, mut tl: *mut StgWeak) {
+    let mut w = null_mut::<StgWeak>();
+    let mut prev = null_mut::<StgWeak>();
+    prev = null_mut::<StgWeak>();
+    w = hd;
+
+    while !w.is_null() {
+        if ((*INFO_PTR_TO_STRUCT((*UNTAG_CLOSURE(w as *mut StgClosure)).header.info)).r#type == 49
+            || (*UNTAG_CLOSURE(w as *mut StgClosure)).header.info == &raw const stg_DEAD_WEAK_info)
+            as i32 as i64
+            != 0
+        {
+        } else {
+            _assertFail(c"rts/sm/MarkWeak.c".as_ptr(), 447);
+        }
+
+        checkClosure(w as *mut StgClosure);
+        prev = w;
+        w = (*w).link as *mut StgWeak;
+    }
+
+    if !tl.is_null() {
+        if (prev == tl) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/MarkWeak.c".as_ptr(), 451);
+        }
+    }
+}
+
 unsafe fn collectFreshWeakPtrs() {
     let mut i: u32 = 0;
     i = 0;
@@ -314,10 +366,17 @@ unsafe fn collectFreshWeakPtrs() {
         let mut cap = getCapability(i);
 
         if !(*cap).weak_ptr_list_tl.is_null() {
+            if RtsFlags.DebugFlags.sanity {
+                checkWeakPtrSanity((*cap).weak_ptr_list_hd, (*cap).weak_ptr_list_tl);
+            }
+
             (*(*cap).weak_ptr_list_tl).link = (*g0).weak_ptr_list as *mut _StgWeak;
             (*g0).weak_ptr_list = (*cap).weak_ptr_list_hd;
             (*cap).weak_ptr_list_tl = null_mut::<StgWeak>();
             (*cap).weak_ptr_list_hd = null_mut::<StgWeak>();
+        } else if (*cap).weak_ptr_list_hd.is_null() as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/MarkWeak.c".as_ptr(), 473);
         }
 
         i = i.wrapping_add(1);
@@ -337,10 +396,21 @@ unsafe fn markWeakPtrList() {
         w = (*r#gen).weak_ptr_list;
 
         while !w.is_null() {
+            let mut info = (&raw mut (*w).header.info).load(Ordering::Relaxed);
+
+            if (info as StgWord & 1 != 0
+                || info == &raw const stg_DEAD_WEAK_info
+                || (*INFO_PTR_TO_STRUCT(info)).r#type == 49) as i32 as i64
+                != 0
+            {
+            } else {
+                _assertFail(c"rts/sm/MarkWeak.c".as_ptr(), 502);
+            }
+
             evacuate(last_w as *mut *mut StgClosure);
             w = *last_w;
             last_w = &raw mut (*w).link as *mut *mut StgWeak;
-            w = (*w).link as *mut StgWeak;
+            w = (&raw mut (*w).link).load(Ordering::Relaxed) as *mut StgWeak;
         }
 
         g = g.wrapping_add(1);

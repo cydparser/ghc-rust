@@ -1,4 +1,7 @@
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::flags::RtsFlags;
+use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::stable_name::snEntry;
 use crate::ffi::rts::storage::closure_macros::{GET_CLOSURE_TAG, UNTAG_CLOSURE, get_itbl};
 use crate::ffi::rts::storage::closures::StgInd;
@@ -22,15 +25,38 @@ static mut SNT_size: u32 = 0;
 
 const INIT_SNT_SIZE: i32 = 64;
 
+static mut stable_name_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
 static mut addrToStableHash: *mut HashTable = null_mut::<HashTable>();
 
 unsafe fn stableNameLock() {
     initStableNameTable();
+
+    let mut __r = pthread_mutex_lock(&raw mut stable_name_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/StableName.c".as_ptr(),
+            45,
+            __r,
+        );
+    }
 }
 
-unsafe fn stableNameUnlock() {}
+unsafe fn stableNameUnlock() {
+    if pthread_mutex_unlock(&raw mut stable_name_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/StableName.c".as_ptr(),
+            51,
+        );
+    }
+}
 
-#[inline]
 unsafe fn initSnEntryFreeList(mut table: *mut snEntry, mut n: u32, mut free: *mut snEntry) {
     let mut p = null_mut::<snEntry>();
     p = table.offset(n as isize).offset(-1);
@@ -65,6 +91,7 @@ unsafe fn initStableNameTable() {
     );
 
     addrToStableHash = allocHashTable();
+    initMutex(&raw mut stable_name_mutex);
 }
 
 unsafe fn enlargeStableNameTable() {
@@ -97,9 +124,15 @@ unsafe fn exitStableNameTable() {
 
     stable_name_table = null_mut::<snEntry>();
     SNT_size = 0;
+    closeMutex(&raw mut stable_name_mutex);
 }
 
 unsafe fn freeSnEntry(mut sn: *mut snEntry) {
+    if (*sn).sn_obj.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/StableName.c".as_ptr(), 134);
+    }
+
     removeHashTable(addrToStableHash, (*sn).old as StgWord, null::<c_void>());
     (*sn).addr = stable_name_free as P_ as StgPtr;
     stable_name_free = sn;
@@ -113,11 +146,11 @@ unsafe fn removeIndirections(mut p: *mut StgClosure) -> *mut StgClosure {
 
         match (*get_itbl(q)).r#type {
             27 | 28 => {
-                p = (*(q as *mut StgInd)).indirectee;
+                p = (&raw mut (*(q as *mut StgInd)).indirectee).load(Ordering::Acquire);
                 continue;
             }
             38 => {
-                p = (*(q as *mut StgInd)).indirectee;
+                p = (&raw mut (*(q as *mut StgInd)).indirectee).load(Ordering::Acquire);
 
                 if GET_CLOSURE_TAG(p) != 0 {
                     continue;
@@ -143,6 +176,11 @@ unsafe fn lookupStableName(mut p: StgPtr) -> StgWord {
     let mut sn: StgWord = lookupHashTable(addrToStableHash, p as StgWord) as StgWord;
 
     if sn != 0 {
+        if ((*stable_name_table.offset(sn as isize)).addr == p) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/StableName.c".as_ptr(), 197);
+        }
+
         if DEBUG_RTS != 0 && RtsFlags.DebugFlags.stable as i64 != 0 {
             trace_(c"cached stable name %ld at %p".as_ptr(), sn, p);
         }
@@ -216,7 +254,7 @@ unsafe fn gcStableNameTable() {
                 (*p).sn_obj = isAlive((*p).sn_obj);
 
                 if (*p).sn_obj.is_null() {
-                    if 0 != 0 && RtsFlags.DebugFlags.stable as i64 != 0 {
+                    if 1 != 0 && RtsFlags.DebugFlags.stable as i64 != 0 {
                         trace_(
                             c"GC'd StableName %ld (addr=%p)".as_ptr(),
                             p.offset_from(stable_name_table) as i64,
@@ -229,7 +267,7 @@ unsafe fn gcStableNameTable() {
                     (*p).addr = isAlive((*p).addr as *mut StgClosure) as StgPtr;
 
                     if (*p).addr.is_null() {
-                        if 0 != 0 && RtsFlags.DebugFlags.stable as i64 != 0 {
+                        if 1 != 0 && RtsFlags.DebugFlags.stable as i64 != 0 {
                             trace_(
                                 c"GC'd pointee %ld".as_ptr(),
                                 p.offset_from(stable_name_table) as i64,

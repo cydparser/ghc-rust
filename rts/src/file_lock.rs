@@ -1,3 +1,5 @@
+use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::stg::types::{StgWord, StgWord64};
 use crate::hash::{
     HashTable, allocHashTable, freeHashTable, hashWord, insertHashTable, insertHashTable_,
@@ -20,7 +22,11 @@ static mut obj_hash: *mut HashTable = null_mut::<HashTable>();
 
 static mut key_hash: *mut HashTable = null_mut::<HashTable>();
 
-#[inline]
+static mut file_lock_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
 unsafe fn cmpLocks(mut w1: StgWord, mut w2: StgWord) -> i32 {
     let mut l1 = w1 as *mut Lock;
     let mut l2 = w2 as *mut Lock;
@@ -28,7 +34,6 @@ unsafe fn cmpLocks(mut w1: StgWord, mut w2: StgWord) -> i32 {
     return ((*l1).device == (*l2).device && (*l1).inode == (*l2).inode) as i32;
 }
 
-#[inline]
 unsafe fn hashLock(mut table: *const HashTable, mut w: StgWord) -> i32 {
     let mut l = w as *mut Lock;
     let mut key: StgWord = (*l).inode as StgWord
@@ -42,6 +47,7 @@ unsafe fn hashLock(mut table: *const HashTable, mut w: StgWord) -> i32 {
 unsafe fn initFileLocking() {
     obj_hash = allocHashTable();
     key_hash = allocHashTable();
+    initMutex(&raw mut file_lock_mutex);
 }
 
 unsafe fn freeLock(mut lock: *mut c_void) {
@@ -54,6 +60,7 @@ unsafe fn freeFileLocking() {
         Some(freeLock as unsafe extern "C" fn(*mut c_void) -> ()),
     );
     freeHashTable(key_hash, None);
+    closeMutex(&raw mut file_lock_mutex);
 }
 
 #[ffi(ghc_lib, libraries)]
@@ -63,8 +70,8 @@ pub unsafe extern "C" fn lockFile(
     mut id: StgWord64,
     mut dev: StgWord64,
     mut ino: StgWord64,
-    mut for_writing: i32,
-) -> i32 {
+    mut for_writing: c_int,
+) -> c_int {
     let mut key = Lock {
         device: 0,
         inode: 0,
@@ -72,6 +79,17 @@ pub unsafe extern "C" fn lockFile(
     };
 
     let mut lock = null_mut::<Lock>();
+    let mut __r = pthread_mutex_lock(&raw mut file_lock_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/FileLock.c".as_ptr(),
+            83,
+            __r,
+        );
+    }
+
     key.device = dev;
     key.inode = ino;
 
@@ -97,14 +115,38 @@ pub unsafe extern "C" fn lockFile(
 
         insertHashTable(key_hash, id as StgWord, lock as *const c_void);
 
+        if pthread_mutex_unlock(&raw mut file_lock_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/FileLock.c".as_ptr(),
+                98,
+            );
+        }
+
         return 0;
     } else {
         if for_writing != 0 || (*lock).readers < 0 {
+            if pthread_mutex_unlock(&raw mut file_lock_mutex) != 0 {
+                barf(
+                    c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                    c"rts/FileLock.c".as_ptr(),
+                    105,
+                );
+            }
+
             return -1;
         }
 
         insertHashTable(key_hash, id as StgWord, lock as *const c_void);
         (*lock).readers += 1;
+
+        if pthread_mutex_unlock(&raw mut file_lock_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/FileLock.c".as_ptr(),
+                110,
+            );
+        }
 
         return 0;
     };
@@ -113,11 +155,30 @@ pub unsafe extern "C" fn lockFile(
 #[ffi(ghc_lib, libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn unlockFile(mut id: StgWord64) -> i32 {
+pub unsafe extern "C" fn unlockFile(mut id: StgWord64) -> c_int {
     let mut lock = null_mut::<Lock>();
+    let mut __r = pthread_mutex_lock(&raw mut file_lock_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/FileLock.c".as_ptr(),
+            120,
+            __r,
+        );
+    }
+
     lock = lookupHashTable(key_hash, id as StgWord) as *mut Lock;
 
     if lock.is_null() {
+        if pthread_mutex_unlock(&raw mut file_lock_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/FileLock.c".as_ptr(),
+                127,
+            );
+        }
+
         return 1;
     }
 
@@ -140,6 +201,14 @@ pub unsafe extern "C" fn unlockFile(mut id: StgWord64) -> i32 {
     }
 
     removeHashTable(key_hash, id as StgWord, null::<c_void>());
+
+    if pthread_mutex_unlock(&raw mut file_lock_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/FileLock.c".as_ptr(),
+            143,
+        );
+    }
 
     return 0;
 }

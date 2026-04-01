@@ -1,5 +1,7 @@
 use crate::capability::n_numa_nodes;
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::flags::RtsFlags;
+use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK, SpinLock, SpinLock_};
 use crate::ffi::rts::storage::block::{
     BLOCK_MASK, BLOCK_SIZE, BLOCK_SIZE_W, allocGroupOnNode, bdescr, bdescr_, freeChain, freeGroup,
 };
@@ -11,16 +13,15 @@ use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{StgPtr, StgWord};
 use crate::ffi::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 use crate::prelude::*;
-use crate::sm::block_alloc::allocLargeChunkOnNode;
+use crate::sm::block_alloc::{allocLargeChunkOnNode, countBlocks};
 use crate::sm::gc::WORK_UNIT_WORDS;
-use crate::sm::gc::WORK_UNIT_WORDS;
-use crate::sm::gc_thread::gc_thread;
-use crate::sm::gc_thread::{gc_thread, gen_workspace};
+use crate::sm::gc::{WORK_UNIT_WORDS, notifyTodoBlock};
+use crate::sm::gc_thread::{gc_threads, gen_workspace, n_gc_threads};
 use crate::sm::gc_utils::allocBlock_sync;
-use crate::sm::gct_decl::the_gc_thread;
-use crate::sm::gct_decl::the_gc_thread;
+use crate::sm::gct_decl::gct;
+use crate::sm::gct_decl::gct;
 use crate::trace::{DEBUG_RTS, trace_};
-use crate::ws_deque::{dequeElements, looksEmptyWSDeque, popWSDeque, pushWSDeque};
+use crate::ws_deque::{dequeElements, looksEmptyWSDeque, popWSDeque, pushWSDeque, stealWSDeque};
 
 #[inline]
 pub(crate) unsafe fn allocBlock_sync() -> *mut bdescr {
@@ -41,9 +42,7 @@ pub(crate) unsafe fn isPartiallyFull(mut bd: *mut bdescr) -> bool {
 #[inline]
 pub(crate) unsafe fn recordMutableGen_GC(mut p: *mut StgClosure, mut gen_no: u32) {
     let mut bd = null_mut::<bdescr>();
-    bd = *(*(&raw mut the_gc_thread as *mut gc_thread))
-        .mut_lists
-        .offset(gen_no as isize);
+    bd = *(*gct).mut_lists.offset(gen_no as isize);
 
     if (*bd).c2rust_unnamed.free >= (*bd).start.offset(BLOCK_SIZE_W as isize) {
         let mut new_bd = null_mut::<bdescr>();
@@ -51,30 +50,36 @@ pub(crate) unsafe fn recordMutableGen_GC(mut p: *mut StgClosure, mut gen_no: u32
         (*new_bd).link = bd as *mut bdescr_;
         bd = new_bd;
 
-        let ref mut fresh12 = *(*(&raw mut the_gc_thread as *mut gc_thread))
-            .mut_lists
-            .offset(gen_no as isize);
+        let ref mut fresh12 = *(*gct).mut_lists.offset(gen_no as isize);
         *fresh12 = bd;
     }
 
-    let fresh13 = (*bd).c2rust_unnamed.free;
+    let fresh9 = (*bd).c2rust_unnamed.free;
     (*bd).c2rust_unnamed.free = (*bd).c2rust_unnamed.free.offset(1);
-    *fresh13 = p as StgWord;
+    *fresh9 = p as StgWord;
 }
+
+static mut gc_alloc_block_sync: SpinLock = SpinLock_ {
+    lock: 0,
+    spin: 0,
+    r#yield: 0,
+};
 
 unsafe fn allocGroup_sync(mut n: u32) -> *mut bdescr {
     let mut bd = null_mut::<bdescr>();
-    let mut node: u32 = (*(&raw mut the_gc_thread as *mut gc_thread))
-        .thread_index
-        .wrapping_rem(n_numa_nodes);
+    let mut node: u32 = (*gct).thread_index.wrapping_rem(n_numa_nodes);
+    ACQUIRE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
     bd = allocGroupOnNode(node, n as W_);
+    RELEASE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
 
     return bd;
 }
 
 unsafe fn allocGroupOnNode_sync(mut node: u32, mut n: u32) -> *mut bdescr {
     let mut bd = null_mut::<bdescr>();
+    ACQUIRE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
     bd = allocGroupOnNode(node, n as W_);
+    RELEASE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
 
     return bd;
 }
@@ -82,9 +87,8 @@ unsafe fn allocGroupOnNode_sync(mut node: u32, mut n: u32) -> *mut bdescr {
 unsafe fn allocBlocks_sync(mut n: u32, mut hd: *mut *mut bdescr) -> u32 {
     let mut bd = null_mut::<bdescr>();
     let mut i: u32 = 0;
-    let mut node: u32 = (*(&raw mut the_gc_thread as *mut gc_thread))
-        .thread_index
-        .wrapping_rem(n_numa_nodes);
+    let mut node: u32 = (*gct).thread_index.wrapping_rem(n_numa_nodes);
+    ACQUIRE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
     bd = allocLargeChunkOnNode(node, 1, n as W_);
     n = (*bd).blocks as u32;
     i = 0;
@@ -102,17 +106,22 @@ unsafe fn allocBlocks_sync(mut n: u32, mut hd: *mut *mut bdescr) -> u32 {
 
     let ref mut fresh11 = (*bd.offset(n.wrapping_sub(1 as u32) as isize)).link;
     *fresh11 = null_mut::<bdescr_>();
+    RELEASE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
     *hd = bd;
 
     return n;
 }
 
 unsafe fn freeChain_sync(mut bd: *mut bdescr) {
+    ACQUIRE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
     freeChain(bd);
+    RELEASE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
 }
 
 unsafe fn freeGroup_sync(mut bd: *mut bdescr) {
+    ACQUIRE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
     freeGroup(bd);
+    RELEASE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
 }
 
 unsafe fn grab_local_todo_block(mut ws: *mut gen_workspace) -> *mut bdescr {
@@ -130,13 +139,63 @@ unsafe fn grab_local_todo_block(mut ws: *mut gen_workspace) -> *mut bdescr {
     bd = popWSDeque((*ws).0.todo_q) as *mut bdescr;
 
     if !bd.is_null() {
+        if (*bd).link.is_null() as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 115);
+        }
+
         return bd;
     }
 
     return null_mut::<bdescr>();
 }
 
+unsafe fn steal_todo_block(mut g: u32) -> *mut bdescr {
+    let mut n: u32 = 0;
+    let mut bd = null_mut::<bdescr>();
+    n = 0;
+
+    while n < n_gc_threads {
+        if !(n == (*gct).thread_index) {
+            bd = stealWSDeque(
+                (*(&raw mut (**gc_threads.offset(n as isize)).gens as *mut gen_workspace)
+                    .offset(g as isize))
+                .0
+                .todo_q,
+            ) as *mut bdescr;
+
+            if !bd.is_null() {
+                return bd;
+            }
+        }
+
+        n = n.wrapping_add(1);
+    }
+
+    return null_mut::<bdescr>();
+}
+
 unsafe fn push_scanned_block(mut bd: *mut bdescr, mut ws: *mut gen_workspace) {
+    if !bd.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 144);
+    }
+
+    if (*bd).link.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 145);
+    }
+
+    if ((*bd).r#gen == (*ws).0.r#gen) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 146);
+    }
+
+    if ((*bd).u.scan == (*bd).c2rust_unnamed.free) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 147);
+    }
+
     if (*bd).blocks == 1
         && (*bd)
             .start
@@ -151,6 +210,13 @@ unsafe fn push_scanned_block(mut bd: *mut bdescr, mut ws: *mut gen_workspace) {
             .0
             .n_part_words
             .wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).start) as i64 as StgWord);
+
+        if RtsFlags.DebugFlags.sanity {
+            if (countBlocks((*ws).0.part_list) == (*ws).0.n_part_blocks) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 159);
+            }
+        }
     } else {
         (*bd).link = (*ws).0.scavd_list as *mut bdescr_;
         (*ws).0.scavd_list = bd;
@@ -159,6 +225,13 @@ unsafe fn push_scanned_block(mut bd: *mut bdescr, mut ws: *mut gen_workspace) {
             .0
             .n_scavd_words
             .wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).start) as i64 as StgWord);
+
+        if RtsFlags.DebugFlags.sanity {
+            if (countBlocks((*ws).0.scavd_list) == (*ws).0.n_scavd_blocks) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 169);
+            }
+        }
     };
 }
 
@@ -173,20 +246,25 @@ unsafe fn push_todo_block(mut bd: *mut bdescr, mut ws: *mut gen_workspace) {
         );
     }
 
+    if (*bd).link.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 180);
+    }
+
     if !pushWSDeque((*ws).0.todo_q, bd as *mut c_void) {
         (*bd).link = (*ws).0.todo_overflow as *mut bdescr_;
         (*ws).0.todo_overflow = bd;
         (*ws).0.n_todo_overflow = (*ws).0.n_todo_overflow.wrapping_add(1);
 
-        (*(&raw mut the_gc_thread as *mut gc_thread)).max_n_todo_overflow = ({
-            let mut _a: W_ =
-                (*(&raw mut the_gc_thread as *mut gc_thread)).max_n_todo_overflow as W_;
-
+        (*gct).max_n_todo_overflow = ({
+            let mut _a: W_ = (*gct).max_n_todo_overflow as W_;
             let mut _b: W_ = (*ws).0.n_todo_overflow as W_;
 
             if _a <= _b { _b } else { _a as W_ }
         });
     }
+
+    notifyTodoBlock();
 }
 
 unsafe fn todo_block_full(mut size: u32, mut ws: *mut gen_workspace) -> StgPtr {
@@ -196,6 +274,22 @@ unsafe fn todo_block_full(mut size: u32, mut ws: *mut gen_workspace) -> StgPtr {
     let mut bd = null_mut::<bdescr>();
     (*ws).0.todo_free = (*ws).0.todo_free.offset(-(size as isize));
     bd = (*ws).0.todo_bd;
+
+    if !bd.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 247);
+    }
+
+    if (*bd).link.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 248);
+    }
+
+    if ((*bd).r#gen == (*ws).0.r#gen) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 249);
+    }
+
     urgent_to_push = looksEmptyWSDeque((*ws).0.todo_q) as i32 != 0
         && (*ws).0.todo_free.offset_from((*bd).u.scan) as i64 >= (WORK_UNIT_WORDS / 2) as i64;
 
@@ -241,13 +335,23 @@ unsafe fn todo_block_full(mut size: u32, mut ws: *mut gen_workspace) -> StgPtr {
         return p;
     }
 
-    let ref mut fresh6 = (*(&raw mut the_gc_thread as *mut gc_thread)).copied;
-    *fresh6 = (*fresh6)
-        .wrapping_add((*ws).0.todo_free.offset_from((*bd).c2rust_unnamed.free) as i64 as W_);
+    (*gct).copied = (*gct).copied.wrapping_add(
+        (*ws)
+            .0
+            .todo_free
+            .offset_from((&raw mut (*bd).c2rust_unnamed.free).load(Ordering::Relaxed))
+            as i64 as W_,
+    );
 
-    (*bd).c2rust_unnamed.free = (*ws).0.todo_free;
+    (&raw mut (*bd).c2rust_unnamed.free).store((*ws).0.todo_free, Ordering::Relaxed);
 
-    if bd != (*(&raw mut the_gc_thread as *mut gc_thread)).scan_bd {
+    if ((*bd).u.scan >= (*bd).start && (*bd).u.scan <= (*bd).c2rust_unnamed.free) as i32 as i64 != 0
+    {
+    } else {
+        _assertFail(c"rts/sm/GCUtils.c".as_ptr(), 289);
+    }
+
+    if bd != (*gct).scan_bd {
         if (*bd).u.scan == (*bd).c2rust_unnamed.free {
             if (*bd).c2rust_unnamed.free == (*bd).start {
                 freeGroup_sync(bd);
@@ -295,14 +399,9 @@ unsafe fn alloc_todo_block(mut ws: *mut gen_workspace, mut size: u32) -> StgPtr 
                     & !BLOCK_MASK as W_)
                     .wrapping_div(BLOCK_SIZE as W_) as u32,
             );
-        } else if !(*(&raw mut the_gc_thread as *mut gc_thread))
-            .free_blocks
-            .is_null()
-        {
-            bd = (*(&raw mut the_gc_thread as *mut gc_thread)).free_blocks;
-
-            let ref mut fresh7 = (*(&raw mut the_gc_thread as *mut gc_thread)).free_blocks;
-            *fresh7 = (*bd).link as *mut bdescr;
+        } else if !(*gct).free_blocks.is_null() {
+            bd = (*gct).free_blocks;
+            (*gct).free_blocks = (*bd).link as *mut bdescr;
         } else {
             let mut chunk_size: StgWord = 16;
 
@@ -314,14 +413,15 @@ unsafe fn alloc_todo_block(mut ws: *mut gen_workspace, mut size: u32) -> StgPtr 
             });
 
             allocBlocks_sync(n_blocks as u32, &raw mut bd);
-
-            let ref mut fresh8 = (*(&raw mut the_gc_thread as *mut gc_thread)).free_blocks;
-            *fresh8 = (*bd).link as *mut bdescr;
+            (*gct).free_blocks = (*bd).link as *mut bdescr;
         }
 
         initBdescr(bd, (*ws).0.r#gen, (*(*ws).0.r#gen).to as *mut generation);
-        (*bd).u.scan = (*bd).start;
-        (*bd).flags = 1;
+        (&raw mut (*bd).u.scan).store(
+            (&raw mut (*bd).start).load(Ordering::Relaxed),
+            Ordering::Relaxed,
+        );
+        (&raw mut (*bd).flags).store(1, Ordering::Release);
     }
 
     (*bd).link = null_mut::<bdescr_>();
@@ -353,7 +453,7 @@ unsafe fn alloc_todo_block(mut ws: *mut gen_workspace, mut size: u32) -> StgPtr 
     if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
         trace_(
             c"alloc new todo block %p for gen  %d".as_ptr(),
-            (*bd).c2rust_unnamed.free,
+            (&raw mut (*bd).c2rust_unnamed.free).load(Ordering::Relaxed),
             (*(*ws).0.r#gen).no,
         );
     }

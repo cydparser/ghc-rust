@@ -1,4 +1,8 @@
 use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::os_threads::{
+    Condition, Mutex, closeCondition, closeMutex, initCondition, initMutex, signalCondition,
+    waitCondition,
+};
 use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
 use crate::rts_utils::{stgFree, stgMallocBytes};
@@ -14,10 +18,12 @@ struct Pool_ {
     max_size: u32,
     desired_size: u32,
     current_size: u32,
+    cond: Condition,
     alloc_fn: alloc_thing_fn,
     free_fn: free_thing_fn,
     available: *mut PoolEntry,
     taken: *mut PoolEntry,
+    mutex: Mutex,
 }
 
 type PoolEntry = PoolEntry_;
@@ -45,6 +51,8 @@ unsafe fn poolInit(
     (*pool).free_fn = free_fn;
     (*pool).available = null_mut::<PoolEntry>();
     (*pool).taken = null_mut::<PoolEntry>();
+    initMutex(&raw mut (*pool).mutex);
+    initCondition(&raw mut (*pool).cond);
 
     return pool;
 }
@@ -55,6 +63,8 @@ unsafe fn poolFree(mut pool: *mut Pool) -> i32 {
     }
 
     poolSetMaxSize(pool, 0);
+    closeCondition(&raw mut (*pool).cond);
+    closeMutex(&raw mut (*pool).mutex);
     stgFree(pool as *mut c_void);
 
     return 0;
@@ -71,11 +81,41 @@ unsafe fn free_available(mut pool: *mut Pool, mut size: u32) {
 }
 
 unsafe fn poolSetDesiredSize(mut pool: *mut Pool, mut size: u32) {
+    let mut __r = pthread_mutex_lock(&raw mut (*pool).mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Pool.c".as_ptr(),
+            88,
+            __r,
+        );
+    }
+
     (*pool).desired_size = size;
     free_available(pool, size);
+
+    if pthread_mutex_unlock(&raw mut (*pool).mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Pool.c".as_ptr(),
+            91,
+        );
+    }
 }
 
 unsafe fn poolSetMaxSize(mut pool: *mut Pool, mut size: u32) {
+    let mut __r = pthread_mutex_lock(&raw mut (*pool).mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Pool.c".as_ptr(),
+            95,
+            __r,
+        );
+    }
+
     if size == 0 {
         size = -1 as u32;
     }
@@ -85,6 +125,14 @@ unsafe fn poolSetMaxSize(mut pool: *mut Pool, mut size: u32) {
     if (*pool).desired_size > (*pool).max_size {
         (*pool).desired_size = size;
         free_available(pool, size);
+    }
+
+    if pthread_mutex_unlock(&raw mut (*pool).mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Pool.c".as_ptr(),
+            103,
+        );
     }
 }
 
@@ -119,26 +167,74 @@ unsafe fn poolTryTake_(mut pool: *mut Pool) -> *mut PoolEntry {
 }
 
 unsafe fn poolTryTake(mut pool: *mut Pool) -> *mut c_void {
+    let mut __r = pthread_mutex_lock(&raw mut (*pool).mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Pool.c".as_ptr(),
+            136,
+            __r,
+        );
+    }
+
     let mut ent = poolTryTake_(pool);
+
+    if pthread_mutex_unlock(&raw mut (*pool).mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Pool.c".as_ptr(),
+            138,
+        );
+    }
 
     return if !ent.is_null() { (*ent).thing } else { NULL };
 }
 
 unsafe fn poolTake(mut pool: *mut Pool) -> *mut c_void {
     let mut ent = null_mut::<PoolEntry>();
+    let mut __r = pthread_mutex_lock(&raw mut (*pool).mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Pool.c".as_ptr(),
+            144,
+            __r,
+        );
+    }
 
     while ent.is_null() {
         ent = poolTryTake_(pool);
 
         if ent.is_null() {
-            barf(c"Tried to take from an empty pool".as_ptr());
+            waitCondition(&raw mut (*pool).cond, &raw mut (*pool).mutex);
         }
+    }
+
+    if pthread_mutex_unlock(&raw mut (*pool).mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Pool.c".as_ptr(),
+            156,
+        );
     }
 
     return (*ent).thing;
 }
 
 unsafe fn poolRelease(mut pool: *mut Pool, mut thing: *mut c_void) {
+    let mut __r = pthread_mutex_lock(&raw mut (*pool).mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Pool.c".as_ptr(),
+            161,
+            __r,
+        );
+    }
+
     let mut last: *mut *mut PoolEntry = &raw mut (*pool).taken;
     let mut ent = (*pool).taken;
 
@@ -154,6 +250,15 @@ unsafe fn poolRelease(mut pool: *mut Pool, mut thing: *mut c_void) {
             } else {
                 (*ent).next = (*pool).available as *mut PoolEntry_;
                 (*pool).available = ent;
+                signalCondition(&raw mut (*pool).cond);
+            }
+
+            if pthread_mutex_unlock(&raw mut (*pool).mutex) != 0 {
+                barf(
+                    c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                    c"rts/Pool.c".as_ptr(),
+                    179,
+                );
             }
 
             return;
@@ -167,6 +272,17 @@ unsafe fn poolRelease(mut pool: *mut Pool, mut thing: *mut c_void) {
 }
 
 unsafe fn poolFlush(mut pool: *mut Pool) {
+    let mut __r = pthread_mutex_lock(&raw mut (*pool).mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Pool.c".as_ptr(),
+            191,
+            __r,
+        );
+    }
+
     free_available(pool, 0);
 
     let mut ent = (*pool).taken;
@@ -174,5 +290,13 @@ unsafe fn poolFlush(mut pool: *mut Pool) {
     while !ent.is_null() {
         (*ent).flags |= FLAG_SHOULD_FREE as StgWord;
         ent = (*ent).next as *mut PoolEntry;
+    }
+
+    if pthread_mutex_unlock(&raw mut (*pool).mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Pool.c".as_ptr(),
+            198,
+        );
     }
 }

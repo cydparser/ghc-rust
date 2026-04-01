@@ -1,6 +1,7 @@
 use crate::ffi::rts::event_log_writer::EventLogWriter;
 use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::messages::sysErrorBelch;
+use crate::ffi::rts::messages::{barf, sysErrorBelch};
+use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::{prog_name, stg_exit};
 use crate::ffi::stg::types::StgWord64;
 use crate::fs::__rts_fopen;
@@ -24,9 +25,33 @@ static mut event_log_pid: pid_t = -1;
 
 static mut event_log_file: *mut FILE = null_mut::<FILE>();
 
-unsafe fn acquire_event_log_lock() {}
+static mut event_log_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
 
-unsafe fn release_event_log_lock() {}
+unsafe fn acquire_event_log_lock() {
+    let mut __r = pthread_mutex_lock(&raw mut event_log_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLogWriter.c".as_ptr(),
+            35,
+            __r,
+        );
+    }
+}
+
+unsafe fn release_event_log_lock() {
+    if pthread_mutex_unlock(&raw mut event_log_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLogWriter.c".as_ptr(),
+            36,
+        );
+    }
+}
 
 unsafe fn outputFileName() -> *mut c_char {
     if !RtsFlags.TraceFlags.trace_output.is_null() {
@@ -80,6 +105,7 @@ unsafe fn initEventLogFileWriter() {
     }
 
     stgFree(event_log_filename as *mut c_void);
+    initMutex(&raw mut event_log_mutex);
 }
 
 unsafe fn writeEventLogFile(mut eventlog: *mut c_void, mut eventlog_size: usize) -> bool {
@@ -117,6 +143,8 @@ unsafe fn stopEventLogFileWriter() {
         fclose(event_log_file);
         event_log_file = null_mut::<FILE>();
     }
+
+    closeMutex(&raw mut event_log_mutex);
 }
 
 unsafe fn initEventLogFileWriterNoop() {}

@@ -1,4 +1,5 @@
-use crate::capability::markCapabilities;
+use crate::capability::{getCapability, markCapabilities};
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack};
@@ -58,7 +59,6 @@ unsafe fn endRetainerProfiling() {
     outputAllRetainerSet(prof_file);
 }
 
-#[inline]
 unsafe fn isRetainer(mut c: *const StgClosure) -> bool {
     match (*get_itbl(c)).r#type {
         52 | 53 | 51 | 39 | 40 | 41 | 47 | 48 | 43 | 44 | 59 | 60 | 37 | 15 | 16 | 17 | 18 | 19
@@ -74,12 +74,15 @@ unsafe fn isRetainer(mut c: *const StgClosure) -> bool {
     };
 }
 
-#[inline]
 unsafe fn getRetainerFrom(mut c: *mut StgClosure) -> retainer {
+    if isRetainer(c) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RetainerProfile.c".as_ptr(), 239);
+    }
+
     return (*c).header.prof.ccs as retainer;
 }
 
-#[inline]
 unsafe fn associate(mut c: *mut StgClosure, mut s: *mut RetainerSet) {
     setTravData(&raw mut g_retainerTraverseState, c, s as StgWord);
 }
@@ -90,6 +93,11 @@ unsafe fn isRetainerSetValid(mut c: *const StgClosure) -> bool {
 
 #[inline]
 unsafe fn retainerSetOf(mut c: *const StgClosure) -> *mut RetainerSet {
+    if isRetainerSetValid(c) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RetainerProfile.c".as_ptr(), 267);
+    }
+
     return getTravData(c) as *mut RetainerSet;
 }
 
@@ -191,6 +199,16 @@ unsafe fn computeRetainerSet(mut ts: *mut traverseState) {
     n = 0;
 
     while n < getNumCapabilities() as u32 {
+        if (*getCapability(n)).weak_ptr_list_hd.is_null() as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/RetainerProfile.c".as_ptr(), 398);
+        }
+
+        if (*getCapability(n)).weak_ptr_list_tl.is_null() as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/RetainerProfile.c".as_ptr(), 399);
+        }
+
         n = n.wrapping_add(1);
     }
 

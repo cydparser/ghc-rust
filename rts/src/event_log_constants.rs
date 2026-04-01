@@ -62,7 +62,11 @@ pub(crate) const EVENT_HEAP_LIVE: i32 = 51;
 
 pub(crate) const EVENT_HEAP_PROF_BEGIN: i32 = 160;
 
+pub(crate) const EVENT_HEAP_PROF_COST_CENTRE: i32 = 161;
+
 pub(crate) const EVENT_HEAP_PROF_SAMPLE_BEGIN: i32 = 162;
+
+pub(crate) const EVENT_HEAP_PROF_SAMPLE_COST_CENTRE: i32 = 163;
 
 pub(crate) const EVENT_HEAP_PROF_SAMPLE_END: i32 = 165;
 
@@ -85,6 +89,10 @@ pub(crate) const EVENT_NONMOVING_PRUNED_SEGMENTS: i32 = 208;
 pub(crate) const EVENT_OSPROCESS_PID: i32 = 32;
 
 pub(crate) const EVENT_OSPROCESS_PPID: i32 = 33;
+
+pub(crate) const EVENT_PROF_BEGIN: i32 = 168;
+
+pub(crate) const EVENT_PROF_SAMPLE_COST_CENTRE: i32 = 167;
 
 pub(crate) const EVENT_PROGRAM_ARGS: i32 = 30;
 
@@ -125,6 +133,12 @@ pub(crate) const EVENT_THREAD_LABEL: i32 = 44;
 pub(crate) const EVENT_THREAD_RUNNABLE: i32 = 3;
 
 pub(crate) const EVENT_THREAD_WAKEUP: i32 = 8;
+
+pub(crate) const EVENT_TICKY_COUNTER_BEGIN_SAMPLE: i32 = 212;
+
+pub(crate) const EVENT_TICKY_COUNTER_DEF: i32 = 210;
+
+pub(crate) const EVENT_TICKY_COUNTER_SAMPLE: i32 = 211;
 
 pub(crate) const EVENT_USER_BINARY_MSG: i32 = 181;
 

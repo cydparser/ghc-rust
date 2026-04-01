@@ -65,7 +65,9 @@ fn equivalent_newCAF() {
     let expected = {
         let mut reg: sys::StgRegTable = todo!();
         let mut caf: sys::StgIndStatic = todo!();
+
         let result: &StgInd = unsafe { transmute(&*sys::newCAF(&raw mut reg, &raw mut caf)) };
+
         todo!()
     };
 

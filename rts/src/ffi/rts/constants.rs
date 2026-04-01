@@ -73,7 +73,7 @@ pub(crate) const LDV_STATE_CREATE: u32 = 0;
 
 pub(crate) const LDV_STATE_USE: u64 = 1152921504606846976;
 
-pub(crate) const INVALID_GHC_POINTER: i64 = 0xaaaaaaaaaaaaaaaa_u64 as i64;
+pub(crate) const INVALID_GHC_POINTER: i64 = 0xaaaaaaaaaaaaaaaa_u64;
 
 #[ffi(ghc_lib)]
 pub const ThreadRunGHC: u32 = 1;

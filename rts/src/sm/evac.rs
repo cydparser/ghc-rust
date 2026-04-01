@@ -1,19 +1,25 @@
 use crate::check_unload::markObjectCode;
-use crate::ffi::rts::constants::{MAX_CHARLIKE, MAX_INTLIKE, MIN_INTLIKE};
+use crate::ffi::rts::_assertFail;
+use crate::ffi::rts::constants::{
+    LDV_SHIFT, LDV_STATE_CREATE, MAX_CHARLIKE, MAX_INTLIKE, MIN_INTLIKE,
+};
 use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::prof::ccs::era;
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
+use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK};
 use crate::ffi::rts::storage::block::{
     BF_COMPACT, BF_EVACUATED, BF_LARGE, BF_MARKED, BF_NONMOVING, BF_PINNED, BLOCK_SIZE_W, Bdescr,
-    bdescr_, dbl_link_onto, dbl_link_remove,
+    bdescr, bdescr_, dbl_link_onto, dbl_link_remove,
 };
 use crate::ffi::rts::storage::closure_macros::{
-    CHARLIKE_CLOSURE, GET_CLOSURE_TAG, INFO_PTR_TO_STRUCT, INTLIKE_CLOSURE, SET_INFO,
-    SET_INFO_RELAXED, SET_INFO_RELEASE, STATIC_LINK, TAG_CLOSURE, THUNK_SELECTOR_sizeW,
+    CHARLIKE_CLOSURE, GET_CLOSURE_TAG, INFO_PTR_TO_STRUCT, INTLIKE_CLOSURE, LOOKS_LIKE_CLOSURE_PTR,
+    SET_INFO, SET_INFO_RELAXED, SET_INFO_RELEASE, STATIC_LINK, TAG_CLOSURE, THUNK_SELECTOR_sizeW,
     UNTAG_CLOSURE, ap_sizeW, ap_stack_sizeW, arr_words_sizeW, bco_sizeW, continuation_sizeW,
-    get_itbl, mut_arr_ptrs_sizeW, pap_sizeW, sizeW_fromITBL, small_mut_arr_ptrs_sizeW, stack_sizeW,
-    thunk_sizeW_fromITBL,
+    doingLDVProfiling, get_itbl, mut_arr_ptrs_sizeW, overwritingClosure, pap_sizeW, sizeW_fromITBL,
+    small_mut_arr_ptrs_sizeW, stack_sizeW, thunk_sizeW_fromITBL,
 };
+use crate::ffi::rts::storage::closure_types::THUNK_SELECTOR;
 use crate::ffi::rts::storage::closures::{
     StgAP, StgAP_STACK, StgArrBytes, StgBCO, StgClosure_, StgContinuation, StgInd, StgMutArrPtrs,
     StgPAP, StgSelector, StgSmallMutArrPtrs, StgThunk,
@@ -28,14 +34,17 @@ use crate::ffi::stg::misc_closures::{
     stg_BLOCKING_QUEUE_CLEAN_info, stg_BLOCKING_QUEUE_DIRTY_info, stg_IND_info, stg_TSO_info,
     stg_WHITEHOLE_info, stg_sel_0_upd_info,
 };
-use crate::ffi::stg::types::{StgChar, StgHalfWord, StgInt, StgPtr, StgWord, StgWord16};
+use crate::ffi::stg::smp::{busy_wait_nop, cas, xchg};
+use crate::ffi::stg::types::{
+    StgChar, StgHalfWord, StgInt, StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord64,
+};
 use crate::prelude::*;
 use crate::sm::cnf::objectGetCompact;
 use crate::sm::compact::{is_marked, mark};
-use crate::sm::gc::{deadlock_detect_gc, major_gc, unload_mark_needed};
-use crate::sm::gc_thread::{gc_thread, gen_workspace};
+use crate::sm::gc::{deadlock_detect_gc, major_gc, unload_mark_needed, whitehole_gc_spin};
+use crate::sm::gc_thread::gen_workspace;
 use crate::sm::gc_utils::todo_block_full;
-use crate::sm::gct_decl::the_gc_thread;
+use crate::sm::gct_decl::gct;
 use crate::sm::mark_stack::push_mark_stack;
 use crate::sm::non_moving::{isNonmovingClosure, nonmovingGetSegment};
 use crate::sm::non_moving_allocate::nonmovingAllocateGC;
@@ -46,20 +55,15 @@ use crate::trace::{DEBUG_RTS, trace_};
 const MAX_THUNK_SELECTOR_DEPTH: i32 = 16;
 
 unsafe fn alloc_in_nonmoving_heap(mut size: u32) -> StgPtr {
-    let ref mut fresh7 = (*(&raw mut the_gc_thread as *mut gc_thread)).copied;
-    *fresh7 = (*fresh7).wrapping_add(size as W_);
+    (*gct).copied = (*gct).copied.wrapping_add(size as W_);
 
-    let mut to = nonmovingAllocateGC(
-        (*(&raw mut the_gc_thread as *mut gc_thread)).cap,
-        size as StgWord,
-    ) as StgPtr;
-
+    let mut to = nonmovingAllocateGC((*gct).cap, size as StgWord) as StgPtr;
     let mut seg = nonmovingGetSegment(to);
 
     if (*seg).todo_link.is_null() {
-        let mut ws: *mut gen_workspace =
-            (&raw mut (*(&raw mut the_gc_thread as *mut gc_thread)).gens as *mut gen_workspace)
-                .offset((*oldest_gen).no as isize) as *mut gen_workspace;
+        let mut ws: *mut gen_workspace = (&raw mut (*gct).gens as *mut gen_workspace)
+            .offset((*oldest_gen).no as isize)
+            as *mut gen_workspace;
         (*seg).todo_link = (*ws).0.todo_seg;
         (*ws).0.todo_seg = seg;
 
@@ -69,9 +73,7 @@ unsafe fn alloc_in_nonmoving_heap(mut size: u32) -> StgPtr {
 
     if major_gc as i32 != 0 && !deadlock_detect_gc {
         markQueuePushClosureGC(
-            &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
-                .upd_rem_set
-                .queue,
+            &raw mut (*(*gct).cap).upd_rem_set.queue,
             to as *mut StgClosure,
         );
     }
@@ -79,17 +81,23 @@ unsafe fn alloc_in_nonmoving_heap(mut size: u32) -> StgPtr {
     return to;
 }
 
-#[inline]
 unsafe fn alloc_in_moving_heap(mut size: u32, mut gen_no: u32) -> StgPtr {
-    let mut ws: *mut gen_workspace = (&raw mut (*(&raw mut the_gc_thread as *mut gc_thread)).gens
-        as *mut gen_workspace)
-        .offset(gen_no as isize) as *mut gen_workspace;
+    let mut ws: *mut gen_workspace =
+        (&raw mut (*gct).gens as *mut gen_workspace).offset(gen_no as isize) as *mut gen_workspace;
 
     let mut to = (*ws).0.todo_free;
     (*ws).0.todo_free = (*ws).0.todo_free.offset(size as isize);
 
     if (*ws).0.todo_free > (*ws).0.todo_lim {
         to = todo_block_full(size, ws);
+    }
+
+    if ((*ws).0.todo_free >= (*(*ws).0.todo_bd).c2rust_unnamed.free
+        && (*ws).0.todo_free <= (*ws).0.todo_lim) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/sm/Evac.c".as_ptr(), 116);
     }
 
     return to;
@@ -100,11 +108,11 @@ unsafe fn alloc_for_copy_nonmoving(mut size: u32, mut gen_no: u32) -> StgPtr {
         return alloc_in_nonmoving_heap(size);
     }
 
-    if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-        if (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion {
-            gen_no = (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no;
+    if gen_no < (*gct).evac_gen_no {
+        if (*gct).eager_promotion {
+            gen_no = (*gct).evac_gen_no;
         } else {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+            (*gct).failed_to_evac = true;
         }
     }
 
@@ -115,17 +123,21 @@ unsafe fn alloc_for_copy_nonmoving(mut size: u32, mut gen_no: u32) -> StgPtr {
     };
 }
 
-#[inline]
 unsafe fn alloc_for_copy(mut size: u32, mut gen_no: u32) -> StgPtr {
+    if (gen_no < RtsFlags.GcFlags.generations) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Evac.c".as_ptr(), 154);
+    }
+
     if RtsFlags.GcFlags.useNonmoving as i64 != 0 {
         return alloc_for_copy_nonmoving(size, gen_no);
     }
 
-    if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-        if (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion {
-            gen_no = (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no;
+    if gen_no < (*gct).evac_gen_no {
+        if (*gct).eager_promotion {
+            gen_no = (*gct).evac_gen_no;
         } else {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+            (*gct).failed_to_evac = true;
         }
     }
 
@@ -156,6 +168,10 @@ unsafe fn copy_tag(
 
     (*src).header.info = (to as StgWord | 1) as *const StgInfoTable;
     *p = TAG_CLOSURE(tag, to as *mut StgClosure);
+
+    if doingLDVProfiling() {
+        (*(from as *mut StgClosure)).header.prof.hp.ldvw = size as StgWord;
+    }
 }
 
 #[inline(always)]
@@ -181,8 +197,27 @@ unsafe fn copyPart(
         i = i.wrapping_add(1);
     }
 
-    *p = to as *mut StgClosure;
-    (*src).header.info = (to as StgWord | 1) as *const StgInfoTable;
+    (p).store(to as *mut StgClosure, Ordering::Release);
+    (&raw mut (*src).header.info).store(
+        (to as StgWord | 1) as *const StgInfoTable,
+        Ordering::Release,
+    );
+
+    if doingLDVProfiling() {
+        (*(from as *mut StgClosure)).header.prof.hp.ldvw = size_to_reserve as StgWord;
+    }
+
+    if size_to_reserve.wrapping_sub(size_to_copy) > 0 {
+        if era > 0 {
+            let mut i_0: i32 = 0;
+            i_0 = 0;
+
+            while i_0 < size_to_reserve.wrapping_sub(size_to_copy) as i32 {
+                *to.offset(size_to_copy as isize).offset(i_0 as isize) = 0;
+                i_0 += 1;
+            }
+        }
+    }
 
     return true;
 }
@@ -207,14 +242,16 @@ unsafe fn evacuate_large(mut p: StgPtr) {
     let mut new_gen_no: u32 = 0;
     let mut ws = null_mut::<gen_workspace>();
     bd = Bdescr(p);
-    r#gen = (*bd).r#gen as *mut generation;
-    gen_no = (*bd).gen_no as u32;
+    r#gen = (&raw mut (*bd).r#gen).load(Ordering::Relaxed) as *mut generation;
+    gen_no = (&raw mut (*bd).gen_no).load(Ordering::Relaxed) as u32;
+    ACQUIRE_SPIN_LOCK(&raw mut (*r#gen).sync);
 
-    if (*bd).flags as i32 & BF_EVACUATED != 0 {
-        if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+    if (&raw mut (*bd).flags).load(Ordering::Relaxed) as i32 & BF_EVACUATED != 0 {
+        if gen_no < (*gct).evac_gen_no {
+            (*gct).failed_to_evac = true;
         }
 
+        RELEASE_SPIN_LOCK(&raw mut (*r#gen).sync);
         return;
     }
 
@@ -223,16 +260,16 @@ unsafe fn evacuate_large(mut p: StgPtr) {
 
     if deadlock_detect_gc as i64 != 0 {
         new_gen_no = (*oldest_gen).no;
-    } else if new_gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-        if (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion {
-            new_gen_no = (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no;
+    } else if new_gen_no < (*gct).evac_gen_no {
+        if (*gct).eager_promotion {
+            new_gen_no = (*gct).evac_gen_no;
         } else {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+            (*gct).failed_to_evac = true;
         }
     }
 
-    ws = (&raw mut (*(&raw mut the_gc_thread as *mut gc_thread)).gens as *mut gen_workspace)
-        .offset(new_gen_no as isize) as *mut gen_workspace;
+    ws = (&raw mut (*gct).gens as *mut gen_workspace).offset(new_gen_no as isize)
+        as *mut gen_workspace;
     new_gen = generations.offset(new_gen_no as isize) as *mut generation;
     (&raw mut (*bd).flags).or(BF_EVACUATED as StgWord16, Ordering::AcqRel);
 
@@ -241,9 +278,7 @@ unsafe fn evacuate_large(mut p: StgPtr) {
 
         if major_gc as i32 != 0 && !deadlock_detect_gc {
             markQueuePushClosureGC(
-                &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
-                    .upd_rem_set
-                    .queue,
+                &raw mut (*(*gct).cap).upd_rem_set.queue,
                 p as *mut StgClosure,
             );
         }
@@ -251,46 +286,58 @@ unsafe fn evacuate_large(mut p: StgPtr) {
 
     initBdescr(bd, new_gen, (*new_gen).to as *mut generation);
 
-    if (*bd).flags as i32 & BF_PINNED != 0 {
-        new_gen != r#gen;
+    if (&raw mut (*bd).flags).load(Ordering::Relaxed) as i32 & BF_PINNED != 0 {
+        if ((*get_itbl(p as *mut StgClosure)).r#type == 42) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/Evac.c".as_ptr(), 462);
+        }
+
+        if new_gen != r#gen {
+            ACQUIRE_SPIN_LOCK(&raw mut (*new_gen).sync);
+        }
+
         dbl_link_onto(bd, &raw mut (*new_gen).scavenged_large_objects);
         (*new_gen).n_scavenged_large_blocks = (*new_gen)
             .n_scavenged_large_blocks
             .wrapping_add((*bd).blocks as memcount);
-        new_gen != r#gen;
+
+        if new_gen != r#gen {
+            RELEASE_SPIN_LOCK(&raw mut (*new_gen).sync);
+        }
     } else {
         (*bd).link = (*ws).0.todo_large_objects as *mut bdescr_;
         (*ws).0.todo_large_objects = bd;
-    };
+    }
+
+    RELEASE_SPIN_LOCK(&raw mut (*r#gen).sync);
 }
 
-#[inline]
 unsafe fn evacuate_static_object(mut link_field: *mut *mut StgClosure, mut q: *mut StgClosure) {
     if RtsFlags.GcFlags.useNonmoving as i64 != 0 {
         if major_gc as i32 != 0 && !deadlock_detect_gc {
-            markQueuePushClosureGC(
-                &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
-                    .upd_rem_set
-                    .queue,
-                q,
-            );
+            markQueuePushClosureGC(&raw mut (*(*gct).cap).upd_rem_set.queue, q);
         }
 
         return;
     }
 
-    let mut link: StgWord = *(link_field as *mut StgWord);
+    let mut link: StgWord = (link_field as *mut StgWord).load(Ordering::Relaxed);
 
     if link & STATIC_BITS as StgWord | prev_static_flag as StgWord != 3 {
         let mut new_list_head: StgWord = q as StgWord | static_flag as StgWord;
-        *link_field = (*(&raw mut the_gc_thread as *mut gc_thread)).static_objects;
+        let mut prev: StgWord = 0;
+        prev = cas(
+            link_field as StgVolatilePtr,
+            link,
+            (*gct).static_objects as StgWord,
+        );
 
-        let ref mut fresh15 = (*(&raw mut the_gc_thread as *mut gc_thread)).static_objects;
-        *fresh15 = new_list_head as *mut StgClosure;
+        if prev == link {
+            (*gct).static_objects = new_list_head as *mut StgClosure;
+        }
     }
 }
 
-#[inline]
 unsafe fn evacuate_compact(mut p: StgPtr) {
     let mut str = null_mut::<StgCompactNFData>();
     let mut bd = null_mut::<bdescr>();
@@ -299,15 +346,19 @@ unsafe fn evacuate_compact(mut p: StgPtr) {
     let mut gen_no: u32 = 0;
     let mut new_gen_no: u32 = 0;
     str = objectGetCompact(p as *mut StgClosure);
+
+    if ((*get_itbl(str as *mut StgClosure)).r#type == 63) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Evac.c".as_ptr(), 537);
+    }
+
     bd = Bdescr(str as StgPtr);
     gen_no = (*bd).gen_no as u32;
 
-    if (*bd).flags as i32 & BF_NONMOVING != 0 {
+    if (&raw mut (*bd).flags).load(Ordering::Relaxed) as i32 & BF_NONMOVING != 0 {
         if major_gc as i32 != 0 && !deadlock_detect_gc {
             markQueuePushClosureGC(
-                &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
-                    .upd_rem_set
-                    .queue,
+                &raw mut (*(*gct).cap).upd_rem_set.queue,
                 str as *mut StgClosure,
             );
         }
@@ -320,8 +371,8 @@ unsafe fn evacuate_compact(mut p: StgPtr) {
             trace_(c"Compact %p already evacuated".as_ptr(), str);
         }
 
-        if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+        if gen_no < (*gct).evac_gen_no {
+            (*gct).failed_to_evac = true;
         }
 
         return;
@@ -329,23 +380,25 @@ unsafe fn evacuate_compact(mut p: StgPtr) {
 
     r#gen = (*bd).r#gen as *mut generation;
     gen_no = (*bd).gen_no as u32;
+    ACQUIRE_SPIN_LOCK(&raw mut (*r#gen).sync);
 
     if (*bd).flags as i32 & BF_EVACUATED != 0 {
-        if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+        if gen_no < (*gct).evac_gen_no {
+            (*gct).failed_to_evac = true;
         }
 
+        RELEASE_SPIN_LOCK(&raw mut (*r#gen).sync);
         return;
     }
 
     dbl_link_remove(bd, &raw mut (*r#gen).compact_objects);
     new_gen_no = (*bd).dest_no as u32;
 
-    if new_gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-        if (*(&raw mut the_gc_thread as *mut gc_thread)).eager_promotion {
-            new_gen_no = (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no;
+    if new_gen_no < (*gct).evac_gen_no {
+        if (*gct).eager_promotion {
+            new_gen_no = (*gct).evac_gen_no;
         } else {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+            (*gct).failed_to_evac = true;
         }
     }
 
@@ -357,9 +410,7 @@ unsafe fn evacuate_compact(mut p: StgPtr) {
 
         if major_gc as i32 != 0 && !deadlock_detect_gc {
             markQueuePushClosureGC(
-                &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
-                    .upd_rem_set
-                    .queue,
+                &raw mut (*(*gct).cap).upd_rem_set.queue,
                 str as *mut StgClosure,
             );
         }
@@ -368,32 +419,45 @@ unsafe fn evacuate_compact(mut p: StgPtr) {
     initBdescr(bd, new_gen, (*new_gen).to as *mut generation);
 
     if !(*str).hash.is_null() {
-        let mut ws: *mut gen_workspace =
-            (&raw mut (*(&raw mut the_gc_thread as *mut gc_thread)).gens as *mut gen_workspace)
-                .offset(new_gen_no as isize) as *mut gen_workspace;
+        let mut ws: *mut gen_workspace = (&raw mut (*gct).gens as *mut gen_workspace)
+            .offset(new_gen_no as isize)
+            as *mut gen_workspace;
         (*bd).link = (*ws).0.todo_large_objects as *mut bdescr_;
         (*ws).0.todo_large_objects = bd;
     } else {
-        new_gen != r#gen;
+        if new_gen != r#gen {
+            ACQUIRE_SPIN_LOCK(&raw mut (*new_gen).sync);
+        }
+
         dbl_link_onto(bd, &raw mut (*new_gen).live_compact_objects);
         (*new_gen).n_live_compact_blocks = ((*new_gen).n_live_compact_blocks as StgWord)
             .wrapping_add((*str).totalW.wrapping_div(BLOCK_SIZE_W as StgWord))
             as memcount as memcount;
-        new_gen != r#gen;
-    };
+
+        if new_gen != r#gen {
+            RELEASE_SPIN_LOCK(&raw mut (*new_gen).sync);
+        }
+    }
+
+    RELEASE_SPIN_LOCK(&raw mut (*r#gen).sync);
 }
 
-unsafe fn evacuate(mut p: *mut *mut StgClosure) {
+unsafe fn evacuate1(mut p: *mut *mut StgClosure) {
     let mut bd = null_mut::<bdescr>();
     let mut gen_no: u32 = 0;
     let mut q = null_mut::<StgClosure>();
     let mut info = null::<StgInfoTable>();
     let mut tag: StgWord = 0;
-    q = *p;
+    q = (p).load(Ordering::Relaxed);
 
     loop {
         tag = GET_CLOSURE_TAG(q);
         q = UNTAG_CLOSURE(q);
+
+        if LOOKS_LIKE_CLOSURE_PTR(q as *const c_void) as i32 as i64 != 0 {
+        } else {
+            barf(c"invalid closure, info=%p".as_ptr(), (*q).header.info);
+        }
 
         if !(q as W_ >= mblock_address_space.0.begin && (q as W_) < mblock_address_space.0.end) {
             if !major_gc {
@@ -450,26 +514,20 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
 
         bd = Bdescr(q as StgPtr);
 
-        let mut flags: u16 = (*bd).flags;
+        let mut flags: u16 = (&raw mut (*bd).flags).load(Ordering::Relaxed);
 
         if flags as i32 & (BF_LARGE | BF_MARKED | BF_EVACUATED | BF_COMPACT | BF_NONMOVING) != 0 {
-            if ((*bd).flags as i32 & 1024) as i64 != 0 {
+            if ((&raw mut (*bd).flags).load(Ordering::Relaxed) as i32 & 1024) as i64 != 0 {
                 if major_gc as i32 != 0 && !deadlock_detect_gc {
-                    markQueuePushClosureGC(
-                        &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
-                            .upd_rem_set
-                            .queue,
-                        q,
-                    );
+                    markQueuePushClosureGC(&raw mut (*(*gct).cap).upd_rem_set.queue, q);
                 }
 
                 return;
             }
 
             if flags as i32 & BF_EVACUATED != 0 {
-                if ((*bd).gen_no as u32) < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no
-                {
-                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+                if ((&raw mut (*bd).gen_no).load(Ordering::Relaxed) as u32) < (*gct).evac_gen_no {
+                    (*gct).failed_to_evac = true;
                 }
 
                 return;
@@ -494,17 +552,21 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
         }
 
         gen_no = (*bd).dest_no as u32;
-        info = (*q).header.info;
+        info = (&raw mut (*q).header.info).load(Ordering::Acquire);
 
         if info as StgWord & 1 != 0 {
             let mut e = (info as StgWord).wrapping_sub(1 as StgWord) as *mut StgClosure;
-            *p = TAG_CLOSURE(tag, e);
+            (p).store(TAG_CLOSURE(tag, e), Ordering::Relaxed);
 
-            if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-                if ((*Bdescr(e as StgPtr)).gen_no as u32)
-                    < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no
+            if gen_no < (*gct).evac_gen_no {
+                if ((&raw mut (*(Bdescr as unsafe extern "C" fn(StgPtr) -> *mut bdescr)(
+                    e as StgPtr,
+                ))
+                .gen_no)
+                    .load(Ordering::Acquire) as u32)
+                    < (*gct).evac_gen_no
                 {
-                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+                    (*gct).failed_to_evac = true;
                 }
             }
 
@@ -518,15 +580,21 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                     *(&raw mut (*q).payload as *mut *mut StgClosure_).offset(0) as StgWord;
 
                 if info == (*ghc_hs_iface).Czh_con_info && w as StgChar <= MAX_CHARLIKE as StgChar {
-                    *p = TAG_CLOSURE(
-                        tag,
-                        CHARLIKE_CLOSURE(w as StgChar as i32) as *mut StgClosure,
+                    (p).store(
+                        TAG_CLOSURE(
+                            tag,
+                            CHARLIKE_CLOSURE(w as StgChar as i32) as *mut StgClosure,
+                        ),
+                        Ordering::Relaxed,
                     );
                 } else if info == (*ghc_hs_iface).Izh_con_info
                     && w as StgInt >= MIN_INTLIKE as StgInt
                     && w as StgInt <= MAX_INTLIKE as StgInt
                 {
-                    *p = TAG_CLOSURE(tag, INTLIKE_CLOSURE(w as StgInt as i32) as *mut StgClosure);
+                    (p).store(
+                        TAG_CLOSURE(tag, INTLIKE_CLOSURE(w as StgInt as i32) as *mut StgClosure),
+                        Ordering::Relaxed,
+                    );
                 } else {
                     copy_tag(
                         p,
@@ -651,11 +719,11 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                 r = (*(q as *mut StgInd)).indirectee;
 
                 if GET_CLOSURE_TAG(r) == 0 {
-                    i = (*r).header.info;
+                    i = (&raw mut (*r).header.info).load(Ordering::Acquire);
 
                     if i as StgWord & 1 != 0 {
                         r = (i as StgWord).wrapping_sub(1 as StgWord) as *mut StgClosure;
-                        i = (*r).header.info;
+                        i = (&raw mut (*r).header.info).load(Ordering::Acquire);
                     }
 
                     if i == &raw const stg_TSO_info
@@ -677,10 +745,15 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
 
                         return;
                     }
+
+                    if (i != &raw const stg_IND_info) as i32 as i64 != 0 {
+                    } else {
+                        _assertFail(c"rts/sm/Evac.c".as_ptr(), 952);
+                    }
                 }
 
                 q = r;
-                *p = r;
+                (p).store(r, Ordering::Release);
             }
             47 | 48 | 39 | 40 | 41 | 37 | 49 | 50 | 51 => {
                 copy(
@@ -702,8 +775,8 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
                 return;
             }
             27 => {
-                q = (*(q as *mut StgInd)).indirectee;
-                *p = q;
+                q = (&raw mut (*(q as *mut StgInd)).indirectee).load(Ordering::Relaxed);
+                (p).store(q, Ordering::Relaxed);
             }
             29 | 30 | 31 | 33 | 35 | 36 | 34 | 57 | 56 | 55 | 65 => {
                 barf(c"evacuate: stack frame at %p\n".as_ptr(), q);
@@ -846,24 +919,38 @@ unsafe fn evacuate(mut p: *mut *mut StgClosure) {
     }
 }
 
-unsafe fn evacuate_BLACKHOLE(mut p: *mut *mut StgClosure) {
+unsafe fn evacuate_BLACKHOLE1(mut p: *mut *mut StgClosure) {
     let mut bd = null_mut::<bdescr>();
     let mut gen_no: u32 = 0;
     let mut q = null_mut::<StgClosure>();
     let mut info = null::<StgInfoTable>();
     q = *p;
+
+    if (q as W_ >= mblock_address_space.0.begin && (q as W_) < mblock_address_space.0.end) as i32
+        as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/sm/Evac.c".as_ptr(), 1097);
+    }
+
+    if (GET_CLOSURE_TAG(q) == 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Evac.c".as_ptr(), 1098);
+    }
+
     bd = Bdescr(q as StgPtr);
 
-    let flags: u16 = (*bd).flags;
+    let flags: u16 = (&raw mut (*bd).flags).load(Ordering::Relaxed);
 
-    if ((*bd).flags as i32 & 1024) as i64 != 0 {
+    if (flags as i32 & 512 == 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Evac.c".as_ptr(), 1104);
+    }
+
+    if ((&raw mut (*bd).flags).load(Ordering::Relaxed) as i32 & 1024) as i64 != 0 {
         if major_gc as i32 != 0 && !deadlock_detect_gc {
-            markQueuePushClosureGC(
-                &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
-                    .upd_rem_set
-                    .queue,
-                q,
-            );
+            markQueuePushClosureGC(&raw mut (*(*gct).cap).upd_rem_set.queue, q);
         }
 
         return;
@@ -875,8 +962,8 @@ unsafe fn evacuate_BLACKHOLE(mut p: *mut *mut StgClosure) {
     }
 
     if flags as i32 & BF_EVACUATED != 0 {
-        if ((*bd).gen_no as u32) < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-            (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+        if ((*bd).gen_no as u32) < (*gct).evac_gen_no {
+            (*gct).failed_to_evac = true;
         }
 
         return;
@@ -892,21 +979,28 @@ unsafe fn evacuate_BLACKHOLE(mut p: *mut *mut StgClosure) {
     }
 
     gen_no = (*bd).dest_no as u32;
-    info = (*q).header.info;
+    info = (&raw mut (*q).header.info).load(Ordering::Acquire);
 
     if info as StgWord & 1 != 0 {
         let mut e = (info as StgWord).wrapping_sub(1 as StgWord) as *mut StgClosure;
         *p = e;
 
-        if gen_no < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no {
-            if ((*Bdescr(e as StgPtr)).gen_no as u32)
-                < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no
+        if gen_no < (*gct).evac_gen_no {
+            if ((&raw mut (*(Bdescr as unsafe extern "C" fn(StgPtr) -> *mut bdescr)(e as StgPtr))
+                .gen_no)
+                .load(Ordering::Acquire) as u32)
+                < (*gct).evac_gen_no
             {
-                (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+                (*gct).failed_to_evac = true;
             }
         }
 
         return;
+    }
+
+    if ((*INFO_PTR_TO_STRUCT(info)).r#type == 38) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Evac.c".as_ptr(), 1150);
     }
 
     copy(
@@ -923,18 +1017,29 @@ unsafe fn evacuate_BLACKHOLE(mut p: *mut *mut StgClosure) {
 
 unsafe fn unchain_thunk_selectors(mut p: *mut StgSelector, mut val: *mut StgClosure) {
     while !p.is_null() {
+        if ((*p).header.info == &raw const stg_WHITEHOLE_info) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/Evac.c".as_ptr(), 1184);
+        }
+
         let mut prev = *(&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_)
             .offset(0) as *mut StgSelector;
 
         if p as *mut StgClosure == val {
-            let ref mut fresh12 =
-                *(&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0);
-            *fresh12 = val as *mut StgClosure_;
+            ((&raw mut (*(p as *mut StgThunk)).payload as *mut *mut StgClosure_).offset(0)
+                as *mut *mut StgClosure_)
+                .store(val, Ordering::Relaxed);
             SET_INFO_RELEASE(p as *mut StgClosure, &raw const stg_sel_0_upd_info);
         } else {
-            let ref mut fresh13 = (*(p as *mut StgInd)).indirectee;
-            *fresh13 = val;
+            (&raw mut (*(p as *mut StgInd)).indirectee).store(val, Ordering::Relaxed);
             SET_INFO_RELEASE(p as *mut StgClosure, &raw const stg_IND_info);
+        }
+
+        if doingLDVProfiling() {
+            if doingLDVProfiling() {
+                (*(p as *mut StgClosure)).header.prof.hp.ldvw =
+                    (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+            }
         }
 
         p = prev;
@@ -956,27 +1061,27 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
         bd = Bdescr(p as StgPtr);
 
         if p as W_ >= mblock_address_space.0.begin && (p as W_) < mblock_address_space.0.end {
-            let flags: u16 = (*bd).flags;
+            let flags: u16 = (&raw mut (*bd).flags).load(Ordering::Relaxed);
+
+            if (flags as i32 & 2 == 0) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/Evac.c".as_ptr(), 1264);
+            }
 
             if flags as i32 & (BF_EVACUATED | BF_NONMOVING) != 0 {
                 unchain_thunk_selectors(prev_thunk_selector, p as *mut StgClosure);
 
                 if flags as i32 & BF_NONMOVING != 0 {
                     markQueuePushClosureGC(
-                        &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
-                            .upd_rem_set
-                            .queue,
+                        &raw mut (*(*gct).cap).upd_rem_set.queue,
                         p as *mut StgClosure,
                     );
                 }
 
                 *q = p as *mut StgClosure;
 
-                if evac as i32 != 0
-                    && ((*bd).gen_no as u32)
-                        < (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no
-                {
-                    (*(&raw mut the_gc_thread as *mut gc_thread)).failed_to_evac = true;
+                if evac as i32 != 0 && ((*bd).gen_no as u32) < (*gct).evac_gen_no {
+                    (*gct).failed_to_evac = true;
                 }
 
                 return;
@@ -986,7 +1091,7 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
                 *q = p as *mut StgClosure;
 
                 if evac {
-                    evacuate(q);
+                    evacuate1(q);
                 }
 
                 unchain_thunk_selectors(prev_thunk_selector, p as *mut StgClosure);
@@ -994,42 +1099,109 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
             }
         }
 
-        info_ptr = (*p).header.info as StgWord;
-        SET_INFO(p as *mut StgClosure, &raw const stg_WHITEHOLE_info);
+        loop {
+            info_ptr = xchg(
+                &raw mut (*p).header.info as StgPtr,
+                &raw const stg_WHITEHOLE_info as StgWord,
+            );
+
+            if info_ptr != &raw const stg_WHITEHOLE_info as W_ {
+                break;
+            }
+
+            write_volatile(
+                &mut whitehole_gc_spin as *mut StgWord64,
+                read_volatile::<StgWord64>(&whitehole_gc_spin as *const StgWord64).wrapping_add(1),
+            );
+
+            busy_wait_nop();
+        }
+
+        if info_ptr & 1 != 0
+            || (*INFO_PTR_TO_STRUCT(info_ptr as *mut StgInfoTable)).r#type
+                != THUNK_SELECTOR as StgHalfWord
+        {
+            SET_INFO(p as *mut StgClosure, info_ptr as *const StgInfoTable);
+            (q).store(p as *mut StgClosure, Ordering::Release);
+
+            if (*Bdescr(p as StgPtr)).flags as i32 & BF_NONMOVING != 0 {
+                markQueuePushClosureGC(
+                    &raw mut (*(*gct).cap).upd_rem_set.queue,
+                    p as *mut StgClosure,
+                );
+            }
+
+            if evac {
+                evacuate1(q);
+            }
+
+            unchain_thunk_selectors(prev_thunk_selector, p as *mut StgClosure);
+            return;
+        }
+
         field = (*INFO_PTR_TO_STRUCT(info_ptr as *mut StgInfoTable))
             .layout
             .selector_offset as u32;
         selectee = UNTAG_CLOSURE((*p).selectee);
 
         loop {
-            info = *(&raw mut (*selectee).header.info as *mut *mut StgInfoTable);
+            info = (&raw mut (*selectee).header.info as *mut *mut StgInfoTable)
+                .load(Ordering::Relaxed);
 
             if info as StgWord & 1 != 0 {
-                current_block = 17090990969405305017;
+                current_block = 11707196495568705917;
                 break '_selector_chain;
             } else {
                 info = INFO_PTR_TO_STRUCT(info);
 
                 match (*info).r#type {
                     1 | 2 | 3 | 4 | 5 | 6 | 7 => {
-                        val = *(&raw mut (*selectee).payload as *mut *mut StgClosure_)
-                            .offset(field as isize);
+                        if (field
+                            < (*info)
+                                .layout
+                                .payload
+                                .ptrs
+                                .wrapping_add((*info).layout.payload.nptrs))
+                            as i32 as i64
+                            != 0
+                        {
+                        } else {
+                            _assertFail(c"rts/sm/Evac.c".as_ptr(), 1388);
+                        }
+
+                        val = ((&raw mut (*selectee).payload as *mut *mut StgClosure_)
+                            .offset(field as isize)
+                            as *mut *mut StgClosure_)
+                            .load(Ordering::Relaxed);
+
+                        if era > 0 {
+                            SET_INFO(p as *mut StgClosure, info_ptr as *mut StgInfoTable);
+
+                            overwritingClosure(p as *mut StgClosure);
+
+                            SET_INFO_RELEASE(p as *mut StgClosure, &raw const stg_WHITEHOLE_info);
+                        }
+
                         break;
                     }
                     27 | 28 => {
-                        selectee = UNTAG_CLOSURE((*(selectee as *mut StgInd)).indirectee);
+                        selectee = UNTAG_CLOSURE(
+                            (&raw mut (*(selectee as *mut StgInd)).indirectee)
+                                .load(Ordering::Relaxed),
+                        );
                     }
                     38 => {
                         let mut r = null_mut::<StgClosure>();
                         let mut i = null::<StgInfoTable>();
-                        r = (*(selectee as *mut StgInd)).indirectee;
+                        r = (&raw mut (*(selectee as *mut StgInd)).indirectee)
+                            .load(Ordering::Acquire);
 
                         if GET_CLOSURE_TAG(r) == 0 {
-                            i = (*r).header.info;
+                            i = (&raw mut (*r).header.info).load(Ordering::Acquire);
 
                             if i as StgWord & 1 != 0 {
                                 r = (i as StgWord).wrapping_sub(1 as StgWord) as *mut StgClosure;
-                                i = (*r).header.info;
+                                i = (&raw mut (*r).header.info).load(Ordering::Relaxed);
                             }
 
                             if i == &raw const stg_TSO_info
@@ -1037,34 +1209,37 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
                                 || i == &raw const stg_BLOCKING_QUEUE_CLEAN_info
                                 || i == &raw const stg_BLOCKING_QUEUE_DIRTY_info
                             {
-                                current_block = 17090990969405305017;
+                                current_block = 11707196495568705917;
                                 break '_selector_chain;
+                            }
+
+                            if (i != &raw const stg_IND_info) as i32 as i64 != 0 {
+                            } else {
+                                _assertFail(c"rts/sm/Evac.c".as_ptr(), 1494);
                             }
                         }
 
-                        selectee = UNTAG_CLOSURE((*(selectee as *mut StgInd)).indirectee);
+                        selectee = UNTAG_CLOSURE(
+                            (&raw mut (*(selectee as *mut StgInd)).indirectee)
+                                .load(Ordering::Relaxed),
+                        );
                     }
                     22 => {
                         let mut val_0 = null_mut::<StgClosure>();
 
-                        if (*(&raw mut the_gc_thread as *mut gc_thread)).thunk_selector_depth
-                            >= MAX_THUNK_SELECTOR_DEPTH as W_
-                        {
+                        if (*gct).thunk_selector_depth >= MAX_THUNK_SELECTOR_DEPTH as W_ {
                             if isNonmovingClosure(p as *mut StgClosure) {
                                 markQueuePushClosureGC(
-                                    &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
-                                        .upd_rem_set
-                                        .queue,
+                                    &raw mut (*(*gct).cap).upd_rem_set.queue,
                                     p as *mut StgClosure,
                                 );
                             }
 
-                            current_block = 17090990969405305017;
+                            current_block = 11707196495568705917;
                             break '_selector_chain;
                         } else {
-                            let ref mut fresh10 =
-                                (*(&raw mut the_gc_thread as *mut gc_thread)).thunk_selector_depth;
-                            *fresh10 = (*fresh10).wrapping_add(1);
+                            (*gct).thunk_selector_depth =
+                                (*gct).thunk_selector_depth.wrapping_add(1);
 
                             eval_thunk_selector(
                                 &raw mut val_0,
@@ -1072,12 +1247,11 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
                                 false,
                             );
 
-                            let ref mut fresh11 =
-                                (*(&raw mut the_gc_thread as *mut gc_thread)).thunk_selector_depth;
-                            *fresh11 = (*fresh11).wrapping_sub(1);
+                            (*gct).thunk_selector_depth =
+                                (*gct).thunk_selector_depth.wrapping_sub(1);
 
                             if val_0 == selectee {
-                                current_block = 17090990969405305017;
+                                current_block = 11707196495568705917;
                                 break '_selector_chain;
                             }
 
@@ -1085,7 +1259,7 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
                         }
                     }
                     58 | 24 | 26 | 15 | 16 | 17 | 18 | 19 | 20 | 21 => {
-                        current_block = 17090990969405305017;
+                        current_block = 11707196495568705917;
                         break '_selector_chain;
                     }
                     _ => {
@@ -1099,15 +1273,16 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
         }
 
         loop {
-            info_ptr = *(&raw mut (*(UNTAG_CLOSURE
+            info_ptr = (&raw mut (*(UNTAG_CLOSURE
                 as unsafe extern "C" fn(*mut StgClosure) -> *mut StgClosure)(
                 val
             ))
             .header
-            .info as *mut StgWord);
+            .info as *mut StgWord)
+                .load(Ordering::Acquire);
 
             if info_ptr & 1 != 0 {
-                current_block = 7427571413727699167;
+                current_block = 9512719473022792396;
                 break '_selector_chain;
             }
 
@@ -1119,23 +1294,23 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
                     break;
                 }
                 _ => {
-                    current_block = 7427571413727699167;
+                    current_block = 9512719473022792396;
                     break '_selector_chain;
                 }
             }
 
-            val = (*(val as *mut StgInd)).indirectee;
+            val = (&raw mut (*(val as *mut StgInd)).indirectee).load(Ordering::Relaxed);
         }
 
-        let ref mut fresh8 =
-            *(&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0);
-        *fresh8 = prev_thunk_selector as *mut StgClosure as *mut StgClosure_;
+        ((&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+            as *mut *mut StgClosure_)
+            .store(prev_thunk_selector as *mut StgClosure, Ordering::Relaxed);
         prev_thunk_selector = p;
         p = val as *mut StgSelector;
     }
 
     match current_block {
-        17090990969405305017 => {
+        11707196495568705917 => {
             SET_INFO_RELAXED(p as *mut StgClosure, info_ptr as *const StgInfoTable);
             *q = p as *mut StgClosure;
 
@@ -1150,34 +1325,24 @@ unsafe fn eval_thunk_selector(q: *mut *mut StgClosure, mut p: *mut StgSelector, 
             }
 
             if isNonmovingClosure(*q) {
-                markQueuePushClosureGC(
-                    &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
-                        .upd_rem_set
-                        .queue,
-                    *q,
-                );
+                markQueuePushClosureGC(&raw mut (*(*gct).cap).upd_rem_set.queue, *q);
             }
 
             unchain_thunk_selectors(prev_thunk_selector, *q);
             return;
         }
         _ => {
-            let ref mut fresh9 =
-                *(&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0);
-            *fresh9 = prev_thunk_selector as *mut StgClosure as *mut StgClosure_;
+            ((&raw mut (*(p as *mut StgClosure)).payload as *mut *mut StgClosure_).offset(0)
+                as *mut *mut StgClosure_)
+                .store(prev_thunk_selector as *mut StgClosure, Ordering::Relaxed);
             prev_thunk_selector = p;
             *q = val;
             unchain_thunk_selectors(prev_thunk_selector, val);
 
             if evac {
-                evacuate(q);
+                evacuate1(q);
             } else if isNonmovingClosure(*q) {
-                markQueuePushClosureGC(
-                    &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap)
-                        .upd_rem_set
-                        .queue,
-                    *q,
-                );
+                markQueuePushClosureGC(&raw mut (*(*gct).cap).upd_rem_set.queue, *q);
             }
 
             return;

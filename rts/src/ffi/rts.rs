@@ -58,14 +58,14 @@ pub const _REENTRANT: u32 = 1;
 pub(crate) const ASSERTS_ENABLED: u32 = 1;
 
 #[ffi(ghc_lib)]
-pub const EXIT_INTERNAL_ERROR: i32 = 254;
+pub const EXIT_INTERNAL_ERROR: u32 = 254;
 
-pub(crate) const EXIT_DEADLOCK: i32 = 253;
+pub(crate) const EXIT_DEADLOCK: u32 = 253;
 
-pub(crate) const EXIT_INTERRUPTED: i32 = 252;
+pub(crate) const EXIT_INTERRUPTED: u32 = 252;
 
-pub(crate) const EXIT_HEAPOVERFLOW: i32 = 251;
+pub(crate) const EXIT_HEAPOVERFLOW: u32 = 251;
 
-pub(crate) const EXIT_KILLED: i32 = 250;
+pub(crate) const EXIT_KILLED: u32 = 250;
 
 pub(crate) const DEBUG_IS_ON: u32 = 1;

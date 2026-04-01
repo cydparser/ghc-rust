@@ -1,10 +1,4 @@
-use crate::adjustor::adjustor_pool::{
-    AdjustorContext, AdjustorPool, AdjustorTemplate, alloc_adjustor, free_adjustor,
-    new_adjustor_pool_from_template,
-};
-use crate::ffi::stg::types::{StgFunPtr, StgStablePtr};
 use crate::prelude::*;
-use crate::stable_ptr::freeStablePtr;
 
 #[cfg(test)]
 mod tests;

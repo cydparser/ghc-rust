@@ -1,9 +1,11 @@
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::closure_macros::{
     GET_CLOSURE_TAG, INFO_PTR_TO_STRUCT, UNTAG_CLOSURE, get_itbl, get_itbl_acquire,
 };
 use crate::ffi::rts::storage::closure_types::THUNK_SELECTOR;
 use crate::ffi::rts::storage::closures::{StgClosure_, StgInd, StgSelector};
+use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
 use crate::ffi::rts::types::{StgClosure, StgInfoTable};
 use crate::ffi::stg::misc_closures::{
     stg_BLOCKING_QUEUE_CLEAN_info, stg_BLOCKING_QUEUE_DIRTY_info, stg_IND_info, stg_TSO_info,
@@ -11,6 +13,7 @@ use crate::ffi::stg::misc_closures::{
 };
 use crate::ffi::stg::smp::cas;
 use crate::ffi::stg::types::{StgHalfWord, StgVolatilePtr, StgWord};
+use crate::ffi::stg::{P_, W_};
 use crate::prelude::*;
 use crate::sm::non_moving::isNonmovingClosure;
 use crate::sm::non_moving_mark::{MarkQueue, markQueuePushClosure};
@@ -24,9 +27,29 @@ unsafe fn update_selector_chain(
     p0: *mut StgSelector,
     val: *mut StgClosure,
 ) {
+    if !val.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingShortcut.c".as_ptr(), 42);
+    }
+
+    if isNonmovingClosure(val) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingShortcut.c".as_ptr(), 45);
+    }
+
+    if (chain != val) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingShortcut.c".as_ptr(), 49);
+    }
+
     while !chain.is_null() {
         let mut next =
             *(&raw mut (*chain).payload as *mut *mut StgClosure_).offset(0) as *mut StgClosure;
+
+        if isNonmovingClosure(chain) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/NonMovingShortcut.c".as_ptr(), 65);
+        }
 
         let ref mut fresh7 = (*(chain as *mut StgInd)).indirectee;
         *fresh7 = val;
@@ -48,6 +71,16 @@ unsafe fn nonmoving_eval_thunk_selector_(
     let mut selectee_info_tbl: *const StgInfoTable = null::<StgInfoTable>();
     let mut val: *mut StgClosure = null_mut::<StgClosure>();
     let mut indirectee: *mut StgClosure = null_mut::<StgClosure>();
+
+    if (p0 as P_ as W_ >= mblock_address_space.0.begin
+        && (p0 as P_ as W_) < mblock_address_space.0.end
+        && isNonmovingClosure(p0 as *mut StgClosure) as i32 != 0) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/sm/NonMovingShortcut.c".as_ptr(), 89);
+    }
+
     markQueuePushClosure(queue, p0 as *mut StgClosure, null_mut::<*mut StgClosure>());
 
     let mut p = p0 as *mut StgClosure;
@@ -86,6 +119,19 @@ unsafe fn nonmoving_eval_thunk_selector_(
                     return p;
                 }
                 1 | 2 | 3 | 4 | 5 | 6 | 7 => {
+                    if (field
+                        < (*selectee_info_tbl)
+                            .layout
+                            .payload
+                            .ptrs
+                            .wrapping_add((*selectee_info_tbl).layout.payload.nptrs))
+                        as i32 as i64
+                        != 0
+                    {
+                    } else {
+                        _assertFail(c"rts/sm/NonMovingShortcut.c".as_ptr(), 178);
+                    }
+
                     val = UNTAG_CLOSURE(
                         *(&raw mut (*selectee).payload as *mut *mut StgClosure_)
                             .offset(field as isize) as *mut StgClosure,
@@ -128,6 +174,11 @@ unsafe fn nonmoving_eval_thunk_selector_(
 
                             return p;
                         }
+
+                        if (i != &raw const stg_IND_info) as i32 as i64 != 0 {
+                        } else {
+                            _assertFail(c"rts/sm/NonMovingShortcut.c".as_ptr(), 269);
+                        }
                     }
 
                     selectee = UNTAG_CLOSURE(indirectee_1);
@@ -146,6 +197,11 @@ unsafe fn nonmoving_eval_thunk_selector_(
                             null_mut::<*mut StgClosure>(),
                             depth + 1,
                         ));
+
+                        if isNonmovingClosure(new_selectee) as i32 as i64 != 0 {
+                        } else {
+                            _assertFail(c"rts/sm/NonMovingShortcut.c".as_ptr(), 299);
+                        }
 
                         if selectee == new_selectee {
                             unlockClosure(p, selector_info_ptr);

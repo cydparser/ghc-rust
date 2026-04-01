@@ -1,10 +1,15 @@
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::flags::{NO_HEAP_PROFILING, RtsFlags};
+use crate::ffi::rts::linker::OBJECT_UNLOADED;
+use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::smp::xchg;
 use crate::ffi::stg::types::StgWord;
 use crate::hash::{HashTable, iterHashTable};
 use crate::linker_internals::{
     _ObjectCode, DYNAMIC_OBJECT, NativeCodeRange, ObjectCode, SECTIONKIND_OTHER, freeObjectCode,
+    linker_mutex,
 };
 use crate::prelude::*;
 use crate::rts_utils::{stgFree, stgMallocBytes};
@@ -241,6 +246,11 @@ unsafe fn removeRemovedOCSections(mut s_indices: *mut OCSectionIndices) {
 }
 
 unsafe fn findSectionIdx(mut s_indices: *mut OCSectionIndices, mut addr: *const c_void) -> i32 {
+    if (*s_indices).sorted as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/CheckUnload.c".as_ptr(), 358);
+    }
+
     let mut w_addr: W_ = addr as W_;
 
     if (*s_indices).n_sections <= 0 {
@@ -263,6 +273,11 @@ unsafe fn findSectionIdx(mut s_indices: *mut OCSectionIndices, mut addr: *const 
         } else {
             right = mid;
         }
+    }
+
+    if (w_addr >= (*(*s_indices).indices.offset(left as isize)).start) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/CheckUnload.c".as_ptr(), 378);
     }
 
     if w_addr < (*(*s_indices).indices.offset(left as isize)).end {
@@ -294,6 +309,17 @@ unsafe fn markObjectLive(
         return true;
     }
 
+    let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/CheckUnload.c".as_ptr(),
+            406,
+            __r,
+        );
+    }
+
     if !(*oc).prev.is_null() {
         (*(*oc).prev).next = (*oc).next;
     } else {
@@ -313,6 +339,14 @@ unsafe fn markObjectLive(
 
     objects = oc;
 
+    if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/CheckUnload.c".as_ptr(),
+            426,
+        );
+    }
+
     iterHashTable(
         (*oc).dependencies as *mut HashTable,
         NULL,
@@ -325,6 +359,14 @@ unsafe fn markObjectLive(
 unsafe fn markObjectCode(mut addr: *const c_void) {
     if !tryToUnload() {
         return;
+    }
+
+    if !(addr as W_ >= mblock_address_space.0.begin && (addr as W_) < mblock_address_space.0.end)
+        as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/CheckUnload.c".as_ptr(), 441);
     }
 
     let mut oc = findOC(global_s_indices, addr);
@@ -341,6 +383,12 @@ unsafe fn prepareUnloadCheck() -> bool {
 
     removeRemovedOCSections(global_s_indices);
     sortOCSectionIndices(global_s_indices);
+
+    if old_objects.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/CheckUnload.c".as_ptr(), 461);
+    }
+
     object_code_mark_bit = !(object_code_mark_bit as i32) as u8;
     old_objects = objects;
     objects = null_mut::<ObjectCode>();
@@ -351,6 +399,12 @@ unsafe fn prepareUnloadCheck() -> bool {
 unsafe fn checkUnload() {
     if tryToUnload() {
         let mut s_indices = global_s_indices;
+
+        if (*s_indices).sorted as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/CheckUnload.c".as_ptr(), 478);
+        }
+
         let mut oc = loaded_objects;
 
         while !oc.is_null() {
@@ -363,6 +417,16 @@ unsafe fn checkUnload() {
 
         while !oc_0.is_null() {
             next = (*oc_0).next as *mut ObjectCode;
+
+            if ((*oc_0).status as u32 == OBJECT_UNLOADED as i32 as u32) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/CheckUnload.c".as_ptr(), 489);
+            }
+
+            if (*oc_0).symbols.is_null() as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/CheckUnload.c".as_ptr(), 496);
+            }
 
             if (*oc_0).unloadable {
                 removeOCSectionIndices(s_indices, oc_0);

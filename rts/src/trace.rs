@@ -9,9 +9,10 @@ use crate::eventlog::event_log::{
     postCapEvent, postCapMsg, postCapsetEvent, postCapsetStrEvent, postCapsetVecEvent,
     postConcMarkEnd, postConcUpdRemSetFlush, postEvent, postEventAtTimestamp, postEventGcStats,
     postEventHeapInfo, postEventMemReturn, postEventNoCap, postHeapBioProfSampleBegin,
-    postHeapEvent, postHeapProfBegin, postHeapProfSampleBegin, postHeapProfSampleEnd,
-    postHeapProfSampleString, postIPE, postMsg, postNonmovingHeapCensus,
-    postNonmovingPrunedSegments, postSchedEvent, postSparkCountersEvent, postSparkEvent,
+    postHeapEvent, postHeapProfBegin, postHeapProfCostCentre, postHeapProfSampleBegin,
+    postHeapProfSampleCostCentre, postHeapProfSampleEnd, postHeapProfSampleString, postIPE,
+    postMsg, postNonmovingHeapCensus, postNonmovingPrunedSegments, postProfBegin,
+    postProfSampleCostCentre, postSchedEvent, postSparkCountersEvent, postSparkEvent,
     postTaskCreateEvent, postTaskDeleteEvent, postTaskMigrateEvent, postThreadLabel,
     postUserBinaryEvent, postUserEvent, postWallClockTime, restartEventLogging,
 };
@@ -32,7 +33,8 @@ use crate::ffi::rts::flags::{
 };
 use crate::ffi::rts::ipe::{InfoProvEnt, formatClosureDescIpe};
 use crate::ffi::rts::messages::{barf, debugBelch, vdebugBelch};
-use crate::ffi::rts::os_threads::kernelThreadId;
+use crate::ffi::rts::os_threads::{Mutex, initMutex, kernelThreadId, osThreadId};
+use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::tso::{StgThreadID, StgThreadReturnCode};
 use crate::ffi::rts::storage::tso::{StgThreadID, StgThreadReturnCode};
 use crate::ffi::rts::types::StgTSO;
@@ -41,13 +43,14 @@ use crate::ffi::rts_api::Capability;
 use crate::ffi::rts_api::{Capability, getFullProgArgv};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgInt, StgWord, StgWord8, StgWord16, StgWord32, StgWord64};
+use crate::ffi::stg::types::{StgBool, StgInt, StgWord, StgWord8, StgWord16, StgWord32, StgWord64};
 use crate::ffi::stg::types::{StgWord, StgWord16, StgWord32, StgWord64};
 use crate::prelude::*;
 use crate::printer::what_next_strs;
 use crate::rts_flags::rtsConfig;
 use crate::sm::non_moving_census::NonmovingAllocCensus;
-use crate::sparks::SparkCounters;
+use crate::sparks::sparkPoolSize;
+use crate::sparks::{SparkCounters, sparkPoolSize};
 use crate::stats::stat_getElapsedTime;
 use crate::task::Task;
 use crate::task::{Task, serialisableTaskId};
@@ -383,7 +386,15 @@ pub(crate) unsafe fn traceEventCreateSparkThread(
 }
 
 #[inline]
-pub(crate) unsafe fn traceSparkCounters(mut cap: *mut Capability) {}
+pub(crate) unsafe fn traceSparkCounters(mut cap: *mut Capability) {
+    if TRACE_spark_sampled as i64 != 0 {
+        traceSparkCounters_(
+            cap,
+            (*cap).spark_stats,
+            sparkPoolSize((*cap).sparks) as StgWord,
+        );
+    }
+}
 
 #[inline]
 pub(crate) unsafe fn traceEventSparkCreate(mut cap: *mut Capability) {
@@ -508,6 +519,11 @@ static mut TRACE_user: u8 = 0;
 
 static mut TRACE_cap: u8 = 0;
 
+static mut trace_utx: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
 unsafe fn updateTraceFlagCache() {
     TRACE_sched = (RtsFlags.TraceFlags.scheduler as i32 != 0
         || RtsFlags.DebugFlags.scheduler as i32 != 0) as i32 as u8;
@@ -527,6 +543,7 @@ unsafe fn updateTraceFlagCache() {
 }
 
 unsafe fn initTracing() {
+    initMutex(&raw mut trace_utx);
     updateTraceFlagCache();
 
     if TRACE_gc as i32 != 0 && RtsFlags.GcFlags.giveStats == NO_GC_STATS as u32 {
@@ -572,6 +589,8 @@ unsafe fn tracingAddCapabilities(mut from: u32, mut to: u32) {
 }
 
 unsafe fn tracePreface() {
+    debugBelch(c"%12lx: ".as_ptr(), osThreadId() as u64);
+
     if RtsFlags.TraceFlags.timestamp {
         debugBelch(c"%9llu: ".as_ptr(), stat_getElapsedTime());
     }
@@ -608,6 +627,17 @@ unsafe fn traceSchedEvent_stderr(
     mut info1: StgWord,
     mut info2: StgWord,
 ) {
+    let mut __r = pthread_mutex_lock(&raw mut trace_utx);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            200,
+            __r,
+        );
+    }
+
     tracePreface();
 
     let mut threadLabelLen = 0;
@@ -708,7 +738,15 @@ unsafe fn traceSchedEvent_stderr(
                 tag as i32,
             );
         }
-    };
+    }
+
+    if pthread_mutex_unlock(&raw mut trace_utx) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            252,
+        );
+    }
 }
 
 unsafe fn traceSchedEvent_(
@@ -732,6 +770,17 @@ unsafe fn traceSchedEvent_(
 }
 
 unsafe fn traceGcEvent_stderr(mut cap: *mut Capability, mut tag: EventTypeNum) {
+    let mut __r = pthread_mutex_lock(&raw mut trace_utx);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            272,
+            __r,
+        );
+    }
+
     tracePreface();
 
     match tag as i32 {
@@ -762,7 +811,15 @@ unsafe fn traceGcEvent_stderr(mut cap: *mut Capability, mut tag: EventTypeNum) {
         _ => {
             barf(c"traceGcEvent: unknown event tag %d".as_ptr(), tag as i32);
         }
-    };
+    }
+
+    if pthread_mutex_unlock(&raw mut trace_utx) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            305,
+        );
+    }
 }
 
 unsafe fn traceGcEvent_(mut cap: *mut Capability, mut tag: EventTypeNum) {
@@ -867,6 +924,17 @@ unsafe fn traceEventMemReturn_(
 
 unsafe fn traceCapEvent_(mut cap: *mut Capability, mut tag: EventTypeNum) {
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR {
+        let mut __r = pthread_mutex_lock(&raw mut trace_utx);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/Trace.c".as_ptr(),
+                415,
+                __r,
+            );
+        }
+
         tracePreface();
 
         match tag as i32 {
@@ -884,6 +952,14 @@ unsafe fn traceCapEvent_(mut cap: *mut Capability, mut tag: EventTypeNum) {
             }
             _ => {}
         }
+
+        if pthread_mutex_unlock(&raw mut trace_utx) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/Trace.c".as_ptr(),
+                432,
+            );
+        }
     } else if eventlog_enabled {
         postCapEvent(tag, (*cap).no as EventCapNo);
     }
@@ -891,6 +967,17 @@ unsafe fn traceCapEvent_(mut cap: *mut Capability, mut tag: EventTypeNum) {
 
 unsafe fn traceCapsetEvent_(mut tag: EventTypeNum, mut capset: CapsetID, mut info: StgWord) {
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR && TRACE_sched as i32 != 0 {
+        let mut __r = pthread_mutex_lock(&raw mut trace_utx);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/Trace.c".as_ptr(),
+                451,
+                __r,
+            );
+        }
+
         tracePreface();
 
         match tag as i32 {
@@ -911,6 +998,14 @@ unsafe fn traceCapsetEvent_(mut tag: EventTypeNum, mut capset: CapsetID, mut inf
                 debugBelch(c"removed cap %llu from capset %u\n".as_ptr(), info, capset);
             }
             _ => {}
+        }
+
+        if pthread_mutex_unlock(&raw mut trace_utx) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/Trace.c".as_ptr(),
+                471,
+            );
         }
     } else if eventlog_enabled {
         postCapsetEvent(tag, capset as EventCapsetID, info);
@@ -973,6 +1068,17 @@ unsafe fn traceSparkEvent_stderr(
     mut tag: EventTypeNum,
     mut info1: StgWord,
 ) {
+    let mut __r = pthread_mutex_lock(&raw mut trace_utx);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            528,
+            __r,
+        );
+    }
+
     tracePreface();
 
     match tag as i32 {
@@ -1017,7 +1123,15 @@ unsafe fn traceSparkEvent_stderr(
                 tag as i32,
             );
         }
-    };
+    }
+
+    if pthread_mutex_unlock(&raw mut trace_utx) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            570,
+        );
+    }
 }
 
 unsafe fn traceSparkEvent_(mut cap: *mut Capability, mut tag: EventTypeNum, mut info1: StgWord) {
@@ -1101,6 +1215,17 @@ unsafe fn traceHeapProfSampleString(
 
 unsafe fn traceIPE(mut ipe: *const InfoProvEnt) {
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR {
+        let mut __r = pthread_mutex_lock(&raw mut trace_utx);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/Trace.c".as_ptr(),
+                690,
+                __r,
+            );
+        }
+
         let mut closure_desc_buf: [c_char; 11] = [0; 11];
         formatClosureDescIpe(ipe, &raw mut closure_desc_buf as *mut c_char);
         tracePreface();
@@ -1117,16 +1242,81 @@ unsafe fn traceIPE(mut ipe: *const InfoProvEnt) {
             (*ipe).prov.src_file,
             (*ipe).prov.src_span,
         );
+
+        if pthread_mutex_unlock(&raw mut trace_utx) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/Trace.c".as_ptr(),
+                701,
+            );
+        }
     } else if eventlog_enabled {
         postIPE(ipe);
     }
 }
 
+unsafe fn traceHeapProfCostCentre(
+    mut ccID: StgWord32,
+    mut label: *const c_char,
+    mut module: *const c_char,
+    mut srcloc: *const c_char,
+    mut is_caf: StgBool,
+) {
+    if eventlog_enabled {
+        postHeapProfCostCentre(ccID, label, module, srcloc, is_caf);
+    }
+}
+
+unsafe fn traceHeapProfSampleCostCentre(
+    mut profile_id: StgWord8,
+    mut stack: *mut CostCentreStack,
+    mut residency: StgWord,
+) {
+    if eventlog_enabled {
+        postHeapProfSampleCostCentre(profile_id, stack, residency as StgWord64);
+    }
+}
+
+unsafe fn traceProfSampleCostCentre(
+    mut cap: *mut Capability,
+    mut stack: *mut CostCentreStack,
+    mut tick: StgWord,
+) {
+    if eventlog_enabled {
+        postProfSampleCostCentre(cap, stack, tick as StgWord64);
+    }
+}
+
+unsafe fn traceProfBegin() {
+    if eventlog_enabled {
+        postProfBegin();
+    }
+}
+
 unsafe fn vtraceCap_stderr(mut cap: *mut Capability, mut msg: *mut c_char, mut ap: VaList) {
+    let mut __r = pthread_mutex_lock(&raw mut trace_utx);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            749,
+            __r,
+        );
+    }
+
     tracePreface();
     debugBelch(c"cap %d: ".as_ptr(), (*cap).no);
     vdebugBelch(msg, ap.as_va_list());
     debugBelch(c"\n".as_ptr());
+
+    if pthread_mutex_unlock(&raw mut trace_utx) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            756,
+        );
+    }
 }
 
 unsafe fn traceCap_stderr(mut cap: *mut Capability, mut msg: *mut c_char, mut args: ...) {
@@ -1147,9 +1337,28 @@ unsafe fn traceCap_(mut cap: *mut Capability, mut msg: *mut c_char, mut args: ..
 }
 
 unsafe fn vtrace_stderr(mut msg: *mut c_char, mut ap: VaList) {
+    let mut __r = pthread_mutex_lock(&raw mut trace_utx);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            788,
+            __r,
+        );
+    }
+
     tracePreface();
     vdebugBelch(msg, ap.as_va_list());
     debugBelch(c"\n".as_ptr());
+
+    if pthread_mutex_unlock(&raw mut trace_utx) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            794,
+        );
+    }
 }
 
 unsafe fn trace_(mut msg: *mut c_char, mut args: ...) {
@@ -1192,6 +1401,17 @@ unsafe fn traceThreadLabel_(
     mut len: usize,
 ) {
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR {
+        let mut __r = pthread_mutex_lock(&raw mut trace_utx);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/Trace.c".as_ptr(),
+                872,
+                __r,
+            );
+        }
+
         tracePreface();
 
         debugBelch(
@@ -1201,6 +1421,14 @@ unsafe fn traceThreadLabel_(
             len as i32,
             label,
         );
+
+        if pthread_mutex_unlock(&raw mut trace_utx) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/Trace.c".as_ptr(),
+                876,
+            );
+        }
     } else {
         postThreadLabel(cap, (*tso).id as EventThreadID, label, len);
     };
@@ -1269,10 +1497,30 @@ unsafe fn traceThreadStatus_(mut tso: *mut StgTSO) {
 unsafe fn traceBegin(mut str: *const c_char, mut args: ...) {
     let mut ap: VaListImpl;
     ap = args.clone();
+
+    let mut __r = pthread_mutex_lock(&raw mut trace_utx);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            957,
+            __r,
+        );
+    }
+
     tracePreface();
     vdebugBelch(str, ap.as_va_list());
 }
 
 unsafe fn traceEnd() {
     debugBelch(c"\n".as_ptr());
+
+    if pthread_mutex_unlock(&raw mut trace_utx) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Trace.c".as_ptr(),
+            967,
+        );
+    }
 }

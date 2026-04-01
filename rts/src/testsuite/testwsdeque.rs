@@ -1,8 +1,9 @@
 use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::os_threads::{OSThreadId, createOSThread};
-use crate::ffi::stg::types::StgWord;
+use crate::ffi::stg::types::{StgInt, StgWord};
 use crate::prelude::*;
-use crate::ws_deque::{WSDeque, newWSDeque, popWSDeque, pushWSDeque, stealWSDeque};
+use crate::ws_deque::cas_top;
+use crate::ws_deque::{WSDeque, looksEmptyWSDeque, newWSDeque, popWSDeque, pushWSDeque};
 
 const SCRATCH_SIZE: i32 = 1024 * 1024;
 
@@ -17,6 +18,82 @@ static mut scratch: [StgWord; 1048576] = [0; 1048576];
 static mut done: StgWord = 0;
 
 static mut ids: [OSThreadId; 3] = [null_mut::<_opaque_pthread_t>(); 3];
+
+static mut bufs: [i32; 3] = [0; 3];
+
+static mut last_b: [[StgWord; 128]; 3] = [[0; 128]; 3];
+
+static mut last_t: [[StgWord; 128]; 3] = [[0; 128]; 3];
+
+static mut last_v: [[StgWord; 128]; 3] = [[0; 128]; 3];
+
+unsafe fn myStealWSDeque_(mut q_0: *mut WSDeque, mut n: u32) -> *mut c_void {
+    let mut stolen = null_mut::<c_void>();
+    let mut t: StgWord = (&raw mut (*q_0).top).load(Ordering::Acquire) as StgWord;
+    ::std::sync::atomic::fence(::std::sync::atomic::Ordering::SeqCst);
+
+    let mut b: StgWord = (&raw mut (*q_0).bottom).load(Ordering::Acquire) as StgWord;
+    let mut result = NULL;
+
+    if t < b {
+        result = ((*q_0)
+            .elements
+            .offset(t.wrapping_rem((*q_0).size as StgWord) as isize)
+            as *mut *mut c_void)
+            .load(Ordering::Relaxed);
+
+        if !cas_top(q_0, t as StgInt, t.wrapping_add(1 as StgWord) as StgInt) {
+            return NULL;
+        }
+    }
+
+    return result;
+}
+
+unsafe fn myStealWSDeque(mut q_0: *mut WSDeque, mut n: u32) -> *mut c_void {
+    let mut stolen = null_mut::<c_void>();
+
+    loop {
+        stolen = myStealWSDeque_(q_0, n);
+
+        if !(stolen.is_null() && !looksEmptyWSDeque(q_0)) {
+            break;
+        }
+    }
+
+    return stolen;
+}
+
+unsafe fn dump() {
+    let mut n: u32 = 0;
+    let mut i: u32 = 0;
+    n = 0;
+
+    while n < THREADS as u32 {
+        debugBelch(c"\nthread %d:\n".as_ptr(), n);
+        i = bufs[n as usize] as u32;
+
+        while i
+            >= ({
+                let mut _a = bufs[n as usize] - 20;
+                let mut _b = 0;
+                (if _a <= _b { _b as i32 } else { _a as i32 })
+            }) as u32
+        {
+            debugBelch(
+                c"%d: t=%ld b=%ld = %ld\n".as_ptr(),
+                i,
+                last_t[n as usize][i as usize],
+                last_b[n as usize][i as usize],
+                last_v[n as usize][i as usize],
+            );
+
+            i = i.wrapping_sub(1);
+        }
+
+        n = n.wrapping_add(1);
+    }
+}
 
 unsafe fn work(mut p: *mut c_void, mut n: u32) {
     let mut val: StgWord = 0;
@@ -38,7 +115,7 @@ unsafe fn thief(mut info: *mut c_void) -> *mut c_void {
     n = info as StgWord;
 
     while done == 0 {
-        p = stealWSDeque(q);
+        p = myStealWSDeque(q, n as u32);
 
         if !p.is_null() {
             work(p, n.wrapping_add(1 as StgWord) as u32);
@@ -102,6 +179,7 @@ unsafe fn main_0(mut argc: i32, mut argv: *mut *mut c_char) -> i32 {
         n += 1;
     }
 
+    debugBelch(c"main thread finished, popped %d".as_ptr(), count);
     exit(0);
 }
 

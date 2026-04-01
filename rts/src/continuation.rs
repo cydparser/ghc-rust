@@ -1,6 +1,11 @@
-use crate::ffi::rts::constants::{TSO_BLOCKEX, TSO_INTERRUPTIBLE};
+use crate::ffi::rts::_assertFail;
+use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE, TSO_BLOCKEX, TSO_INTERRUPTIBLE};
+use crate::ffi::rts::flags::RtsFlags;
+use crate::ffi::rts::messages::debugBelch;
+use crate::ffi::rts::prof::ccs::{era, user_era};
 use crate::ffi::rts::storage::closure_macros::{
-    CONTINUATION_sizeW, TAG_CLOSURE, get_ret_itbl, stack_frame_sizeW,
+    CONTINUATION_sizeW, TAG_CLOSURE, doingErasProfiling, doingLDVProfiling, doingRetainerProfiling,
+    get_ret_itbl, stack_frame_sizeW,
 };
 use crate::ffi::rts::storage::closure_types::UNDERFLOW_FRAME;
 use crate::ffi::rts::storage::closures::{
@@ -17,6 +22,8 @@ use crate::ffi::stg::misc_closures::{
 };
 use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord32};
 use crate::prelude::*;
+use crate::printer::{printClosure, printStackChunk};
+use crate::sm::sanity::{checkClosure, checkTSO};
 use crate::threads::threadStackUnderflow;
 
 unsafe fn is_mask_frame_info(mut info: *const StgInfoTable) -> bool {
@@ -46,6 +53,11 @@ unsafe fn captureContinuationAndAbort(
     mut tso: *mut StgTSO,
     mut prompt_tag: StgPromptTag,
 ) -> *mut StgClosure {
+    if ((*tso).cap == cap) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/Continuation.c".as_ptr(), 368);
+    }
+
     let mut stack = (*tso).stackobj as *mut StgStack;
     let mut frame = (*stack).sp;
     let mut total_words: StgWord = 0;
@@ -56,7 +68,20 @@ unsafe fn captureContinuationAndAbort(
     let mut apply_mask_frame = null::<StgInfoTable>();
     let mut mask_frame_offset: StgWord = 0;
 
+    if RtsFlags.DebugFlags.continuation {
+        debugBelch(c"captureContinuationAndAbort: searching for prompt\n".as_ptr());
+        debugBelch(c"  prompt_tag = ".as_ptr());
+        printClosure(prompt_tag as *const StgClosure);
+    }
+
     loop {
+        if RtsFlags.DebugFlags.continuation {
+            printStackChunk(
+                frame,
+                frame.offset(stack_frame_sizeW(frame as *mut StgClosure) as isize),
+            );
+        }
+
         let mut info_ptr = (*(frame as *mut StgClosure)).header.info;
         let mut info = get_ret_itbl(frame as *mut StgClosure);
         let mut chunk_words: StgWord = frame.offset_from((*stack).sp) as i64 as StgWord;
@@ -93,6 +118,13 @@ unsafe fn captureContinuationAndAbort(
                 || (*info).i.r#type == 57) as i32 as i64
                 != 0
             {
+                if RtsFlags.DebugFlags.continuation {
+                    debugBelch(
+                        c"captureContinuationAndAbort: could not find prompt, bailing out\n"
+                            .as_ptr(),
+                    );
+                }
+
                 return null_mut::<StgClosure>();
             }
 
@@ -114,11 +146,33 @@ unsafe fn captureContinuationAndAbort(
         }
     }
 
+    if RtsFlags.DebugFlags.continuation {
+        debugBelch(
+            c"captureContinuationAndAbort: found prompt, capturing %llu words of stack\n".as_ptr(),
+            total_words,
+        );
+    }
+
     dirty_TSO(cap, tso);
     dirty_STACK(cap, stack);
 
     let mut cont = allocate(cap, CONTINUATION_sizeW(total_words) as W_) as *mut StgContinuation;
-    (*cont).header.info = &raw const stg_CONTINUATION_info;
+
+    let ref mut fresh13 = (*(cont as *mut StgClosure)).header.prof.ccs;
+    *fresh13 = (*stack).header.prof.ccs;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*(cont as *mut StgClosure)).header.prof.hp.ldvw =
+                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*(cont as *mut StgClosure)).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*(cont as *mut StgClosure)).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*cont).header.info).store(&raw const stg_CONTINUATION_info, Ordering::Relaxed);
     (*cont).apply_mask_frame = apply_mask_frame;
     (*cont).mask_frame_offset = mask_frame_offset;
     (*cont).stack_size = total_words;
@@ -173,9 +227,30 @@ unsafe fn captureContinuationAndAbort(
         (*stack).sp = (*stack).sp.offset(last_chunk_words as isize);
     }
 
+    if ((&raw mut (*cont).stack as *mut StgWord).offset(total_words as isize) == cont_stack) as i32
+        as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/Continuation.c".as_ptr(), 501);
+    }
+
+    if ((*((*stack).sp as *mut StgClosure)).header.info == &raw const stg_prompt_frame_info) as i32
+        as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/Continuation.c".as_ptr(), 502);
+    }
+
     (*stack).sp = (*stack)
         .sp
         .offset(stack_frame_sizeW(frame as *mut StgClosure) as isize);
+
+    if RtsFlags.DebugFlags.sanity {
+        checkClosure(cont as *mut StgClosure);
+        checkTSO(tso);
+    }
 
     return TAG_CLOSURE(2, cont as *mut StgClosure);
 }

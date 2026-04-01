@@ -1,39 +1,46 @@
 use crate::capability::{getCapability, recordMutableCap};
+use crate::ffi::rts::_assertFail;
+use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::os_threads::yieldThread;
 use crate::ffi::rts::stable_name::{snEntry, stable_name_table};
 use crate::ffi::rts::storage::block::{
     Bdescr, allocBlockOnNode_lock, bdescr, freeChain_lock, freeGroup,
 };
-use crate::ffi::rts::storage::closure_macros::get_itbl;
+use crate::ffi::rts::storage::closure_macros::{SET_INFO, get_itbl};
 use crate::ffi::rts::storage::closures::{
-    StgBlockingQueue, StgClosure_, StgCompactNFData, StgCompactNFDataBlock, StgMVar, StgMutVar,
-    StgSelector, StgTVar, StgThunk,
+    StgBlockingQueue, StgClosure_, StgCompactNFData, StgCompactNFDataBlock, StgIndStatic, StgMVar,
+    StgMutVar, StgSelector, StgTVar, StgThunk,
 };
 use crate::ffi::rts::storage::gc::{memcount, oldest_gen};
 use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
 use crate::ffi::rts::threads::getNumCapabilities;
-use crate::ffi::rts::types::StgClosure;
+use crate::ffi::rts::types::{StgClosure, StgInfoTable};
 use crate::ffi::stg::misc_closures::{
-    stg_BLOCKING_QUEUE_CLEAN_info, stg_BLOCKING_QUEUE_DIRTY_info, stg_MUT_VAR_CLEAN_info,
-    stg_MUT_VAR_DIRTY_info, stg_MVAR_CLEAN_info, stg_MVAR_DIRTY_info, stg_TVAR_CLEAN_info,
-    stg_TVAR_DIRTY_info,
+    stg_BLOCKING_QUEUE_CLEAN_info, stg_BLOCKING_QUEUE_DIRTY_info, stg_GCD_CAF_info,
+    stg_MUT_VAR_CLEAN_info, stg_MUT_VAR_DIRTY_info, stg_MVAR_CLEAN_info, stg_MVAR_DIRTY_info,
+    stg_TVAR_CLEAN_info, stg_TVAR_DIRTY_info,
 };
-use crate::ffi::stg::types::{StgPtr, StgWord16};
+use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord16};
 use crate::ffi::stg::{P_, W_};
 use crate::prelude::*;
 use crate::sm::cnf::compactFree;
 use crate::sm::non_moving::{
-    NONMOVING_SEGMENT_SIZE, NonmovingSegment, nonmoving_block_idx, nonmovingClosureBeingSwept,
-    nonmovingGetMark, nonmovingHeap, nonmovingMarkEpoch, nonmovingPushActiveSegment,
-    nonmovingPushFilledSegment, nonmovingPushFreeSegment, nonmovingSegmentBlockCount,
-    nonmovingSegmentBlockSize, nonmovingSegmentGetBlock, nonmovingSegmentInfo,
+    FILLED_SWEEPING, NONMOVING_SEGMENT_SIZE, NonmovingSegment, nonmoving_block_idx,
+    nonmovingClosureBeingSwept, nonmovingGetMark, nonmovingHeap, nonmovingMarkEpoch,
+    nonmovingPushActiveSegment, nonmovingPushFilledSegment, nonmovingPushFreeSegment,
+    nonmovingSegmentBlockCount, nonmovingSegmentBlockSize, nonmovingSegmentGetBlock,
+    nonmovingSegmentInfo,
 };
 use crate::sm::non_moving_mark::{
-    n_nonmoving_compact_blocks, n_nonmoving_large_blocks, n_nonmoving_marked_compact_blocks,
-    n_nonmoving_marked_large_blocks, nonmoving_compact_objects, nonmoving_large_objects,
-    nonmoving_marked_compact_objects, nonmoving_marked_large_objects, nonmovingIsAlive,
+    debug_caf_list_snapshot, n_nonmoving_compact_blocks, n_nonmoving_large_blocks,
+    n_nonmoving_marked_compact_blocks, n_nonmoving_marked_large_blocks, nonmoving_compact_objects,
+    nonmoving_large_objects, nonmoving_marked_compact_objects, nonmoving_marked_large_objects,
+    nonmovingIsAlive,
 };
+use crate::sm::storage::{END_OF_CAF_LIST, STATIC_BITS, debug_caf_list, sm_mutex, static_flag};
 use crate::stable_name::{SNT_size, freeSnEntry, stableNameLock, stableNameUnlock};
+use crate::trace::{DEBUG_RTS, trace_};
 
 type SweepResult = u32;
 
@@ -44,6 +51,14 @@ const SEGMENT_PARTIAL: SweepResult = 1;
 const SEGMENT_FREE: SweepResult = 0;
 
 unsafe fn nonmovingSweepSegment(mut seg: *mut NonmovingSegment) -> SweepResult {
+    if ((&raw mut (*seg).state).load(Ordering::Relaxed) as u32 == FILLED_SWEEPING as i32 as u32)
+        as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/sm/NonMovingSweep.c".as_ptr(), 34);
+    }
+
     let blk_cnt: nonmoving_block_idx = nonmovingSegmentBlockCount(seg) as nonmoving_block_idx;
 
     let mut found_free = false;
@@ -88,8 +103,81 @@ unsafe fn nonmovingSweepSegment(mut seg: *mut NonmovingSegment) -> SweepResult {
     if found_live {
         return SEGMENT_FILLED;
     } else {
+        if ((*seg).next_free as i32 == 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/NonMovingSweep.c".as_ptr(), 69);
+        }
+
+        if ((*nonmovingSegmentInfo(seg)).next_free_snap as i32 == 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/NonMovingSweep.c".as_ptr(), 70);
+        }
+
         return SEGMENT_FREE;
     };
+}
+
+unsafe fn nonmovingGcCafs() {
+    let mut i: u32 = 0;
+    let mut next = null_mut::<StgIndStatic>();
+    let mut caf = debug_caf_list_snapshot;
+
+    while caf != END_OF_CAF_LIST as *mut StgIndStatic {
+        next = (*caf).saved_info as *mut StgIndStatic;
+
+        let mut info = get_itbl(caf as *mut StgClosure);
+
+        if ((*info).r#type == 28) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/NonMovingSweep.c".as_ptr(), 89);
+        }
+
+        let mut flag: StgWord = (*caf).static_link as StgWord & STATIC_BITS as StgWord;
+
+        if flag != 0 && flag != static_flag as StgWord {
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gccafs as i64 != 0 {
+                trace_(c"CAF gc'd at 0x%p".as_ptr(), caf);
+            }
+
+            SET_INFO(caf as *mut StgClosure, &raw const stg_GCD_CAF_info);
+        } else {
+            i = i.wrapping_add(1);
+
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gccafs as i64 != 0 {
+                trace_(c"CAF alive at 0x%p".as_ptr(), caf);
+            }
+
+            let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+            if __r != 0 {
+                barf(
+                    c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                    c"rts/sm/NonMovingSweep.c".as_ptr(),
+                    99,
+                    __r,
+                );
+            }
+
+            (*caf).saved_info = debug_caf_list as *const StgInfoTable;
+            debug_caf_list = caf;
+
+            if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+                barf(
+                    c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                    c"rts/sm/NonMovingSweep.c".as_ptr(),
+                    102,
+                );
+            }
+        }
+
+        caf = next;
+    }
+
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gccafs as i64 != 0 {
+        trace_(c"%d CAFs live".as_ptr(), i);
+    }
+
+    debug_caf_list_snapshot = END_OF_CAF_LIST as *mut StgIndStatic;
 }
 
 unsafe fn nonmovingClearSegment(mut seg: *mut NonmovingSegment) {
@@ -128,9 +216,17 @@ unsafe fn nonmovingSweep() {
 
         match ret as u32 {
             0 => {
+                if RtsFlags.DebugFlags.sanity {
+                    nonmovingClearSegment(seg);
+                }
+
                 nonmovingPushFreeSegment(seg);
             }
             1 => {
+                if RtsFlags.DebugFlags.sanity {
+                    nonmovingClearSegmentFreeBlocks(seg);
+                }
+
                 nonmovingPushActiveSegment(seg);
             }
             2 => {
@@ -311,6 +407,11 @@ unsafe fn nonmovingSweepMutLists() {
             while p < (*bd).c2rust_unnamed.free {
                 let mut q = p as *mut *mut StgClosure;
 
+                if ((*Bdescr(*q as StgPtr)).r#gen == oldest_gen) as i32 as i64 != 0 {
+                } else {
+                    _assertFail(c"rts/sm/NonMovingSweep.c".as_ptr(), 291);
+                }
+
                 if nonmovingIsAlive(*q) as i32 != 0 && !is_closure_clean(*q) {
                     recordMutableCap(*q, cap, (*oldest_gen).no);
                 }
@@ -327,6 +428,17 @@ unsafe fn nonmovingSweepMutLists() {
 }
 
 unsafe fn freeChain_lock_max(mut bd: *mut bdescr, mut max_dur: i32) {
+    let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/NonMovingSweep.c".as_ptr(),
+            307,
+            __r,
+        );
+    }
+
     let mut next_bd = null_mut::<bdescr>();
     let mut i = 0;
 
@@ -336,10 +448,39 @@ unsafe fn freeChain_lock_max(mut bd: *mut bdescr, mut max_dur: i32) {
         bd = next_bd;
 
         if i == max_dur {
+            if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+                barf(
+                    c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                    c"rts/sm/NonMovingSweep.c".as_ptr(),
+                    316,
+                );
+            }
+
+            yieldThread();
+
+            let mut __r_0 = pthread_mutex_lock(&raw mut sm_mutex);
+
+            if __r_0 != 0 {
+                barf(
+                    c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                    c"rts/sm/NonMovingSweep.c".as_ptr(),
+                    318,
+                    __r_0,
+                );
+            }
+
             i = 0;
         }
 
         i += 1;
+    }
+
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/NonMovingSweep.c".as_ptr(),
+            324,
+        );
     }
 }
 
@@ -353,6 +494,17 @@ unsafe fn nonmovingSweepLargeObjects() {
 
 unsafe fn nonmovingSweepCompactObjects() {
     let mut next = null_mut::<bdescr>();
+    let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/NonMovingSweep.c".as_ptr(),
+            339,
+            __r,
+        );
+    }
+
     let mut bd = nonmoving_compact_objects;
 
     while !bd.is_null() {
@@ -361,6 +513,14 @@ unsafe fn nonmovingSweepCompactObjects() {
         compactFree((*((*bd).start as *mut StgCompactNFDataBlock)).owner as *mut StgCompactNFData);
 
         bd = next;
+    }
+
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/NonMovingSweep.c".as_ptr(),
+            344,
+        );
     }
 
     nonmoving_compact_objects = nonmoving_marked_compact_objects;

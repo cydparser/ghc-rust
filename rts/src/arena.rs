@@ -1,9 +1,11 @@
+use crate::ffi::rts::_assertFail;
+use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::block::{
     BLOCK_MASK, BLOCK_SIZE, BLOCK_SIZE_W, allocBlock_lock, allocGroup_lock, bdescr, bdescr_,
     freeGroup_lock,
 };
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgWord, StgWord16};
+use crate::ffi::stg::types::{StgPtr, StgWord, StgWord16};
 use crate::prelude::*;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 
@@ -77,6 +79,12 @@ unsafe fn arenaFree(mut arena: *mut Arena) {
     while !bd.is_null() {
         next = (*bd).link as *mut bdescr;
         arena_blocks -= (*bd).blocks as i64;
+
+        if (arena_blocks >= 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/Arena.c".as_ptr(), 109);
+        }
+
         freeGroup_lock(bd);
         bd = next;
     }
@@ -86,4 +94,30 @@ unsafe fn arenaFree(mut arena: *mut Arena) {
 
 unsafe fn arenaBlocks() -> u64 {
     return arena_blocks as u64;
+}
+
+unsafe fn checkPtrInArena(mut p: StgPtr, mut arena: *mut Arena) {
+    if p >= (*(*arena).current).start && p < (*arena).free {
+        return;
+    }
+
+    let mut bd = (*(*arena).current).link as *mut bdescr;
+
+    while !bd.is_null() {
+        if p >= (*bd).start
+            && p < (*bd)
+                .start
+                .offset(((*bd).blocks as usize).wrapping_mul(BLOCK_SIZE_W) as isize)
+        {
+            return;
+        }
+
+        bd = (*bd).link as *mut bdescr;
+    }
+
+    barf(
+        c"Location %p is not in arena %p".as_ptr(),
+        p as *mut c_void,
+        arena as *mut c_void,
+    );
 }

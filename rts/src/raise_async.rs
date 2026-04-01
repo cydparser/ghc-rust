@@ -1,16 +1,19 @@
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{
-    BlockedOnMVar, BlockedOnMVarRead, NotBlocked, TSO_BLOCKEX, TSO_INTERRUPTIBLE, ThreadComplete,
-    ThreadFinished, ThreadKilled, ThreadRunGHC,
+    BlockedOnMVar, BlockedOnMVarRead, LDV_SHIFT, LDV_STATE_CREATE, NotBlocked, TSO_BLOCKEX,
+    TSO_INTERRUPTIBLE, ThreadComplete, ThreadFinished, ThreadKilled, ThreadRunGHC,
 };
 use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack, era, user_era};
 use crate::ffi::rts::storage::closure_macros::{
-    AP_STACK_sizeW, SET_INFO_RELAXED, get_itbl, get_ret_itbl, stack_frame_sizeW,
+    AP_STACK_sizeW, SET_INFO_RELAXED, doingErasProfiling, doingLDVProfiling,
+    doingRetainerProfiling, get_itbl, get_ret_itbl, overwritingClosure, stack_frame_sizeW,
 };
 use crate::ffi::rts::storage::closures::{
-    MessageThrowTo, MessageThrowTo_, StgAP_STACK, StgAtomicallyFrame, StgCatchFrame, StgClosure_,
-    StgMVar, StgMVarTSOQueue, StgMVarTSOQueue_, StgTRecHeader, StgTRecHeader_, StgThunk,
-    StgUpdateFrame,
+    Message, MessageThrowTo, MessageThrowTo_, StgAP_STACK, StgAtomicallyFrame, StgCatchFrame,
+    StgClosure_, StgMVar, StgMVarTSOQueue, StgMVarTSOQueue_, StgTRecHeader, StgTRecHeader_,
+    StgThunk, StgUpdateFrame,
 };
 use crate::ffi::rts::storage::gc::allocate;
 use crate::ffi::rts::storage::tso::{StgStack, StgTSO_, dirty_STACK, dirty_TSO};
@@ -20,21 +23,24 @@ use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
     stg_AP_STACK_NOUPD_info, stg_AP_STACK_info, stg_END_TSO_QUEUE_closure, stg_IND_info,
-    stg_MSG_NULL_info, stg_MSG_THROWTO_info, stg_NO_TREC_closure, stg_WHITEHOLE_info,
-    stg_ap_pv_info, stg_atomically_info, stg_dummy_ret_closure, stg_enter_info,
+    stg_MSG_BLACKHOLE_info, stg_MSG_NULL_info, stg_MSG_THROWTO_info, stg_NO_TREC_closure,
+    stg_WHITEHOLE_info, stg_ap_pv_info, stg_atomically_info, stg_dummy_ret_closure, stg_enter_info,
     stg_maskAsyncExceptionszh_ret_info, stg_maskUninterruptiblezh_ret_info, stg_ret_p_info,
     stg_unmaskAsyncExceptionszh_ret_info,
 };
 use crate::ffi::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 use crate::io_manager::{syncDelayCancel, syncIOCancel};
-use crate::messages::doneWithMsgThrowTo;
+use crate::messages::{doneWithMsgThrowTo, sendMessage};
 use crate::prelude::*;
+use crate::profiling::fprintCCS_stderr;
 use crate::raise_async::{THROWTO_BLOCKED, THROWTO_SUCCESS, interruptible};
 use crate::schedule::appendToRunQueue;
+use crate::sm::sanity::checkTSO;
 use crate::smp_closure_ops::{lockClosure, tryLockClosure, unlockClosure};
 use crate::stm::{stmAbortTransaction, stmCondemnTransaction, stmFreeAbortedTRec};
+use crate::task::{InCall, Task, interruptWorkerTask};
 use crate::threads::{threadStackUnderflow, tryWakeupThread, updateThunk};
-use crate::trace::{DEBUG_RTS, trace_, traceCap_};
+use crate::trace::{DEBUG_RTS, trace_, traceCap_, traceThreadStatus_};
 
 pub(crate) const THROWTO_SUCCESS: i32 = 0;
 
@@ -123,14 +129,42 @@ unsafe fn throwTo(
             .wrapping_div(size_of::<W_>() as usize) as W_,
     ) as *mut MessageThrowTo;
 
-    (*msg).header.info = &raw const stg_WHITEHOLE_info;
+    let ref mut fresh21 = (*(msg as *mut StgClosure)).header.prof.ccs;
+    *fresh21 = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*(msg as *mut StgClosure)).header.prof.hp.ldvw =
+                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*(msg as *mut StgClosure)).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*(msg as *mut StgClosure)).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*msg).header.info).store(&raw const stg_WHITEHOLE_info, Ordering::Relaxed);
     (*msg).source = source;
     (*msg).target = target;
     (*msg).exception = exception;
 
     match throwToMsg(cap, msg) {
         0 => {
-            (*msg).header.info = &raw const stg_MSG_THROWTO_info;
+            let ref mut fresh22 = (*(msg as *mut StgClosure)).header.prof.ccs;
+            *fresh22 = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+            if doingLDVProfiling() {
+                if doingLDVProfiling() {
+                    (*(msg as *mut StgClosure)).header.prof.hp.ldvw =
+                        (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+                }
+            } else if doingRetainerProfiling() {
+                (*(msg as *mut StgClosure)).header.prof.hp.trav = 0;
+            } else if doingErasProfiling() {
+                (*(msg as *mut StgClosure)).header.prof.hp.era = user_era;
+            }
+
+            (&raw mut (*msg).header.info).store(&raw const stg_MSG_THROWTO_info, Ordering::Relaxed);
 
             return null_mut::<MessageThrowTo>();
         }
@@ -139,12 +173,21 @@ unsafe fn throwTo(
 }
 
 unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> u32 {
+    let mut what_next: StgWord16 = 0;
     let mut status: StgWord = 0;
-    let mut target = (*msg).target;
+    let mut target = (&raw mut (*msg).target).load(Ordering::Acquire);
     let mut target_cap = null_mut::<Capability>();
 
     loop {
-        let mut what_next: StgWord16 = (*target).what_next;
+        if (target != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO) as i32
+            as i64
+            != 0
+        {
+        } else {
+            _assertFail(c"rts/RaiseAsync.c".as_ptr(), 247);
+        }
+
+        what_next = (&raw mut (*target).what_next).load(Ordering::SeqCst);
 
         if what_next as i32 == ThreadComplete || what_next as i32 == ThreadKilled {
             return THROWTO_SUCCESS as u32;
@@ -159,6 +202,10 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
             );
         }
 
+        if RtsFlags.DebugFlags.scheduler as i64 != 0 {
+            traceThreadStatus_(target);
+        }
+
         target_cap = (*target).cap as *mut Capability;
 
         if (*target).cap != cap {
@@ -167,7 +214,7 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
             return THROWTO_BLOCKED as u32;
         }
 
-        status = (*target).why_blocked as StgWord;
+        status = (&raw mut (*target).why_blocked).load(Ordering::Acquire) as StgWord;
 
         match status {
             0 => {
@@ -283,10 +330,28 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
 
                     return THROWTO_BLOCKED as u32;
                 } else {
+                    if ((*(*target).block_info.bh).header.info == &raw const stg_MSG_BLACKHOLE_info)
+                        as i32 as i64
+                        != 0
+                    {
+                    } else {
+                        _assertFail(c"rts/RaiseAsync.c".as_ptr(), 415);
+                    }
+
+                    overwritingClosure((*target).block_info.bh as *mut StgClosure);
+
                     SET_INFO_RELAXED(
                         (*target).block_info.bh as *mut StgClosure,
                         &raw const stg_IND_info,
                     );
+
+                    if doingLDVProfiling() {
+                        (*((*target).block_info.bh as *mut StgClosure))
+                            .header
+                            .prof
+                            .hp
+                            .ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+                    }
 
                     raiseAsync(
                         cap,
@@ -318,31 +383,41 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
                     return THROWTO_SUCCESS as u32;
                 }
             }
-            11 | 10 => {
-                blockedThrowTo(cap, target, msg);
+            11 => {
+                let mut task = null_mut::<Task>();
+                let mut incall = null_mut::<InCall>();
+                incall = (*cap).suspended_ccalls;
 
-                return THROWTO_BLOCKED as u32;
-            }
-            3 | 4 | 5 => {
-                if (*target).flags & TSO_BLOCKEX as StgWord32 != 0
-                    && (*target).flags & TSO_INTERRUPTIBLE as StgWord32 == 0
-                {
+                while !incall.is_null() {
+                    if (*incall).suspended_tso == target {
+                        task = (*incall).task as *mut Task;
+                        break;
+                    } else {
+                        incall = (*incall).next as *mut InCall;
+                    }
+                }
+
+                if !task.is_null() {
                     blockedThrowTo(cap, target, msg);
 
+                    if !((*target).flags & TSO_BLOCKEX as StgWord32 != 0
+                        && (*target).flags & TSO_INTERRUPTIBLE as StgWord32 == 0)
+                    {
+                        interruptWorkerTask(task);
+                    }
+
                     return THROWTO_BLOCKED as u32;
-                } else {
-                    removeFromQueues(cap, target);
-
-                    raiseAsync(
+                } else if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+                    traceCap_(
                         cap,
-                        target,
-                        (*msg).exception,
-                        false,
-                        null_mut::<StgUpdateFrame>(),
+                        c"throwTo: could not find worker thread to kill".as_ptr(),
                     );
-
-                    return THROWTO_SUCCESS as u32;
                 }
+
+                break;
+            }
+            10 => {
+                break;
             }
             13 => {
                 tryWakeupThread(cap, target);
@@ -355,10 +430,16 @@ unsafe fn throwToMsg(mut cap: *mut Capability, mut msg: *mut MessageThrowTo) -> 
             }
         }
 
+        ::std::sync::atomic::fence(::std::sync::atomic::Ordering::Release);
+
         if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
             trace_(c"throwTo: retrying...".as_ptr());
         }
     }
+
+    blockedThrowTo(cap, target, msg);
+
+    return THROWTO_BLOCKED as u32;
 }
 
 unsafe fn throwToSendMsg(
@@ -366,6 +447,15 @@ unsafe fn throwToSendMsg(
     mut target_cap: *mut Capability,
     mut msg: *mut MessageThrowTo,
 ) {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.scheduler as i64 != 0 {
+        traceCap_(
+            cap,
+            c"throwTo: sending a throwto message to cap %lu".as_ptr(),
+            (*target_cap).no as u64,
+        );
+    }
+
+    sendMessage(cap, target_cap, msg as *mut Message);
 }
 
 unsafe fn blockedThrowTo(
@@ -379,6 +469,11 @@ unsafe fn blockedThrowTo(
             c"throwTo: blocking on thread %lu".as_ptr(),
             (*target).id as u64,
         );
+    }
+
+    if ((*target).cap == cap) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RaiseAsync.c".as_ptr(), 520);
     }
 
     dirty_TSO(cap, target);
@@ -490,16 +585,34 @@ unsafe fn removeFromMVarBlockedQueue(mut tso: *mut StgTSO) {
 
     if (*mvar).head == q {
         (*mvar).head = (*q).link;
+        overwritingClosure(q as *mut StgClosure);
         SET_INFO_RELAXED(q as *mut StgClosure, &raw const stg_IND_info);
+
+        if doingLDVProfiling() {
+            (*(q as *mut StgClosure)).header.prof.hp.ldvw =
+                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
 
         if (*mvar).tail == q {
             (*mvar).tail = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
                 as *mut StgMVarTSOQueue as *mut StgMVarTSOQueue_;
         }
     } else if (*mvar).tail == q {
+        overwritingClosure(q as *mut StgClosure);
         SET_INFO_RELAXED(q as *mut StgClosure, &raw const stg_MSG_NULL_info);
+
+        if doingLDVProfiling() {
+            (*(q as *mut StgClosure)).header.prof.hp.ldvw =
+                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
     } else {
+        overwritingClosure(q as *mut StgClosure);
         SET_INFO_RELAXED(q as *mut StgClosure, &raw const stg_IND_info);
+
+        if doingLDVProfiling() {
+            (*(q as *mut StgClosure)).header.prof.hp.ldvw =
+                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
     }
 
     (*tso)._link = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO as *mut StgTSO_;
@@ -527,7 +640,7 @@ unsafe fn removeFromQueues(mut cap: *mut Capability, mut tso: *mut StgTSO) {
         }
     }
 
-    (*tso).why_blocked = 0;
+    (&raw mut (*tso).why_blocked).store(0, Ordering::Relaxed);
     appendToRunQueue(cap, tso);
 }
 
@@ -551,6 +664,20 @@ unsafe fn raiseAsync(
             c"raising exception in thread %llu.".as_ptr(),
             (*tso).id,
         );
+    }
+
+    if RtsFlags.ProfFlags.showCCSOnException as i32 != 0 && !exception.is_null() {
+        fprintCCS_stderr((*tso).prof.cccs, exception, tso);
+    }
+
+    if ((*tso).what_next as i32 != 4 && (*tso).what_next as i32 != 3) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RaiseAsync.c".as_ptr(), 793);
+    }
+
+    if ((*tso).cap == cap) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RaiseAsync.c".as_ptr(), 796);
     }
 
     stack = (*tso).stackobj as *mut StgStack;
@@ -597,7 +724,21 @@ unsafe fn raiseAsync(
                     i = i.wrapping_add(1);
                 }
 
-                (*ap).header.info = &raw const stg_AP_STACK_info;
+                let ref mut fresh15 = (*(ap as *mut StgClosure)).header.prof.ccs;
+                *fresh15 = (*(frame as *mut StgClosure)).header.prof.ccs;
+
+                if doingLDVProfiling() {
+                    if doingLDVProfiling() {
+                        (*(ap as *mut StgClosure)).header.prof.hp.ldvw =
+                            (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+                    }
+                } else if doingRetainerProfiling() {
+                    (*(ap as *mut StgClosure)).header.prof.hp.trav = 0;
+                } else if doingErasProfiling() {
+                    (*(ap as *mut StgClosure)).header.prof.hp.era = user_era;
+                }
+
+                (&raw mut (*ap).header.info).store(&raw const stg_AP_STACK_info, Ordering::Relaxed);
 
                 if (*(frame as *mut StgUpdateFrame)).updatee == updatee {
                     ap = updatee as *mut StgAP_STACK;
@@ -642,7 +783,22 @@ unsafe fn raiseAsync(
                     i = i.wrapping_add(1);
                 }
 
-                (*ap_0).header.info = &raw const stg_AP_STACK_NOUPD_info;
+                let ref mut fresh18 = (*(ap_0 as *mut StgClosure)).header.prof.ccs;
+                *fresh18 = (*stack).header.prof.ccs;
+
+                if doingLDVProfiling() {
+                    if doingLDVProfiling() {
+                        (*(ap_0 as *mut StgClosure)).header.prof.hp.ldvw =
+                            (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+                    }
+                } else if doingRetainerProfiling() {
+                    (*(ap_0 as *mut StgClosure)).header.prof.hp.trav = 0;
+                } else if doingErasProfiling() {
+                    (*(ap_0 as *mut StgClosure)).header.prof.hp.era = user_era;
+                }
+
+                (&raw mut (*ap_0).header.info)
+                    .store(&raw const stg_AP_STACK_NOUPD_info, Ordering::Relaxed);
                 (*stack).sp = sp;
                 threadStackUnderflow(cap, tso);
                 stack = (*tso).stackobj as *mut StgStack;
@@ -686,12 +842,21 @@ unsafe fn raiseAsync(
                     *sp.offset(2) = &raw const stg_ap_pv_info as W_ as StgWord;
                     *sp.offset(3) = exception as W_ as StgWord;
                     (*stack).sp = sp;
-                    (*tso).what_next = 1;
+                    (&raw mut (*tso).what_next).store(1, Ordering::Relaxed);
                     break;
                 }
             }
             55 => {
                 if stop_at_atomically {
+                    if ((*(*tso).trec).enclosing_trec
+                        == &raw mut stg_NO_TREC_closure as *mut c_void as *mut StgTRecHeader)
+                        as i32 as i64
+                        != 0
+                    {
+                    } else {
+                        _assertFail(c"rts/RaiseAsync.c".as_ptr(), 983);
+                    }
+
                     stmCondemnTransaction(cap, (*tso).trec as *mut StgTRecHeader);
                     (*stack).sp = frame.offset(-2);
                     *(*stack).sp.offset(1) = &raw mut stg_NO_TREC_closure as W_ as StgWord;
@@ -721,7 +886,22 @@ unsafe fn raiseAsync(
                             .wrapping_add(1 as usize) as W_,
                     ) as *mut StgThunk;
 
-                    (*atomically).header.info = &raw const stg_atomically_info;
+                    let ref mut fresh19 = (*(atomically as *mut StgClosure)).header.prof.ccs;
+                    *fresh19 = (*af).header.prof.ccs;
+
+                    if doingLDVProfiling() {
+                        if doingLDVProfiling() {
+                            (*(atomically as *mut StgClosure)).header.prof.hp.ldvw =
+                                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+                        }
+                    } else if doingRetainerProfiling() {
+                        (*(atomically as *mut StgClosure)).header.prof.hp.trav = 0;
+                    } else if doingErasProfiling() {
+                        (*(atomically as *mut StgClosure)).header.prof.hp.era = user_era;
+                    }
+
+                    (&raw mut (*atomically).header.info)
+                        .store(&raw const stg_atomically_info, Ordering::Relaxed);
 
                     let ref mut fresh10 =
                         *(&raw mut (*atomically).payload as *mut *mut StgClosure_).offset(0);
@@ -767,6 +947,10 @@ unsafe fn raiseAsync(
         }
 
         frame = frame.offset(stack_frame_sizeW(frame as *mut StgClosure) as isize);
+    }
+
+    if RtsFlags.DebugFlags.sanity {
+        checkTSO(tso);
     }
 
     if (*tso).why_blocked != NotBlocked as StgWord32 {

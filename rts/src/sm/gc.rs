@@ -1,11 +1,21 @@
 use crate::arena::arenaBlocks;
-use crate::capability::{getCapability, markCapability, n_numa_nodes};
+use crate::capability::{
+    getCapability, interruptCapability, markCapability, n_numa_nodes, prodCapability,
+};
 use crate::check_unload::{checkUnload, prepareUnloadCheck};
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::block_signals::{blockUserSignals, unblockUserSignals};
 use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::flags::RtsFlags;
+use crate::ffi::rts::flags::{HEAP_BY_LDV, HEAP_BY_RETAINER, RtsFlags};
+use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::os_threads::{
+    Condition, Mutex, broadcastCondition, closeCondition, closeMutex, initCondition, initMutex,
+    osThreadId, signalCondition, timedWaitCondition, waitCondition,
+};
+use crate::ffi::rts::prof::ccs::{CCS_GC, CostCentreStack, CostCentreStack_};
+use crate::ffi::rts::spin_lock::SpinLock;
+use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK, SpinLock};
 use crate::ffi::rts::storage::block::bdescr;
 use crate::ffi::rts::storage::block::{
     BF_EVACUATED, BF_FRAGMENTED, BF_MARKED, BF_NONMOVING, BF_SWEPT, BLOCK_MASK, BLOCK_SIZE,
@@ -21,21 +31,28 @@ use crate::ffi::rts::storage::gc::{
     g0, generation, generation_, generations, initBdescr, memcount, nursery_, oldest_gen,
 };
 use crate::ffi::rts::storage::m_block::mblocks_allocated;
-use crate::ffi::rts::threads::getNumCapabilities;
-use crate::ffi::rts::time::Time;
+use crate::ffi::rts::threads::{getNumCapabilities, n_capabilities};
+use crate::ffi::rts::time::{Time, getProcessElapsedTime};
 use crate::ffi::rts::types::StgTSO;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::rts_api::{_RTSStats, Capability, GCDetails_, getRTSStats};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{stg_END_TSO_QUEUE_closure, stg_GCD_CAF_info};
 use crate::ffi::stg::smp::{atomic_dec, atomic_inc};
-use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord16};
+use crate::ffi::stg::types::{
+    StgHalfWord, StgInt, StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord64,
+};
 use crate::ffi::stg::types::{StgWord, StgWord16};
 use crate::ffi::stg::{BITS_PER_BYTE, W_};
+use crate::ldv_profile::LdvCensusForDead;
 use crate::prelude::*;
 use crate::prof_heap::heapCensus;
 use crate::proftimer::performTickySample;
-use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::retainer_profile::{g_retainerTraverseState, retainerStackBlocks};
+use crate::rts_flags::rtsConfig;
+use crate::rts_utils::{
+    stgFree, stgFreeAligned, stgMallocAlignedBytes, stgMallocBytes, stgReallocBytes,
+};
 use crate::schedule::{heap_overflow, resurrectThreads};
 use crate::sm::block_alloc::{
     commitMBlockFreeing, countAllocdBlocks, countBlocks, deferMBlockFreeing, returnMemoryToOS,
@@ -44,31 +61,39 @@ use crate::sm::cnf::compactFree;
 use crate::sm::compact::compact;
 use crate::sm::evac::evacuate;
 use crate::sm::gc::{GcConfig, MutListScavStats, markCAFs};
-use crate::sm::gc_thread::{gc_thread, gc_thread_, gen_workspace};
+use crate::sm::gc_thread::{GC_THREAD_STANDING_BY, gc_thread, gc_thread_, gen_workspace};
 use crate::sm::gc_utils::{alloc_todo_block, allocBlockOnNode_sync};
 use crate::sm::mark_weak::{
     collectFreshWeakPtrs, initWeakForGC, markWeakPtrList, traverseWeakPtrList,
 };
-use crate::sm::non_moving::{END_NONMOVING_TODO_LIST, NonmovingSegment, nonmovingCollect};
+use crate::sm::non_moving::{
+    END_NONMOVING_TODO_LIST, NonmovingSegment, nonmovingCollect, nonmovingConcurrentMarkIsRunning,
+};
 use crate::sm::non_moving_mark::nonmovingAddUpdRemSetBlocks;
 use crate::sm::sanity::{checkSanity, memInventory};
-use crate::sm::scav::{scavenge_capability_mut_lists, scavenge_loop};
+use crate::sm::scav::{
+    scavenge_capability_mut_Lists1, scavenge_capability_mut_lists, scavenge_loop, scavenge_loop1,
+};
 use crate::sm::storage::{
     END_OF_CAF_LIST, STATIC_BITS, STATIC_FLAG_A, STATIC_FLAG_B, calcNeeded, countNurseryBlocks,
     countOccupied, debug_caf_list, exec_block, gcThreadLiveBlocks, gcThreadLiveWords,
     genLiveBlocks, genLiveCopiedWords, genLiveUncopiedWords, genLiveWords, n_nurseries, nurseries,
-    resetNurseries, resizeNurseries, resizeNurseriesFixed,
+    resetNurseries, resizeNurseries, resizeNurseriesFixed, sm_mutex,
 };
 use crate::sm::sweep::sweep;
+use crate::sparks::pruneSparkQueue;
 use crate::stable_name::{
     gcStableNameTable, rememberOldStableNameAddresses, updateStableNameTable,
 };
 use crate::stable_ptr::{markStablePtrTable, stablePtrLock, stablePtrUnlock};
-use crate::stats::{stat_endGC, stat_endGCWorker, stat_startGC, statDescribeGens};
+use crate::stats::{
+    stat_endGC, stat_endGCWorker, stat_startGC, stat_startGCWorker, statDescribeGens,
+};
 use crate::ticky::emitTickyCounterSamples;
 use crate::trace::{
     DEBUG_RTS, trace_, traceEventGcDone, traceEventGcIdle, traceEventGcWork, traceEventMemReturn,
 };
+use crate::traverse_heap::resetStaticObjectForProfiling;
 use crate::weak::{runSomeFinalizers, scheduleFinalizers};
 use crate::ws_deque::{freeWSDeque, newWSDeque};
 
@@ -78,7 +103,7 @@ mod tests;
 #[ffi(compiler)]
 #[repr(C)]
 pub struct generation_ {
-    pub no: u32,
+    pub no: c_uint,
     pub blocks: *mut bdescr,
     pub n_blocks: memcount,
     pub n_words: memcount,
@@ -94,11 +119,13 @@ pub struct generation_ {
     pub threads: *mut StgTSO,
     pub weak_ptr_list: *mut StgWeak,
     pub to: *mut generation_,
-    pub collections: u32,
-    pub par_collections: u32,
-    pub failed_promotions: u32,
-    pub mark: i32,
-    pub compact: i32,
+    pub collections: c_uint,
+    pub par_collections: c_uint,
+    pub failed_promotions: c_uint,
+    pub pad: [c_char; 128],
+    pub sync: SpinLock,
+    pub mark: c_int,
+    pub compact: c_int,
     pub old_blocks: *mut bdescr,
     pub n_old_blocks: memcount,
     pub live_estimate: memcount,
@@ -132,9 +159,9 @@ pub(crate) unsafe fn initBdescr(
     mut r#gen: *mut generation,
     mut dest: *mut generation,
 ) {
-    (*bd).r#gen = r#gen as *mut generation_;
-    (*bd).gen_no = (*r#gen).no as StgWord16;
-    (*bd).dest_no = (*dest).no as StgWord16;
+    (&raw mut (*bd).r#gen).store(r#gen, Ordering::Relaxed);
+    (&raw mut (*bd).gen_no).store((*r#gen).no as StgWord16, Ordering::Relaxed);
+    (&raw mut (*bd).dest_no).store((*dest).no as StgWord16, Ordering::Relaxed);
 
     if ((*r#gen).no < RtsFlags.GcFlags.generations) as i32 as i64 != 0 {
     } else {
@@ -184,7 +211,59 @@ static mut gc_threads: *mut *mut gc_thread = null_mut::<*mut gc_thread>();
 
 static mut gc_running_threads: StgWord = 0;
 
-static mut the_gc_thread: [StgWord8; 8448] = [0; 8448];
+static mut gc_running_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
+static mut gc_running_cv: Condition = Condition {
+    cond: _opaque_pthread_cond_t {
+        __sig: 0,
+        __opaque: [0; 40],
+    },
+};
+
+static mut gc_entry_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
+static mut n_gc_entered: StgInt = 0;
+
+static mut gc_entry_arrived_cv: Condition = Condition {
+    cond: _opaque_pthread_cond_t {
+        __sig: 0,
+        __opaque: [0; 40],
+    },
+};
+
+static mut gc_entry_start_now_cv: Condition = Condition {
+    cond: _opaque_pthread_cond_t {
+        __sig: 0,
+        __opaque: [0; 40],
+    },
+};
+
+static mut gc_exit_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
+static mut n_gc_exited: StgInt = 0;
+
+static mut gc_exit_arrived_cv: Condition = Condition {
+    cond: _opaque_pthread_cond_t {
+        __sig: 0,
+        __opaque: [0; 40],
+    },
+};
+
+static mut gc_exit_leave_now_cv: Condition = Condition {
+    cond: _opaque_pthread_cond_t {
+        __sig: 0,
+        __opaque: [0; 40],
+    },
+};
 
 static mut n_gc_threads: u32 = 0;
 
@@ -193,14 +272,32 @@ static mut n_gc_idle_threads: u32 = 0;
 static mut work_stealing: bool = false;
 
 unsafe fn is_par_gc() -> bool {
-    return false;
+    if n_gc_threads == 1 {
+        return false;
+    }
+
+    if (n_gc_threads > n_gc_idle_threads) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 191);
+    }
+
+    return n_gc_threads.wrapping_sub(n_gc_idle_threads) > 1;
 }
 
 static mut copied: i64 = 0;
 
+static mut waitForGcThreads_spin: StgWord64 = 0;
+
+static mut waitForGcThreads_yield: StgWord64 = 0;
+
+static mut whitehole_gc_spin: StgWord64 = 0;
+
 static mut static_flag: u32 = STATIC_FLAG_B as u32;
 
 static mut prev_static_flag: u32 = STATIC_FLAG_A as u32;
+
+#[thread_local]
+static mut gct: *mut gc_thread = null_mut::<gc_thread>();
 
 static mut mark_stack_top_bd: *mut bdescr = null_mut::<bdescr>();
 
@@ -239,6 +336,8 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
     let mut any_work: StgWord = 0;
     let mut scav_find_work: StgWord = 0;
     let mut max_n_todo_overflow: StgWord = 0;
+    let mut saved_gct = null_mut::<gc_thread>();
+    let mut gc_sparks_all_caps: bool = false;
     let mut g: u32 = 0;
     let mut n: u32 = 0;
     let mut mut_time: Time = 0;
@@ -302,9 +401,22 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         mut_time = stats.mutator_cpu_ns;
     }
 
-    if !config.parallel as i32 as i64 != 0 {
-    } else {
-        _assertFail(c"rts/sm/GC.c".as_ptr(), 308);
+    saved_gct = gct;
+
+    let vla = getNumCapabilities() as usize;
+
+    let mut save_CCS: Vec<*mut CostCentreStack> =
+        ::std::vec::from_elem(null_mut::<CostCentreStack>(), vla);
+
+    let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            315,
+            __r,
+        );
     }
 
     if RtsFlags.MiscFlags.install_signal_handlers {
@@ -319,12 +431,38 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         _assertFail(c"rts/sm/GC.c".as_ptr(), 324);
     }
 
-    stat_startGC(cap, &raw mut the_gc_thread as *mut gc_thread_);
+    gct = *gc_threads.offset((*cap).no as isize);
+    stat_startGC(cap, gct as *mut gc_thread_);
     stablePtrLock();
     zeroMutListScavStats(&raw mut mutlist_scav_stats);
+    n = 0;
+
+    while n < getNumCapabilities() as u32 {
+        let ref mut fresh12 = *save_CCS.as_mut_ptr().offset(n as isize);
+        *fresh12 =
+            (&raw mut (*(getCapability as unsafe extern "C" fn(c_uint) -> *mut Capability)(n))
+                .r
+                .rCCCS)
+                .load(Ordering::Relaxed) as *mut CostCentreStack;
+        (&raw mut (*(getCapability as unsafe extern "C" fn(c_uint) -> *mut Capability)(n))
+            .r
+            .rCCCS)
+            .store(&raw mut CCS_GC as *mut CostCentreStack, Ordering::Relaxed);
+        n = n.wrapping_add(1);
+    }
+
     N = config.collect_gen;
     major_gc = N == RtsFlags.GcFlags.generations.wrapping_sub(1 as u32);
     deadlock_detect_gc = config.deadlock_detect;
+
+    if major_gc as i32 != 0
+        && RtsFlags.GcFlags.useNonmoving as i32 != 0
+        && nonmovingConcurrentMarkIsRunning() as i32 != 0
+    {
+        N = N.wrapping_sub(1);
+        config.collect_gen = config.collect_gen.wrapping_sub(1);
+        major_gc = false;
+    }
 
     if major_gc as i32 != 0 && !RtsFlags.GcFlags.useNonmoving {
         prev_static_flag = static_flag;
@@ -342,10 +480,33 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         unload_mark_needed = false;
     }
 
-    n_gc_threads = 1;
-    work_stealing = false;
-    n_gc_idle_threads = 0;
-    gc_running_threads = 0;
+    if config.parallel {
+        n_gc_threads = getNumCapabilities() as u32;
+        n_gc_idle_threads = 0;
+
+        let mut i: u32 = 0;
+
+        while i < getNumCapabilities() as u32 {
+            if *idle_cap.offset(i as isize) {
+                if (i != (*gct).thread_index) as i32 as i64 != 0 {
+                } else {
+                    _assertFail(c"rts/sm/GC.c".as_ptr(), 404);
+                }
+
+                n_gc_idle_threads = n_gc_idle_threads.wrapping_add(1);
+            }
+
+            i = i.wrapping_add(1);
+        }
+    } else {
+        n_gc_threads = 1;
+        n_gc_idle_threads = getNumCapabilities().wrapping_sub(1 as u32) as u32;
+    }
+
+    work_stealing = RtsFlags.ParFlags.parGcLoadBalancingEnabled as i32 != 0
+        && N >= RtsFlags.ParFlags.parGcLoadBalancingGen
+        && is_par_gc() as i32 != 0;
+    (&raw mut gc_running_threads).store(0, Ordering::SeqCst);
 
     if (n_gc_threads > 0) as i32 as i64 != 0 {
     } else {
@@ -405,7 +566,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         g = g.wrapping_add(1);
     }
 
-    init_gc_thread(&raw mut the_gc_thread as *mut gc_thread);
+    init_gc_thread(gct);
 
     if major_gc as i32 != 0 && (*oldest_gen).mark != 0 {
         mark_stack_bd = allocBlock();
@@ -420,23 +581,18 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
     }
 
     inc_running();
-
-    wakeup_gc_threads(
-        (*(&raw mut the_gc_thread as *mut gc_thread)).thread_index,
-        idle_cap,
-    );
-
-    traceEventGcWork((*(&raw mut the_gc_thread as *mut gc_thread)).cap);
+    wakeup_gc_threads((*gct).thread_index, idle_cap);
+    traceEventGcWork((*gct).cap);
 
     if !is_par_gc() {
         n = 0;
 
         while n < getNumCapabilities() as u32 {
-            scavenge_capability_mut_lists(getCapability(n));
+            scavenge_capability_mut_Lists1(getCapability(n));
             n = n.wrapping_add(1);
         }
     } else {
-        scavenge_capability_mut_lists((*(&raw mut the_gc_thread as *mut gc_thread)).cap);
+        scavenge_capability_mut_lists((*gct).cap);
         n = 0;
 
         while n < getNumCapabilities() as u32 {
@@ -445,7 +601,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
                     Some(
                         mark_root as unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> (),
                     ),
-                    &raw mut the_gc_thread as *mut gc_thread as *mut c_void,
+                    gct as *mut c_void,
                     getCapability(n),
                     true,
                 );
@@ -457,14 +613,14 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         }
     }
 
-    (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = 0;
+    (*gct).evac_gen_no = 0;
 
     markCAFs(
         Some(mark_root as unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> ()),
-        &raw mut the_gc_thread as *mut gc_thread as *mut c_void,
+        gct as *mut c_void,
     );
 
-    (*(&raw mut the_gc_thread as *mut gc_thread)).evac_gen_no = 0;
+    (*gct).evac_gen_no = 0;
 
     if !is_par_gc() {
         n = 0;
@@ -472,7 +628,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         while n < getNumCapabilities() as u32 {
             markCapability(
                 Some(mark_root as unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> ()),
-                &raw mut the_gc_thread as *mut gc_thread as *mut c_void,
+                gct as *mut c_void,
                 getCapability(n),
                 true,
             );
@@ -482,7 +638,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
     } else {
         markCapability(
             Some(mark_root as unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> ()),
-            &raw mut the_gc_thread as *mut gc_thread as *mut c_void,
+            gct as *mut c_void,
             cap,
             true,
         );
@@ -493,19 +649,16 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
 
     markStablePtrTable(
         Some(mark_root as unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> ()),
-        &raw mut the_gc_thread as *mut gc_thread as *mut c_void,
+        gct as *mut c_void,
     );
 
     rememberOldStableNameAddresses();
     scavenge_until_all_done();
-
-    shutdown_gc_threads(
-        (*(&raw mut the_gc_thread as *mut gc_thread)).thread_index,
-        idle_cap,
-    );
+    shutdown_gc_threads((*gct).thread_index, idle_cap);
 
     let mut dead_weak_ptr_list = null_mut::<StgWeak>();
     let mut resurrected_threads = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
+    gc_sparks_all_caps = !work_stealing || !is_par_gc();
     work_stealing = false;
 
     while traverseWeakPtrList(&raw mut dead_weak_ptr_list, &raw mut resurrected_threads) {
@@ -515,10 +668,54 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
 
     gcStableNameTable();
 
+    if gc_sparks_all_caps {
+        n = 0;
+
+        while n < n_capabilities {
+            pruneSparkQueue(false, getCapability(n));
+            n = n.wrapping_add(1);
+        }
+    } else {
+        n = 0;
+
+        while n < getNumCapabilities() as u32 {
+            if n == (*cap).no || *idle_cap.offset(n as isize) as i32 != 0 {
+                pruneSparkQueue(false, getCapability(n));
+            }
+
+            n = n.wrapping_add(1);
+        }
+    }
+
+    if RtsFlags.ProfFlags.doHeapProfile == HEAP_BY_LDV as u32
+        || !RtsFlags.ProfFlags.bioSelector.is_null()
+    {
+        if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/sm/GC.c".as_ptr(),
+                597,
+            );
+        }
+
+        LdvCensusForDead(N);
+
+        let mut __r_0 = pthread_mutex_lock(&raw mut sm_mutex);
+
+        if __r_0 != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/sm/GC.c".as_ptr(),
+                599,
+                __r_0,
+            );
+        }
+    }
+
     if major_gc as i32 != 0 && (*oldest_gen).mark != 0 {
         if (*oldest_gen).compact != 0 {
             compact(
-                (*(&raw mut the_gc_thread as *mut gc_thread)).scavenged_static_objects,
+                (*gct).scavenged_static_objects,
                 &raw mut dead_weak_ptr_list,
                 &raw mut resurrected_threads,
             );
@@ -534,7 +731,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
     scav_find_work = 0;
     max_n_todo_overflow = 0;
 
-    let mut i: u32 = 0;
+    let mut i_0: u32 = 0;
     let mut par_balanced_copied_acc: u64 = 0;
     let mut thread = null::<gc_thread>();
 
@@ -548,78 +745,89 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
             _assertFail(c"rts/sm/GC.c".as_ptr(), 629);
         }
 
-        i = 0;
+        i_0 = 0;
 
-        while i < n_gc_threads {
-            if !*idle_cap.offset(i as isize) {
-                copied = (copied as W_).wrapping_add((**gc_threads.offset(i as isize)).copied)
-                    as i64 as i64;
+        while i_0 < n_gc_threads {
+            if !*idle_cap.offset(i_0 as isize) {
+                copied = (copied as W_).wrapping_add(
+                    (&raw mut (**gc_threads.offset(i_0 as isize)).copied).load(Ordering::Relaxed),
+                ) as i64 as i64;
             }
 
-            i = i.wrapping_add(1);
+            i_0 = i_0.wrapping_add(1);
         }
 
-        i = 0;
+        i_0 = 0;
 
-        while i < n_gc_threads {
-            if !*idle_cap.offset(i as isize) {
-                thread = *gc_threads.offset(i as isize);
+        while i_0 < n_gc_threads {
+            if !*idle_cap.offset(i_0 as isize) {
+                thread = *gc_threads.offset(i_0 as isize);
 
                 if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
-                    trace_(c"thread %d:".as_ptr(), i);
+                    trace_(c"thread %d:".as_ptr(), i_0);
                 }
 
                 if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
                     trace_(
                         c"   copied           %ld".as_ptr(),
-                        (*thread).copied.wrapping_mul(size_of::<W_>() as W_),
+                        (&raw const (*thread).copied)
+                            .load(Ordering::Relaxed)
+                            .wrapping_mul(size_of::<W_>() as W_),
                     );
                 }
 
                 if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
                     trace_(
                         c"   scanned          %ld".as_ptr(),
-                        (*thread).scanned.wrapping_mul(size_of::<W_>() as W_),
+                        (&raw const (*thread).scanned)
+                            .load(Ordering::Relaxed)
+                            .wrapping_mul(size_of::<W_>() as W_),
                     );
                 }
 
                 if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
-                    trace_(c"   any_work         %ld".as_ptr(), (*thread).any_work);
+                    trace_(
+                        c"   any_work         %ld".as_ptr(),
+                        (&raw const (*thread).any_work).load(Ordering::Relaxed),
+                    );
                 }
 
                 if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
-                    trace_(c"   scav_find_work %ld".as_ptr(), (*thread).scav_find_work);
+                    trace_(
+                        c"   scav_find_work %ld".as_ptr(),
+                        (&raw const (*thread).scav_find_work).load(Ordering::Relaxed),
+                    );
                 }
 
-                any_work = any_work.wrapping_add((*thread).any_work as StgWord);
-                scav_find_work = scav_find_work.wrapping_add((*thread).scav_find_work as StgWord);
+                any_work = any_work.wrapping_add(
+                    (&raw const (*thread).any_work).load(Ordering::Relaxed) as StgWord,
+                );
+
+                scav_find_work = scav_find_work.wrapping_add(
+                    (&raw const (*thread).scav_find_work).load(Ordering::Relaxed) as StgWord,
+                );
 
                 max_n_todo_overflow = ({
-                    let _a: W_ = (*thread).max_n_todo_overflow;
-                    let _b: W_ = max_n_todo_overflow as W_;
+                    let mut _a: W_ =
+                        (&raw const (*thread).max_n_todo_overflow).load(Ordering::Relaxed);
 
-                    if _a as W_ <= _b as W_ {
-                        _b as W_
-                    } else {
-                        _a as W_
-                    }
+                    let mut _b: W_ = max_n_todo_overflow as W_;
+
+                    if _a <= _b { _b } else { _a as W_ }
                 }) as StgWord;
 
                 par_max_copied = ({
-                    let _a: W_ = (*thread).copied;
-                    let _b: W_ = par_max_copied as W_;
+                    let mut _a: W_ = (&raw const (*thread).copied).load(Ordering::Relaxed);
 
-                    if _a as W_ <= _b as W_ {
-                        _b as W_
-                    } else {
-                        _a as W_
-                    }
+                    let mut _b: W_ = par_max_copied as W_;
+
+                    if _a <= _b { _b } else { _a as W_ }
                 }) as StgWord;
 
                 par_balanced_copied_acc = par_balanced_copied_acc.wrapping_add(
                     ({
                         let mut _a: W_ = ((other_active_threads + 1 as i32) as W_)
-                            .wrapping_mul((*thread).copied);
+                            .wrapping_mul((&raw const (*thread).copied).load(Ordering::Relaxed));
 
                         let mut _b: W_ = copied as W_;
 
@@ -628,7 +836,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
                 );
             }
 
-            i = i.wrapping_add(1);
+            i_0 = i_0.wrapping_add(1);
         }
 
         par_balanced_copied = par_balanced_copied_acc
@@ -636,17 +844,11 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
             .wrapping_add((other_active_threads / 2 as i32) as u64)
             .wrapping_div(other_active_threads as u64) as StgWord;
     } else {
-        copied = (copied as W_).wrapping_add((*(&raw mut the_gc_thread as *mut gc_thread)).copied)
-            as i64 as i64;
-        any_work = any_work
-            .wrapping_add((*(&raw mut the_gc_thread as *mut gc_thread)).any_work as StgWord);
-
-        scav_find_work = scav_find_work
-            .wrapping_add((*(&raw mut the_gc_thread as *mut gc_thread)).scav_find_work as StgWord);
-
-        max_n_todo_overflow = max_n_todo_overflow.wrapping_add(
-            (*(&raw mut the_gc_thread as *mut gc_thread)).max_n_todo_overflow as StgWord,
-        );
+        copied = (copied as W_).wrapping_add((*gct).copied) as i64 as i64;
+        any_work = any_work.wrapping_add((*gct).any_work as StgWord);
+        scav_find_work = scav_find_work.wrapping_add((*gct).scav_find_work as StgWord);
+        max_n_todo_overflow =
+            max_n_todo_overflow.wrapping_add((*gct).max_n_todo_overflow as StgWord);
     }
 
     live_words = 0;
@@ -820,12 +1022,12 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         live_words = live_words.wrapping_add(genLiveWords(r#gen));
         live_blocks = live_blocks.wrapping_add(genLiveBlocks(r#gen));
 
-        let mut i_0: u32 = 0;
+        let mut i_1: u32 = 0;
 
-        while i_0 < getNumCapabilities() as u32 {
-            live_words = live_words.wrapping_add(gcThreadLiveWords(i_0, (*r#gen).no));
-            live_blocks = live_blocks.wrapping_add(gcThreadLiveBlocks(i_0, (*r#gen).no));
-            i_0 = i_0.wrapping_add(1);
+        while i_1 < getNumCapabilities() as u32 {
+            live_words = live_words.wrapping_add(gcThreadLiveWords(i_1, (*r#gen).no));
+            live_blocks = live_blocks.wrapping_add(gcThreadLiveBlocks(i_1, (*r#gen).no));
+            i_1 = i_1.wrapping_add(1);
         }
 
         g = g.wrapping_add(1);
@@ -843,6 +1045,11 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
             n = n.wrapping_add(1);
         }
     }
+
+    resetStaticObjectForProfiling(
+        &raw mut g_retainerTraverseState,
+        (*gct).scavenged_static_objects,
+    );
 
     if (*oldest_gen).scavenged_large_objects.is_null() as i32 as i64 != 0 {
     } else {
@@ -866,9 +1073,7 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
             _assertFail(c"rts/sm/GC.c".as_ptr(), 887);
         }
 
-        nonmovingAddUpdRemSetBlocks(
-            &raw mut (*(*(&raw mut the_gc_thread as *mut gc_thread)).cap).upd_rem_set,
-        );
+        concurrent = !config.nonconcurrent && RtsFlags.ProfFlags.doHeapProfile == 0;
 
         nonmovingCollect(
             &raw mut dead_weak_ptr_list,
@@ -919,7 +1124,26 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         checkUnload();
     }
 
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            963,
+        );
+    }
+
     scheduleFinalizers(cap, dead_weak_ptr_list);
+
+    let mut __r_1 = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r_1 != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            965,
+            __r_1,
+        );
+    }
 
     if RtsFlags.DebugFlags.sanity {
         checkSanity(
@@ -933,15 +1157,54 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
             trace_(c"performing heap census".as_ptr());
         }
 
+        if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/sm/GC.c".as_ptr(),
+                980,
+            );
+        }
+
         heapCensus(mut_time);
+
+        let mut __r_2 = pthread_mutex_lock(&raw mut sm_mutex);
+
+        if __r_2 != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/sm/GC.c".as_ptr(),
+                982,
+                __r_2,
+            );
+        }
     }
 
-    if performTickySample {
+    if (&raw mut performTickySample).load(Ordering::Relaxed) {
         emitTickyCounterSamples();
-        performTickySample = 0 != 0;
+        (&raw mut performTickySample).store(0 != 0, Ordering::Relaxed);
+    }
+
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            996,
+        );
     }
 
     resurrectThreads(resurrected_threads);
+
+    let mut __r_3 = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r_3 != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            998,
+            __r_3,
+        );
+    }
+
     commitMBlockFreeing();
 
     if major_gc {
@@ -951,21 +1214,21 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         let mut need: W_ = 0;
         let mut got: W_ = 0;
         let mut extra_needed: W_ = 0;
-        let mut i_1: u32 = 0;
+        let mut i_2: u32 = 0;
         need_copied_live = 0;
         need_uncopied_live = 0;
-        i_1 = 0;
+        i_2 = 0;
 
-        while i_1 < RtsFlags.GcFlags.generations {
+        while i_2 < RtsFlags.GcFlags.generations {
             need_copied_live = (need_copied_live as StgWord).wrapping_add(genLiveCopiedWords(
-                generations.offset(i_1 as isize) as *mut generation,
+                generations.offset(i_2 as isize) as *mut generation,
             )) as W_ as W_;
 
             need_uncopied_live = (need_uncopied_live as StgWord).wrapping_add(genLiveUncopiedWords(
-                generations.offset(i_1 as isize) as *mut generation,
+                generations.offset(i_2 as isize) as *mut generation,
             )) as W_ as W_;
 
-            i_1 = i_1.wrapping_add(1);
+            i_2 = i_2.wrapping_add(1);
         }
 
         need_copied_live = (need_copied_live
@@ -1026,18 +1289,22 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         }
 
         need_prealloc = 0;
-        i_1 = 0;
+        i_2 = 0;
 
-        while i_1 < n_nurseries {
+        while i_2 < n_nurseries {
             need_prealloc = (need_prealloc as StgWord)
-                .wrapping_add((*nurseries.offset(i_1 as isize)).n_blocks as StgWord)
+                .wrapping_add((*nurseries.offset(i_2 as isize)).n_blocks as StgWord)
                 as W_ as W_;
-            i_1 = i_1.wrapping_add(1);
+            i_2 = i_2.wrapping_add(1);
         }
 
         need_prealloc = need_prealloc.wrapping_add(RtsFlags.GcFlags.largeAllocLim as W_);
         need_prealloc = need_prealloc.wrapping_add(countAllocdBlocks(exec_block));
         need_prealloc = need_prealloc.wrapping_add(arenaBlocks() as W_);
+
+        if RtsFlags.ProfFlags.doHeapProfile == HEAP_BY_RETAINER as u32 {
+            need_prealloc = need_prealloc.wrapping_add(retainerStackBlocks());
+        }
 
         consec_idle_gcs = if config.overflow_gc as i32 != 0 {
             0
@@ -1171,12 +1438,20 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
         statDescribeGens();
     }
 
+    n = 0;
+
+    while n < getNumCapabilities() as u32 {
+        let ref mut fresh15 = (*getCapability(n)).r.rCCCS;
+        *fresh15 = *save_CCS.as_mut_ptr().offset(n as isize) as *mut CostCentreStack_;
+        n = n.wrapping_add(1);
+    }
+
     memInventory(RtsFlags.DebugFlags.gc);
-    stat_endGCWorker(cap, &raw mut the_gc_thread as *mut gc_thread_);
+    stat_endGCWorker(cap, gct as *mut gc_thread_);
 
     stat_endGC(
         cap,
-        &raw mut the_gc_thread as *mut gc_thread_,
+        gct as *mut gc_thread_,
         live_words as W_,
         copied as W_,
         (live_blocks as W_)
@@ -1195,6 +1470,16 @@ unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idl
     if RtsFlags.MiscFlags.install_signal_handlers {
         unblockUserSignals();
     }
+
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1152,
+        );
+    }
+
+    gct = saved_gct;
 }
 
 unsafe fn heapOverflow() {
@@ -1205,6 +1490,8 @@ unsafe fn new_gc_thread(mut n: u32, mut t: *mut gc_thread) {
     let mut g: u32 = 0;
     let mut ws = null_mut::<gen_workspace>();
     (*t).cap = getCapability(n);
+    (*t).id = null_mut::<_opaque_pthread_t>();
+    (&raw mut (*t).wakeup).store(0, Ordering::SeqCst);
     (*t).thread_index = n;
     (*t).free_blocks = null_mut::<bdescr>();
     (*t).gc_count = 0;
@@ -1246,38 +1533,82 @@ unsafe fn new_gc_thread(mut n: u32, mut t: *mut gc_thread) {
 }
 
 unsafe fn initGcThreads(mut from: u32, mut to: u32) {
-    if (from == 0 && to == 1) as i32 as i64 != 0 {
+    let mut i: u32 = 0;
+
+    if from > 0 {
+        gc_threads = stgReallocBytes(
+            gc_threads as *mut c_void,
+            (to as usize).wrapping_mul(size_of::<*mut gc_thread>() as usize),
+            c"initGcThreads".as_ptr(),
+        ) as *mut *mut gc_thread;
     } else {
-        _assertFail(c"rts/sm/GC.c".as_ptr(), 1263);
+        gc_threads = stgMallocBytes(
+            (to as usize).wrapping_mul(size_of::<*mut gc_thread>() as usize),
+            c"initGcThreads".as_ptr(),
+        ) as *mut *mut gc_thread;
+
+        initMutex(&raw mut gc_entry_mutex);
+        initCondition(&raw mut gc_entry_arrived_cv);
+        initCondition(&raw mut gc_entry_start_now_cv);
+        initMutex(&raw mut gc_exit_mutex);
+        initCondition(&raw mut gc_exit_arrived_cv);
+        initCondition(&raw mut gc_exit_leave_now_cv);
+        initMutex(&raw mut gc_running_mutex);
+        initCondition(&raw mut gc_running_cv);
     }
 
-    gc_threads = stgMallocBytes(
-        size_of::<*mut gc_thread>() as usize,
-        c"alloc_gc_threads".as_ptr(),
-    ) as *mut *mut gc_thread;
+    i = from;
 
-    let ref mut fresh11 = *gc_threads.offset(0);
-    *fresh11 = &raw mut the_gc_thread as *mut gc_thread;
-    new_gc_thread(0, *gc_threads.offset(0));
+    while i < to {
+        let ref mut fresh21 = *gc_threads.offset(i as isize);
+
+        *fresh21 = stgMallocAlignedBytes(
+            (size_of::<gc_thread>() as usize).wrapping_add(
+                (RtsFlags.GcFlags.generations as usize)
+                    .wrapping_mul(size_of::<gen_workspace>() as usize),
+            ),
+            align_of::<gc_thread>(),
+            c"alloc_gc_threads".as_ptr(),
+        ) as *mut gc_thread;
+
+        new_gc_thread(i, *gc_threads.offset(i as isize));
+        i = i.wrapping_add(1);
+    }
 }
 
 unsafe fn freeGcThreads() {
     let mut g: u32 = 0;
 
     if !gc_threads.is_null() {
-        g = 0;
+        let mut i: u32 = 0;
+        i = 0;
 
-        while g < RtsFlags.GcFlags.generations {
-            freeWSDeque(
-                (*(&raw mut (**gc_threads.offset(0)).gens as *mut gen_workspace)
-                    .offset(g as isize))
-                .0
-                .todo_q,
-            );
+        while i < getNumCapabilities() as u32 {
+            g = 0;
 
-            g = g.wrapping_add(1);
+            while g < RtsFlags.GcFlags.generations {
+                freeWSDeque(
+                    (*(&raw mut (**gc_threads.offset(i as isize)).gens as *mut gen_workspace)
+                        .offset(g as isize))
+                    .0
+                    .todo_q,
+                );
+
+                g = g.wrapping_add(1);
+            }
+
+            stgFreeAligned(*gc_threads.offset(i as isize) as *mut c_void);
+            i = i.wrapping_add(1);
         }
 
+        closeCondition(&raw mut gc_running_cv);
+        closeMutex(&raw mut gc_running_mutex);
+        closeCondition(&raw mut gc_exit_leave_now_cv);
+        closeCondition(&raw mut gc_exit_arrived_cv);
+        closeMutex(&raw mut gc_exit_mutex);
+        closeCondition(&raw mut gc_entry_start_now_cv);
+        closeCondition(&raw mut gc_entry_arrived_cv);
+        closeMutex(&raw mut gc_entry_mutex);
         stgFree(gc_threads as *mut c_void);
         gc_threads = null_mut::<*mut gc_thread>();
     }
@@ -1291,40 +1622,572 @@ unsafe fn inc_running() -> StgWord {
 }
 
 unsafe fn dec_running() -> StgWord {
-    if (gc_running_threads != 0) as i32 as i64 != 0 {
+    if ((&raw mut gc_running_threads).load(Ordering::Relaxed) != 0) as i32 as i64 != 0 {
     } else {
         _assertFail(c"rts/sm/GC.c".as_ptr(), 1322);
     }
 
+    let mut __r = pthread_mutex_lock(&raw mut gc_running_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1324,
+            __r,
+        );
+    }
+
     let mut r = atomic_dec(&raw mut gc_running_threads as StgVolatilePtr, 1);
+
+    if r == 0 {
+        broadcastCondition(&raw mut gc_running_cv);
+    }
+
+    if pthread_mutex_unlock(&raw mut gc_running_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1333,
+        );
+    }
 
     return r;
 }
 
-unsafe fn scavenge_until_all_done() {
-    let mut r: u32 = 0;
-    scavenge_loop();
-    collect_gct_blocks();
-    r = dec_running() as u32;
-    traceEventGcIdle((*(&raw mut the_gc_thread as *mut gc_thread)).cap);
+unsafe fn notifyTodoBlock() {
+    if work_stealing {
+        let mut running_threads: StgInt =
+            (&raw mut gc_running_threads).load(Ordering::SeqCst) as StgInt;
 
-    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
-        trace_(c"%d GC threads still running".as_ptr(), r);
+        let mut max_running_threads: StgInt = n_gc_threads as StgInt - n_gc_idle_threads as StgInt;
+
+        if (running_threads > 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1358);
+        }
+
+        if (max_running_threads > 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1359);
+        }
+
+        if (running_threads <= max_running_threads) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1360);
+        }
+
+        if running_threads < max_running_threads {
+            signalCondition(&raw mut gc_running_cv);
+        }
     }
-
-    traceEventGcDone((*(&raw mut the_gc_thread as *mut gc_thread)).cap);
 }
 
-unsafe fn wakeup_gc_threads(mut me: u32, mut idle_cap: *mut bool) {}
+unsafe fn scavenge_until_all_done() {
+    let mut r: u32 = 0;
 
-unsafe fn shutdown_gc_threads(mut me: u32, mut idle_cap: *mut bool) {}
+    loop {
+        if is_par_gc() {
+            scavenge_loop();
+        } else {
+            scavenge_loop1();
+        }
+
+        collect_gct_blocks();
+        r = dec_running() as u32;
+        traceEventGcIdle((*gct).cap);
+
+        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+            trace_(c"%d GC threads still running".as_ptr(), r);
+        }
+
+        if !(is_par_gc() as i32 != 0 && work_stealing as i32 != 0 && r != 0) {
+            break;
+        }
+
+        (&raw mut (*gct).any_work).store(
+            (&raw mut (*gct).any_work)
+                .load(Ordering::Relaxed)
+                .wrapping_add(1 as W_),
+            Ordering::Relaxed,
+        );
+
+        let mut __r = pthread_mutex_lock(&raw mut gc_running_mutex);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/sm/GC.c".as_ptr(),
+                1402,
+                __r,
+            );
+        }
+
+        r = (&raw mut gc_running_threads).load(Ordering::SeqCst) as u32;
+
+        if r != 0 {
+            waitCondition(&raw mut gc_running_cv, &raw mut gc_running_mutex);
+            r = (&raw mut gc_running_threads).load(Ordering::SeqCst) as u32;
+        }
+
+        if pthread_mutex_unlock(&raw mut gc_running_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/sm/GC.c".as_ptr(),
+                1417,
+            );
+        }
+
+        if !(r != 0) {
+            break;
+        }
+
+        inc_running();
+        traceEventGcWork((*gct).cap);
+    }
+
+    traceEventGcDone((*gct).cap);
+}
+
+unsafe fn gcWorkerThread(mut cap: *mut Capability) {
+    let mut saved_gct = null_mut::<gc_thread>();
+    saved_gct = gct;
+    gct = *gc_threads.offset((*cap).no as isize);
+    (*gct).id = osThreadId();
+    stat_startGCWorker(cap, gct as *mut gc_thread_);
+    (&raw mut (*gct).wakeup).store(1, Ordering::SeqCst);
+
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+        trace_(c"GC thread %d standing by...".as_ptr(), (*gct).thread_index);
+    }
+
+    let mut __r = pthread_mutex_lock(&raw mut gc_entry_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1447,
+            __r,
+        );
+    }
+
+    let fresh17 = &raw mut n_gc_entered;
+    let fresh18 = 1;
+    (fresh17).xadd(fresh18, Ordering::SeqCst) + fresh18;
+    signalCondition(&raw mut gc_entry_arrived_cv);
+
+    while (&raw mut n_gc_entered).load(Ordering::SeqCst) != 0 {
+        waitCondition(&raw mut gc_entry_start_now_cv, &raw mut gc_entry_mutex);
+    }
+
+    if pthread_mutex_unlock(&raw mut gc_entry_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1453,
+        );
+    }
+
+    init_gc_thread(gct);
+    traceEventGcWork((*gct).cap);
+    (*gct).evac_gen_no = 0;
+
+    markCapability(
+        Some(mark_root as unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> ()),
+        gct as *mut c_void,
+        cap,
+        true,
+    );
+
+    scavenge_capability_mut_lists(cap);
+    scavenge_until_all_done();
+
+    if work_stealing as i32 != 0 && is_par_gc() as i32 != 0 {
+        pruneSparkQueue(false, cap);
+    }
+
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+        trace_(
+            c"GC thread %d waiting to continue...".as_ptr(),
+            (*gct).thread_index,
+        );
+    }
+
+    stat_endGCWorker(cap, gct as *mut gc_thread_);
+
+    let mut __r_0 = pthread_mutex_lock(&raw mut gc_exit_mutex);
+
+    if __r_0 != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1481,
+            __r_0,
+        );
+    }
+
+    (&raw mut (*gct).wakeup).store(3, Ordering::SeqCst);
+
+    let fresh19 = &raw mut n_gc_exited;
+    let fresh20 = 1;
+    (fresh19).xadd(fresh20, Ordering::SeqCst) + fresh20;
+    signalCondition(&raw mut gc_exit_arrived_cv);
+
+    while (&raw mut n_gc_exited).load(Ordering::SeqCst) != 0 {
+        waitCondition(&raw mut gc_exit_leave_now_cv, &raw mut gc_exit_mutex);
+    }
+
+    if pthread_mutex_unlock(&raw mut gc_exit_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1488,
+        );
+    }
+
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+        trace_(c"GC thread %d on my way...".as_ptr(), (*gct).thread_index);
+    }
+
+    gct = saved_gct;
+}
+
+unsafe fn waitForGcThreads(mut cap: *mut Capability, mut idle_cap: *mut bool) {
+    let mut n_threads = getNumCapabilities() as u32;
+    let me: u32 = (*cap).no;
+    let mut i: u32 = 0;
+    let mut cur_n_gc_entered: u32 = 0;
+    let mut t0: Time = 0;
+    let mut t1: Time = 0;
+    let mut t2: Time = 0;
+    t2 = getProcessElapsedTime();
+    t1 = t2;
+    t0 = t1;
+    i = 0;
+
+    while i < getNumCapabilities() as u32 {
+        if i == me || *idle_cap.offset(i as isize) as i32 != 0 {
+            n_threads = n_threads.wrapping_sub(1);
+        }
+
+        i = i.wrapping_add(1);
+    }
+
+    if (n_threads < getNumCapabilities() as u32) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1516);
+    }
+
+    if n_threads == 0 {
+        return;
+    }
+
+    let mut __r = pthread_mutex_lock(&raw mut gc_entry_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1519,
+            __r,
+        );
+    }
+
+    loop {
+        cur_n_gc_entered = (&raw mut n_gc_entered).load(Ordering::SeqCst) as u32;
+
+        if !(cur_n_gc_entered != n_threads) {
+            break;
+        }
+
+        if (cur_n_gc_entered < n_threads) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1521);
+        }
+
+        i = 0;
+
+        while i < getNumCapabilities() as u32 {
+            if !(i == me || *idle_cap.offset(i as isize) as i32 != 0) {
+                if (&raw mut (**gc_threads.offset(i as isize)).wakeup).load(Ordering::SeqCst)
+                    != GC_THREAD_STANDING_BY as StgWord
+                {
+                    prodCapability(getCapability(i), (*cap).running_task);
+                    interruptCapability(getCapability(i));
+                }
+            }
+
+            i = i.wrapping_add(1);
+        }
+
+        timedWaitCondition(
+            &raw mut gc_entry_arrived_cv,
+            &raw mut gc_entry_mutex,
+            1000 * 1000,
+        );
+
+        t2 = getProcessElapsedTime();
+
+        if RtsFlags.GcFlags.longGCSync != 0 && t2 - t1 > RtsFlags.GcFlags.longGCSync {
+            if pthread_mutex_unlock(&raw mut gc_entry_mutex) != 0 {
+                barf(
+                    c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                    c"rts/sm/GC.c".as_ptr(),
+                    1536,
+                );
+            }
+
+            rtsConfig.longGCSync.expect("non-null function pointer")((*cap).no, t2 - t0);
+            t1 = t2;
+
+            let mut __r_0 = pthread_mutex_lock(&raw mut gc_entry_mutex);
+
+            if __r_0 != 0 {
+                barf(
+                    c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                    c"rts/sm/GC.c".as_ptr(),
+                    1542,
+                    __r_0,
+                );
+            }
+        }
+    }
+
+    if pthread_mutex_unlock(&raw mut gc_entry_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1545,
+        );
+    }
+
+    if RtsFlags.GcFlags.longGCSync != 0 && t2 - t0 > RtsFlags.GcFlags.longGCSync {
+        rtsConfig.longGCSyncEnd.expect("non-null function pointer")(t2 - t0);
+    }
+}
+
+unsafe fn wakeup_gc_threads(mut me: u32, mut idle_cap: *mut bool) {
+    let mut i: u32 = 0;
+
+    if !is_par_gc() {
+        return;
+    }
+
+    let mut num_idle: StgWord = 0;
+    i = 0;
+
+    while i < n_gc_threads {
+        if !(i == me && *idle_cap.offset(i as isize) as i32 != 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1567);
+        }
+
+        if *idle_cap.offset(i as isize) {
+            num_idle = num_idle.wrapping_add(1);
+        }
+
+        i = i.wrapping_add(1);
+    }
+
+    if (num_idle == n_gc_idle_threads as StgWord) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1570);
+    }
+
+    let mut __r = pthread_mutex_lock(&raw mut gc_entry_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1573,
+            __r,
+        );
+    }
+
+    i = 0;
+
+    while i < n_gc_threads {
+        if !(i == me || *idle_cap.offset(i as isize) as i32 != 0) {
+            inc_running();
+
+            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.gc as i64 != 0 {
+                trace_(c"waking up gc thread %d".as_ptr(), i);
+            }
+
+            if ((&raw mut (**gc_threads.offset(i as isize)).wakeup).load(Ordering::SeqCst) == 1)
+                as i32 as i64
+                != 0
+            {
+            } else {
+                _assertFail(c"rts/sm/GC.c".as_ptr(), 1578);
+            }
+
+            (&raw mut (**gc_threads.offset(i as isize)).wakeup).store(2, Ordering::SeqCst);
+        }
+
+        i = i.wrapping_add(1);
+    }
+
+    if ((&raw mut n_gc_entered).load(Ordering::SeqCst)
+        == n_gc_threads as StgInt - 1 - n_gc_idle_threads as StgInt) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1582);
+    }
+
+    (&raw mut n_gc_entered).store(0, Ordering::SeqCst);
+    broadcastCondition(&raw mut gc_entry_start_now_cv);
+
+    if pthread_mutex_unlock(&raw mut gc_entry_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1585,
+        );
+    }
+}
+
+unsafe fn shutdown_gc_threads(mut me: u32, mut idle_cap: *mut bool) {
+    if !is_par_gc() {
+        return;
+    }
+
+    let mut n_threads: StgInt = n_gc_threads as StgInt - 1 - n_gc_idle_threads as StgInt;
+    let mut cur_n_gc_exited: StgInt = 0;
+    let mut __r = pthread_mutex_lock(&raw mut gc_exit_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1603,
+            __r,
+        );
+    }
+
+    loop {
+        cur_n_gc_exited = (&raw mut n_gc_exited).load(Ordering::SeqCst);
+
+        if !(cur_n_gc_exited != n_threads) {
+            break;
+        }
+
+        if (cur_n_gc_exited >= 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1605);
+        }
+
+        if (cur_n_gc_exited < n_threads) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1606);
+        }
+
+        waitCondition(&raw mut gc_exit_arrived_cv, &raw mut gc_exit_mutex);
+    }
+
+    let mut i: u32 = 0;
+    i = 0;
+
+    while i < getNumCapabilities() as u32 {
+        if !(i == me || *idle_cap.offset(i as isize) as i32 != 0) {
+            if ((&raw mut (**gc_threads.offset(i as isize)).wakeup).load(Ordering::SeqCst) == 3)
+                as i32 as i64
+                != 0
+            {
+            } else {
+                _assertFail(c"rts/sm/GC.c".as_ptr(), 1613);
+            }
+        }
+
+        i = i.wrapping_add(1);
+    }
+
+    if pthread_mutex_unlock(&raw mut gc_exit_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1616,
+        );
+    }
+}
+
+unsafe fn releaseGCThreads(mut cap: *mut Capability, mut idle_cap: *mut bool) {
+    let n_threads = getNumCapabilities() as u32;
+    let me: u32 = (*cap).no;
+    let mut i: u32 = 0;
+    let mut num_idle: u32 = 0;
+    i = 0;
+
+    while i < n_threads {
+        if !(i == me && *idle_cap.offset(i as isize) as i32 != 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/GC.c".as_ptr(), 1630);
+        }
+
+        if *idle_cap.offset(i as isize) {
+            num_idle = num_idle.wrapping_add(1);
+        }
+
+        i = i.wrapping_add(1);
+    }
+
+    i = 0;
+
+    while i < n_threads {
+        if !(i == me || *idle_cap.offset(i as isize) as i32 != 0) {
+            if ((&raw mut (**gc_threads.offset(i as isize)).wakeup).load(Ordering::SeqCst) == 3)
+                as i32 as i64
+                != 0
+            {
+            } else {
+                _assertFail(c"rts/sm/GC.c".as_ptr(), 1637);
+            }
+
+            (&raw mut (**gc_threads.offset(i as isize)).wakeup).store(0, Ordering::SeqCst);
+        }
+
+        i = i.wrapping_add(1);
+    }
+
+    let mut __r = pthread_mutex_lock(&raw mut gc_exit_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1641,
+            __r,
+        );
+    }
+
+    if ((&raw mut n_gc_exited).load(Ordering::SeqCst)
+        == n_threads as StgInt - 1 - num_idle as StgInt) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/sm/GC.c".as_ptr(), 1642);
+    }
+
+    (&raw mut n_gc_exited).store(0, Ordering::SeqCst);
+    broadcastCondition(&raw mut gc_exit_leave_now_cv);
+
+    if pthread_mutex_unlock(&raw mut gc_exit_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/GC.c".as_ptr(),
+            1645,
+        );
+    }
+}
 
 unsafe fn stash_mut_list(mut cap: *mut Capability, mut gen_no: u32) {
-    let ref mut fresh7 = *(*cap).saved_mut_lists.offset(gen_no as isize);
-    *fresh7 = *(*cap).mut_lists.offset(gen_no as isize);
-
-    let ref mut fresh8 = *(*cap).mut_lists.offset(gen_no as isize);
-    *fresh8 = allocBlockOnNode_sync((*cap).node);
+    let ref mut fresh16 = *(*cap).saved_mut_lists.offset(gen_no as isize);
+    *fresh16 = *(*cap).mut_lists.offset(gen_no as isize);
+    ((*cap).mut_lists.offset(gen_no as isize) as *mut *mut bdescr)
+        .store(allocBlockOnNode_sync((*cap).node), Ordering::Release);
 }
 
 unsafe fn prepare_collected_gen(mut r#gen: *mut generation) {
@@ -1347,12 +2210,17 @@ unsafe fn prepare_collected_gen(mut r#gen: *mut generation) {
         i = 0;
 
         while i < getNumCapabilities() as u32 {
-            let mut old = *(*getCapability(i)).mut_lists.offset(g as isize);
+            let mut old = ((*(getCapability as unsafe extern "C" fn(c_uint) -> *mut Capability)(i))
+                .mut_lists
+                .offset(g as isize) as *mut *mut bdescr)
+                .load(Ordering::Relaxed);
             freeChain(old);
 
             let mut new = allocBlockOnNode(i.wrapping_rem(n_numa_nodes));
-            let ref mut fresh9 = *(*getCapability(i)).mut_lists.offset(g as isize);
-            *fresh9 = new;
+            ((*(getCapability as unsafe extern "C" fn(c_uint) -> *mut Capability)(i))
+                .mut_lists
+                .offset(g as isize) as *mut *mut bdescr)
+                .store(new, Ordering::Relaxed);
             i = i.wrapping_add(1);
         }
     }
@@ -1546,15 +2414,12 @@ unsafe fn collect_gct_blocks() {
     g = 0;
 
     while g < RtsFlags.GcFlags.generations {
-        ws = (&raw mut (*(&raw mut the_gc_thread as *mut gc_thread)).gens as *mut gen_workspace)
-            .offset(g as isize) as *mut gen_workspace;
+        ws = (&raw mut (*gct).gens as *mut gen_workspace).offset(g as isize) as *mut gen_workspace;
 
         if !(*ws).0.scavd_list.is_null() {
-            if (*(&raw mut the_gc_thread as *mut gc_thread))
-                .scan_bd
-                .is_null() as i32 as i64
-                != 0
-            {
+            ACQUIRE_SPIN_LOCK(&raw mut (*(*ws).0.r#gen).sync);
+
+            if (*gct).scan_bd.is_null() as i32 as i64 != 0 {
             } else {
                 _assertFail(c"rts/sm/GC.c".as_ptr(), 1848);
             }
@@ -1586,6 +2451,7 @@ unsafe fn collect_gct_blocks() {
             (*ws).0.scavd_list = null_mut::<bdescr>();
             (*ws).0.n_scavd_blocks = 0;
             (*ws).0.n_scavd_words = 0;
+            RELEASE_SPIN_LOCK(&raw mut (*(*ws).0.r#gen).sync);
         }
 
         g = g.wrapping_add(1);
@@ -1607,7 +2473,10 @@ unsafe fn collect_pinned_object_blocks() {
         let mut last = null_mut::<bdescr>();
 
         if use_nonmoving as i32 != 0 && r#gen == oldest_gen {
-            let mut bd = (*getCapability(n)).pinned_object_blocks;
+            let mut bd =
+                (&raw mut (*(getCapability as unsafe extern "C" fn(c_uint) -> *mut Capability)(n))
+                    .pinned_object_blocks)
+                    .load(Ordering::Relaxed);
 
             while !bd.is_null() {
                 (*bd).flags = ((*bd).flags as i32 | BF_NONMOVING) as StgWord16;
@@ -1639,10 +2508,13 @@ unsafe fn collect_pinned_object_blocks() {
                 (*(*r#gen).large_objects).u.back = last as *mut bdescr_;
             }
 
-            (*r#gen).large_objects = (*getCapability(n)).pinned_object_blocks;
-
-            let ref mut fresh10 = (*getCapability(n)).pinned_object_blocks;
-            *fresh10 = null_mut::<bdescr>();
+            (*r#gen).large_objects =
+                (&raw mut (*(getCapability as unsafe extern "C" fn(c_uint) -> *mut Capability)(n))
+                    .pinned_object_blocks)
+                    .load(Ordering::Relaxed);
+            (&raw mut (*(getCapability as unsafe extern "C" fn(c_uint) -> *mut Capability)(n))
+                .pinned_object_blocks)
+                .store(null_mut::<bdescr>(), Ordering::Relaxed);
         }
 
         n = n.wrapping_add(1);
@@ -1666,7 +2538,11 @@ unsafe fn init_gc_thread(mut t: *mut gc_thread) {
 }
 
 unsafe fn mark_root(mut user: *mut c_void, mut root: *mut *mut StgClosure) {
+    let mut saved_gct = null_mut::<gc_thread>();
+    saved_gct = gct;
+    gct = user as *mut gc_thread;
     evacuate(root);
+    gct = saved_gct;
 }
 
 unsafe fn resizeGenerations() {

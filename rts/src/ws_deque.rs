@@ -1,5 +1,6 @@
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::messages::barf;
-use crate::ffi::stg::smp::cas;
+use crate::ffi::stg::smp::cas_seq_cst_relaxed;
 use crate::ffi::stg::types::{StgInt, StgPtr, StgVolatilePtr, StgWord};
 use crate::ffi::stg::types::{StgInt, StgWord};
 use crate::prelude::*;
@@ -19,8 +20,8 @@ pub(crate) type WSDeque = WSDeque_;
 
 #[inline]
 pub(crate) unsafe fn dequeElements(mut q: *mut WSDeque) -> StgInt {
-    let mut t: StgWord = (*q).top as StgWord;
-    let mut b: StgWord = (*q).bottom as StgWord;
+    let mut t: StgWord = (&raw mut (*q).top).load(Ordering::Acquire) as StgWord;
+    let mut b: StgWord = (&raw mut (*q).bottom).load(Ordering::Acquire) as StgWord;
     let mut n: StgInt = b as StgInt - t as StgInt;
 
     return if n > 0 { n } else { 0 };
@@ -33,13 +34,16 @@ pub(crate) unsafe fn looksEmptyWSDeque(mut q: *mut WSDeque) -> bool {
 
 #[inline]
 pub(crate) unsafe fn discardElements(mut q: *mut WSDeque) {
-    (*q).top = (*q).bottom;
+    (&raw mut (*q).top).store(
+        (&raw mut (*q).bottom).load(Ordering::Relaxed),
+        Ordering::Relaxed,
+    );
 }
 
 #[inline]
-unsafe fn cas_top(mut q: *mut WSDeque, mut old: StgInt, mut new: StgInt) -> bool {
+pub(crate) unsafe fn cas_top(mut q: *mut WSDeque, mut old: StgInt, mut new: StgInt) -> bool {
     return old as StgWord
-        == cas(
+        == cas_seq_cst_relaxed(
             &raw mut (*q).top as StgPtr as StgVolatilePtr,
             old as StgWord,
             new as StgWord,
@@ -79,7 +83,37 @@ unsafe fn newWSDeque(mut size: u32) -> *mut WSDeque {
     (*q).size = realsize as StgInt;
     (*q).moduloSize = realsize.wrapping_sub(1 as StgWord);
     (*q).top = 0;
-    (*q).bottom = 0;
+    (&raw mut (*q).bottom).store(0, Ordering::Release);
+
+    if ((*q).size > 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/WSDeque.c".as_ptr(), 104);
+    }
+
+    if !(&raw mut (*q).elements).load(Ordering::Relaxed).is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/WSDeque.c".as_ptr(), 104);
+    }
+
+    if (!((*q).elements.offset(0) as *mut *mut c_void)
+        .load(Ordering::Relaxed)
+        .is_null()
+        || 1 != 0) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/WSDeque.c".as_ptr(), 104);
+    }
+
+    if (!((*q).elements.offset(((*q).size - 1) as isize) as *mut *mut c_void)
+        .load(Ordering::Relaxed)
+        .is_null()
+        || 1 != 0) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/WSDeque.c".as_ptr(), 104);
+    }
 
     return q;
 }
@@ -90,39 +124,45 @@ unsafe fn freeWSDeque(mut q: *mut WSDeque) {
 }
 
 unsafe fn popWSDeque(mut q: *mut WSDeque) -> *mut c_void {
-    let mut b: StgInt = (*q).bottom - 1;
-    (*q).bottom = b;
+    let mut b: StgInt = (&raw mut (*q).bottom).load(Ordering::Relaxed) - 1;
+    (&raw mut (*q).bottom).store(b, Ordering::Relaxed);
+    ::std::sync::atomic::fence(::std::sync::atomic::Ordering::SeqCst);
 
-    let mut t: StgInt = (*q).top;
+    let mut t: StgInt = (&raw mut (*q).top).load(Ordering::Relaxed);
     let mut result = null_mut::<c_void>();
 
     if t <= b {
-        result = *(*q)
+        result = ((*q)
             .elements
-            .offset((b as StgWord & (*q).moduloSize) as isize);
+            .offset((b as StgWord & (*q).moduloSize) as isize)
+            as *mut *mut c_void)
+            .load(Ordering::Relaxed);
 
         if t == b {
             if !cas_top(q, t, t + 1) {
                 result = NULL;
             }
 
-            (*q).bottom = b + 1;
+            (&raw mut (*q).bottom).store(b + 1, Ordering::Relaxed);
         }
     } else {
         result = NULL;
-        (*q).bottom = b + 1;
+        (&raw mut (*q).bottom).store(b + 1, Ordering::Relaxed);
     }
 
     return result;
 }
 
 unsafe fn stealWSDeque_(mut q: *mut WSDeque) -> *mut c_void {
-    let mut t: StgInt = (*q).top;
-    let mut b: StgInt = (*q).bottom;
+    let mut t: StgInt = (&raw mut (*q).top).load(Ordering::Acquire);
+    ::std::sync::atomic::fence(::std::sync::atomic::Ordering::SeqCst);
+
+    let mut b: StgInt = (&raw mut (*q).bottom).load(Ordering::Acquire);
     let mut result = NULL;
 
     if t < b {
-        result = *(*q).elements.offset((t % (*q).size) as isize);
+        result = ((*q).elements.offset((t % (*q).size) as isize) as *mut *mut c_void)
+            .load(Ordering::Relaxed);
 
         if !cas_top(q, t, t + 1) {
             return NULL;
@@ -147,18 +187,19 @@ unsafe fn stealWSDeque(mut q: *mut WSDeque) -> *mut c_void {
 }
 
 unsafe fn pushWSDeque(mut q: *mut WSDeque, mut elem: *mut c_void) -> bool {
-    let mut b: StgInt = (*q).bottom;
-    let mut t: StgInt = (*q).top;
+    let mut b: StgInt = (&raw mut (*q).bottom).load(Ordering::Acquire);
+    let mut t: StgInt = (&raw mut (*q).top).load(Ordering::Acquire);
 
     if b - t > (*q).size - 1 {
         return false;
     }
 
-    let ref mut fresh5 = *(*q)
+    ((*q)
         .elements
-        .offset((b as StgWord & (*q).moduloSize) as isize);
-    *fresh5 = elem;
-    (*q).bottom = b + 1;
+        .offset((b as StgWord & (*q).moduloSize) as isize) as *mut *mut c_void)
+        .store(elem, Ordering::Relaxed);
+    ::std::sync::atomic::fence(::std::sync::atomic::Ordering::Release);
+    (&raw mut (*q).bottom).store(b + 1, Ordering::Relaxed);
 
     return true;
 }

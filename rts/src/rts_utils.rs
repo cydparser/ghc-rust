@@ -12,6 +12,7 @@ use crate::ghcplatform::{HOST_ARCH, HOST_OS, HOST_VENDOR};
 use crate::io_manager::{selectIOManager, showIOManager};
 use crate::prelude::*;
 use crate::rts_flags::rtsConfig;
+use crate::ticky::PrintTickyInfo;
 
 #[cfg(test)]
 mod tests;
@@ -26,6 +27,10 @@ unsafe fn stgMallocBytes(mut n: usize, mut msg: *mut c_char) -> *mut c_void {
 
         rtsConfig.mallocFailHook.expect("non-null function pointer")(n as W_, msg);
         stg_exit(EXIT_INTERNAL_ERROR);
+    }
+
+    if RtsFlags.DebugFlags.zero_on_gc {
+        memset(space, 0xbb, n);
     }
 
     return space;
@@ -73,7 +78,7 @@ unsafe fn stgStrndup(mut s: *const c_char, mut n: usize) -> *mut c_char {
     return d;
 }
 
-pub(crate) unsafe fn stgFree(mut p: *mut c_void) {
+unsafe fn stgFree(mut p: *mut c_void) {
     free(p);
 }
 
@@ -97,6 +102,10 @@ unsafe fn stgMallocAlignedBytes(
         stg_exit(EXIT_INTERNAL_ERROR);
     }
 
+    if RtsFlags.DebugFlags.zero_on_gc {
+        memset(space, 0xbb, n);
+    }
+
     return space;
 }
 
@@ -113,6 +122,10 @@ pub unsafe extern "C" fn reportStackOverflow(mut tso: *mut StgTSO) {
         .expect("non-null function pointer")(
         ((*tso).tot_stack_size as usize).wrapping_mul(size_of::<W_>() as usize) as W_,
     );
+
+    if RtsFlags.TickyFlags.showTickyStats {
+        PrintTickyInfo();
+    }
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -246,11 +259,13 @@ unsafe fn showStgWord64(
     return s;
 }
 
+unsafe fn heapCheckFail() {}
+
 #[ffi(libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn genericRaise(mut sig: i32) -> i32 {
-    return raise(sig);
+pub unsafe extern "C" fn genericRaise(mut sig: c_int) -> c_int {
+    return pthread_kill(pthread_self(), sig);
 }
 
 unsafe fn mkRtsInfoPair(mut key: *const c_char, mut val: *const c_char) {
@@ -289,35 +304,35 @@ unsafe fn printRtsInfo(rts_config: RtsConfig) {
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn rts_isProfiled() -> i32 {
-    return 0;
+pub unsafe extern "C" fn rts_isProfiled() -> c_int {
+    return 1;
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn rts_isDynamic() -> i32 {
+pub unsafe extern "C" fn rts_isDynamic() -> c_int {
     return 0;
 }
 
 #[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn rts_isThreaded() -> i32 {
-    return 0;
+pub unsafe extern "C" fn rts_isThreaded() -> c_int {
+    return 1;
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn rts_isDebugged() -> i32 {
-    return 0;
+pub unsafe extern "C" fn rts_isDebugged() -> c_int {
+    return 1;
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn rts_isTracing() -> i32 {
+pub unsafe extern "C" fn rts_isTracing() -> c_int {
     return 1;
 }
 

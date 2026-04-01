@@ -1,5 +1,6 @@
 use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::messages::{barf, errorBelch, sysErrorBelch};
+use crate::ffi::rts::messages::{barf, debugBelch, errorBelch, sysErrorBelch};
+use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::stg_upd_frame_info;
 use crate::ffi::stg::types::StgWord;
 use crate::linker::m_map::{MEM_READ_WRITE_THEN_READ_EXECUTE, MemoryAccess};
@@ -77,6 +78,22 @@ unsafe fn doMmap(
     mut offset: i32,
 ) -> *mut c_void {
     flags |= MAP_PRIVATE as u32;
+
+    if RtsFlags.DebugFlags.linker_verbose {
+        debugBelch(c"mmapForLinker: \tprotection %#0x\n".as_ptr(), prot);
+    }
+
+    if RtsFlags.DebugFlags.linker_verbose {
+        debugBelch(c"mmapForLinker: \tflags      %#0x\n".as_ptr(), flags);
+    }
+
+    if RtsFlags.DebugFlags.linker_verbose {
+        debugBelch(c"mmapForLinker: \tsize       %#0zx\n".as_ptr(), bytes);
+    }
+
+    if RtsFlags.DebugFlags.linker_verbose {
+        debugBelch(c"mmapForLinker: \tmap_addr   %p\n".as_ptr(), map_addr);
+    }
 
     let mut result = mmap(map_addr, bytes, prot, flags as i32, fd, offset as off_t);
 
@@ -176,6 +193,10 @@ unsafe fn mmapForLinker(
 
     let mut region = null_mut::<MemoryRegion>();
 
+    if RtsFlags.DebugFlags.linker_verbose {
+        debugBelch(c"mmapForLinker: start\n".as_ptr());
+    }
+
     if RtsFlags.MiscFlags.linkerAlwaysPic {
         region = null_mut::<MemoryRegion>();
     } else {
@@ -192,6 +213,18 @@ unsafe fn mmapForLinker(
         result = mmapInRegion(region, bytes, access, flags, fd, offset);
     } else {
         result = mmapAnywhere(bytes, access, flags, fd, offset);
+    }
+
+    if RtsFlags.DebugFlags.linker_verbose {
+        debugBelch(
+            c"mmapForLinker: mapped %zd bytes starting at %p\n".as_ptr(),
+            bytes,
+            result,
+        );
+    }
+
+    if RtsFlags.DebugFlags.linker_verbose {
+        debugBelch(c"mmapForLinker: done\n".as_ptr());
     }
 
     return result;
@@ -228,6 +261,15 @@ unsafe fn munmapForLinker(mut addr: *mut c_void, mut bytes: usize, mut caller: *
 unsafe fn mprotectForLinker(mut start: *mut c_void, mut len: usize, mut mode: MemoryAccess) {
     if len == 0 {
         return;
+    }
+
+    if RtsFlags.DebugFlags.linker_verbose {
+        debugBelch(
+            c"mprotectForLinker: protecting %llu bytes starting at %p as %s\n".as_ptr(),
+            len as W_,
+            start,
+            memoryAccessDescription(mode),
+        );
     }
 
     let mut prot = memoryAccessToProt(mode);

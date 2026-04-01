@@ -25,7 +25,7 @@ pub struct StgTSOProfInfo {
 #[ffi(compiler, ghc_lib, libraries, testsuite)]
 pub type StgThreadID = StgWord64;
 
-pub(crate) type StgThreadReturnCode = c_uint;
+pub(crate) type StgThreadReturnCode = u32;
 
 #[ffi(compiler, ghc_lib, libraries, testsuite)]
 #[repr(C)]

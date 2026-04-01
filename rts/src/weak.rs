@@ -1,12 +1,17 @@
 use crate::alloc_array::allocateMutArrPtrs;
 use crate::ffi::hs_ffi::HsInt;
-use crate::ffi::rts::exitHeapOverflow;
+use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
 use crate::ffi::rts::flags::RtsFlags;
+use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack, era, user_era};
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
-use crate::ffi::rts::storage::closure_macros::{SET_INFO, mutArrPtrsCardTableSize};
+use crate::ffi::rts::storage::closure_macros::{
+    SET_INFO, doingErasProfiling, doingLDVProfiling, doingRetainerProfiling,
+    mutArrPtrsCardTableSize,
+};
 use crate::ffi::rts::storage::closures::{StgCFinalizerList, StgMutArrPtrs, StgWeak};
 use crate::ffi::rts::threads::createIOThread;
 use crate::ffi::rts::types::StgClosure;
+use crate::ffi::rts::{_assertFail, exitHeapOverflow};
 use crate::ffi::rts_api::{Capability, HaskellObj, rts_apply, rts_mkInt};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
@@ -58,7 +63,7 @@ unsafe fn runAllCFinalizers(mut list: *mut StgWeak) {
     w = list;
 
     while !w.is_null() {
-        let mut winfo = (*w).header.info;
+        let mut winfo = (&raw mut (*w).header.info).load(Ordering::Acquire);
 
         if winfo != &raw const stg_DEAD_WEAK_info {
             runCFinalizers((*w).cfinalizers as *mut StgCFinalizerList);
@@ -77,28 +82,59 @@ unsafe fn scheduleFinalizers(mut cap: *mut Capability, mut list: *mut StgWeak) {
     let mut t = null_mut::<StgTSO>();
     let mut n: u32 = 0;
     let mut i: u32 = 0;
+
+    if (RtsFlags.GcFlags.useNonmoving as i32 != 0
+        || (&raw mut n_finalizers).load(Ordering::SeqCst) == 0) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/Weak.c".as_ptr(), 98);
+    }
+
     let mut tl: *mut *mut StgWeak = &raw mut finalizer_list;
 
     while !(*tl).is_null() {
         tl = &raw mut (**tl).link as *mut *mut StgWeak;
     }
 
-    *tl = list;
+    (tl).store(list, Ordering::SeqCst);
     n = 0;
     i = 0;
     w = list;
 
     while !w.is_null() {
+        if ((*w).header.info != &raw const stg_DEAD_WEAK_info) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/Weak.c".as_ptr(), 117);
+        }
+
         if (*w).finalizer != &raw mut stg_NO_FINALIZER_closure {
             n = n.wrapping_add(1);
         }
 
         i = i.wrapping_add(1);
-        (*w).header.info = &raw const stg_DEAD_WEAK_info;
+
+        let ref mut fresh13 = (*(w as *mut StgClosure)).header.prof.ccs;
+        *fresh13 = (*w).header.prof.ccs;
+
+        if doingLDVProfiling() {
+            if doingLDVProfiling() {
+                (*(w as *mut StgClosure)).header.prof.hp.ldvw =
+                    (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+            }
+        } else if doingRetainerProfiling() {
+            (*(w as *mut StgClosure)).header.prof.hp.trav = 0;
+        } else if doingErasProfiling() {
+            (*(w as *mut StgClosure)).header.prof.hp.era = user_era;
+        }
+
+        (&raw mut (*w).header.info).store(&raw const stg_DEAD_WEAK_info, Ordering::Relaxed);
         w = (*w).link as *mut StgWeak;
     }
 
-    n_finalizers = n_finalizers.wrapping_add(i);
+    let fresh14 = &raw mut n_finalizers;
+    let fresh15 = i;
+    (fresh14).xadd(fresh15, Ordering::SeqCst) + fresh15;
 
     if n == 0 {
         return;
@@ -108,7 +144,11 @@ unsafe fn scheduleFinalizers(mut cap: *mut Capability, mut list: *mut StgWeak) {
         trace_(c"weak: batching %d finalizers".as_ptr(), n);
     }
 
-    let mut arr = allocateMutArrPtrs(cap, n as StgWord, null_mut::<CostCentreStack>());
+    let mut arr = allocateMutArrPtrs(
+        cap,
+        n as StgWord,
+        &raw mut CCS_SYSTEM as *mut CostCentreStack,
+    );
 
     if (arr == null_mut::<c_void>() as *mut StgMutArrPtrs) as i32 as i64 != 0 {
         exitHeapOverflow();
@@ -123,9 +163,9 @@ unsafe fn scheduleFinalizers(mut cap: *mut Capability, mut list: *mut StgWeak) {
 
     while !w.is_null() {
         if (*w).finalizer != &raw mut stg_NO_FINALIZER_closure {
-            let ref mut fresh6 =
+            let ref mut fresh16 =
                 *(&raw mut (*arr).payload as *mut *mut StgClosure).offset(n as isize);
-            *fresh6 = (*w).finalizer;
+            *fresh16 = (*w).finalizer;
             n = n.wrapping_add(1);
         }
 
@@ -164,7 +204,7 @@ static mut finalizer_chunk: i32 = 100;
 static mut finalizer_lock: StgWord = 0;
 
 unsafe fn runSomeFinalizers(mut all: bool) -> bool {
-    if n_finalizers == 0 {
+    if (&raw mut n_finalizers).load(Ordering::Relaxed) == 0 {
         return false;
     }
 
@@ -195,8 +235,11 @@ unsafe fn runSomeFinalizers(mut all: bool) -> bool {
         }
     }
 
-    finalizer_list = w;
-    n_finalizers = n_finalizers.wrapping_add(-count as u32);
+    (&raw mut finalizer_list).store(w, Ordering::Relaxed);
+
+    let fresh18 = &raw mut n_finalizers;
+    let fresh19 = -count as u32;
+    (fresh18).xadd(fresh19, Ordering::SeqCst) + fresh19;
 
     if !task.is_null() {
         (*task).running_finalizers = false;
@@ -207,7 +250,7 @@ unsafe fn runSomeFinalizers(mut all: bool) -> bool {
     }
 
     let mut ret = n_finalizers != 0;
-    write_volatile(&mut finalizer_lock as *mut StgWord, 0);
+    (&raw mut finalizer_lock).store(0, Ordering::Release);
 
     return ret;
 }

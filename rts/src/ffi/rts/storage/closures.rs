@@ -2,6 +2,7 @@ use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::info_tables::StgInfoTable;
 use crate::ffi::rts::storage::tso::{StgStack_, StgTSO, StgTSO_};
 use crate::ffi::stg::types::{StgHalfWord, StgInt, StgPtr, StgWord};
+pub use crate::hash::hashtable;
 use crate::prelude::*;
 
 #[cfg(test)]
@@ -597,21 +598,4 @@ pub struct StgContinuation {
     pub mask_frame_offset: StgWord,
     pub stack_size: StgWord,
     pub stack: __IncompleteArrayField<StgWord>,
-}
-
-#[ffi(compiler, utils)]
-#[repr(C)]
-#[derive(Debug)]
-#[cfg_attr(test, derive(Clone))]
-pub struct hashtable {
-    pub _address: u8,
-}
-
-#[cfg(test)]
-impl Arbitrary for hashtable {
-    fn arbitrary(g: &mut Gen) -> Self {
-        hashtable {
-            _address: Arbitrary::arbitrary(g),
-        }
-    }
 }

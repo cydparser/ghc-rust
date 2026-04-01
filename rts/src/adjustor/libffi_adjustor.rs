@@ -11,6 +11,7 @@ use crate::ffitarget::FFI_DEFAULT_ABI;
 use crate::hash::{HashTable, allocHashTable, insertHashTable, lookupHashTable, removeHashTable};
 use crate::prelude::*;
 use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::sm::storage::sm_mutex;
 use crate::stable_ptr::freeStablePtr;
 
 #[cfg(test)]
@@ -67,7 +68,26 @@ unsafe fn allocate_adjustor(
     }
 
     if !(*exec_ret).is_null() {
+        let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/adjustor/LibffiAdjustor.c".as_ptr(),
+                48,
+                __r,
+            );
+        }
+
         insertHashTable(allocatedExecs, *exec_ret as StgWord, writ as *const c_void);
+
+        if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/adjustor/LibffiAdjustor.c".as_ptr(),
+                50,
+            );
+        }
     }
 
     return writ;
@@ -75,10 +95,37 @@ unsafe fn allocate_adjustor(
 
 unsafe fn exec_to_writable(mut exec: AdjustorExecutable) -> AdjustorWritable {
     let mut writ = null_mut::<c_void>();
+    let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/adjustor/LibffiAdjustor.c".as_ptr(),
+            59,
+            __r,
+        );
+    }
+
     writ = lookupHashTable(allocatedExecs, exec as StgWord) as AdjustorWritable;
 
     if writ.is_null() {
+        if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/adjustor/LibffiAdjustor.c".as_ptr(),
+                61,
+            );
+        }
+
         barf(c"exec_to_writable: not found".as_ptr());
+    }
+
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/adjustor/LibffiAdjustor.c".as_ptr(),
+            64,
+        );
     }
 
     return writ;
@@ -89,8 +136,28 @@ unsafe fn free_adjustor(mut exec: AdjustorExecutable) {
     let mut cl = null_mut::<ffi_closure>();
     writ = exec_to_writable(exec);
     cl = writ as *mut ffi_closure;
+
+    let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/adjustor/LibffiAdjustor.c".as_ptr(),
+            73,
+            __r,
+        );
+    }
+
     removeHashTable(allocatedExecs, exec as StgWord, writ as *const c_void);
     ffi_closure_free(cl as *mut c_void);
+
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/adjustor/LibffiAdjustor.c".as_ptr(),
+            76,
+        );
+    }
 }
 
 #[ffi(ghc_lib, testsuite)]

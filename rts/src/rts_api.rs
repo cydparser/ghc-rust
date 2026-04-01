@@ -1,34 +1,42 @@
 use crate::capability::Capability_;
-use crate::capability::{Capability_, getCapability, releaseCapability_, waitForCapability};
+use crate::capability::{
+    Capability_, PutMVar, PutMVar_, getCapability, releaseCapability, releaseCapability_,
+    waitForCapability,
+};
 use crate::ffi::hs_ffi::{
     HsBool, HsChar, HsDouble, HsFloat, HsFunPtr, HsInt, HsInt8, HsInt16, HsInt32, HsInt64, HsPtr,
     HsStablePtr, HsWord, HsWord8, HsWord16, HsWord32, HsWord64,
 };
 use crate::ffi::rts::constants::{
-    MAX_CHARLIKE, MAX_INTLIKE, MIN_INTLIKE, TSO_BLOCKEX, TSO_INTERRUPTIBLE, TSO_LOCKED,
+    LDV_SHIFT, LDV_STATE_CREATE, MAX_CHARLIKE, MAX_INTLIKE, MIN_INTLIKE, TSO_BLOCKEX,
+    TSO_INTERRUPTIBLE, TSO_LOCKED,
 };
 use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::messages::errorBelch;
+use crate::ffi::rts::messages::{barf, errorBelch};
+use crate::ffi::rts::os_threads::{osThreadId, shutdownThread};
+use crate::ffi::rts::prof::ccs::{CCS_MAIN, CCS_SYSTEM, CostCentreStack, era, user_era};
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::stable_ptr::{deRefStablePtr, getStablePtr};
-use crate::ffi::rts::stg_exit;
 use crate::ffi::rts::storage::closure_macros::{
     CHARLIKE_CLOSURE, CONSTR_sizeW, GET_CLOSURE_TAG, INTLIKE_CLOSURE, TAG_CLOSURE, UNTAG_CLOSURE,
-    UNTAG_CONST_CLOSURE, get_itbl,
+    UNTAG_CONST_CLOSURE, doingErasProfiling, doingLDVProfiling, doingRetainerProfiling, get_itbl,
 };
 use crate::ffi::rts::storage::closures::StgClosure_;
 use crate::ffi::rts::storage::closures::{StgClosure_, StgMVar, StgThunk};
-use crate::ffi::rts::storage::gc::allocate;
+use crate::ffi::rts::storage::gc::{allocate, generations};
 use crate::ffi::rts::storage::info_tables::StgSRTField;
-use crate::ffi::rts::threads::{createThread, enabled_capabilities, scheduleWaitThread};
+use crate::ffi::rts::threads::{
+    createThread, enabled_capabilities, getNumCapabilities, scheduleWaitThread,
+};
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
 use crate::ffi::rts::types::{StgClosure, StgTSO};
+use crate::ffi::rts::{_assertFail, stg_exit};
 use crate::ffi::rts_api::{
     Capability, HaskellObj, HeapExhausted, Interrupted, Killed, ListRootsCb, ListThreadsCb,
     NoStatus, PauseToken, SchedulerStatus, SchedulerStatus_End, Success,
 };
 use crate::ffi::stg::misc_closures::{
-    stg_ap_2_upd_info, stg_ap_v_info, stg_enter_info, stg_forceIO_info,
+    stg_END_TSO_QUEUE_closure, stg_ap_2_upd_info, stg_ap_v_info, stg_enter_info, stg_forceIO_info,
 };
 use crate::ffi::stg::types::{
     StgInt, StgInt8, StgInt16, StgInt32, StgInt64, StgPtr, StgStablePtr, StgWord, StgWord8,
@@ -38,8 +46,12 @@ use crate::ffi::stg::{
     ASSIGN_DBL, ASSIGN_FLT, ASSIGN_Int64, ASSIGN_Word64, PK_DBL, PK_FLT, PK_Int64, PK_Word64, W_,
 };
 use crate::prelude::*;
-use crate::stable_ptr::freeStablePtr;
-use crate::task::{exitMyTask, freeMyTask, getMyTask, newBoundTask};
+use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::schedule::{releaseAllCapabilities, stopAllCapabilities};
+use crate::sm::non_moving::{nonmovingBlockConcurrentMark, nonmovingUnblockConcurrentMark};
+use crate::stable_name::threadStableNameTable;
+use crate::stable_ptr::{freeStablePtr, threadStablePtrTable};
+use crate::task::{Task, exitMyTask, freeMyTask, getMyTask, myTask, newBoundTask};
 use crate::threads::performTryPutMVar;
 use crate::trace::{traceTaskCreate, traceTaskDelete};
 
@@ -158,6 +170,12 @@ pub struct PauseToken_ {
     capability: *mut Capability,
 }
 
+/// cbindgen:no-export
+struct list_roots_ctx {
+    cb: ListRootsCb,
+    user: *mut c_void,
+}
+
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
@@ -168,7 +186,20 @@ pub unsafe extern "C" fn rts_mkChar(mut cap: *mut Capability, mut c: HsChar) -> 
         p = CHARLIKE_CLOSURE(c as i32) as *mut StgClosure;
     } else {
         p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
-        (*p).header.info = (*ghc_hs_iface).Czh_con_info;
+        (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+        if doingLDVProfiling() {
+            if doingLDVProfiling() {
+                (*p).header.prof.hp.ldvw =
+                    (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+            }
+        } else if doingRetainerProfiling() {
+            (*p).header.prof.hp.trav = 0;
+        } else if doingErasProfiling() {
+            (*p).header.prof.hp.era = user_era;
+        }
+
+        (&raw mut (*p).header.info).store((*ghc_hs_iface).Czh_con_info, Ordering::Relaxed);
 
         let ref mut fresh0 = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0);
         *fresh0 = c as StgWord as *mut StgClosure as *mut StgClosure_;
@@ -187,7 +218,20 @@ pub unsafe extern "C" fn rts_mkInt(mut cap: *mut Capability, mut i: HsInt) -> Ha
         p = INTLIKE_CLOSURE(i as i32) as *mut StgClosure;
     } else {
         p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
-        (*p).header.info = (*ghc_hs_iface).Izh_con_info;
+        (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+        if doingLDVProfiling() {
+            if doingLDVProfiling() {
+                (*p).header.prof.hp.ldvw =
+                    (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+            }
+        } else if doingRetainerProfiling() {
+            (*p).header.prof.hp.trav = 0;
+        } else if doingErasProfiling() {
+            (*p).header.prof.hp.era = user_era;
+        }
+
+        (&raw mut (*p).header.info).store((*ghc_hs_iface).Izh_con_info, Ordering::Relaxed);
         *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgInt) = i as StgInt;
     }
 
@@ -199,7 +243,19 @@ pub unsafe extern "C" fn rts_mkInt(mut cap: *mut Capability, mut i: HsInt) -> Ha
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt8(mut cap: *mut Capability, mut i: HsInt8) -> HaskellObj {
     let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
-    (*p).header.info = (*ghc_hs_iface).I8zh_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).I8zh_con_info, Ordering::Relaxed);
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgInt8) = i as StgInt8;
 
     return TAG_CLOSURE(1, p) as HaskellObj;
@@ -210,7 +266,19 @@ pub unsafe extern "C" fn rts_mkInt8(mut cap: *mut Capability, mut i: HsInt8) -> 
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt16(mut cap: *mut Capability, mut i: HsInt16) -> HaskellObj {
     let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
-    (*p).header.info = (*ghc_hs_iface).I16zh_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).I16zh_con_info, Ordering::Relaxed);
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgInt16) = i as StgInt16;
 
     return TAG_CLOSURE(1, p) as HaskellObj;
@@ -221,7 +289,19 @@ pub unsafe extern "C" fn rts_mkInt16(mut cap: *mut Capability, mut i: HsInt16) -
 #[instrument]
 pub unsafe extern "C" fn rts_mkInt32(mut cap: *mut Capability, mut i: HsInt32) -> HaskellObj {
     let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
-    (*p).header.info = (*ghc_hs_iface).I32zh_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).I32zh_con_info, Ordering::Relaxed);
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgInt32) = i as StgInt32;
 
     return TAG_CLOSURE(1, p) as HaskellObj;
@@ -242,7 +322,19 @@ pub unsafe extern "C" fn rts_mkInt64(mut cap: *mut Capability, mut i: HsInt64) -
         ) as W_,
     ) as *mut StgClosure;
 
-    (*p).header.info = (*ghc_hs_iface).I64zh_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).I64zh_con_info, Ordering::Relaxed);
 
     ASSIGN_Int64(
         (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0) as *mut *mut StgClosure_
@@ -258,7 +350,19 @@ pub unsafe extern "C" fn rts_mkInt64(mut cap: *mut Capability, mut i: HsInt64) -
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord(mut cap: *mut Capability, mut i: HsWord) -> HaskellObj {
     let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
-    (*p).header.info = (*ghc_hs_iface).Wzh_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).Wzh_con_info, Ordering::Relaxed);
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgWord) = i as StgWord;
 
     return TAG_CLOSURE(1, p) as HaskellObj;
@@ -269,7 +373,19 @@ pub unsafe extern "C" fn rts_mkWord(mut cap: *mut Capability, mut i: HsWord) -> 
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord8(mut cap: *mut Capability, mut w: HsWord8) -> HaskellObj {
     let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
-    (*p).header.info = (*ghc_hs_iface).W8zh_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).W8zh_con_info, Ordering::Relaxed);
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgWord8) = w as StgWord8;
 
     return TAG_CLOSURE(1, p) as HaskellObj;
@@ -280,7 +396,19 @@ pub unsafe extern "C" fn rts_mkWord8(mut cap: *mut Capability, mut w: HsWord8) -
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord16(mut cap: *mut Capability, mut w: HsWord16) -> HaskellObj {
     let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
-    (*p).header.info = (*ghc_hs_iface).W16zh_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).W16zh_con_info, Ordering::Relaxed);
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgWord16) = w as StgWord16;
 
     return TAG_CLOSURE(1, p) as HaskellObj;
@@ -291,7 +419,19 @@ pub unsafe extern "C" fn rts_mkWord16(mut cap: *mut Capability, mut w: HsWord16)
 #[instrument]
 pub unsafe extern "C" fn rts_mkWord32(mut cap: *mut Capability, mut w: HsWord32) -> HaskellObj {
     let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
-    (*p).header.info = (*ghc_hs_iface).W32zh_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).W32zh_con_info, Ordering::Relaxed);
     *(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut StgWord32) = w as StgWord32;
 
     return TAG_CLOSURE(1, p) as HaskellObj;
@@ -312,7 +452,19 @@ pub unsafe extern "C" fn rts_mkWord64(mut cap: *mut Capability, mut w: HsWord64)
         ) as W_,
     ) as *mut StgClosure;
 
-    (*p).header.info = (*ghc_hs_iface).W64zh_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).W64zh_con_info, Ordering::Relaxed);
 
     ASSIGN_Word64(
         (&raw mut (*p).payload as *mut *mut StgClosure_).offset(0) as *mut *mut StgClosure_
@@ -328,7 +480,19 @@ pub unsafe extern "C" fn rts_mkWord64(mut cap: *mut Capability, mut w: HsWord64)
 #[instrument]
 pub unsafe extern "C" fn rts_mkFloat(mut cap: *mut Capability, mut f: HsFloat) -> HaskellObj {
     let mut p = allocate(cap, CONSTR_sizeW(0, 1) as W_) as *mut StgClosure;
-    (*p).header.info = (*ghc_hs_iface).Fzh_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).Fzh_con_info, Ordering::Relaxed);
     ASSIGN_FLT(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut W_, f);
 
     return TAG_CLOSURE(1, p) as HaskellObj;
@@ -349,7 +513,19 @@ pub unsafe extern "C" fn rts_mkDouble(mut cap: *mut Capability, mut d: HsDouble)
         ) as W_,
     ) as *mut StgClosure;
 
-    (*p).header.info = (*ghc_hs_iface).Dzh_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).Dzh_con_info, Ordering::Relaxed);
     ASSIGN_DBL(&raw mut (*p).payload as *mut *mut StgClosure_ as *mut W_, d);
 
     return TAG_CLOSURE(1, p) as HaskellObj;
@@ -371,7 +547,19 @@ pub unsafe extern "C" fn rts_mkStablePtr(
             .wrapping_add(1 as usize) as W_,
     ) as *mut StgClosure;
 
-    (*p).header.info = (*ghc_hs_iface).StablePtr_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).StablePtr_con_info, Ordering::Relaxed);
 
     let ref mut fresh3 = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0);
     *fresh3 = s as *mut StgClosure as *mut StgClosure_;
@@ -392,7 +580,19 @@ pub unsafe extern "C" fn rts_mkPtr(mut cap: *mut Capability, mut a: HsPtr) -> Ha
             .wrapping_add(1 as usize) as W_,
     ) as *mut StgClosure;
 
-    (*p).header.info = (*ghc_hs_iface).Ptr_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).Ptr_con_info, Ordering::Relaxed);
 
     let ref mut fresh1 = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0);
     *fresh1 = a as *mut StgClosure as *mut StgClosure_;
@@ -413,7 +613,19 @@ pub unsafe extern "C" fn rts_mkFunPtr(mut cap: *mut Capability, mut a: HsFunPtr)
             .wrapping_add(1 as usize) as W_,
     ) as *mut StgClosure;
 
-    (*p).header.info = (*ghc_hs_iface).FunPtr_con_info;
+    (*p).header.prof.ccs = &raw mut CCS_SYSTEM as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*p).header.prof.hp.ldvw = (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*p).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*p).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*p).header.info).store((*ghc_hs_iface).FunPtr_con_info, Ordering::Relaxed);
 
     let ref mut fresh2 = *(&raw mut (*p).payload as *mut *mut StgClosure_).offset(0);
     *fresh2 = transmute::<HsFunPtr, *mut StgClosure>(a) as *mut StgClosure_;
@@ -462,7 +674,24 @@ pub unsafe extern "C" fn rts_apply(
             .wrapping_add(2 as usize) as W_,
     ) as *mut StgThunk;
 
-    (*ap).header.info = &raw const stg_ap_2_upd_info as *mut StgInfoTable;
+    let ref mut fresh11 = (*(ap as *mut StgClosure)).header.prof.ccs;
+    *fresh11 = &raw mut CCS_MAIN as *mut CostCentreStack;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*(ap as *mut StgClosure)).header.prof.hp.ldvw =
+                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*(ap as *mut StgClosure)).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*(ap as *mut StgClosure)).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*ap).header.info).store(
+        &raw const stg_ap_2_upd_info as *mut StgInfoTable,
+        Ordering::Relaxed,
+    );
 
     let ref mut fresh4 = *(&raw mut (*ap).payload as *mut *mut StgClosure_).offset(0);
     *fresh4 = f as *mut StgClosure_;
@@ -745,7 +974,7 @@ pub unsafe extern "C" fn rts_eval(
 pub unsafe extern "C" fn rts_eval_(
     mut cap: *mut *mut Capability,
     mut p: HaskellObj,
-    mut stack_size: u32,
+    mut stack_size: c_uint,
     mut ret: *mut HaskellObj,
 ) {
     let mut tso = null_mut::<StgTSO>();
@@ -789,6 +1018,15 @@ pub unsafe extern "C" fn rts_inCall(
     );
 
     if (*(**cap).running_task).preferred_capability != -1 {
+        if ((**cap).no
+            == ((*(**cap).running_task).preferred_capability as u32)
+                .wrapping_rem(enabled_capabilities)) as i32 as i64
+            != 0
+        {
+        } else {
+            _assertFail(c"rts/RtsAPI.c".as_ptr(), 490);
+        }
+
         (*tso).flags |= TSO_LOCKED as StgWord32;
     }
 
@@ -820,6 +1058,11 @@ pub unsafe extern "C" fn rts_evalStableIOMain(
     stat = rts_getSchedStatus(*cap);
 
     if stat as u32 == Success as i32 as u32 && !ret.is_null() {
+        if !r.is_null() as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/RtsAPI.c".as_ptr(), 521);
+        }
+
         *ret = getStablePtr(r as StgPtr) as HsStablePtr;
     }
 }
@@ -843,6 +1086,11 @@ pub unsafe extern "C" fn rts_evalStableIO(
     stat = rts_getSchedStatus(*cap);
 
     if stat as u32 == Success as i32 as u32 && !ret.is_null() {
+        if !r.is_null() as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/RtsAPI.c".as_ptr(), 549);
+        }
+
         *ret = getStablePtr(r as StgPtr) as HsStablePtr;
     }
 }
@@ -872,7 +1120,7 @@ pub unsafe extern "C" fn rts_evalLazyIO(
 pub unsafe extern "C" fn rts_evalLazyIO_(
     mut cap: *mut *mut Capability,
     mut p: HaskellObj,
-    mut stack_size: u32,
+    mut stack_size: c_uint,
     mut ret: *mut HaskellObj,
 ) {
     let mut tso = null_mut::<StgTSO>();
@@ -898,7 +1146,8 @@ pub unsafe extern "C" fn rts_checkSchedStatus(mut site: *mut c_char, mut cap: *m
         }
         3 => {
             errorBelch(c"%s: interrupted".as_ptr(), site);
-            stg_exit(EXIT_FAILURE);
+            rts_unlock(cap);
+            shutdownThread();
         }
         4 => {
             errorBelch(c"%s: out of memory".as_ptr(), site);
@@ -923,6 +1172,8 @@ pub unsafe extern "C" fn rts_getSchedStatus(mut cap: *mut Capability) -> Schedul
     return (*(*(*cap).running_task).incall).rstat;
 }
 
+static mut rts_pausing_task: *mut Task = null_mut::<Task>();
+
 #[ffi(compiler, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
@@ -934,6 +1185,15 @@ pub unsafe extern "C" fn rts_lock() -> *mut Capability {
     if (*task).running_finalizers {
         errorBelch(
             c"error: a C finalizer called back into Haskell.\n   This was previously allowed, but is disallowed in GHC 6.10.2 and later.\n   To create finalizers that may call back into Haskell, use\n   Foreign.Concurrent.newForeignPtr instead of Foreign.newForeignPtr."
+                .as_ptr(),
+        );
+
+        stg_exit(EXIT_FAILURE);
+    }
+
+    if rts_pausing_task == task {
+        errorBelch(
+            c"error: rts_lock: The RTS is already paused by this thread.\n   There is no need to call rts_lock if you have already called rts_pause."
                 .as_ptr(),
         );
 
@@ -956,8 +1216,71 @@ pub unsafe extern "C" fn rts_lock() -> *mut Capability {
 pub unsafe extern "C" fn rts_unlock(mut cap: *mut Capability) {
     let mut task = null_mut::<Task>();
     task = (*cap).running_task;
+
+    if (!(*cap).running_task.is_null() && (*cap).running_task == task) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RtsAPI.c".as_ptr(), 682);
+    }
+
+    if ((*task).cap == cap) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RtsAPI.c".as_ptr(), 682);
+    }
+
+    if (if (*cap).run_queue_hd == &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO {
+        ((*cap).run_queue_tl == &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO
+            && (*cap).n_run_queue == 0) as i32
+    } else {
+        1
+    } != 0) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/RtsAPI.c".as_ptr(), 682);
+    }
+
+    if (if (*cap).suspended_ccalls.is_null() {
+        ((*cap).n_suspended_ccalls == 0) as i32
+    } else {
+        1
+    } != 0) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/RtsAPI.c".as_ptr(), 682);
+    }
+
+    if (myTask() == task) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RtsAPI.c".as_ptr(), 682);
+    }
+
+    if ((*task).id == osThreadId()) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RtsAPI.c".as_ptr(), 682);
+    }
+
+    let mut __r = pthread_mutex_lock(&raw mut (*cap).lock);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/RtsAPI.c".as_ptr(),
+            694,
+            __r,
+        );
+    }
+
     releaseCapability_(cap, false);
     exitMyTask();
+
+    if pthread_mutex_unlock(&raw mut (*cap).lock) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/RtsAPI.c".as_ptr(),
+            699,
+        );
+    }
 
     if (*task).incall.is_null() {
         traceTaskDelete(task);
@@ -974,44 +1297,157 @@ pub unsafe extern "C" fn pauseTokenCapability(mut pauseToken: *mut PauseToken) -
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn rts_pause() -> ! {
-    errorBelch(c"Warning: Pausing the RTS is only possible for multithreaded RTS.".as_ptr());
+pub unsafe extern "C" fn rts_pause() -> *mut PauseToken {
+    if RtsFlags.GcFlags.useNonmoving {
+        nonmovingBlockConcurrentMark(true);
+    }
 
-    stg_exit(EXIT_FAILURE);
+    let mut task = getMyTask();
+
+    if rts_pausing_task == task {
+        errorBelch(c"error: rts_pause: This thread has already paused the RTS.".as_ptr());
+
+        stg_exit(EXIT_FAILURE);
+    }
+
+    if !(*task).cap.is_null()
+        && (&raw mut (*(*task).cap).running_task).load(Ordering::Relaxed) == task
+    {
+        errorBelch(if (*(*task).cap).in_haskell as i32 != 0 {
+            c"error: rts_pause: attempting to pause via an unsafe FFI call.\n   Perhaps a 'foreign import unsafe' should be 'safe'?"
+                    .as_ptr()
+        } else {
+            c"error: rts_pause: attempting to pause from a Task that owns a capability.\n   Have you already acquired a capability e.g. with rts_lock?"
+                    .as_ptr()
+        });
+
+        stg_exit(EXIT_FAILURE);
+    }
+
+    task = newBoundTask();
+    stopAllCapabilities(null_mut::<*mut Capability>(), task);
+    rts_pausing_task = task;
+
+    let mut token =
+        stgMallocBytes(size_of::<PauseToken>() as usize, c"rts_pause".as_ptr()) as *mut PauseToken;
+
+    (*token).capability = (*task).cap as *mut Capability;
+
+    return token;
 }
 
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn rts_resume(mut pauseToken: *mut PauseToken) -> ! {
-    errorBelch(c"Warning: Resuming the RTS is only possible for multithreaded RTS.".as_ptr());
+pub unsafe extern "C" fn rts_resume(mut pauseToken: *mut PauseToken) {
+    assert_isPausedOnMyTask(c"rts_resume".as_ptr());
 
-    stg_exit(EXIT_FAILURE);
+    let mut task = getMyTask();
+    rts_pausing_task = null_mut::<Task>();
+    releaseAllCapabilities(getNumCapabilities() as u32, null_mut::<Capability>(), task);
+    exitMyTask();
+    stgFree(pauseToken as *mut c_void);
+
+    if RtsFlags.GcFlags.useNonmoving {
+        nonmovingUnblockConcurrentMark();
+    }
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_isPaused() -> bool {
-    errorBelch(
-        c"Warning: Pausing/Resuming the RTS is only possible for multithreaded RTS.".as_ptr(),
-    );
+    return !rts_pausing_task.is_null();
+}
 
-    return false;
+unsafe fn assert_isPausedOnMyTask(mut functionName: *const c_char) {
+    let mut task = getMyTask();
+
+    if rts_pausing_task.is_null() {
+        errorBelch(
+            c"error: %s: the rts is not paused. Did you forget to call rts_pause?".as_ptr(),
+            functionName,
+        );
+
+        stg_exit(EXIT_FAILURE);
+    }
+
+    if task != rts_pausing_task {
+        errorBelch(
+            c"error: %s: called from a different OS thread than rts_pause.".as_ptr(),
+            functionName,
+        );
+
+        stg_exit(EXIT_FAILURE);
+    }
+
+    let mut i = 0;
+
+    while i < getNumCapabilities() {
+        let mut cap = getCapability(i as u32);
+
+        if (*cap).running_task != task {
+            errorBelch(
+                c"error: %s: the pausing thread does not own all capabilities.\n   Have you manually released a capability after calling rts_pause?"
+                    .as_ptr(),
+                functionName,
+            );
+
+            stg_exit(EXIT_FAILURE);
+        }
+
+        i = i.wrapping_add(1);
+    }
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_listThreads(mut cb: ListThreadsCb, mut user: *mut c_void) {
-    errorBelch(c"Warning: rts_listThreads is only possible for multithreaded RTS.".as_ptr());
+    assert_isPausedOnMyTask(c"rts_listThreads".as_ptr());
+
+    let mut g: u32 = 0;
+
+    while g < RtsFlags.GcFlags.generations {
+        let mut tso = (*generations.offset(g as isize)).threads;
+
+        while tso != &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO {
+            cb.expect("non-null function pointer")(user, tso);
+            tso = (*tso).global_link as *mut StgTSO;
+        }
+
+        g = g.wrapping_add(1);
+    }
+}
+
+unsafe fn list_roots_helper(mut user: *mut c_void, mut p: *mut *mut StgClosure) {
+    let mut ctx = user as *mut list_roots_ctx;
+    (*ctx).cb.expect("non-null function pointer")((*ctx).user, *p);
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_listMiscRoots(mut cb: ListRootsCb, mut user: *mut c_void) {
-    errorBelch(c"Warning: rts_listMiscRoots is only possible for multithreaded RTS.".as_ptr());
+    assert_isPausedOnMyTask(c"rts_listMiscRoots".as_ptr());
+
+    let mut ctx = list_roots_ctx {
+        cb: None,
+        user: null_mut::<c_void>(),
+    };
+
+    ctx.cb = cb;
+    ctx.user = user;
+
+    threadStableNameTable(
+        Some(list_roots_helper as unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> ()),
+        &raw mut ctx as *mut c_void,
+    );
+
+    threadStablePtrTable(
+        Some(list_roots_helper as unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> ()),
+        &raw mut ctx as *mut c_void,
+    );
 }
 
 unsafe fn rts_done() {
@@ -1021,7 +1457,7 @@ unsafe fn rts_done() {
 #[ffi(docs, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_try_putmvar(mut capability: i32, mut mvar: HsStablePtr) {
+pub unsafe extern "C" fn hs_try_putmvar(mut capability: c_int, mut mvar: HsStablePtr) {
     hs_try_putmvar_with_value(
         capability,
         mvar,
@@ -1033,7 +1469,7 @@ pub unsafe extern "C" fn hs_try_putmvar(mut capability: i32, mut mvar: HsStableP
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_try_putmvar_with_value(
-    mut capability: i32,
+    mut capability: c_int,
     mut mvar: HsStablePtr,
     mut value: *mut StgClosure,
 ) {
@@ -1050,10 +1486,54 @@ pub unsafe extern "C" fn hs_try_putmvar_with_value(
     }
 
     cap = getCapability((capability as u32).wrapping_rem(enabled_capabilities));
-    performTryPutMVar(
-        cap,
-        deRefStablePtr(mvar as StgStablePtr) as *mut StgMVar,
-        value,
-    );
-    freeStablePtr(mvar as StgStablePtr);
+
+    let mut __r = pthread_mutex_lock(&raw mut (*cap).lock);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/RtsAPI.c".as_ptr(),
+            990,
+            __r,
+        );
+    }
+
+    if (*cap).running_task.is_null() {
+        (*cap).running_task = task;
+        task_old_cap = (*task).cap as *mut Capability;
+        (*task).cap = cap as *mut Capability_;
+
+        if pthread_mutex_unlock(&raw mut (*cap).lock) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/RtsAPI.c".as_ptr(),
+                996,
+            );
+        }
+
+        performTryPutMVar(
+            cap,
+            deRefStablePtr(mvar as StgStablePtr) as *mut StgMVar,
+            value,
+        );
+
+        freeStablePtr(mvar as StgStablePtr);
+        releaseCapability(cap);
+        (*task).cap = task_old_cap as *mut Capability_;
+    } else {
+        let mut p = stgMallocBytes(size_of::<PutMVar>() as usize, c"hs_try_putmvar".as_ptr())
+            as *mut PutMVar;
+
+        (*p).mvar = mvar as StgStablePtr;
+        (*p).link = (*cap).putMVars as *mut PutMVar_;
+        (*cap).putMVars = p as *mut PutMVar_;
+
+        if pthread_mutex_unlock(&raw mut (*cap).lock) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/RtsAPI.c".as_ptr(),
+                1013,
+            );
+        }
+    };
 }

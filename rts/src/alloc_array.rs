@@ -1,5 +1,9 @@
-use crate::ffi::rts::prof::ccs::CostCentreStack;
-use crate::ffi::rts::storage::closure_macros::{mutArrPtrsCardTableSize, mutArrPtrsCards};
+use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
+use crate::ffi::rts::prof::ccs::{CostCentreStack, era, user_era};
+use crate::ffi::rts::storage::closure_macros::{
+    doingErasProfiling, doingLDVProfiling, doingRetainerProfiling, mutArrPtrsCardTableSize,
+    mutArrPtrsCards,
+};
 use crate::ffi::rts::storage::closures::{StgArrBytes, StgMutArrPtrs, StgSmallMutArrPtrs};
 use crate::ffi::rts::storage::gc::{allocateMightFail, allocatePinned};
 use crate::ffi::rts::types::StgClosure;
@@ -31,7 +35,21 @@ unsafe fn allocateMutArrPtrs(
         return null_mut::<StgMutArrPtrs>();
     }
 
-    (*arr).header.info = &raw const stg_MUT_ARR_PTRS_DIRTY_info;
+    let ref mut fresh13 = (*(arr as *mut StgClosure)).header.prof.ccs;
+    *fresh13 = ccs;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*(arr as *mut StgClosure)).header.prof.hp.ldvw =
+                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*(arr as *mut StgClosure)).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*(arr as *mut StgClosure)).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*arr).header.info).store(&raw const stg_MUT_ARR_PTRS_DIRTY_info, Ordering::Relaxed);
     (*arr).ptrs = nelements;
     (*arr).size = arrsize;
 
@@ -64,7 +82,24 @@ unsafe fn allocateSmallMutArrPtrs(
         return null_mut::<StgSmallMutArrPtrs>();
     }
 
-    (*arr).header.info = &raw const stg_SMALL_MUT_ARR_PTRS_DIRTY_info;
+    let ref mut fresh14 = (*(arr as *mut StgClosure)).header.prof.ccs;
+    *fresh14 = ccs;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*(arr as *mut StgClosure)).header.prof.hp.ldvw =
+                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*(arr as *mut StgClosure)).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*(arr as *mut StgClosure)).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*arr).header.info).store(
+        &raw const stg_SMALL_MUT_ARR_PTRS_DIRTY_info,
+        Ordering::Relaxed,
+    );
     (*arr).ptrs = nelements;
 
     return arr;
@@ -93,7 +128,21 @@ unsafe fn allocateArrBytes(
         return null_mut::<StgArrBytes>();
     }
 
-    (*arr).header.info = &raw const stg_ARR_WORDS_info;
+    let ref mut fresh15 = (*(arr as *mut StgClosure)).header.prof.ccs;
+    *fresh15 = ccs;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*(arr as *mut StgClosure)).header.prof.hp.ldvw =
+                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*(arr as *mut StgClosure)).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*(arr as *mut StgClosure)).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*arr).header.info).store(&raw const stg_ARR_WORDS_info, Ordering::Relaxed);
     (*arr).bytes = arrbytes;
 
     return arr;
@@ -128,7 +177,21 @@ unsafe fn allocateArrBytesPinned(
         return null_mut::<StgArrBytes>();
     }
 
-    (*arr).header.info = &raw const stg_ARR_WORDS_info;
+    let ref mut fresh16 = (*(arr as *mut StgClosure)).header.prof.ccs;
+    *fresh16 = ccs;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*(arr as *mut StgClosure)).header.prof.hp.ldvw =
+                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*(arr as *mut StgClosure)).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*(arr as *mut StgClosure)).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*arr).header.info).store(&raw const stg_ARR_WORDS_info, Ordering::Relaxed);
     (*arr).bytes = arrbytes;
 
     return arr;

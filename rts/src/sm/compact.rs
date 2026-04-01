@@ -1,5 +1,6 @@
 use crate::capability::{getCapability, markCapabilities};
 use crate::ffi::mach_deps::TAG_MASK;
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK};
 use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
@@ -8,10 +9,10 @@ use crate::ffi::rts::storage::block::{
     BF_MARKED, BF_PINNED, BLOCK_SIZE_W, Bdescr, bdescr, freeChain,
 };
 use crate::ffi::rts::storage::closure_macros::{
-    FUN_INFO_PTR_TO_STRUCT, GET_CLOSURE_TAG, GET_INFO, INFO_PTR_TO_STRUCT, STATIC_LINK,
-    THUNK_SELECTOR_sizeW, UNTAG_CLOSURE, arr_words_sizeW, bco_sizeW, closure_sizeW_,
-    continuation_sizeW, get_itbl, get_ret_itbl, mut_arr_ptrs_sizeW, small_mut_arr_ptrs_sizeW,
-    stack_sizeW,
+    FUN_INFO_PTR_TO_STRUCT, GET_CLOSURE_TAG, GET_INFO, INFO_PTR_TO_STRUCT, LOOKS_LIKE_CLOSURE_PTR,
+    LOOKS_LIKE_INFO_PTR, STATIC_LINK, THUNK_SELECTOR_sizeW, UNTAG_CLOSURE, arr_words_sizeW,
+    bco_sizeW, closure_sizeW_, continuation_sizeW, get_itbl, get_ret_itbl, mut_arr_ptrs_sizeW,
+    small_mut_arr_ptrs_sizeW, stack_sizeW,
 };
 use crate::ffi::rts::storage::closure_types::STACK;
 use crate::ffi::rts::storage::closures::{
@@ -78,12 +79,10 @@ pub(crate) unsafe fn is_marked(mut p: StgPtr, mut bd: *mut bdescr) -> StgWord {
     return *bitmap_word & bit_mask;
 }
 
-#[inline]
 unsafe fn UNTAG_PTR(mut p: W_) -> W_ {
     return p & !TAG_MASK as W_;
 }
 
-#[inline]
 unsafe fn GET_PTR_TAG(mut p: W_) -> W_ {
     return p & TAG_MASK as W_;
 }
@@ -115,7 +114,6 @@ unsafe fn get_iptr_tag(mut iptr: *mut StgInfoTable) -> W_ {
     };
 }
 
-#[inline]
 unsafe fn thread(mut p: *mut *mut StgClosure) {
     let mut q0 = *p;
     let mut q0_tagged = GET_CLOSURE_TAG(q0) != 0;
@@ -142,12 +140,10 @@ unsafe fn thread_root(mut user: *mut c_void, mut p: *mut *mut StgClosure) {
     thread(p);
 }
 
-#[inline]
 unsafe fn thread_(mut p: *mut c_void) {
     thread(p as *mut *mut StgClosure);
 }
 
-#[inline]
 unsafe fn unthread(p: P_, mut free: W_, mut tag: W_) {
     let mut q: W_ = *p;
 
@@ -176,13 +172,19 @@ unsafe fn unthread(p: P_, mut free: W_, mut tag: W_) {
     }
 }
 
-#[inline]
 unsafe fn get_threaded_info(mut p: P_) -> *mut StgInfoTable {
     let mut q: W_ = GET_INFO(UNTAG_CLOSURE(p as *mut StgClosure)) as W_;
 
     loop {
         match GET_PTR_TAG(q) {
-            0 => return q as *mut StgInfoTable,
+            0 => {
+                if LOOKS_LIKE_INFO_PTR(q as StgWord) as i32 as i64 != 0 {
+                } else {
+                    _assertFail(c"rts/sm/Compact.c".as_ptr(), 208);
+                }
+
+                return q as *mut StgInfoTable;
+            }
             1 | 2 => {
                 q = *(UNTAG_PTR(q) as P_) as W_;
             }
@@ -193,7 +195,6 @@ unsafe fn get_threaded_info(mut p: P_) -> *mut StgInfoTable {
     }
 }
 
-#[inline]
 unsafe fn r#move(mut to: P_, mut from: P_, mut size: W_) {
     while size > 0 {
         let fresh6 = from;
@@ -236,7 +237,6 @@ unsafe fn thread_static(mut p: *mut StgClosure) {
     }
 }
 
-#[inline]
 unsafe fn thread_large_bitmap(mut p: P_, mut large_bitmap: *mut StgLargeBitmap, mut size: W_) {
     let mut b: W_ = 0;
     let mut bitmap: W_ =
@@ -263,7 +263,6 @@ unsafe fn thread_large_bitmap(mut p: P_, mut large_bitmap: *mut StgLargeBitmap, 
     }
 }
 
-#[inline]
 unsafe fn thread_small_bitmap(mut p: P_, mut size: W_, mut bitmap: W_) -> P_ {
     while size > 0 {
         if bitmap & 1 == 0 {
@@ -278,7 +277,6 @@ unsafe fn thread_small_bitmap(mut p: P_, mut size: W_, mut bitmap: W_) -> P_ {
     return p;
 }
 
-#[inline]
 unsafe fn thread_arg_block(
     mut fun_info: *mut StgFunInfoTable,
     mut args: *mut *mut StgClosure,
@@ -292,7 +290,7 @@ unsafe fn thread_arg_block(
         0 => {
             bitmap = ((*fun_info).f.b.bitmap >> BITMAP_BITS_SHIFT) as W_;
             size = ((*fun_info).f.b.bitmap & BITMAP_SIZE_MASK as StgWord) as W_;
-            current_block_7 = 12307942874194897865;
+            current_block_7 = 6145864612238493040;
         }
         1 => {
             size = (*((fun_info.offset(1 as i32 as isize) as StgWord)
@@ -318,12 +316,12 @@ unsafe fn thread_arg_block(
             size = (*(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 & BITMAP_SIZE_MASK as StgWord) as W_;
-            current_block_7 = 12307942874194897865;
+            current_block_7 = 6145864612238493040;
         }
     }
 
     match current_block_7 {
-        12307942874194897865 => {
+        6145864612238493040 => {
             p = thread_small_bitmap(p, size, bitmap);
         }
         _ => {}
@@ -402,13 +400,18 @@ unsafe fn thread_stack(mut p: P_, mut stack_end: P_) {
     }
 }
 
-#[inline]
 unsafe fn thread_PAP_payload(
     mut fun: *mut StgClosure,
     mut payload: *mut *mut StgClosure,
     mut size: W_,
 ) -> P_ {
     let mut fun_info = FUN_INFO_PTR_TO_STRUCT(get_threaded_info(fun as P_));
+
+    if ((*fun_info).i.r#type != 25) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Compact.c".as_ptr(), 407);
+    }
+
     let mut p = payload as P_;
     let mut bitmap: W_ = 0;
     let mut current_block_9: u64;
@@ -416,7 +419,7 @@ unsafe fn thread_PAP_payload(
     match (*fun_info).f.fun_type {
         0 => {
             bitmap = ((*fun_info).f.b.bitmap >> BITMAP_BITS_SHIFT) as W_;
-            current_block_9 = 5976021267770950656;
+            current_block_9 = 307863803066297713;
         }
         1 => {
             thread_large_bitmap(
@@ -428,7 +431,7 @@ unsafe fn thread_PAP_payload(
             );
 
             p = p.offset(size as isize);
-            current_block_9 = 5399440093318478209;
+            current_block_9 = 4166486009154926805;
         }
         2 => {
             thread_large_bitmap(
@@ -438,18 +441,18 @@ unsafe fn thread_PAP_payload(
             );
 
             p = p.offset(size as isize);
-            current_block_9 = 5399440093318478209;
+            current_block_9 = 4166486009154926805;
         }
         _ => {
             bitmap = (*(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 >> BITMAP_BITS_SHIFT) as W_;
-            current_block_9 = 5976021267770950656;
+            current_block_9 = 307863803066297713;
         }
     }
 
     match current_block_9 {
-        5976021267770950656 => {
+        307863803066297713 => {
             p = thread_small_bitmap(p, size, bitmap);
         }
         _ => {}
@@ -458,7 +461,6 @@ unsafe fn thread_PAP_payload(
     return p;
 }
 
-#[inline]
 unsafe fn thread_PAP(mut pap: *mut StgPAP) -> P_ {
     let mut p = thread_PAP_payload(
         (*pap).fun,
@@ -471,7 +473,6 @@ unsafe fn thread_PAP(mut pap: *mut StgPAP) -> P_ {
     return p;
 }
 
-#[inline]
 unsafe fn thread_AP(mut ap: *mut StgAP) -> P_ {
     let mut p = thread_PAP_payload(
         (*ap).fun,
@@ -484,7 +485,6 @@ unsafe fn thread_AP(mut ap: *mut StgAP) -> P_ {
     return p;
 }
 
-#[inline]
 unsafe fn thread_AP_STACK(mut ap: *mut StgAP_STACK) -> P_ {
     thread(&raw mut (*ap).fun);
 
@@ -503,7 +503,6 @@ unsafe fn thread_AP_STACK(mut ap: *mut StgAP_STACK) -> P_ {
         .offset((*ap).size as isize);
 }
 
-#[inline]
 unsafe fn thread_continuation(mut cont: *mut StgContinuation) -> P_ {
     thread_stack(
         &raw mut (*cont).stack as P_,
@@ -517,7 +516,7 @@ unsafe fn thread_TSO(mut tso: *mut StgTSO) -> P_ {
     thread_(&raw mut (*tso)._link as *mut c_void);
     thread_(&raw mut (*tso).global_link as *mut c_void);
 
-    match (*tso).why_blocked {
+    match (&raw mut (*tso).why_blocked).load(Ordering::Acquire) {
         1 | 14 | 2 | 12 | 0 => {
             thread_(&raw mut (*tso).block_info.closure as *mut c_void);
         }
@@ -578,6 +577,11 @@ unsafe fn rehash_CNFs() {
 
 unsafe fn update_fwd_cnf(mut bd: *mut bdescr) {
     while !bd.is_null() {
+        if ((*bd).flags as i32 & 512 != 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/Compact.c".as_ptr(), 541);
+        }
+
         let mut str = (*((*bd).start as *mut StgCompactNFDataBlock)).owner as *mut StgCompactNFData;
 
         if !(*str).hash.is_null() {
@@ -589,6 +593,11 @@ unsafe fn update_fwd_cnf(mut bd: *mut bdescr) {
                         as unsafe extern "C" fn(*mut c_void, *mut StgWord, *const c_void) -> (),
                 ),
             );
+
+            if (*str).link.is_null() as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/Compact.c".as_ptr(), 548);
+            }
 
             (*str).link = nfdata_chain as *mut StgCompactNFData_;
             nfdata_chain = str;
@@ -612,7 +621,7 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     current_block_20 = 17179679302217393232;
 
                     match current_block_20 {
-                        4415731432829968035 => {
+                        4822848011261434769 => {
                             barf(
                                 c"update_fwd_large: unknown/strange object  %d".as_ptr(),
                                 (*info).r#type as i32,
@@ -657,13 +666,13 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         17179679302217393232 => {
                             thread_obj(info, p);
                         }
-                        3779006800549673200 => {
+                        14321068961168081528 => {
                             thread_AP_STACK(p as *mut StgAP_STACK);
                         }
-                        16049489219596476304 => {
+                        14423565235181675139 => {
                             thread_PAP(p as *mut StgPAP);
                         }
-                        6751724148572908289 => {
+                        13135462033962617438 => {
                             thread_continuation(p as *mut StgContinuation);
                         }
                         _ => {
@@ -689,7 +698,7 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     current_block_20 = 6873731126896040597;
 
                     match current_block_20 {
-                        4415731432829968035 => {
+                        4822848011261434769 => {
                             barf(
                                 c"update_fwd_large: unknown/strange object  %d".as_ptr(),
                                 (*info).r#type as i32,
@@ -734,13 +743,13 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         17179679302217393232 => {
                             thread_obj(info, p);
                         }
-                        3779006800549673200 => {
+                        14321068961168081528 => {
                             thread_AP_STACK(p as *mut StgAP_STACK);
                         }
-                        16049489219596476304 => {
+                        14423565235181675139 => {
                             thread_PAP(p as *mut StgPAP);
                         }
-                        6751724148572908289 => {
+                        13135462033962617438 => {
                             thread_continuation(p as *mut StgContinuation);
                         }
                         _ => {
@@ -766,7 +775,7 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     current_block_20 = 7651349459974463963;
 
                     match current_block_20 {
-                        4415731432829968035 => {
+                        4822848011261434769 => {
                             barf(
                                 c"update_fwd_large: unknown/strange object  %d".as_ptr(),
                                 (*info).r#type as i32,
@@ -811,13 +820,13 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         17179679302217393232 => {
                             thread_obj(info, p);
                         }
-                        3779006800549673200 => {
+                        14321068961168081528 => {
                             thread_AP_STACK(p as *mut StgAP_STACK);
                         }
-                        16049489219596476304 => {
+                        14423565235181675139 => {
                             thread_PAP(p as *mut StgPAP);
                         }
-                        6751724148572908289 => {
+                        13135462033962617438 => {
                             thread_continuation(p as *mut StgContinuation);
                         }
                         _ => {
@@ -843,7 +852,7 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     current_block_20 = 17833034027772472439;
 
                     match current_block_20 {
-                        4415731432829968035 => {
+                        4822848011261434769 => {
                             barf(
                                 c"update_fwd_large: unknown/strange object  %d".as_ptr(),
                                 (*info).r#type as i32,
@@ -888,13 +897,13 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         17179679302217393232 => {
                             thread_obj(info, p);
                         }
-                        3779006800549673200 => {
+                        14321068961168081528 => {
                             thread_AP_STACK(p as *mut StgAP_STACK);
                         }
-                        16049489219596476304 => {
+                        14423565235181675139 => {
                             thread_PAP(p as *mut StgPAP);
                         }
-                        6751724148572908289 => {
+                        13135462033962617438 => {
                             thread_continuation(p as *mut StgContinuation);
                         }
                         _ => {
@@ -917,10 +926,10 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     }
                 }
                 26 => {
-                    current_block_20 = 3779006800549673200;
+                    current_block_20 = 14321068961168081528;
 
                     match current_block_20 {
-                        4415731432829968035 => {
+                        4822848011261434769 => {
                             barf(
                                 c"update_fwd_large: unknown/strange object  %d".as_ptr(),
                                 (*info).r#type as i32,
@@ -965,13 +974,13 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         17179679302217393232 => {
                             thread_obj(info, p);
                         }
-                        3779006800549673200 => {
+                        14321068961168081528 => {
                             thread_AP_STACK(p as *mut StgAP_STACK);
                         }
-                        16049489219596476304 => {
+                        14423565235181675139 => {
                             thread_PAP(p as *mut StgPAP);
                         }
-                        6751724148572908289 => {
+                        13135462033962617438 => {
                             thread_continuation(p as *mut StgContinuation);
                         }
                         _ => {
@@ -994,10 +1003,10 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     }
                 }
                 25 => {
-                    current_block_20 = 16049489219596476304;
+                    current_block_20 = 14423565235181675139;
 
                     match current_block_20 {
-                        4415731432829968035 => {
+                        4822848011261434769 => {
                             barf(
                                 c"update_fwd_large: unknown/strange object  %d".as_ptr(),
                                 (*info).r#type as i32,
@@ -1042,13 +1051,13 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         17179679302217393232 => {
                             thread_obj(info, p);
                         }
-                        3779006800549673200 => {
+                        14321068961168081528 => {
                             thread_AP_STACK(p as *mut StgAP_STACK);
                         }
-                        16049489219596476304 => {
+                        14423565235181675139 => {
                             thread_PAP(p as *mut StgPAP);
                         }
-                        6751724148572908289 => {
+                        13135462033962617438 => {
                             thread_continuation(p as *mut StgContinuation);
                         }
                         _ => {
@@ -1074,7 +1083,7 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     current_block_20 = 18317007320854588510;
 
                     match current_block_20 {
-                        4415731432829968035 => {
+                        4822848011261434769 => {
                             barf(
                                 c"update_fwd_large: unknown/strange object  %d".as_ptr(),
                                 (*info).r#type as i32,
@@ -1119,13 +1128,13 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         17179679302217393232 => {
                             thread_obj(info, p);
                         }
-                        3779006800549673200 => {
+                        14321068961168081528 => {
                             thread_AP_STACK(p as *mut StgAP_STACK);
                         }
-                        16049489219596476304 => {
+                        14423565235181675139 => {
                             thread_PAP(p as *mut StgPAP);
                         }
-                        6751724148572908289 => {
+                        13135462033962617438 => {
                             thread_continuation(p as *mut StgContinuation);
                         }
                         _ => {
@@ -1148,10 +1157,10 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     }
                 }
                 64 => {
-                    current_block_20 = 6751724148572908289;
+                    current_block_20 = 13135462033962617438;
 
                     match current_block_20 {
-                        4415731432829968035 => {
+                        4822848011261434769 => {
                             barf(
                                 c"update_fwd_large: unknown/strange object  %d".as_ptr(),
                                 (*info).r#type as i32,
@@ -1196,13 +1205,13 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         17179679302217393232 => {
                             thread_obj(info, p);
                         }
-                        3779006800549673200 => {
+                        14321068961168081528 => {
                             thread_AP_STACK(p as *mut StgAP_STACK);
                         }
-                        16049489219596476304 => {
+                        14423565235181675139 => {
                             thread_PAP(p as *mut StgPAP);
                         }
-                        6751724148572908289 => {
+                        13135462033962617438 => {
                             thread_continuation(p as *mut StgContinuation);
                         }
                         _ => {
@@ -1225,10 +1234,10 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                     }
                 }
                 _ => {
-                    current_block_20 = 4415731432829968035;
+                    current_block_20 = 4822848011261434769;
 
                     match current_block_20 {
-                        4415731432829968035 => {
+                        4822848011261434769 => {
                             barf(
                                 c"update_fwd_large: unknown/strange object  %d".as_ptr(),
                                 (*info).r#type as i32,
@@ -1273,13 +1282,13 @@ unsafe fn update_fwd_large(mut bd: *mut bdescr) {
                         17179679302217393232 => {
                             thread_obj(info, p);
                         }
-                        3779006800549673200 => {
+                        14321068961168081528 => {
                             thread_AP_STACK(p as *mut StgAP_STACK);
                         }
-                        16049489219596476304 => {
+                        14423565235181675139 => {
                             thread_PAP(p as *mut StgPAP);
                         }
-                        6751724148572908289 => {
+                        13135462033962617438 => {
                             thread_continuation(p as *mut StgContinuation);
                         }
                         _ => {
@@ -1613,6 +1622,11 @@ unsafe fn update_fwd(mut blocks: *mut bdescr) {
         let mut p = (*bd).start as P_;
 
         while p < (*bd).c2rust_unnamed.free {
+            if LOOKS_LIKE_CLOSURE_PTR(p as *const c_void) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/Compact.c".as_ptr(), 848);
+            }
+
             let mut info = get_itbl(p as *mut StgClosure);
             p = thread_obj(info, p);
         }
@@ -1649,6 +1663,9 @@ unsafe fn update_fwd_compact(mut blocks: *mut bdescr) {
                 mark(q.offset(1), bd);
                 free_bd = (*free_bd).link as *mut bdescr;
                 free = (*free_bd).start as P_;
+            } else if (is_marked(q.offset(1), bd) == 0) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/Compact.c".as_ptr(), 902);
             }
 
             let mut iptr_tag = get_iptr_tag(iptr) as StgWord;
@@ -1683,6 +1700,19 @@ unsafe fn update_bkwd_compact(mut r#gen: *mut generation) -> W_ {
 
             if is_marked(p.offset(1), bd) != 0 {
                 (*free_bd).c2rust_unnamed.free = free as StgPtr;
+
+                if RtsFlags.DebugFlags.zero_on_gc {
+                    memset(
+                        (*free_bd).c2rust_unnamed.free as *mut c_void,
+                        0xaa,
+                        (((1 as u64) << 12 as i32) as W_).wrapping_sub(
+                            ((*free_bd).c2rust_unnamed.free.offset_from((*free_bd).start) as i64
+                                as W_)
+                                .wrapping_mul(size_of::<W_>() as W_),
+                        ) as usize,
+                    );
+                }
+
                 free_bd = (*free_bd).link as *mut bdescr;
                 free = (*free_bd).start as P_;
                 free_blocks = free_blocks.wrapping_add(1);
@@ -1691,6 +1721,13 @@ unsafe fn update_bkwd_compact(mut r#gen: *mut generation) -> W_ {
             let mut iptr = get_threaded_info(p);
             let mut iptr_tag = get_iptr_tag(iptr) as StgWord;
             unthread(p, free as W_, iptr_tag as W_);
+
+            if LOOKS_LIKE_INFO_PTR((*(p as *mut StgClosure)).header.info as StgWord) as i32 as i64
+                != 0
+            {
+            } else {
+                _assertFail(c"rts/sm/Compact.c".as_ptr(), 954);
+            }
 
             let mut info = get_itbl(p as *mut StgClosure);
             let mut size: W_ = closure_sizeW_(p as *mut StgClosure, info) as W_;
@@ -1715,6 +1752,23 @@ unsafe fn update_bkwd_compact(mut r#gen: *mut generation) -> W_ {
     if !(*free_bd).link.is_null() {
         freeChain((*free_bd).link as *mut bdescr);
         (*free_bd).link = null_mut::<bdescr_>();
+    }
+
+    if RtsFlags.DebugFlags.zero_on_gc {
+        let mut block_size_bytes: W_ =
+            ((*free_bd).blocks as u64).wrapping_mul((1 as u64) << 12 as i32) as W_;
+
+        let mut block_in_use_bytes: W_ =
+            ((*free_bd).c2rust_unnamed.free.offset_from((*free_bd).start) as i64 as usize)
+                .wrapping_mul(size_of::<W_>() as usize) as W_;
+
+        let mut block_free_bytes: W_ = block_size_bytes.wrapping_sub(block_in_use_bytes);
+
+        memset(
+            (*free_bd).c2rust_unnamed.free as *mut c_void,
+            0xaa,
+            block_free_bytes as usize,
+        );
     }
 
     return free_blocks;

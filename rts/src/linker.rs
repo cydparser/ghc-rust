@@ -14,6 +14,7 @@ use crate::ffi::rts::linker::{
 };
 use crate::ffi::rts::linker::{OStatus, pathchar};
 use crate::ffi::rts::messages::{barf, debugBelch, errorBelch};
+use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::storage::closures::{StgInd, StgIndStatic};
 use crate::ffi::rts::storage::gc::{newGCdCAF, newRetainedCAF};
 use crate::ffi::stg::regs::StgRegTable;
@@ -51,6 +52,7 @@ use crate::linker_internals::{
 };
 use crate::path_utils::{pathdup, pathsize};
 use crate::prelude::*;
+use crate::profiling::refreshProfilingCCSs;
 use crate::rts_symbol_info::{isSymbolImport, isSymbolWeak};
 use crate::rts_symbols::{
     RtsSymbolVal, STRENGTH_NORMAL, STRENGTH_STRONG, STRENGTH_WEAK, SYM_TYPE_CODE,
@@ -321,6 +323,11 @@ pub(crate) const OBJECT_LOADED: OStatus = 0;
 
 static mut symhash: *mut StrHashTable = null_mut::<StrHashTable>();
 
+static mut linker_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
 unsafe fn ghciRemoveSymbolTable(
     mut table: *mut StrHashTable,
     mut key: *const SymbolName,
@@ -416,6 +423,13 @@ unsafe fn ghciInsertSymbolTable(
 
         return 1;
     } else if (*pinfo).strength as u32 == STRENGTH_STRONG as i32 as u32 {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"%s is already defined as a strong symbol; ignoring redefinition...".as_ptr(),
+                key,
+            );
+        }
+
         return 1;
     } else if strength as u32 == STRENGTH_WEAK as i32 as u32
         && !data.is_null()
@@ -491,6 +505,10 @@ unsafe fn ghciLookupSymbolInfo(
     }
 
     if (*pinfo).strength as u32 == STRENGTH_WEAK as i32 as u32 {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(c"lookupSymbolInfo: promoting %s\n".as_ptr(), key);
+        }
+
         (*pinfo).strength = STRENGTH_NORMAL;
     }
 
@@ -527,21 +545,42 @@ pub unsafe extern "C" fn initLinker() {
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn initLinker_(mut retain_cafs: i32) {
+pub unsafe extern "C" fn initLinker_(mut retain_cafs: c_int) {
     let mut compileResult: i32 = 0;
 
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"initLinker: start\n".as_ptr());
+    }
+
     if linker_init_done == 1 {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(c"initLinker: idempotent return\n".as_ptr());
+        }
+
         return;
     } else {
         linker_init_done = 1;
     }
 
     initUnloadCheck();
+    initMutex(&raw mut linker_mutex);
     symhash = allocStrHashTable();
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"populating linker symbol table with built-in RTS symbols\n".as_ptr());
+    }
 
     let mut sym: *const RtsSymbolVal = &raw mut rtsSyms as *mut RtsSymbolVal;
 
     while !(*sym).lbl.is_null() {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"initLinker: inserting rts symbol %s, %p\n".as_ptr(),
+                (*sym).lbl,
+                (*sym).addr,
+            );
+        }
+
         if ghciInsertSymbolTable(
             c"(GHCi built-in symbols)".as_ptr() as *mut pathchar,
             symhash,
@@ -558,12 +597,28 @@ pub unsafe extern "C" fn initLinker_(mut retain_cafs: i32) {
         sym = sym.offset(1);
     }
 
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"done with built-in RTS symbols\n".as_ptr());
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"populating linker symbol table with extra RTS symbols\n".as_ptr());
+    }
+
     if Some(rtsExtraSyms as unsafe extern "C" fn() -> *mut RtsSymbolVal).is_some()
         && !rtsExtraSyms().is_null()
     {
         let mut sym_0 = rtsExtraSyms();
 
         while !(*sym_0).lbl.is_null() {
+            if RtsFlags.DebugFlags.linker {
+                debugBelch(
+                    c"initLinker: inserting extra rts symbol %s, %p\n".as_ptr(),
+                    (*sym_0).lbl,
+                    (*sym_0).addr,
+                );
+            }
+
             if ghciInsertSymbolTable(
                 c"(GHCi built-in symbols)".as_ptr() as *mut pathchar,
                 symhash,
@@ -581,10 +636,14 @@ pub unsafe extern "C" fn initLinker_(mut retain_cafs: i32) {
         }
     }
 
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"done with extra RTS symbols\n".as_ptr());
+    }
+
     if ghciInsertSymbolTable(
         c"(GHCi built-in symbols)".as_ptr() as *mut pathchar,
         symhash,
-        b"_newCAF\0" as *const u8 as *const SymbolName,
+        c"_newCAF".as_ptr(),
         transmute::<
             Option<unsafe extern "C" fn(*mut StgRegTable, *mut StgIndStatic) -> *mut StgInd>,
             *mut c_void,
@@ -629,6 +688,10 @@ pub unsafe extern "C" fn initLinker_(mut retain_cafs: i32) {
     if compileResult != 0 {
         barf(c"Compiling re_realso failed".as_ptr());
     }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"initLinker: done\n".as_ptr());
+    }
 }
 
 unsafe fn exitLinker() {
@@ -644,14 +707,29 @@ unsafe fn exitLinker() {
         );
         exitUnloadCheck();
     }
+
+    closeMutex(&raw mut linker_mutex);
 }
 
 unsafe fn internal_dlsym(mut symbol: *const c_char) -> *mut c_void {
     let mut v = null_mut::<c_void>();
+
+    if (pthread_mutex_lock(&raw mut linker_mutex) == 11) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/Linker.c".as_ptr(), 604);
+    }
+
     dlerror();
     v = dlsym(dl_prog_handle, symbol);
 
     if dlerror().is_null() {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"internal_dlsym: found symbol '%s' in program\n".as_ptr(),
+                symbol,
+            );
+        }
+
         return v;
     }
 
@@ -662,11 +740,25 @@ unsafe fn internal_dlsym(mut symbol: *const c_char) -> *mut c_void {
             v = dlsym((*nc).dlopen_handle, symbol);
 
             if dlerror().is_null() {
+                if RtsFlags.DebugFlags.linker {
+                    debugBelch(
+                        c"internal_dlsym: found symbol '%s' in shared object\n".as_ptr(),
+                        symbol,
+                    );
+                }
+
                 return v;
             }
         }
 
         nc = (*nc).next_loaded_object as *mut ObjectCode;
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"internal_dlsym: looking for symbol '%s' in special cases\n".as_ptr(),
+            symbol,
+        );
     }
 
     return NULL;
@@ -679,6 +771,17 @@ pub unsafe extern "C" fn lookupSymbolInNativeObj(
     mut handle: *mut c_void,
     mut symbol_name: *const c_char,
 ) -> *mut c_void {
+    let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            668,
+            __r,
+        );
+    }
+
     if (*symbol_name.offset(0) as i32 == '_' as i32) as i32 as i64 != 0 {
     } else {
         _assertFail(c"rts/Linker.c".as_ptr(), 673);
@@ -687,6 +790,14 @@ pub unsafe extern "C" fn lookupSymbolInNativeObj(
     symbol_name = symbol_name.offset(1);
 
     let mut result = dlsym(handle, symbol_name);
+
+    if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            687,
+        );
+    }
 
     return result;
 }
@@ -700,6 +811,11 @@ pub unsafe extern "C" fn addDLL(mut dll_name: *mut pathchar) -> *const c_char {
     if !loadNativeObj(dll_name, &raw mut errmsg).is_null() {
         return null::<c_char>();
     } else {
+        if !errmsg.is_null() as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/Linker.c".as_ptr(), 697);
+        }
+
         return errmsg;
     };
 }
@@ -708,6 +824,10 @@ pub unsafe extern "C" fn addDLL(mut dll_name: *mut pathchar) -> *const c_char {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn findSystemLibrary(mut dll_name: *mut pathchar) -> *mut pathchar {
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"\nfindSystemLibrary: dll_name = `%s'\n".as_ptr(), dll_name);
+    }
+
     return null_mut::<pathchar>();
 }
 
@@ -725,6 +845,13 @@ unsafe fn warnMissingKBLibraryPaths() {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn addLibrarySearchPath(mut dll_path: *mut pathchar) -> HsPtr {
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"\naddLibrarySearchPath: dll_path = `%s'\n".as_ptr(),
+            dll_path,
+        );
+    }
+
     return NULL;
 }
 
@@ -732,6 +859,13 @@ pub unsafe extern "C" fn addLibrarySearchPath(mut dll_path: *mut pathchar) -> Hs
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn removeLibrarySearchPath(mut dll_path_index: HsPtr) -> HsBool {
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"\nremoveLibrarySearchPath: ptr = `%p'\n".as_ptr(),
+            dll_path_index,
+        );
+    }
+
     return HS_BOOL_FALSE as HsBool;
 }
 
@@ -756,6 +890,20 @@ unsafe fn lookupDependentSymbol(
     mut dependent: *mut ObjectCode,
     mut r#type: *mut SymType,
 ) -> *mut c_void {
+    if (pthread_mutex_lock(&raw mut linker_mutex) == 11) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/Linker.c".as_ptr(), 801);
+    }
+
+    if RtsFlags.DebugFlags.linker_verbose {
+        debugBelch(c"lookupSymbol: looking up '%s'\n".as_ptr(), lbl);
+    }
+
+    if !symhash.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/Linker.c".as_ptr(), 804);
+    }
+
     let mut pinfo = null_mut::<RtsSymbolInfo>();
 
     if strcmp(lbl, c"___dso_handle".as_ptr()) == 0 {
@@ -792,6 +940,17 @@ unsafe fn lookupDependentSymbol(
     }
 
     if ghciLookupSymbolInfo(symhash, lbl, &raw mut pinfo) == 0 {
+        if RtsFlags.DebugFlags.linker_verbose {
+            debugBelch(
+                c"lookupSymbol: symbol '%s' not found, trying dlsym\n".as_ptr(),
+                lbl,
+            );
+        }
+
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(c"lookupSymbol: looking up %s with dlsym\n".as_ptr(), lbl);
+        }
+
         if (*lbl.offset(0) as i32 == '_' as i32) as i32 as i64 != 0 {
         } else {
             _assertFail(c"rts/Linker.c".as_ptr(), 866);
@@ -830,10 +989,34 @@ unsafe fn lookupDependentSymbol(
 }
 
 unsafe fn loadSymbol(mut lbl: *mut SymbolName, mut pinfo: *mut RtsSymbolInfo) -> *mut c_void {
+    if RtsFlags.DebugFlags.linker_verbose {
+        debugBelch(
+            c"lookupSymbol: value of %s is %p, owned by %s\n".as_ptr(),
+            lbl,
+            (*pinfo).value,
+            if !(*pinfo).owner.is_null() {
+                (if !(*(*pinfo).owner).archiveMemberName.is_null() {
+                    (*(*pinfo).owner).archiveMemberName
+                } else {
+                    (*(*pinfo).owner).fileName
+                }) as *const pathchar
+            } else {
+                b"No owner, probably built-in.\0" as *const u8 as *const pathchar
+            },
+        );
+    }
+
     let mut oc = (*pinfo).owner;
 
     if !oc.is_null() && !lbl.is_null() && (*oc).status as u32 == OBJECT_LOADED as i32 as u32 {
         (*oc).status = OBJECT_NEEDED;
+
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"lookupSymbol: on-demand loading symbol '%s'\n".as_ptr(),
+                lbl,
+            );
+        }
 
         let mut r = ocTryLoad(oc);
 
@@ -896,6 +1079,17 @@ unsafe fn printLoadedObjects() {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn lookupSymbol(mut lbl: *mut SymbolName) -> *mut c_void {
+    let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            972,
+            __r,
+        );
+    }
+
     let mut r = lookupDependentSymbol(lbl, null_mut::<ObjectCode>(), null_mut::<SymType>());
 
     if r.is_null() {
@@ -905,6 +1099,10 @@ pub unsafe extern "C" fn lookupSymbol(mut lbl: *mut SymbolName) -> *mut c_void {
                     .as_ptr(),
                 lbl,
             );
+
+            if RtsFlags.DebugFlags.linker {
+                printLoadedObjects();
+            }
 
             fflush(__stderrp);
         } else {
@@ -922,7 +1120,60 @@ pub unsafe extern "C" fn lookupSymbol(mut lbl: *mut SymbolName) -> *mut c_void {
         errorBelch(c"lookupSymbol: Failed to run initializers.".as_ptr());
     }
 
+    if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            996,
+        );
+    }
+
     return r as *mut c_void;
+}
+
+unsafe fn ghci_enquire(mut addr: *mut c_void) {
+    let mut i: i32 = 0;
+    let mut sym = null_mut::<SymbolName>();
+    let mut a = null_mut::<RtsSymbolInfo>();
+    let DELTA = 64;
+    let mut oc = null_mut::<ObjectCode>();
+    oc = objects;
+
+    while !oc.is_null() {
+        i = 0;
+
+        while i < (*oc).n_symbols {
+            sym = (*(*oc).symbols.offset(i as isize)).name;
+
+            if !sym.is_null() {
+                a = null_mut::<RtsSymbolInfo>();
+
+                if a.is_null() {
+                    ghciLookupSymbolInfo(symhash, sym, &raw mut a);
+                }
+
+                if !a.is_null() {
+                    if !(*a).value.is_null()
+                        && (addr as *mut c_char).offset(-(DELTA as isize))
+                            <= (*a).value as *mut c_char
+                        && (*a).value as *mut c_char <= (addr as *mut c_char).offset(DELTA as isize)
+                    {
+                        debugBelch(
+                            c"%p + %3d  ==  `%s'\n".as_ptr(),
+                            addr,
+                            ((*a).value as *mut c_char).offset_from(addr as *mut c_char) as i64
+                                as i32,
+                            sym,
+                        );
+                    }
+                }
+            }
+
+            i += 1;
+        }
+
+        oc = (*oc).next as *mut ObjectCode;
+    }
 }
 
 unsafe fn resolveSymbolAddr(
@@ -994,6 +1245,18 @@ unsafe fn freePreloadObjectFile(mut oc: *mut ObjectCode) {
 }
 
 unsafe fn freeObjectCode(mut oc: *mut ObjectCode) {
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"%s(%s: freeObjectCode: start\n".as_ptr(),
+            c"freeObjectCode".as_ptr(),
+            if !(*oc).archiveMemberName.is_null() {
+                (*oc).archiveMemberName
+            } else {
+                (*oc).fileName
+            },
+        );
+    }
+
     if (*oc).r#type as u32 == STATIC_OBJECT as i32 as u32
         && ((*oc).status as u32 == OBJECT_READY as i32 as u32
             || (*oc).status as u32 == OBJECT_UNLOADED as i32 as u32)
@@ -1006,7 +1269,26 @@ unsafe fn freeObjectCode(mut oc: *mut ObjectCode) {
     }
 
     if (*oc).r#type as u32 == DYNAMIC_OBJECT as i32 as u32 {
+        let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/Linker.c".as_ptr(),
+                1144,
+                __r,
+            );
+        }
+
         freeNativeCode_POSIX(oc);
+
+        if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/Linker.c".as_ptr(),
+                1146,
+            );
+        }
     }
 
     freePreloadObjectFile(oc);
@@ -1036,6 +1318,14 @@ unsafe fn freeObjectCode(mut oc: *mut ObjectCode) {
                         );
                     }
                     3 => {
+                        if RtsFlags.DebugFlags.zero_on_gc {
+                            memset(
+                                (*(*oc).sections.offset(i as isize)).start,
+                                0,
+                                (*(*oc).sections.offset(i as isize)).size as usize,
+                            );
+                        }
+
                         stgFree((*(*oc).sections.offset(i as isize)).start);
                     }
                     1 | _ => {}
@@ -1075,6 +1365,11 @@ unsafe fn mkOc(
     mut misalignment: i32,
 ) -> *mut ObjectCode {
     let mut oc = null_mut::<ObjectCode>();
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"mkOc: %s\n".as_ptr(), path);
+    }
+
     oc = stgMallocBytes(size_of::<ObjectCode>() as usize, c"mkOc(oc)".as_ptr()) as *mut ObjectCode;
     (*oc).info = null_mut::<ObjectCodeFormatInfo>();
     (*oc).r#type = r#type;
@@ -1212,6 +1507,10 @@ unsafe fn preloadObjectFile(mut path: *mut pathchar) -> *mut ObjectCode {
 
     close(fd);
 
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"loadObj: preloaded image at %p\n".as_ptr(), image);
+    }
+
     oc = mkOc(
         STATIC_OBJECT,
         path,
@@ -1231,12 +1530,21 @@ unsafe fn preloadObjectFile(mut path: *mut pathchar) -> *mut ObjectCode {
 
 unsafe fn loadObj_(mut path: *mut pathchar) -> HsInt {
     if isAlreadyLoaded(path) != 0 {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(c"ignoring repeated load of %s\n".as_ptr(), path);
+        }
+
         return 1;
     }
 
     if isArchive(path) {
         if loadArchive_(path) != 0 {
             return 1;
+        } else if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"tried and failed to load %s as an archive\n".as_ptr(),
+                path,
+            );
         }
     }
 
@@ -1264,28 +1572,96 @@ unsafe fn loadObj_(mut path: *mut pathchar) -> HsInt {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn loadObj(mut path: *mut pathchar) -> HsInt {
+    let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1502,
+            __r,
+        );
+    }
+
     let mut r = loadObj_(path);
+
+    if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1504,
+        );
+    }
 
     return r;
 }
 
 unsafe fn loadOc(mut oc: *mut ObjectCode) -> HsInt {
     let mut r: i32 = 0;
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"%s(%s: start\n".as_ptr(),
+            c"loadOc".as_ptr(),
+            if !(*oc).archiveMemberName.is_null() {
+                (*oc).archiveMemberName
+            } else {
+                (*oc).fileName
+            },
+        );
+    }
+
     r = ocVerifyImage_MachO(oc);
 
     if r == 0 {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"%s(%s: ocVerifyImage_* failed\n".as_ptr(),
+                c"loadOc".as_ptr(),
+                if !(*oc).archiveMemberName.is_null() {
+                    (*oc).archiveMemberName
+                } else {
+                    (*oc).fileName
+                },
+            );
+        }
+
         return r as HsInt;
     }
 
     r = ocAllocateExtras_MachO(oc);
 
     if r == 0 {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"%s(%s: ocAllocateExtras_MachO failed\n".as_ptr(),
+                c"loadOc".as_ptr(),
+                if !(*oc).archiveMemberName.is_null() {
+                    (*oc).archiveMemberName
+                } else {
+                    (*oc).fileName
+                },
+            );
+        }
+
         return r as HsInt;
     }
 
     r = ocGetNames_MachO(oc);
 
     if r == 0 {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"%s(%s: ocGetNames_* failed\n".as_ptr(),
+                c"loadOc".as_ptr(),
+                if !(*oc).archiveMemberName.is_null() {
+                    (*oc).archiveMemberName
+                } else {
+                    (*oc).fileName
+                },
+            );
+        }
+
         return r as HsInt;
     }
 
@@ -1295,6 +1671,18 @@ unsafe fn loadOc(mut oc: *mut ObjectCode) -> HsInt {
         } else {
             (*oc).status = OBJECT_LOADED;
         }
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"%s(%s: done\n".as_ptr(),
+            c"loadOc".as_ptr(),
+            if !(*oc).archiveMemberName.is_null() {
+                (*oc).archiveMemberName
+            } else {
+                (*oc).fileName
+            },
+        );
     }
 
     return 1;
@@ -1337,15 +1725,64 @@ unsafe fn ocTryLoad(mut oc: *mut ObjectCode) -> i32 {
         x += 1;
     }
 
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"%s(%s: resolving\n".as_ptr(),
+            c"ocTryLoad".as_ptr(),
+            if !(*oc).archiveMemberName.is_null() {
+                (*oc).archiveMemberName
+            } else {
+                (*oc).fileName
+            },
+        );
+    }
+
     r = ocResolve_MachO(oc);
 
     if r == 0 {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"%s(%s: resolution failed\n".as_ptr(),
+                c"ocTryLoad".as_ptr(),
+                if !(*oc).archiveMemberName.is_null() {
+                    (*oc).archiveMemberName
+                } else {
+                    (*oc).fileName
+                },
+            );
+        }
+
         return r;
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"%s(%s: protecting mappings\n".as_ptr(),
+            c"ocTryLoad".as_ptr(),
+            if !(*oc).archiveMemberName.is_null() {
+                (*oc).archiveMemberName
+            } else {
+                (*oc).fileName
+            },
+        );
     }
 
     ocProtectExtras(oc);
     m32_allocator_flush((*oc).rx_m32);
     m32_allocator_flush((*oc).rw_m32);
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"%s(%s: resolved\n".as_ptr(),
+            c"ocTryLoad".as_ptr(),
+            if !(*oc).archiveMemberName.is_null() {
+                (*oc).archiveMemberName
+            } else {
+                (*oc).fileName
+            },
+        );
+    }
+
     (*oc).status = OBJECT_RESOLVED;
 
     return 1;
@@ -1354,6 +1791,18 @@ unsafe fn ocTryLoad(mut oc: *mut ObjectCode) -> i32 {
 unsafe fn ocRunInit(mut oc: *mut ObjectCode) -> i32 {
     if (*oc).status as u32 != OBJECT_RESOLVED as i32 as u32 {
         return 1;
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"%s(%s: running initializers\n".as_ptr(),
+            c"ocRunInit".as_ptr(),
+            if !(*oc).archiveMemberName.is_null() {
+                (*oc).archiveMemberName
+            } else {
+                (*oc).fileName
+            },
+        );
     }
 
     foreignExportsLoadingObject(oc);
@@ -1387,6 +1836,10 @@ unsafe fn runPendingInitializers() -> i32 {
                 },
             );
 
+            if RtsFlags.DebugFlags.linker {
+                printLoadedObjects();
+            }
+
             fflush(__stderrp);
 
             return r;
@@ -1395,10 +1848,16 @@ unsafe fn runPendingInitializers() -> i32 {
         oc = (*oc).next as *mut ObjectCode;
     }
 
+    refreshProfilingCCSs();
+
     return 1;
 }
 
 unsafe fn resolveObjs_() -> HsInt {
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"resolveObjs: start\n".as_ptr());
+    }
+
     let mut oc = objects;
 
     while !oc.is_null() {
@@ -1414,6 +1873,10 @@ unsafe fn resolveObjs_() -> HsInt {
                 },
             );
 
+            if RtsFlags.DebugFlags.linker {
+                printLoadedObjects();
+            }
+
             fflush(__stderrp);
 
             return r as HsInt;
@@ -1426,6 +1889,10 @@ unsafe fn resolveObjs_() -> HsInt {
         return 0;
     }
 
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"resolveObjs: done\n".as_ptr());
+    }
+
     return 1;
 }
 
@@ -1433,12 +1900,45 @@ unsafe fn resolveObjs_() -> HsInt {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn resolveObjs() -> HsInt {
+    let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1742,
+            __r,
+        );
+    }
+
     let mut r = resolveObjs_();
+
+    if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1744,
+        );
+    }
 
     return r;
 }
 
 unsafe fn unloadObj_(mut path: *mut pathchar, mut just_purge: bool) -> HsInt {
+    if !symhash.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/Linker.c".as_ptr(), 1753);
+    }
+
+    if !objects.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/Linker.c".as_ptr(), 1754);
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"unloadObj: %s\n".as_ptr(), path);
+    }
+
     let mut unloadedAnyObj = false;
     let mut prev = null_mut::<ObjectCode>();
     let mut oc = loaded_objects;
@@ -1479,7 +1979,26 @@ unsafe fn unloadObj_(mut path: *mut pathchar, mut just_purge: bool) -> HsInt {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn unloadObj(mut path: *mut pathchar) -> HsInt {
+    let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1797,
+            __r,
+        );
+    }
+
     let mut r = unloadObj_(path, false);
+
+    if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1799,
+        );
+    }
 
     return r;
 }
@@ -1488,7 +2007,26 @@ pub unsafe extern "C" fn unloadObj(mut path: *mut pathchar) -> HsInt {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn purgeObj(mut path: *mut pathchar) -> HsInt {
+    let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1805,
+            __r,
+        );
+    }
+
     let mut r = unloadObj_(path, true);
+
+    if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1807,
+        );
+    }
 
     return r;
 }
@@ -1521,7 +2059,26 @@ unsafe fn getObjectLoadStatus_(mut path: *mut pathchar) -> OStatus {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getObjectLoadStatus(mut path: *mut pathchar) -> OStatus {
+    let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1831,
+            __r,
+        );
+    }
+
     let mut r = getObjectLoadStatus_(path);
+
+    if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1833,
+        );
+    }
 
     return r;
 }
@@ -1551,6 +2108,16 @@ unsafe fn addSection(
             c"addSection(SectionFormatInfo)".as_ptr(),
         ) as *mut SectionFormatInfo;
     }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"addSection: %p-%p (size %llu), kind %d\n".as_ptr(),
+            start,
+            (start as StgWord).wrapping_add(size) as *mut c_void,
+            size,
+            kind as u32,
+        );
+    }
 }
 
 #[ffi(ghc_lib, testsuite)]
@@ -1560,13 +2127,41 @@ pub unsafe extern "C" fn loadNativeObj(
     mut path: *mut pathchar,
     mut errmsg: *mut *mut c_char,
 ) -> *mut c_void {
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"loadNativeObj: path = '%s'\n".as_ptr(), path);
+    }
+
+    let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1868,
+            __r,
+        );
+    }
+
     let mut r = loadNativeObj_POSIX(path, errmsg);
+
+    if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1889,
+        );
+    }
 
     return r;
 }
 
 unsafe fn unloadNativeObj_(mut handle: *mut c_void) -> HsInt {
     let mut unloadedAnyObj = false;
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"unloadNativeObj: %p\n".as_ptr(), handle);
+    }
+
     let mut prev = null_mut::<ObjectCode>();
     let mut next = null_mut::<ObjectCode>();
     let mut nc = loaded_objects;
@@ -1615,7 +2210,26 @@ unsafe fn unloadNativeObj_(mut handle: *mut c_void) -> HsInt {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn unloadNativeObj(mut handle: *mut c_void) -> HsInt {
+    let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1932,
+            __r,
+        );
+    }
+
     let mut r = unloadNativeObj_(handle);
+
+    if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Linker.c".as_ptr(),
+            1934,
+        );
+    }
 
     return r;
 }
@@ -1642,14 +2256,55 @@ unsafe fn initSegment(
 
 unsafe fn freeSegments(mut oc: *mut ObjectCode) {
     if !(*oc).segments.is_null() {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"%s(%s: freeing %d segments\n".as_ptr(),
+                c"freeSegments".as_ptr(),
+                if !(*oc).archiveMemberName.is_null() {
+                    (*oc).archiveMemberName
+                } else {
+                    (*oc).fileName
+                },
+                (*oc).n_segments,
+            );
+        }
+
         let mut i = 0;
 
         while i < (*oc).n_segments {
             let mut s: *mut Segment = (*oc).segments.offset(i as isize) as *mut Segment;
+
+            if RtsFlags.DebugFlags.linker {
+                debugBelch(
+                    c"%s(%s: freeing segment %d at %p size %zu\n".as_ptr(),
+                    c"freeSegments".as_ptr(),
+                    if !(*oc).archiveMemberName.is_null() {
+                        (*oc).archiveMemberName
+                    } else {
+                        (*oc).fileName
+                    },
+                    i,
+                    (*s).start,
+                    (*s).size,
+                );
+            }
+
             stgFree((*s).sections_idx as *mut c_void);
             (*s).sections_idx = null_mut::<i32>();
 
-            if !(0 == (*s).size) {
+            if 0 == (*s).size {
+                if RtsFlags.DebugFlags.linker {
+                    debugBelch(
+                        c"%s(%s: skipping segment of 0 size\n".as_ptr(),
+                        c"freeSegments".as_ptr(),
+                        if !(*oc).archiveMemberName.is_null() {
+                            (*oc).archiveMemberName
+                        } else {
+                            (*oc).fileName
+                        },
+                    );
+                }
+            } else {
                 munmapForLinker((*s).start, (*s).size, c"freeSegments".as_ptr());
                 (*s).start = NULL;
             }

@@ -1,23 +1,38 @@
 use crate::capability::recordClosureMutated;
-use crate::ffi::rts::constants::{TSO_SQUEEZED, ThreadKilled};
+use crate::ffi::rts::_assertFail;
+use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE, TSO_SQUEEZED, ThreadKilled};
 use crate::ffi::rts::flags::RtsFlags;
+use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
+use crate::ffi::rts::prof::ccs::era;
 use crate::ffi::rts::storage::closure_macros::{
-    SET_INFO, SET_INFO_RELEASE, UNTAG_CONST_CLOSURE, get_itbl, get_ret_itbl, stack_frame_sizeW,
+    INFO_PTR_TO_STRUCT, SET_INFO, SET_INFO_RELEASE, THUNK_INFO_PTR_TO_STRUCT, UNTAG_CONST_CLOSURE,
+    closure_sizeW_, doingLDVProfiling, get_itbl, get_ret_itbl, overwritingClosureSize,
+    stack_frame_sizeW,
 };
-use crate::ffi::rts::storage::closures::{StgInd, StgUpdateFrame};
-use crate::ffi::rts::storage::info_tables::{_IND, closure_flags};
+use crate::ffi::rts::storage::closures::{StgInd, StgThunk, StgUpdateFrame};
+use crate::ffi::rts::storage::info_tables::{_IND, _THU, closure_flags};
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
 use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::misc_closures::{
-    stg_BLACKHOLE_info, stg_WHITEHOLE_info, stg_bh_upd_frame_info, stg_enter_info,
-    stg_marked_upd_frame_info,
+    __stg_EAGER_BLACKHOLE_info, stg_BLACKHOLE_info, stg_CAF_BLACKHOLE_info, stg_TSO_info,
+    stg_WHITEHOLE_info, stg_bh_upd_frame_info, stg_enter_info, stg_marked_upd_frame_info,
 };
-use crate::ffi::stg::types::{StgPtr, StgWord, StgWord8, StgWord16, StgWord32};
+use crate::ffi::stg::smp::{busy_wait_nop, cas};
+use crate::ffi::stg::types::StgWord64;
+use crate::ffi::stg::types::{
+    StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
+};
 use crate::ffi::stg::{P_, W_};
 use crate::prelude::*;
 use crate::raise_async::{maybePerformBlockedException, suspendComputation};
+use crate::sm::non_moving_mark::{updateRemembSetPushClosure, updateRemembSetPushThunkEager};
+use crate::thread_paused::whitehole_threadPaused_spin;
 use crate::threads::updateThunk;
 use crate::trace::{DEBUG_RTS, trace_};
+
+extern "C" {
+    pub(crate) static mut whitehole_threadPaused_spin: StgWord64;
+}
 
 /// cbindgen:no-export
 struct stack_gap {
@@ -73,6 +88,12 @@ unsafe fn stackSqueeze(mut cap: *mut Capability, mut tso: *mut StgTSO, mut botto
     let mut adjacent_update_frames: u32 = 0;
     let mut gap = null_mut::<stack_gap>();
     frame = (*(*tso).stackobj).sp;
+
+    if (frame < bottom) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/ThreadPaused.c".as_ptr(), 96);
+    }
+
     adjacent_update_frames = 0;
     gap = frame.offset(
         -((size_of::<StgUpdateFrame>() as usize)
@@ -182,12 +203,12 @@ unsafe fn threadPaused(mut cap: *mut Capability, mut tso: *mut StgTSO) {
         .offset((*(*tso).stackobj).stack_size as isize) as StgPtr;
     frame = (*(*tso).stackobj).sp as *mut StgClosure;
 
-    while (frame as P_) < stack_end {
+    's_44: while (frame as P_) < stack_end {
         info = get_ret_itbl(frame);
 
         match (*info).i.r#type {
             33 => {
-                frame_info = (*frame).header.info;
+                frame_info = (&raw mut (*frame).header.info).load(Ordering::Acquire);
 
                 if frame_info
                     == &raw const stg_marked_upd_frame_info as *mut StgInfoTable
@@ -214,59 +235,137 @@ unsafe fn threadPaused(mut cap: *mut Capability, mut tso: *mut StgTSO) {
                     );
 
                     bh = (*(frame as *mut StgUpdateFrame)).updatee;
-                    bh_info = (*bh).header.info;
+                    bh_info = (&raw mut (*bh).header.info).load(Ordering::Acquire);
 
-                    if bh_info == &raw const stg_BLACKHOLE_info
-                        && (*(bh as *mut StgInd)).indirectee != tso as *mut StgClosure
-                        || bh_info == &raw const stg_WHITEHOLE_info
-                    {
-                        if DEBUG_RTS != 0 && RtsFlags.DebugFlags.squeeze as i64 != 0 {
-                            trace_(
-                                c"suspending duplicate work: %ld words of stack".as_ptr(),
-                                (frame as StgPtr).offset_from((*(*tso).stackobj).sp) as i64,
-                            );
-                        }
-
-                        suspendComputation(cap, tso, frame as *mut StgUpdateFrame);
-                        (*(*tso).stackobj).sp = (frame as StgPtr)
-                            .offset(
-                                (size_of::<StgUpdateFrame>() as usize)
-                                    .wrapping_add(size_of::<W_>() as usize)
-                                    .wrapping_sub(1 as usize)
-                                    .wrapping_div(size_of::<W_>() as usize)
-                                    as isize,
-                            )
-                            .offset(-2);
-                        *(*(*tso).stackobj).sp.offset(1) = bh as StgWord;
-                        *(*(*tso).stackobj).sp.offset(0) =
-                            &raw const stg_enter_info as W_ as StgWord;
-                        frame = (*(*tso).stackobj).sp.offset(2) as *mut StgClosure;
-                        prev_was_update_frame = false;
-                    } else {
-                        if !(frame_info == &raw const stg_bh_upd_frame_info) {
-                            let ref mut fresh5 = (*(bh as *mut StgInd)).indirectee;
-                            *fresh5 = tso as *mut StgClosure;
-                            SET_INFO_RELEASE(bh, &raw const stg_BLACKHOLE_info);
-                        }
-
-                        recordClosureMutated(cap, bh);
-                        frame = (frame as *mut StgUpdateFrame).offset(1) as *mut StgClosure;
-
-                        if prev_was_update_frame {
-                            words_to_squeeze = (words_to_squeeze as u64).wrapping_add(
-                                (size_of::<StgUpdateFrame>() as usize)
-                                    .wrapping_add(size_of::<W_>() as usize)
-                                    .wrapping_sub(1 as usize)
-                                    .wrapping_div(size_of::<W_>() as usize)
-                                    as u64,
-                            ) as u32 as u32;
-
-                            weight = weight.wrapping_add(weight_pending);
-                            weight_pending = 0;
-                        }
-
-                        prev_was_update_frame = true;
+                    if nonmoving_write_barrier_enabled as i64 != 0 {
+                        updateRemembSetPushClosure(cap, bh);
                     }
+
+                    loop {
+                        if bh_info == &raw const stg_BLACKHOLE_info
+                            && (&raw mut (*(bh as *mut StgInd)).indirectee).load(Ordering::Relaxed)
+                                != tso as *mut StgClosure
+                            || bh_info == &raw const stg_WHITEHOLE_info
+                        {
+                            if DEBUG_RTS != 0 && RtsFlags.DebugFlags.squeeze as i64 != 0 {
+                                trace_(
+                                    c"suspending duplicate work: %ld words of stack".as_ptr(),
+                                    (frame as StgPtr).offset_from((*(*tso).stackobj).sp) as i64,
+                                );
+                            }
+
+                            suspendComputation(cap, tso, frame as *mut StgUpdateFrame);
+                            (*(*tso).stackobj).sp = (frame as StgPtr)
+                                .offset(
+                                    (size_of::<StgUpdateFrame>() as usize)
+                                        .wrapping_add(size_of::<W_>() as usize)
+                                        .wrapping_sub(1 as usize)
+                                        .wrapping_div(size_of::<W_>() as usize)
+                                        as isize,
+                                )
+                                .offset(-2);
+                            *(*(*tso).stackobj).sp.offset(1) = bh as StgWord;
+
+                            if ((&raw mut (*bh).header.info).load(Ordering::Relaxed)
+                                != &raw const stg_TSO_info) as i32
+                                as i64
+                                != 0
+                            {
+                            } else {
+                                _assertFail(c"rts/ThreadPaused.c".as_ptr(), 308);
+                            }
+
+                            *(*(*tso).stackobj).sp.offset(0) =
+                                &raw const stg_enter_info as W_ as StgWord;
+                            frame = (*(*tso).stackobj).sp.offset(2) as *mut StgClosure;
+                            prev_was_update_frame = false;
+                            continue 's_44;
+                        } else if frame_info == &raw const stg_bh_upd_frame_info {
+                            if (bh_info == &raw const stg_BLACKHOLE_info
+                                || bh_info == &raw const __stg_EAGER_BLACKHOLE_info
+                                || bh_info == &raw const stg_CAF_BLACKHOLE_info)
+                                as i32 as i64
+                                != 0
+                            {
+                            } else {
+                                _assertFail(c"rts/ThreadPaused.c".as_ptr(), 328);
+                            }
+
+                            break;
+                        } else {
+                            cur_bh_info = cas(
+                                &raw mut (*bh).header.info as StgVolatilePtr,
+                                bh_info as StgWord,
+                                &raw const stg_WHITEHOLE_info as StgWord,
+                            ) as *const StgInfoTable;
+
+                            if cur_bh_info != bh_info {
+                                bh_info = cur_bh_info;
+                                (&raw mut whitehole_threadPaused_spin).store(
+                                    (&raw mut whitehole_threadPaused_spin)
+                                        .load(Ordering::Relaxed)
+                                        .wrapping_add(1 as StgWord64),
+                                    Ordering::Relaxed,
+                                );
+
+                                busy_wait_nop();
+                            } else {
+                                if (bh_info != &raw const stg_WHITEHOLE_info) as i32 as i64 != 0 {
+                                } else {
+                                    _assertFail(c"rts/ThreadPaused.c".as_ptr(), 350);
+                                }
+
+                                if nonmoving_write_barrier_enabled as i64 != 0 {
+                                    if *(&raw const closure_flags as *const StgWord16)
+                                        .offset((*INFO_PTR_TO_STRUCT(bh_info)).r#type as isize)
+                                        as i32
+                                        & _THU
+                                        != 0
+                                    {
+                                        updateRemembSetPushThunkEager(
+                                            cap,
+                                            THUNK_INFO_PTR_TO_STRUCT(bh_info),
+                                            bh as *mut StgThunk,
+                                        );
+                                    }
+                                }
+
+                                overwritingClosureSize(
+                                    bh,
+                                    closure_sizeW_(bh, INFO_PTR_TO_STRUCT(bh_info)),
+                                );
+
+                                (&raw mut (*(bh as *mut StgInd)).indirectee)
+                                    .store(tso as *mut StgClosure, Ordering::Release);
+                                SET_INFO_RELEASE(bh, &raw const stg_BLACKHOLE_info);
+                                break;
+                            }
+                        }
+                    }
+
+                    recordClosureMutated(cap, bh);
+
+                    if doingLDVProfiling() {
+                        (*bh).header.prof.hp.ldvw =
+                            (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+                    }
+
+                    frame = (frame as *mut StgUpdateFrame).offset(1) as *mut StgClosure;
+
+                    if prev_was_update_frame {
+                        words_to_squeeze = (words_to_squeeze as u64).wrapping_add(
+                            (size_of::<StgUpdateFrame>() as usize)
+                                .wrapping_add(size_of::<W_>() as usize)
+                                .wrapping_sub(1 as usize)
+                                .wrapping_div(size_of::<W_>() as usize)
+                                as u64,
+                        ) as u32 as u32;
+
+                        weight = weight.wrapping_add(weight_pending);
+                        weight_pending = 0;
+                    }
+
+                    prev_was_update_frame = true;
                 }
             }
             35 | 36 => {

@@ -2,31 +2,39 @@ use crate::capability::getCapability;
 use crate::ffi::rts::flags::{
     NO_GC_STATS, ONELINE_GC_STATS, RtsFlags, SUMMARY_GC_STATS, VERBOSE_GC_STATS,
 };
-use crate::ffi::rts::messages::{debugBelch, vdebugBelch};
+use crate::ffi::rts::messages::{barf, debugBelch, vdebugBelch};
+use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::storage::block::{
     BLOCK_SIZE, BLOCK_SIZE_W, BLOCKS_PER_MBLOCK, MBLOCK_SIZE, bdescr,
 };
 use crate::ffi::rts::storage::gc::{generation, generations};
+use crate::ffi::rts::storage::heap_alloc::gc_alloc_block_sync;
 use crate::ffi::rts::storage::m_block::{mblocks_allocated, peak_mblocks_allocated};
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::time::Time;
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time, getProcessElapsedTime};
+use crate::ffi::rts::{_assertFail, _warnFail};
 use crate::ffi::rts_api::{_RTSStats, Capability, GCDetails_, RTSStats};
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgWord, StgWord64};
+use crate::ffi::stg::types::{StgInt, StgWord, StgWord64};
 use crate::get_time::{getCurrentThreadCPUTime, getPageFaults, getProcessTimes};
 use crate::prelude::*;
+use crate::profiling::prof_file;
 use crate::rts_flags::rtsConfig;
 use crate::rts_utils::{showStgWord64, stgFree, stgMallocBytes};
 use crate::sm::block_alloc::{hw_alloc_blocks, n_alloc_blocks};
+use crate::sm::gc::{waitForGcThreads_spin, waitForGcThreads_yield, whitehole_gc_spin};
 use crate::sm::gc_thread::gc_thread;
 use crate::sm::storage::{
     calcTotalAllocated, calcTotalCompactW, calcTotalLargeObjectsW, countOccupied,
     gcThreadLiveBlocks, gcThreadLiveWords, genLiveBlocks, genLiveWords, updateNurseriesStats,
 };
+use crate::sparks::SparkCounters;
+use crate::sparks::SparkCounters;
 use crate::stats::{
     GenerationSummaryStats, GenerationSummaryStats_, RTSSummaryStats, RTSSummaryStats_,
 };
+use crate::task::{all_tasks_mutex, peakWorkerCount, taskCount, workerCount};
 use crate::trace::{
     CAPSET_HEAP_DEFAULT, traceConcSyncBegin, traceConcSyncEnd, traceEventBlocksSize,
     traceEventGcEndAtT, traceEventGcGlobalSync, traceEventGcStartAtT, traceEventGcStats,
@@ -46,8 +54,10 @@ pub(crate) struct RTSSummaryStats_ {
     pub(crate) hc_elapsed_ns: Time,
     pub(crate) exit_cpu_ns: Time,
     pub(crate) exit_elapsed_ns: Time,
-    pub(crate) gc_cpu_percent: f64,
-    pub(crate) gc_elapsed_percent: f64,
+    pub(crate) bound_task_count: u32,
+    pub(crate) sparks_count: u64,
+    pub(crate) sparks: SparkCounters,
+    pub(crate) work_balance: f64,
     pub(crate) fragmentation_bytes: u64,
     pub(crate) average_bytes_used: u64,
     pub(crate) alloc_rate: u64,
@@ -66,15 +76,30 @@ pub(crate) struct GenerationSummaryStats_ {
     pub(crate) elapsed_ns: Time,
     pub(crate) max_pause_ns: Time,
     pub(crate) avg_pause_ns: Time,
+    pub(crate) sync_spin: u64,
+    pub(crate) sync_yield: u64,
 }
 
-static mut start_exit_cpu: Time = 0;
+static mut stats_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
 
-static mut end_exit_elapsed: Time = 0;
+static mut start_init_elapsed: Time = 0;
+
+static mut start_nonmoving_gc_cpu: Time = 0;
+
+static mut start_init_cpu: Time = 0;
+
+static mut end_init_elapsed: Time = 0;
 
 static mut end_init_cpu: Time = 0;
 
 static mut end_exit_cpu: Time = 0;
+
+static mut end_exit_elapsed: Time = 0;
+
+static mut start_exit_cpu: Time = 0;
 
 static mut start_exit_elapsed: Time = 0;
 
@@ -84,15 +109,31 @@ static mut start_exit_gc_cpu: Time = 0;
 
 static mut start_nonmoving_gc_sync_elapsed: Time = 0;
 
-static mut start_init_elapsed: Time = 0;
-
-static mut end_init_elapsed: Time = 0;
-
 static mut start_nonmoving_gc_elapsed: Time = 0;
 
-static mut start_nonmoving_gc_cpu: Time = 0;
+static mut RP_tot_time: Time = 0;
 
-static mut start_init_cpu: Time = 0;
+static mut RP_start_time: Time = 0;
+
+static mut RPe_start_time: Time = 0;
+
+static mut RPe_tot_time: Time = 0;
+
+static mut HC_start_time: Time = 0;
+
+static mut HC_tot_time: Time = 0;
+
+static mut HCe_tot_time: Time = 0;
+
+static mut HCe_start_time: Time = 0;
+
+static mut whitehole_lockClosure_spin: StgWord64 = 0;
+
+static mut whitehole_lockClosure_yield: StgWord64 = 0;
+
+static mut whitehole_threadPaused_spin: StgWord64 = 0;
+
+static mut whitehole_executeMessage_spin: StgWord64 = 0;
 
 static mut stats: RTSStats = _RTSStats {
     gcs: 0,
@@ -160,7 +201,12 @@ unsafe fn stat_getElapsedTime() -> Time {
     return getProcessElapsedTime() - start_init_elapsed;
 }
 
+unsafe fn mut_user_time_during_RP() -> f64 {
+    return (RP_start_time - stats.gc_cpu_ns - RP_tot_time) as f64 / TIME_RESOLUTION as f64;
+}
+
 unsafe fn initStats0() {
+    initMutex(&raw mut stats_mutex);
     start_init_cpu = 0;
     start_init_elapsed = 0;
     end_init_cpu = 0;
@@ -174,6 +220,14 @@ unsafe fn initStats0() {
     start_exit_gc_elapsed = 0;
     end_exit_cpu = 0;
     end_exit_elapsed = 0;
+    RP_start_time = 0;
+    RP_tot_time = 0;
+    RPe_start_time = 0;
+    RPe_tot_time = 0;
+    HC_start_time = 0;
+    HC_tot_time = 0;
+    HCe_start_time = 0;
+    HCe_tot_time = 0;
     GC_end_faults = 0;
 
     stats = _RTSStats {
@@ -285,13 +339,51 @@ unsafe fn stat_endInit() {
 }
 
 unsafe fn stat_startExit() {
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            271,
+            __r,
+        );
+    }
+
     getProcessTimes(&raw mut start_exit_cpu, &raw mut start_exit_elapsed);
     start_exit_gc_elapsed = stats.gc_elapsed_ns;
     start_exit_gc_cpu = stats.gc_cpu_ns;
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            275,
+        );
+    }
 }
 
 unsafe fn stat_endExit() {
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            286,
+            __r,
+        );
+    }
+
     getProcessTimes(&raw mut end_exit_cpu, &raw mut end_exit_elapsed);
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            288,
+        );
+    }
 }
 
 unsafe fn stat_startGCSync(mut gct: *mut gc_thread) {
@@ -299,13 +391,43 @@ unsafe fn stat_startGCSync(mut gct: *mut gc_thread) {
 }
 
 unsafe fn stat_startNonmovingGc() {
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            300,
+            __r,
+        );
+    }
+
     start_nonmoving_gc_cpu = getCurrentThreadCPUTime();
     start_nonmoving_gc_elapsed = getProcessElapsedTime();
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            303,
+        );
+    }
 }
 
 unsafe fn stat_endNonmovingGc() {
     let mut cpu = getCurrentThreadCPUTime();
     let mut elapsed = getProcessElapsedTime();
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            312,
+            __r,
+        );
+    }
+
     stats.gc.nonmoving_gc_elapsed_ns = elapsed - start_nonmoving_gc_elapsed;
     stats.nonmoving_gc_elapsed_ns += stats.gc.nonmoving_gc_elapsed_ns;
     stats.gc.nonmoving_gc_cpu_ns = cpu - start_nonmoving_gc_cpu;
@@ -317,15 +439,54 @@ unsafe fn stat_endNonmovingGc() {
 
         if _a <= _b { _b } else { _a as Time }
     });
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            322,
+        );
+    }
 }
 
 unsafe fn stat_startNonmovingGcSync() {
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            328,
+            __r,
+        );
+    }
+
     start_nonmoving_gc_sync_elapsed = getProcessElapsedTime();
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            330,
+        );
+    }
+
     traceConcSyncBegin();
 }
 
 unsafe fn stat_endNonmovingGcSync() {
     let mut end_elapsed = getProcessElapsedTime();
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            338,
+            __r,
+        );
+    }
+
     stats.gc.nonmoving_gc_sync_elapsed_ns = end_elapsed - start_nonmoving_gc_sync_elapsed;
     stats.nonmoving_gc_sync_elapsed_ns += stats.gc.nonmoving_gc_sync_elapsed_ns;
 
@@ -337,6 +498,14 @@ unsafe fn stat_endNonmovingGcSync() {
     });
 
     let mut sync_elapsed: Time = stats.gc.nonmoving_gc_sync_elapsed_ns;
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            345,
+        );
+    }
 
     if RtsFlags.GcFlags.giveStats == VERBOSE_GC_STATS as u32 {
         statsPrintf(
@@ -363,6 +532,11 @@ unsafe fn stat_endGCWorker(mut cap: *mut Capability, mut gct: *mut gc_thread) {
 
     if stats_enabled as i32 != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
         (*gct).gc_end_cpu = getCurrentThreadCPUTime();
+
+        if ((*gct).gc_end_cpu >= (*gct).gc_start_cpu) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/Stats.c".as_ptr(), 416);
+        }
     }
 }
 
@@ -407,6 +581,17 @@ unsafe fn stat_endGC(
     mut scav_find_work: W_,
     mut max_n_todo_overflow: W_,
 ) {
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            463,
+            __r,
+        );
+    }
+
     stats.gc.r#gen = r#gen;
     stats.gc.threads = par_n_threads;
 
@@ -445,6 +630,12 @@ unsafe fn stat_endGC(
 
         while (i as u32) < par_n_threads {
             let mut gct = *gc_threads.offset(i as isize);
+
+            if ((*gct).gc_end_cpu >= (*gct).gc_start_cpu) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/Stats.c".as_ptr(), 514);
+            }
+
             stats.gc.cpu_ns += (*gct).gc_end_cpu - (*gct).gc_start_cpu;
             (*gct).gc_end_cpu = 0;
             (*gct).gc_start_cpu = 0;
@@ -576,7 +767,162 @@ unsafe fn stat_endGC(
             n_alloc_blocks.wrapping_mul(BLOCK_SIZE as W_),
         );
     }
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            644,
+        );
+    }
 }
+
+unsafe fn stat_startRP() {
+    let mut user: Time = 0;
+    let mut elapsed: Time = 0;
+    getProcessTimes(&raw mut user, &raw mut elapsed);
+
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            657,
+            __r,
+        );
+    }
+
+    RP_start_time = user;
+    RPe_start_time = elapsed;
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            660,
+        );
+    }
+}
+
+unsafe fn stat_endRP(mut retainerGeneration: u32, mut maxStackSize: i32, mut averageNumVisit: f64) {
+    let mut user: Time = 0;
+    let mut elapsed: Time = 0;
+    getProcessTimes(&raw mut user, &raw mut elapsed);
+
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            678,
+            __r,
+        );
+    }
+
+    RP_tot_time += user - RP_start_time;
+    RPe_tot_time += elapsed - RPe_start_time;
+
+    let mut mut_time_during_RP = mut_user_time_during_RP();
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            682,
+        );
+    }
+
+    fprintf(
+        prof_file,
+        c"Retainer Profiling: %d, at %f seconds\n".as_ptr(),
+        retainerGeneration,
+        mut_time_during_RP,
+    );
+
+    fprintf(
+        prof_file,
+        c"\tMax auxiliary stack size = %u\n".as_ptr(),
+        maxStackSize,
+    );
+
+    fprintf(
+        prof_file,
+        c"\tAverage number of visits per object = %f\n".as_ptr(),
+        averageNumVisit,
+    );
+}
+
+unsafe fn stat_startHeapCensus() {
+    let mut user: Time = 0;
+    let mut elapsed: Time = 0;
+    getProcessTimes(&raw mut user, &raw mut elapsed);
+
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            702,
+            __r,
+        );
+    }
+
+    HC_start_time = user;
+    HCe_start_time = elapsed;
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            705,
+        );
+    }
+}
+
+unsafe fn stat_endHeapCensus() {
+    let mut user: Time = 0;
+    let mut elapsed: Time = 0;
+    getProcessTimes(&raw mut user, &raw mut elapsed);
+
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            719,
+            __r,
+        );
+    }
+
+    HC_tot_time += user - HC_start_time;
+    HCe_tot_time += elapsed - HCe_start_time;
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            722,
+        );
+    }
+}
+
+static mut TAGGED_PTR_1: StgInt = 0;
+
+static mut RIGHT_ARITY_1: StgInt = 1;
+
+static mut SLOW_CALLS_1: StgInt = 1;
+
+static mut TAGGED_PTR_2: StgInt = 0;
+
+static mut RIGHT_ARITY_2: StgInt = 1;
+
+static mut SLOW_CALLS_2: StgInt = 1;
+
+static mut TOTAL_CALLS: StgInt = 1;
 
 unsafe fn init_RTSSummaryStats(mut sum: *mut RTSSummaryStats) {
     let sizeof_gc_summary_stats: usize = (RtsFlags.GcFlags.generations as usize)
@@ -712,6 +1058,33 @@ unsafe fn report_summary(mut sum: *const RTSSummaryStats) {
 
     statsPrintf(c"\n".as_ptr());
 
+    if RtsFlags.ParFlags.parGcEnabled as i32 != 0 && (*sum).work_balance > 0 {
+        statsPrintf(
+            c"  Parallel GC work balance: %.2f%% (serial 0%%, perfect 100%%)\n\n".as_ptr(),
+            (*sum).work_balance * 100,
+        );
+    }
+
+    statsPrintf(
+        c"  TASKS: %d (%d bound, %d peak workers (%d total), using -N%d)\n\n".as_ptr(),
+        taskCount,
+        (*sum).bound_task_count,
+        peakWorkerCount,
+        workerCount,
+        getNumCapabilities(),
+    );
+
+    statsPrintf(
+        c"  SPARKS: %llu (%llu converted, %llu overflowed, %llu dud, %llu GC'd, %llu fizzled)\n\n"
+            .as_ptr(),
+        (*sum).sparks_count,
+        (*sum).sparks.converted,
+        (*sum).sparks.overflowed,
+        (*sum).sparks.dud,
+        (*sum).sparks.gcd,
+        (*sum).sparks.fizzled,
+    );
+
     statsPrintf(
         c"  INIT    time  %7.3fs  (%7.3fs elapsed)\n".as_ptr(),
         stats.init_cpu_ns as f64 / TIME_RESOLUTION as f64,
@@ -739,6 +1112,18 @@ unsafe fn report_summary(mut sum: *const RTSSummaryStats) {
     }
 
     statsPrintf(
+        c"  RP      time  %7.3fs  (%7.3fs elapsed)\n".as_ptr(),
+        (*sum).rp_cpu_ns as f64 / TIME_RESOLUTION as f64,
+        (*sum).rp_elapsed_ns as f64 / TIME_RESOLUTION as f64,
+    );
+
+    statsPrintf(
+        c"  PROF    time  %7.3fs  (%7.3fs elapsed)\n".as_ptr(),
+        (*sum).hc_cpu_ns as f64 / TIME_RESOLUTION as f64,
+        (*sum).hc_elapsed_ns as f64 / TIME_RESOLUTION as f64,
+    );
+
+    statsPrintf(
         c"  EXIT    time  %7.3fs  (%7.3fs elapsed)\n".as_ptr(),
         (*sum).exit_cpu_ns as f64 / TIME_RESOLUTION as f64,
         (*sum).exit_elapsed_ns as f64 / TIME_RESOLUTION as f64,
@@ -748,12 +1133,6 @@ unsafe fn report_summary(mut sum: *const RTSSummaryStats) {
         c"  Total   time  %7.3fs  (%7.3fs elapsed)\n\n".as_ptr(),
         stats.cpu_ns as f64 / TIME_RESOLUTION as f64,
         stats.elapsed_ns as f64 / TIME_RESOLUTION as f64,
-    );
-
-    statsPrintf(
-        c"  %%GC     time     %5.1f%%  (%.1f%% elapsed)\n\n".as_ptr(),
-        (*sum).gc_cpu_percent * 100,
-        (*sum).gc_elapsed_percent * 100,
     );
 
     showStgWord64(
@@ -774,7 +1153,158 @@ unsafe fn report_summary(mut sum: *const RTSSummaryStats) {
     );
 
     if RtsFlags.MiscFlags.internalCounters {
-        statsPrintf(c"Internal Counters require the threaded RTS".as_ptr());
+        let col_width: [i32; 4] = [4, -30, 14, 14];
+        statsPrintf(c"Internal Counters:\n".as_ptr());
+
+        statsPrintf(
+            c"%*s%*s%*s%*s\n".as_ptr(),
+            col_width[0],
+            c"".as_ptr(),
+            col_width[1],
+            c"SpinLock".as_ptr(),
+            col_width[2],
+            c"Spins".as_ptr(),
+            col_width[3],
+            c"Yields".as_ptr(),
+        );
+
+        statsPrintf(
+            c"%*s%*s%*llu%*llu\n".as_ptr(),
+            col_width[0],
+            c"".as_ptr(),
+            col_width[1],
+            c"gc_alloc_block_sync".as_ptr(),
+            col_width[2],
+            gc_alloc_block_sync.spin,
+            col_width[3],
+            gc_alloc_block_sync.r#yield,
+        );
+
+        statsPrintf(
+            c"%*s%*s%*llu%*s\n".as_ptr(),
+            col_width[0],
+            c"".as_ptr(),
+            col_width[1],
+            c"whitehole_gc".as_ptr(),
+            col_width[2],
+            whitehole_gc_spin,
+            col_width[3],
+            c"n/a".as_ptr(),
+        );
+
+        statsPrintf(
+            c"%*s%*s%*llu%*s\n".as_ptr(),
+            col_width[0],
+            c"".as_ptr(),
+            col_width[1],
+            c"whitehole_threadPaused".as_ptr(),
+            col_width[2],
+            whitehole_threadPaused_spin,
+            col_width[3],
+            c"n/a".as_ptr(),
+        );
+
+        statsPrintf(
+            c"%*s%*s%*llu%*s\n".as_ptr(),
+            col_width[0],
+            c"".as_ptr(),
+            col_width[1],
+            c"whitehole_executeMessage".as_ptr(),
+            col_width[2],
+            whitehole_executeMessage_spin,
+            col_width[3],
+            c"n/a".as_ptr(),
+        );
+
+        statsPrintf(
+            c"%*s%*s%*llu%*llu\n".as_ptr(),
+            col_width[0],
+            c"".as_ptr(),
+            col_width[1],
+            c"whitehole_lockClosure".as_ptr(),
+            col_width[2],
+            whitehole_lockClosure_spin,
+            col_width[3],
+            whitehole_lockClosure_yield,
+        );
+
+        statsPrintf(
+            c"%*s%*s%*llu%*llu\n".as_ptr(),
+            col_width[0],
+            c"".as_ptr(),
+            col_width[1],
+            c"waitForGcThreads".as_ptr(),
+            col_width[2],
+            waitForGcThreads_spin,
+            col_width[3],
+            waitForGcThreads_yield,
+        );
+
+        g = 0;
+
+        while g < RtsFlags.GcFlags.generations {
+            let mut prefix_length = 0;
+
+            prefix_length = statsPrintf(c"%*sgen[%u".as_ptr(), col_width[0], c"".as_ptr(), g);
+
+            if prefix_length < 0 {
+                prefix_length = 0;
+            }
+
+            prefix_length -= col_width[0] as i32;
+
+            let mut suffix_length = col_width[1] + prefix_length;
+
+            suffix_length = (if suffix_length > 0 {
+                col_width[1]
+            } else {
+                suffix_length as i32
+            }) as i32;
+
+            statsPrintf(
+                c"%*s%*llu%*llu\n".as_ptr(),
+                suffix_length,
+                c"].sync".as_ptr(),
+                col_width[2],
+                (*generations.offset(g as isize)).sync.spin,
+                col_width[3],
+                (*generations.offset(g as isize)).sync.r#yield,
+            );
+
+            g = g.wrapping_add(1);
+        }
+
+        statsPrintf(c"\n".as_ptr());
+
+        statsPrintf(
+            c"%*s%*s%*llu\n".as_ptr(),
+            col_width[0],
+            c"".as_ptr(),
+            col_width[1],
+            c"any_work".as_ptr(),
+            col_width[2],
+            stats.any_work,
+        );
+
+        statsPrintf(
+            c"%*s%*s%*llu\n".as_ptr(),
+            col_width[0],
+            c"".as_ptr(),
+            col_width[1],
+            c"scav_find_work".as_ptr(),
+            col_width[2],
+            stats.scav_find_work,
+        );
+
+        statsPrintf(
+            c"%*s%*s%*llu\n".as_ptr(),
+            col_width[0],
+            c"".as_ptr(),
+            col_width[1],
+            c"max_n_todo_overflow".as_ptr(),
+            col_width[2],
+            stats.max_n_todo_overflow,
+        );
     }
 }
 
@@ -851,6 +1381,26 @@ unsafe fn report_machine_readable(mut sum: *const RTSSummaryStats) {
     );
 
     statsPrintf(
+        c" ,(\"rp_cpu_seconds\", \"%f\")\n".as_ptr(),
+        (*sum).rp_cpu_ns as f64 / 1000000000,
+    );
+
+    statsPrintf(
+        c" ,(\"rp_wall_seconds\", \"%f\")\n".as_ptr(),
+        (*sum).rp_elapsed_ns as f64 / 1000000000,
+    );
+
+    statsPrintf(
+        c" ,(\"hc_cpu_seconds\", \"%f\")\n".as_ptr(),
+        (*sum).hc_cpu_ns as f64 / 1000000000,
+    );
+
+    statsPrintf(
+        c" ,(\"hc_wall_seconds\", \"%f\")\n".as_ptr(),
+        (*sum).hc_elapsed_ns as f64 / 1000000000,
+    );
+
+    statsPrintf(
         c" ,(\"total_cpu_seconds\", \"%f\")\n".as_ptr(),
         stats.cpu_ns as f64 / 1000000000,
     );
@@ -916,15 +1466,6 @@ unsafe fn report_machine_readable(mut sum: *const RTSSummaryStats) {
     );
 
     statsPrintf(
-        c" ,(\"gc_cpu_percent\", \"%f\")\n".as_ptr(),
-        (*sum).gc_cpu_percent,
-    );
-    statsPrintf(
-        c" ,(\"gc_wall_percent\", \"%f\")\n".as_ptr(),
-        (*sum).gc_cpu_percent,
-    );
-
-    statsPrintf(
         c" ,(\"fragmentation_bytes\", \"%llu\")\n".as_ptr(),
         (*sum).fragmentation_bytes,
     );
@@ -942,6 +1483,113 @@ unsafe fn report_machine_readable(mut sum: *const RTSSummaryStats) {
     statsPrintf(
         c" ,(\"productivity_wall_percent\", \"%f\")\n".as_ptr(),
         (*sum).productivity_elapsed_percent,
+    );
+
+    statsPrintf(
+        c" ,(\"bound_task_count\", \"%u\")\n".as_ptr(),
+        (*sum).bound_task_count,
+    );
+    statsPrintf(
+        c" ,(\"sparks_count\", \"%llu\")\n".as_ptr(),
+        (*sum).sparks_count,
+    );
+
+    statsPrintf(
+        c" ,(\"sparks_converted\", \"%llu\")\n".as_ptr(),
+        (*sum).sparks.converted,
+    );
+
+    statsPrintf(
+        c" ,(\"sparks_overflowed\", \"%llu\")\n".as_ptr(),
+        (*sum).sparks.overflowed,
+    );
+
+    statsPrintf(
+        c" ,(\"sparks_dud \", \"%llu\")\n".as_ptr(),
+        (*sum).sparks.dud,
+    );
+    statsPrintf(
+        c" ,(\"sparks_gcd\", \"%llu\")\n".as_ptr(),
+        (*sum).sparks.gcd,
+    );
+    statsPrintf(
+        c" ,(\"sparks_fizzled\", \"%llu\")\n".as_ptr(),
+        (*sum).sparks.fizzled,
+    );
+    statsPrintf(
+        c" ,(\"work_balance\", \"%f\")\n".as_ptr(),
+        (*sum).work_balance,
+    );
+    statsPrintf(
+        c" ,(\"n_capabilities\", \"%u\")\n".as_ptr(),
+        getNumCapabilities(),
+    );
+    statsPrintf(c" ,(\"task_count\", \"%u\")\n".as_ptr(), taskCount);
+    statsPrintf(
+        c" ,(\"peak_worker_count\", \"%u\")\n".as_ptr(),
+        peakWorkerCount,
+    );
+    statsPrintf(c" ,(\"worker_count\", \"%u\")\n".as_ptr(), workerCount);
+
+    statsPrintf(
+        c" ,(\"gc_alloc_block_sync_spin\", \"%llu\")\n".as_ptr(),
+        gc_alloc_block_sync.spin,
+    );
+
+    statsPrintf(
+        c" ,(\"gc_alloc_block_sync_yield\", \"%llu\")\n".as_ptr(),
+        gc_alloc_block_sync.r#yield,
+    );
+
+    statsPrintf(
+        c" ,(\"gc_alloc_block_sync_spin\", \"%llu\")\n".as_ptr(),
+        gc_alloc_block_sync.spin,
+    );
+
+    statsPrintf(
+        c" ,(\"waitForGcThreads_spin\", \"%llu\")\n".as_ptr(),
+        waitForGcThreads_spin,
+    );
+
+    statsPrintf(
+        c" ,(\"waitForGcThreads_yield\", \"%llu\")\n".as_ptr(),
+        waitForGcThreads_yield,
+    );
+
+    statsPrintf(
+        c" ,(\"whitehole_gc_spin\", \"%llu\")\n".as_ptr(),
+        whitehole_gc_spin,
+    );
+
+    statsPrintf(
+        c" ,(\"whitehole_lockClosure_spin\", \"%llu\")\n".as_ptr(),
+        whitehole_lockClosure_spin,
+    );
+
+    statsPrintf(
+        c" ,(\"whitehole_lockClosure_yield\", \"%llu\")\n".as_ptr(),
+        whitehole_lockClosure_yield,
+    );
+
+    statsPrintf(
+        c" ,(\"whitehole_executeMessage_spin\", \"%llu\")\n".as_ptr(),
+        whitehole_executeMessage_spin,
+    );
+
+    statsPrintf(
+        c" ,(\"whitehole_threadPaused_spin\", \"%llu\")\n".as_ptr(),
+        whitehole_threadPaused_spin,
+    );
+
+    statsPrintf(c" ,(\"any_work\", \"%llu\")\n".as_ptr(), stats.any_work);
+    statsPrintf(
+        c" ,(\"scav_find_work\", \"%llu\")\n".as_ptr(),
+        stats.scav_find_work,
+    );
+
+    statsPrintf(
+        c" ,(\"max_n_todo_overflow\", \"%llu\")\n".as_ptr(),
+        stats.max_n_todo_overflow,
     );
 
     g = 0;
@@ -984,6 +1632,18 @@ unsafe fn report_machine_readable(mut sum: *const RTSSummaryStats) {
             c" ,(\"gen_%u_avg_pause_seconds\", \"%f\")\n".as_ptr(),
             g,
             (*gc_sum).avg_pause_ns as f64 / 1000000000,
+        );
+
+        statsPrintf(
+            c" ,(\"gen_%u_sync_spin\", \"%llu\")\n".as_ptr(),
+            g,
+            (*gc_sum).sync_spin,
+        );
+
+        statsPrintf(
+            c" ,(\"gen_%u_sync_yield\", \"%llu\")\n".as_ptr(),
+            g,
+            (*gc_sum).sync_yield,
         );
 
         g = g.wrapping_add(1);
@@ -1061,8 +1721,17 @@ unsafe fn stat_exitReport() {
         hc_elapsed_ns: 0,
         exit_cpu_ns: 0,
         exit_elapsed_ns: 0,
-        gc_cpu_percent: 0.,
-        gc_elapsed_percent: 0.,
+        bound_task_count: 0,
+        sparks_count: 0,
+        sparks: SparkCounters {
+            created: 0,
+            dud: 0,
+            overflowed: 0,
+            converted: 0,
+            gcd: 0,
+            fizzled: 0,
+        },
+        work_balance: 0.,
         fragmentation_bytes: 0,
         average_bytes_used: 0,
         alloc_rate: 0,
@@ -1073,10 +1742,33 @@ unsafe fn stat_exitReport() {
 
     init_RTSSummaryStats(&raw mut sum);
 
+    let mut __r = pthread_mutex_lock(&raw mut all_tasks_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            1249,
+            __r,
+        );
+    }
+
     if RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32 {
         let mut now_cpu_ns: Time = 0;
         let mut now_elapsed_ns: Time = 0;
         getProcessTimes(&raw mut now_cpu_ns, &raw mut now_elapsed_ns);
+
+        let mut __r_0 = pthread_mutex_lock(&raw mut stats_mutex);
+
+        if __r_0 != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/Stats.c".as_ptr(),
+                1259,
+                __r_0,
+            );
+        }
+
         stats.cpu_ns = now_cpu_ns - start_init_cpu;
         stats.elapsed_ns = now_elapsed_ns - start_init_elapsed;
 
@@ -1088,10 +1780,25 @@ unsafe fn stat_exitReport() {
             stats.elapsed_ns = 1;
         }
 
+        sum.rp_cpu_ns = RP_tot_time;
+        sum.rp_elapsed_ns = RPe_tot_time;
+        sum.hc_cpu_ns = HC_tot_time;
+        sum.hc_elapsed_ns = HCe_tot_time;
+
         let mut exit_gc_cpu: Time = stats.gc_cpu_ns - start_exit_gc_cpu;
         let mut exit_gc_elapsed: Time = stats.gc_elapsed_ns - start_exit_gc_elapsed;
+
+        if !((exit_gc_elapsed > 0) as i32 as i64 != 0) {
+            _warnFail(c"rts/Stats.c".as_ptr(), 1281);
+        }
+
         sum.exit_cpu_ns = end_exit_cpu - start_exit_cpu - exit_gc_cpu;
         sum.exit_elapsed_ns = end_exit_elapsed - start_exit_elapsed - exit_gc_elapsed;
+
+        if !((sum.exit_elapsed_ns >= 0) as i32 as i64 != 0) {
+            _warnFail(c"rts/Stats.c".as_ptr(), 1290);
+        }
+
         stats.mutator_cpu_ns = start_exit_cpu
             - end_init_cpu
             - (stats.gc_cpu_ns - exit_gc_cpu)
@@ -1099,14 +1806,39 @@ unsafe fn stat_exitReport() {
         stats.mutator_elapsed_ns =
             start_exit_elapsed - end_init_elapsed - (stats.gc_elapsed_ns - exit_gc_elapsed);
 
+        if !((stats.mutator_elapsed_ns >= 0) as i32 as i64 != 0) {
+            _warnFail(c"rts/Stats.c".as_ptr(), 1300);
+        }
+
         if stats.mutator_cpu_ns < 0 {
             stats.mutator_cpu_ns = 0;
+        }
+
+        if !((stats.init_elapsed_ns
+            + stats.mutator_elapsed_ns
+            + stats.gc_elapsed_ns
+            + sum.exit_elapsed_ns
+            == end_exit_elapsed - start_init_elapsed) as i32 as i64
+            != 0)
+        {
+            _warnFail(c"rts/Stats.c".as_ptr(), 1312);
         }
 
         let mut prof_cpu: Time = sum.rp_cpu_ns + sum.hc_cpu_ns;
         let mut prof_elapsed: Time = sum.rp_elapsed_ns + sum.hc_elapsed_ns;
         stats.gc_cpu_ns -= prof_cpu;
         stats.gc_elapsed_ns -= prof_elapsed;
+
+        if !((stats.init_elapsed_ns
+            + stats.mutator_elapsed_ns
+            + stats.gc_elapsed_ns
+            + sum.exit_elapsed_ns
+            + (sum.rp_elapsed_ns + sum.hc_elapsed_ns)
+            == end_exit_elapsed - start_init_elapsed) as i32 as i64
+            != 0)
+        {
+            _warnFail(c"rts/Stats.c".as_ptr(), 1330);
+        }
 
         let mut tot_alloc_bytes: u64 = calcTotalAllocated().wrapping_mul(size_of::<W_>() as u64);
         stats.gc.allocated_bytes = tot_alloc_bytes.wrapping_sub(stats.allocated_bytes);
@@ -1123,8 +1855,51 @@ unsafe fn stat_exitReport() {
             statsPrintf(c" %6.3f %6.3f\n\n".as_ptr(), 0.0f64, 0.0f64);
         }
 
-        sum.gc_cpu_percent = (stats.gc_cpu_ns / stats.cpu_ns) as f64;
-        sum.gc_elapsed_percent = (stats.gc_elapsed_ns / stats.elapsed_ns) as f64;
+        sum.bound_task_count = taskCount.wrapping_sub(workerCount);
+
+        let mut i: u32 = 0;
+
+        while i < getNumCapabilities() as u32 {
+            sum.sparks.created = sum
+                .sparks
+                .created
+                .wrapping_add((*getCapability(i)).spark_stats.created);
+            sum.sparks.dud = sum
+                .sparks
+                .dud
+                .wrapping_add((*getCapability(i)).spark_stats.dud);
+            sum.sparks.overflowed = sum
+                .sparks
+                .overflowed
+                .wrapping_add((*getCapability(i)).spark_stats.overflowed);
+            sum.sparks.converted = sum
+                .sparks
+                .converted
+                .wrapping_add((*getCapability(i)).spark_stats.converted);
+            sum.sparks.gcd = sum
+                .sparks
+                .gcd
+                .wrapping_add((*getCapability(i)).spark_stats.gcd);
+            sum.sparks.fizzled = sum
+                .sparks
+                .fizzled
+                .wrapping_add((*getCapability(i)).spark_stats.fizzled);
+            i = i.wrapping_add(1);
+        }
+
+        sum.sparks_count = sum
+            .sparks
+            .created
+            .wrapping_add(sum.sparks.dud)
+            .wrapping_add(sum.sparks.overflowed) as u64;
+
+        if RtsFlags.ParFlags.parGcEnabled as i32 != 0 && stats.par_copied_bytes > 0 {
+            sum.work_balance =
+                stats.cumulative_par_balanced_copied_bytes as f64 / stats.par_copied_bytes as f64;
+        } else {
+            sum.work_balance = 0;
+        }
+
         sum.fragmentation_bytes = peak_mblocks_allocated
             .wrapping_mul(BLOCKS_PER_MBLOCK)
             .wrapping_mul(BLOCK_SIZE_W as W_)
@@ -1150,11 +1925,19 @@ unsafe fn stat_exitReport() {
             (stats.cpu_ns - stats.gc_cpu_ns - stats.init_cpu_ns - sum.exit_cpu_ns) as f64
                 / TIME_RESOLUTION as f64
                 / (stats.cpu_ns as f64 / TIME_RESOLUTION as f64);
+        if !((sum.productivity_cpu_percent >= 0) as i32 as i64 != 0) {
+            _warnFail(c"rts/Stats.c".as_ptr(), 1407);
+        }
+
         sum.productivity_elapsed_percent =
             (stats.elapsed_ns - stats.gc_elapsed_ns - stats.init_elapsed_ns - sum.exit_elapsed_ns)
                 as f64
                 / TIME_RESOLUTION as f64
                 / (stats.elapsed_ns as f64 / TIME_RESOLUTION as f64);
+        if !((sum.productivity_elapsed_percent >= 0) as i32 as i64 != 0) {
+            _warnFail(c"rts/Stats.c".as_ptr(), 1416);
+        }
+
         let mut g: u32 = 0;
 
         while g < RtsFlags.GcFlags.generations {
@@ -1174,6 +1957,8 @@ unsafe fn stat_exitReport() {
                 *GC_coll_elapsed.offset(g as isize) / (*r#gen).collections as Time
             };
 
+            (*gen_stats).sync_spin = (*r#gen).sync.spin as u64;
+            (*gen_stats).sync_yield = (*r#gen).sync.r#yield as u64;
             g = g.wrapping_add(1);
         }
 
@@ -1187,6 +1972,14 @@ unsafe fn stat_exitReport() {
             } else {
                 report_one_line(&raw mut sum);
             }
+        }
+
+        if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/Stats.c".as_ptr(),
+                1448,
+            );
         }
 
         statsFlush();
@@ -1209,9 +2002,19 @@ unsafe fn stat_exitReport() {
         stgFree(GC_coll_max_pause as *mut c_void);
         GC_coll_max_pause = null_mut::<Time>();
     }
+
+    if pthread_mutex_unlock(&raw mut all_tasks_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            1469,
+        );
+    }
 }
 
-unsafe fn stat_exit() {}
+unsafe fn stat_exit() {
+    closeMutex(&raw mut stats_mutex);
+}
 
 unsafe fn statDescribeGens() {
     let mut g: u32 = 0;
@@ -1318,8 +2121,27 @@ unsafe fn statDescribeGens() {
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn getAllocations() -> u64 {
+pub unsafe extern "C" fn getAllocations() -> c_ulong {
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            1690,
+            __r,
+        );
+    }
+
     let mut n: StgWord64 = stats.allocated_bytes as StgWord64;
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            1692,
+        );
+    }
 
     return n as u64;
 }
@@ -1327,7 +2149,7 @@ pub unsafe extern "C" fn getAllocations() -> u64 {
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn getRTSStatsEnabled() -> i32 {
+pub unsafe extern "C" fn getRTSStatsEnabled() -> c_int {
     return (RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32) as i32;
 }
 
@@ -1337,7 +2159,27 @@ pub unsafe extern "C" fn getRTSStatsEnabled() -> i32 {
 pub unsafe extern "C" fn getRTSStats(mut s: *mut RTSStats) {
     let mut current_elapsed: Time = 0;
     let mut current_cpu: Time = 0;
+    let mut __r = pthread_mutex_lock(&raw mut stats_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            1706,
+            __r,
+        );
+    }
+
     *s = stats;
+
+    if pthread_mutex_unlock(&raw mut stats_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/Stats.c".as_ptr(),
+            1708,
+        );
+    }
+
     getProcessTimes(&raw mut current_cpu, &raw mut current_elapsed);
     (*s).cpu_ns = current_cpu - end_init_cpu;
     (*s).elapsed_ns = current_elapsed - end_init_elapsed;

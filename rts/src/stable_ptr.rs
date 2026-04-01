@@ -1,3 +1,6 @@
+use crate::ffi::rts::_assertFail;
+use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::stable_ptr::spEntry;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::stg::P_;
@@ -18,13 +21,36 @@ static mut old_SPTs: [*mut spEntry; 64] = [null_mut::<spEntry>(); 64];
 
 static mut n_old_SPTs: u32 = 0;
 
+static mut stable_ptr_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
 unsafe fn stablePtrLock() {
     initStablePtrTable();
+
+    let mut __r = pthread_mutex_lock(&raw mut stable_ptr_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/StablePtr.c".as_ptr(),
+            144,
+            __r,
+        );
+    }
 }
 
-unsafe fn stablePtrUnlock() {}
+unsafe fn stablePtrUnlock() {
+    if pthread_mutex_unlock(&raw mut stable_ptr_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/StablePtr.c".as_ptr(),
+            150,
+        );
+    }
+}
 
-#[inline]
 unsafe fn initSpEntryFreeList(mut table: *mut spEntry, mut n: u32) {
     let mut free = null_mut::<spEntry>();
     let mut p = null_mut::<spEntry>();
@@ -52,9 +78,15 @@ unsafe fn initStablePtrTable() {
     ) as *mut spEntry;
 
     initSpEntryFreeList(stable_ptr_table, INIT_SPT_SIZE as u32);
+    initMutex(&raw mut stable_ptr_mutex);
 }
 
 unsafe fn enlargeStablePtrTable() {
+    if (pthread_mutex_lock(&raw mut stable_ptr_mutex) == 11) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/StablePtr.c".as_ptr(), 191);
+    }
+
     let mut old_SPT_size: u32 = SPT_size as u32;
     let mut new_stable_ptr_table = null_mut::<spEntry>();
     SPT_size = SPT_size.wrapping_mul(2 as u32);
@@ -70,10 +102,15 @@ unsafe fn enlargeStablePtrTable() {
         (old_SPT_size as usize).wrapping_mul(size_of::<spEntry>() as usize),
     );
 
-    let fresh6 = n_old_SPTs;
+    if (n_old_SPTs < 64) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/StablePtr.c".as_ptr(), 208);
+    }
+
+    let fresh12 = n_old_SPTs;
     n_old_SPTs = n_old_SPTs.wrapping_add(1);
-    old_SPTs[fresh6 as usize] = stable_ptr_table;
-    stable_ptr_table = new_stable_ptr_table;
+    old_SPTs[fresh12 as usize] = stable_ptr_table;
+    (&raw mut stable_ptr_table).store(new_stable_ptr_table, Ordering::Release);
     initSpEntryFreeList(stable_ptr_table.offset(old_SPT_size as isize), old_SPT_size);
 }
 
@@ -97,20 +134,31 @@ unsafe fn exitStablePtrTable() {
     stable_ptr_table = null_mut::<spEntry>();
     SPT_size = 0;
     freeOldSPTs();
+    closeMutex(&raw mut stable_ptr_mutex);
 }
 
-#[inline]
 unsafe fn freeSpEntry(mut sp: *mut spEntry) {
-    (*sp).addr = stable_ptr_free as P_ as StgPtr;
+    (&raw mut (*sp).addr).store(stable_ptr_free as P_, Ordering::Relaxed);
     stable_ptr_free = sp;
 }
 
 unsafe fn freeStablePtrUnsafe(mut sp: StgStablePtr) {
+    if (pthread_mutex_lock(&raw mut stable_ptr_mutex) == 11) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/StablePtr.c".as_ptr(), 279);
+    }
+
     if sp.is_null() {
         return;
     }
 
     let mut spw: StgWord = (sp as StgWord).wrapping_sub(1 as StgWord);
+
+    if (spw < SPT_size as StgWord) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/StablePtr.c".as_ptr(), 288);
+    }
+
     freeSpEntry(stable_ptr_table.offset(spw as isize) as *mut spEntry);
 }
 
@@ -129,9 +177,7 @@ unsafe fn getStablePtr(mut p: StgPtr) -> StgStablePtr {
 
     let mut sp: StgWord = stable_ptr_free.offset_from(stable_ptr_table) as i64 as StgWord;
     stable_ptr_free = (*stable_ptr_free).addr as *mut spEntry;
-
-    let ref mut fresh5 = (*stable_ptr_table.offset(sp as isize)).addr;
-    *fresh5 = p;
+    (&raw mut (*stable_ptr_table.offset(sp as isize)).addr).store(p, Ordering::Release);
     stablePtrUnlock();
     sp = sp.wrapping_add(1 as StgWord);
 

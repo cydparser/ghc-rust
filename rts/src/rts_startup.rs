@@ -1,10 +1,11 @@
 use crate::adjustor::initAdjustors;
 use crate::builtin_closures::initBuiltinClosures;
-use crate::capability::{Capability, getCapability};
+use crate::capability::getCapability;
 use crate::check_vector_support::setVectorSupport;
 use crate::eventlog::event_log::{finishCapEventLogging, postInitEvent};
 use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::hpc::{exitHpc, startupHpc};
+use crate::ffi::rts::messages::errorBelch;
 use crate::ffi::rts::os_threads::freeThreadingResources;
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::stable_ptr::getStablePtr;
@@ -28,12 +29,14 @@ use crate::linker::m_map::initLinkerMMap;
 use crate::linker_internals::exitLinker;
 use crate::posix::tty::resetTerminalSettings;
 use crate::prelude::*;
+use crate::printer::DEBUG_LoadSymbols;
 use crate::prof_heap::{endHeapProfiling, freeHeapProfiling, initHeapProfiling};
+use crate::profiling::{endProfiling, freeProfiling, initProfiling, prof_file, reportCCSProfiling};
 use crate::rts_flags::{freeRtsArgs, initRtsFlagsDefaults, rtsConfig, setupRtsFlags};
-use crate::rts_messages::errorBelch;
 use crate::rts_signals::{
     freeSignalHandlers, initDefaultHandlers, initUserSignals, resetDefaultHandlers,
 };
+use crate::rts_utils::checkFPUStack;
 use crate::schedule::{exitScheduler, freeScheduler, initScheduler};
 use crate::sm::non_moving_mark::nonmoving_weak_ptr_list;
 use crate::sm::storage::{exitStorage, freeStorage, initStorage};
@@ -43,13 +46,13 @@ use crate::static_ptr_table::exitStaticPtrTable;
 use crate::stats::{
     initStats0, initStats1, stat_endExit, stat_endInit, stat_exit, stat_startExit, stat_startInit,
 };
+use crate::ticky::{PrintTickyInfo, emitTickyCounterDefs};
 use crate::timer::{exitTimer, initTimer};
 use crate::top_handler::{exitTopHandler, initTopHandler};
 use crate::trace::{
     endTracing, flushTrace, freeTracing, initTracing, traceOSProcessInfo, traceWallClockTime,
 };
 use crate::weak::runAllCFinalizers;
-use std::process::exit;
 
 #[cfg(test)]
 mod tests;
@@ -95,14 +98,17 @@ unsafe fn initBuiltinGcRoots() {
 #[ffi(docs, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_init(mut argc: *mut i32, mut argv: *mut *mut *mut c_char) {
+pub unsafe extern "C" fn hs_init(mut argc: *mut c_int, mut argv: *mut *mut *mut c_char) {
     hs_init_ghc(argc, argv, defaultRtsConfig);
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_init_with_rtsopts(mut argc: *mut i32, mut argv: *mut *mut *mut c_char) {
+pub unsafe extern "C" fn hs_init_with_rtsopts(
+    mut argc: *mut c_int,
+    mut argv: *mut *mut *mut c_char,
+) {
     let mut rts_opts = defaultRtsConfig;
     rts_opts.rts_opts_enabled = RtsOptsAll;
     hs_init_ghc(argc, argv, rts_opts);
@@ -112,7 +118,7 @@ pub unsafe extern "C" fn hs_init_with_rtsopts(mut argc: *mut i32, mut argv: *mut
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_init_ghc(
-    mut argc: *mut i32,
+    mut argc: *mut c_int,
     mut argv: *mut *mut *mut c_char,
     mut rts_config: RtsConfig,
 ) {
@@ -158,6 +164,7 @@ pub unsafe extern "C" fn hs_init_ghc(
     } else {
         setFullProgArgv(*argc, *argv);
         setupRtsFlags(argc, *argv, rts_config);
+        DEBUG_LoadSymbols(*(*argv).offset(0));
     }
 
     selectIOManager();
@@ -181,6 +188,7 @@ pub unsafe extern "C" fn hs_init_ghc(
     initTopHandler();
     initGlobalStore();
     initFileLocking();
+    initProfiling();
     initIpe();
     postInitEvent(Some(dumpIPEToEventLog as unsafe extern "C" fn() -> ()));
     initHeapProfiling();
@@ -223,6 +231,7 @@ unsafe fn hs_exit_(mut wait_foreign: bool) {
     stat_startExit();
     rtsConfig.onExitHook.expect("non-null function pointer")();
     flushStdHandles();
+    checkFPUStack();
     stopIOManager();
     exitScheduler(wait_foreign);
     i = 0;
@@ -247,6 +256,11 @@ unsafe fn hs_exit_(mut wait_foreign: bool) {
 
     stopTimer();
     exitTimer(true);
+
+    if RtsFlags.TraceFlags.ticky {
+        emitTickyCounterDefs();
+    }
+
     resetTerminalSettings();
 
     if RtsFlags.MiscFlags.install_signal_handlers {
@@ -265,10 +279,29 @@ unsafe fn hs_exit_(mut wait_foreign: bool) {
     exitTopHandler();
     exitStablePtrTable();
     exitStableNameTable();
+    reportCCSProfiling();
     endHeapProfiling();
     freeHeapProfiling();
+    endProfiling();
+    freeProfiling();
+
+    if !prof_file.is_null() {
+        fclose(prof_file);
+    }
+
     endTracing();
     freeTracing();
+
+    if RtsFlags.TickyFlags.showTickyStats {
+        PrintTickyInfo();
+    }
+
+    let mut tf = RtsFlags.TickyFlags.tickyFile;
+
+    if !tf.is_null() {
+        fclose(tf);
+    }
+
     exitIOManager(wait_foreign);
     stat_exit();
     freeStorage(wait_foreign);
@@ -278,7 +311,8 @@ unsafe fn hs_exit_(mut wait_foreign: bool) {
 }
 
 unsafe fn flushStdHandles() {
-    let mut cap = rts_lock();
+    let mut cap = null_mut::<Capability>();
+    cap = rts_lock();
 
     rts_evalIO(
         &raw mut cap,
@@ -309,7 +343,7 @@ unsafe fn shutdownHaskell() {
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn shutdownHaskellAndExit(mut n: i32, mut fastExit: i32) -> ! {
+pub unsafe extern "C" fn shutdownHaskellAndExit(mut n: c_int, mut fastExit: c_int) -> ! {
     if fastExit == 0 {
         hs_exit_(false);
     }
@@ -319,7 +353,7 @@ pub unsafe extern "C" fn shutdownHaskellAndExit(mut n: i32, mut fastExit: i32) -
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn shutdownHaskellAndSignal(mut sig: i32, mut fastExit: i32) -> ! {
+pub unsafe extern "C" fn shutdownHaskellAndSignal(mut sig: c_int, mut fastExit: c_int) -> ! {
     if fastExit == 0 {
         hs_exit_(false);
     }
@@ -346,18 +380,22 @@ unsafe fn exitBySignal(sig: i32) -> ! {
     sigset |= __sigbits(sig) as sigset_t;
     sigprocmask(SIG_UNBLOCK, &raw mut sigset, null_mut::<sigset_t>());
 
-    if !matches!(sig, SIGSTOP | SIGTSTP | SIGTTIN | SIGTTOU | SIGCONT) {
-        kill(getpid(), sig);
-    }
-
-    exit(0xff)
+    match sig {
+        SIGSTOP | SIGTSTP | SIGTTIN | SIGTTOU | SIGCONT => {
+            exit(0xff);
+        }
+        _ => {
+            kill(getpid(), sig);
+            exit(0xff);
+        }
+    };
 }
 
 static mut exitFn: Option<extern "C" fn(c_int) -> ()> = None;
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub extern "C" fn stg_exit(n: i32) -> ! {
+pub extern "C" fn stg_exit(mut n: c_int) -> ! {
     if let Some(exit_fn) = unsafe { exitFn } {
         exit_fn(n);
     }

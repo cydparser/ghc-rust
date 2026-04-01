@@ -3,7 +3,7 @@ use crate::ffi::rts::messages::{barf, errorBelch, sysErrorBelch};
 use crate::ffi::rts::storage::block::{BLOCK_SIZE, MBLOCK_MASK, MBLOCK_SIZE};
 use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
 use crate::ffi::rts::storage::m_block::{getFirstMBlock, getNextMBlock};
-use crate::ffi::rts::{EXIT_HEAPOVERFLOW, stg_exit};
+use crate::ffi::rts::{_assertFail, EXIT_HEAPOVERFLOW, stg_exit};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{StgWord, StgWord8, StgWord64};
 use crate::prelude::*;
@@ -26,13 +26,13 @@ pub(crate) unsafe fn roundUpToPage(mut x: usize) -> usize {
     return roundUpToAlign(x, getPageSize());
 }
 
-const MEM_RESERVE_AND_COMMIT: C2RustUnnamed_7 = 3;
+const MEM_RESERVE_AND_COMMIT: C2RustUnnamed_8 = 3;
 
-const MEM_COMMIT: C2RustUnnamed_7 = 2;
+const MEM_COMMIT: C2RustUnnamed_8 = 2;
 
-const MEM_RESERVE: C2RustUnnamed_7 = 1;
+const MEM_RESERVE: C2RustUnnamed_8 = 1;
 
-type C2RustUnnamed_7 = u32;
+type C2RustUnnamed_8 = u32;
 
 static mut next_request: *mut c_void = null_mut::<c_void>();
 
@@ -232,6 +232,12 @@ unsafe fn osTryReserveHeapMemory(mut len: W_, mut hint: *mut c_void) -> *mut c_v
     let mut top = null_mut::<c_void>();
     let mut start = null_mut::<c_void>();
     let mut end = null_mut::<c_void>();
+
+    if (len & !((1 as u64) << 20 as i32).wrapping_sub(1 as u64) as W_ == len) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/posix/OSMem.c".as_ptr(), 466);
+    }
+
     base = my_mmap(
         hint,
         len.wrapping_add(MBLOCK_SIZE as W_),
@@ -252,6 +258,11 @@ unsafe fn osTryReserveHeapMemory(mut len: W_, mut hint: *mut c_void) -> *mut c_v
             .wrapping_sub(1 as W_)
             & !MBLOCK_MASK as W_) as *mut c_void;
         end = (top as W_ & !MBLOCK_MASK as W_) as *mut c_void;
+
+        if ((end as W_).wrapping_sub(start as W_) == len) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/posix/OSMem.c".as_ptr(), 481);
+        }
 
         if munmap(base, (start as W_).wrapping_sub(base as W_) as usize) < 0 {
             sysErrorBelch(c"unable to release slop before heap".as_ptr());
@@ -436,6 +447,11 @@ unsafe fn osCommitMemory(mut at: *mut c_void, mut size: W_) {
 
 unsafe fn osDecommitMemory(mut at: *mut c_void, mut size: W_) {
     let mut r: i32 = 0;
+    r = mprotect(at, size as usize, PROT_NONE);
+
+    if r < 0 {
+        sysErrorBelch(c"unable to make released memory unaccessible".as_ptr());
+    }
 
     if !RtsFlags.MiscFlags.disableDelayedOsMemoryReturn {
         r = madvise(at, size as usize, MADV_FREE);

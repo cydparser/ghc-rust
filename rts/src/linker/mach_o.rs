@@ -1,4 +1,6 @@
-use crate::ffi::rts::messages::{barf, errorBelch, sysErrorBelch};
+use crate::ffi::rts::_assertFail;
+use crate::ffi::rts::flags::RtsFlags;
+use crate::ffi::rts::messages::{barf, debugBelch, errorBelch, sysErrorBelch};
 use crate::ffi::rts_api::getProgArgv;
 use crate::ffi::stg::types::StgWord;
 use crate::get_env::{freeProgEnvv, getProgEnvv};
@@ -135,8 +137,31 @@ unsafe fn ocDeinit_MachO(mut oc: *mut ObjectCode) {
 }
 
 unsafe fn ocAllocateExtras_MachO(mut oc: *mut ObjectCode) -> i32 {
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"ocAllocateExtras_MachO: start\n".as_ptr());
+    }
+
     if !(*(*oc).info).symCmd.is_null() {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"ocAllocateExtras_MachO: allocate %d symbols\n".as_ptr(),
+                (*(*(*oc).info).symCmd).nsyms,
+            );
+        }
+
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(c"ocAllocateExtras_MachO: done\n".as_ptr());
+        }
+
         return ocAllocateExtras(oc, (*(*(*oc).info).symCmd).nsyms as i32, 0, 0);
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"ocAllocateExtras_MachO: allocated no symbols\n".as_ptr());
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"ocAllocateExtras_MachO: done\n".as_ptr());
     }
 
     return ocAllocateExtras(oc, 0, 0, 0);
@@ -145,6 +170,10 @@ unsafe fn ocAllocateExtras_MachO(mut oc: *mut ObjectCode) -> i32 {
 unsafe fn ocVerifyImage_MachO(mut oc: *mut ObjectCode) -> i32 {
     let mut image = (*oc).image;
     let mut header = image as *mut MachOHeader;
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"ocVerifyImage_MachO: start\n".as_ptr());
+    }
 
     if (*header).magic != MH_MAGIC_64 as u32 {
         errorBelch(
@@ -162,6 +191,10 @@ unsafe fn ocVerifyImage_MachO(mut oc: *mut ObjectCode) -> i32 {
         return 0;
     }
 
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"ocVerifyImage_MachO: done\n".as_ptr());
+    }
+
     return 1;
 }
 
@@ -171,6 +204,11 @@ unsafe fn resolveImports(
     mut indirectSyms: *mut u64,
 ) -> i32 {
     let mut itemSize: usize = 4;
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"resolveImports: start\n".as_ptr());
+    }
+
     let mut i = 0;
 
     while ((i as usize).wrapping_mul(itemSize) as u64) < (*sect).size {
@@ -184,13 +222,33 @@ unsafe fn resolveImports(
 
         let mut addr = NULL as *mut c_void;
 
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(c"resolveImports: resolving %s\n".as_ptr(), (*symbol).name);
+        }
+
         if (*(*symbol).nlist).n_type as i32 & N_TYPE == N_UNDF
             && (*(*symbol).nlist).n_type as i32 & N_EXT != 0
             && (*(*symbol).nlist).n_value != 0
         {
             addr = (*(*symbol).nlist).n_value as *mut c_void;
+
+            if RtsFlags.DebugFlags.linker {
+                debugBelch(
+                    c"resolveImports: undefined external %s has value %p\n".as_ptr(),
+                    (*symbol).name,
+                    addr,
+                );
+            }
         } else {
             addr = lookupDependentSymbol((*symbol).name, oc, null_mut::<SymType>());
+
+            if RtsFlags.DebugFlags.linker {
+                debugBelch(
+                    c"resolveImports: looking up %s, %p\n".as_ptr(),
+                    (*symbol).name,
+                    addr,
+                );
+            }
         }
 
         if addr.is_null() {
@@ -214,6 +272,10 @@ unsafe fn resolveImports(
             *((*oc).image.offset((*sect).offset as isize) as *mut *mut c_void).offset(i as isize);
         *fresh23 = addr as *mut c_void;
         i = i.wrapping_add(1);
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"resolveImports: done\n".as_ptr());
     }
 
     return 1;
@@ -817,6 +879,14 @@ unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Sect
                     (*symbol_1).addr as *mut c_void
                 }) as u64;
 
+                if (!isGotLoad(ri as *mut relocation_info) || !(*symbol_1).got_addr.is_null())
+                    as i32 as i64
+                    != 0
+                {
+                } else {
+                    _assertFail(c"rts/linker/MachO.c".as_ptr(), 697);
+                }
+
                 encodeAddend(
                     oc,
                     section,
@@ -848,6 +918,14 @@ unsafe fn relocateSectionAarch64(mut oc: *mut ObjectCode, mut section: *mut Sect
                 } else {
                     (*symbol_2).addr as *mut c_void
                 }) as u64;
+
+                if (!isGotLoad(ri as *mut relocation_info) || !(*symbol_2).got_addr.is_null())
+                    as i32 as i64
+                    != 0
+                {
+                } else {
+                    _assertFail(c"rts/linker/MachO.c".as_ptr(), 711);
+                }
 
                 encodeAddend(
                     oc,
@@ -945,7 +1023,13 @@ unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> i32 {
         let mut macho: *mut MachOSection =
             (*(*oc).info).macho_sections.offset(i as isize) as *mut MachOSection;
 
-        if !(0 == (*macho).size) {
+        if 0 == (*macho).size {
+            if RtsFlags.DebugFlags.linker {
+                debugBelch(
+                    c"ocBuildSegments_MachO: found a zero length section, skipping\n".as_ptr(),
+                );
+            }
+        } else {
             let mut alignment: usize = (1 << (*macho).align) as usize;
 
             if S_GB_ZEROFILL as u32 == (*macho).flags & SECTION_TYPE as u32 {
@@ -988,6 +1072,10 @@ unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> i32 {
     }
 
     if 0 == size_compound {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(c"ocBuildSegments_MachO: all segments are empty, skipping\n".as_ptr());
+        }
+
         return 1;
     }
 
@@ -995,6 +1083,13 @@ unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> i32 {
 
     if mem.is_null() {
         return 0;
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"ocBuildSegments: allocating %d segments\n".as_ptr(),
+            n_activeSegments,
+        );
     }
 
     segments = stgCallocBytes(
@@ -1016,6 +1111,15 @@ unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> i32 {
             n_rxSections,
         );
 
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"ocBuildSegments_MachO: init segment %d (RX) at %p size %zu\n".as_ptr(),
+                curSegment,
+                (*rxSegment).start,
+                (*rxSegment).size,
+            );
+        }
+
         curMem = (curMem as *mut c_char).offset((*rxSegment).size as isize) as *mut c_void;
         curSegment += 1;
     }
@@ -1031,6 +1135,15 @@ unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> i32 {
             n_rwSections,
         );
 
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"ocBuildSegments_MachO: init segment %d (RWO) at %p size %zu\n".as_ptr(),
+                curSegment,
+                (*rwSegment).start,
+                (*rwSegment).size,
+            );
+        }
+
         curMem = (curMem as *mut c_char).offset((*rwSegment).size as isize) as *mut c_void;
         curSegment += 1;
     }
@@ -1045,6 +1158,15 @@ unsafe fn ocBuildSegments_MachO(mut oc: *mut ObjectCode) -> i32 {
             SEGMENT_PROT_RWO,
             n_gbZerofills,
         );
+
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"ocBuildSegments_MachO: init segment %d (GB_ZEROFILL) at %p size %zu\n".as_ptr(),
+                curSegment,
+                (*gbZerofillSegment).start,
+                (*gbZerofillSegment).size,
+            );
+        }
 
         curMem = (curMem as *mut c_char).offset((*gbZerofillSegment).size as isize) as *mut c_void;
         curSegment += 1;
@@ -1091,6 +1213,18 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> i32 {
     let mut commonSize = 0;
     let mut commonStorage = NULL as *mut c_void;
     let mut commonCounter: u64 = 0;
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"ocGetNames_MachO: %s start\n".as_ptr(),
+            if !(*oc).archiveMemberName.is_null() {
+                (*oc).archiveMemberName
+            } else {
+                (*oc).fileName
+            },
+        );
+    }
+
     let mut secArray = null_mut::<Section>();
 
     secArray = stgCallocBytes(
@@ -1100,6 +1234,13 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> i32 {
     ) as *mut Section;
 
     (*oc).sections = secArray;
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"ocGetNames_MachO: will load %d sections\n".as_ptr(),
+            (*oc).n_sections,
+        );
+    }
 
     if (ocBuildSegments_MachO(oc) != 0) as i32 as i64 != 0 {
     } else {
@@ -1112,6 +1253,18 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> i32 {
         let mut segment: *mut Segment = (*oc).segments.offset(seg_n as isize) as *mut Segment;
 
         let mut curMem = (*segment).start;
+
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"ocGetNames_MachO: loading segment %d (address = %p, size = %zu) with %d sections\n"
+                    .as_ptr(),
+                seg_n,
+                (*segment).start,
+                (*segment).size,
+                (*segment).n_sections,
+            );
+        }
+
         let mut sec_n = 0;
 
         while sec_n < (*segment).n_sections {
@@ -1130,8 +1283,26 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> i32 {
             let mut secMem = roundUpToAlign(curMem as usize, alignment) as *mut c_void;
             start = secMem;
 
+            if RtsFlags.DebugFlags.linker {
+                debugBelch(
+                    c"ocGetNames_MachO: loading section %d in segment %d (#%d, %s %s)\n                  skipped %zu bytes due to alignment of %zu\n"
+                        .as_ptr(),
+                    sec_n,
+                    seg_n,
+                    sec_idx,
+                    &raw mut (*section).segname as *mut c_char,
+                    &raw mut (*section).sectname as *mut c_char,
+                    (secMem as *mut c_char).offset_from(curMem as *mut c_char) as i64,
+                    alignment,
+                );
+            }
+
             match (*section).flags & SECTION_TYPE as u32 {
                 1 | 12 => {
+                    if RtsFlags.DebugFlags.linker {
+                        debugBelch(c"ocGetNames_MachO: memset to 0 a ZEROFILL section\n".as_ptr());
+                    }
+
                     memset(secMem, 0, (*section).size as usize);
 
                     addSection(
@@ -1146,6 +1317,16 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> i32 {
                     );
                 }
                 _ => {
+                    if RtsFlags.DebugFlags.linker {
+                        debugBelch(
+                            c"ocGetNames_MachO: copying from %p to %p a block of %llu bytes\n"
+                                .as_ptr(),
+                            (*oc).image.offset((*section).offset as isize) as *mut c_void,
+                            secMem,
+                            (*section).size,
+                        );
+                    }
+
                     let mut nstubs = numberOfStubsForSection(oc, sec_idx as u32);
                     let mut stub_space = stubSizeAarch64.wrapping_mul(nstubs as usize) as u32;
 
@@ -1277,6 +1458,13 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> i32 {
         }
     }
 
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"ocGetNames_MachO: %d external symbols\n".as_ptr(),
+            (*oc).n_symbols,
+        );
+    }
+
     (*oc).symbols = stgMallocBytes(
         ((*oc).n_symbols as usize).wrapping_mul(size_of::<Symbol_t>() as usize),
         c"ocGetNames_MachO(oc->symbols)".as_ptr(),
@@ -1288,37 +1476,56 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> i32 {
         while i_1 < (*(*oc).info).n_macho_symbols {
             let mut nm = (*(*(*oc).info).macho_symbols.offset(i_1 as isize)).name;
 
-            if !((*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as i32 & N_STAB != 0) {
-                if (*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as i32 & N_TYPE == N_SECT {
-                    if (*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as i32 & N_EXT != 0 {
-                        if !((*(*(*oc).info).nlist.offset(i_1 as isize)).n_desc as i32 & N_WEAK_DEF
-                            != 0
-                            && !lookupDependentSymbol(nm, oc, null_mut::<SymType>()).is_null())
-                        {
-                            let mut addr = (*(*(*oc).info).macho_symbols.offset(i_1 as isize)).addr;
-
-                            let mut sym_type = SYM_TYPE_CODE;
-
-                            ghciInsertSymbolTable(
-                                (*oc).fileName,
-                                symhash,
-                                nm,
-                                addr,
-                                STRENGTH_NORMAL,
-                                sym_type,
-                                oc,
-                            );
-
-                            let ref mut fresh16 = (*(*oc).symbols.offset(curSymbol as isize)).name;
-                            *fresh16 = nm;
-
-                            let ref mut fresh17 = (*(*oc).symbols.offset(curSymbol as isize)).addr;
-                            *fresh17 = addr;
-                            (*(*oc).symbols.offset(curSymbol as isize)).r#type = sym_type;
-                            curSymbol = curSymbol.wrapping_add(1);
-                        }
-                    }
+            if (*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as i32 & N_STAB != 0 {
+                if RtsFlags.DebugFlags.linker_verbose {
+                    debugBelch(c"ocGetNames_MachO: Skip STAB: %s\n".as_ptr(), nm);
                 }
+            } else if (*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as i32 & N_TYPE == N_SECT {
+                if (*(*(*oc).info).nlist.offset(i_1 as isize)).n_type as i32 & N_EXT != 0 {
+                    if (*(*(*oc).info).nlist.offset(i_1 as isize)).n_desc as i32 & N_WEAK_DEF != 0
+                        && !lookupDependentSymbol(nm, oc, null_mut::<SymType>()).is_null()
+                    {
+                        if RtsFlags.DebugFlags.linker_verbose {
+                            debugBelch(c"    weak: %s\n".as_ptr(), nm);
+                        }
+                    } else {
+                        if RtsFlags.DebugFlags.linker_verbose {
+                            debugBelch(c"ocGetNames_MachO: inserting %s\n".as_ptr(), nm);
+                        }
+
+                        let mut addr = (*(*(*oc).info).macho_symbols.offset(i_1 as isize)).addr;
+
+                        let mut sym_type = SYM_TYPE_CODE;
+
+                        ghciInsertSymbolTable(
+                            (*oc).fileName,
+                            symhash,
+                            nm,
+                            addr,
+                            STRENGTH_NORMAL,
+                            sym_type,
+                            oc,
+                        );
+
+                        let ref mut fresh23 = (*(*oc).symbols.offset(curSymbol as isize)).name;
+                        *fresh23 = nm;
+
+                        let ref mut fresh24 = (*(*oc).symbols.offset(curSymbol as isize)).addr;
+                        *fresh24 = addr;
+                        (*(*oc).symbols.offset(curSymbol as isize)).r#type = sym_type;
+                        curSymbol = curSymbol.wrapping_add(1);
+                    }
+                } else if RtsFlags.DebugFlags.linker_verbose {
+                    debugBelch(
+                        c"ocGetNames_MachO: \t...not external, skipping %s\n".as_ptr(),
+                        nm,
+                    );
+                }
+            } else if RtsFlags.DebugFlags.linker_verbose {
+                debugBelch(
+                    c"ocGetNames_MachO: \t...not defined in this section, skipping %s\n".as_ptr(),
+                    nm,
+                );
             }
 
             i_1 = i_1.wrapping_add(1);
@@ -1353,6 +1560,13 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> i32 {
 
                 let mut sym_type_0 = SYM_TYPE_CODE;
 
+                if RtsFlags.DebugFlags.linker_verbose {
+                    debugBelch(
+                        c"ocGetNames_MachO: inserting common symbol: %s\n".as_ptr(),
+                        nm_0,
+                    );
+                }
+
                 ghciInsertSymbolTable(
                     (*oc).fileName,
                     symhash,
@@ -1378,6 +1592,10 @@ unsafe fn ocGetNames_MachO(mut oc: *mut ObjectCode) -> i32 {
 
     findInternalGotRefs(oc);
     makeGot(oc);
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"ocGetNames_MachO: done\n".as_ptr());
+    }
 
     return 1;
 }
@@ -1426,17 +1644,41 @@ unsafe fn ocMprotect_MachO(mut oc: *mut ObjectCode) -> bool {
 }
 
 unsafe fn ocResolve_MachO(mut oc: *mut ObjectCode) -> i32 {
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"ocResolve_MachO: %s start\n".as_ptr(),
+            if !(*oc).archiveMemberName.is_null() {
+                (*oc).archiveMemberName
+            } else {
+                (*oc).fileName
+            },
+        );
+    }
+
     if !(*(*oc).info).dsymCmd.is_null() {
         let mut indirectSyms = (*oc)
             .image
             .offset((*(*(*oc).info).dsymCmd).indirectsymoff as isize)
             as *mut u64;
 
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(c"ocResolve_MachO: resolving dsymLC\n".as_ptr());
+        }
+
         let mut i = 0;
 
         while i < (*oc).n_sections {
             let mut sectionName: *const c_char =
                 &raw mut (*(*(*oc).info).macho_sections.offset(i as isize)).sectname as *mut c_char;
+
+            if RtsFlags.DebugFlags.linker {
+                debugBelch(
+                    c"ocResolve_MachO: section %d/%d: %s\n".as_ptr(),
+                    i,
+                    (*oc).n_sections,
+                    sectionName,
+                );
+            }
 
             if strcmp(sectionName, c"__la_symbol_ptr".as_ptr()) == 0
                 || strcmp(sectionName, c"__la_sym_ptr2".as_ptr()) == 0
@@ -1470,6 +1712,12 @@ unsafe fn ocResolve_MachO(mut oc: *mut ObjectCode) -> i32 {
                 {
                     return 0;
                 }
+            } else if RtsFlags.DebugFlags.linker {
+                debugBelch(
+                    c"ocResolve_MachO: unknown section %d/%d\n".as_ptr(),
+                    i,
+                    (*oc).n_sections,
+                );
             }
 
             i += 1;
@@ -1523,6 +1771,14 @@ unsafe fn ocResolve_MachO(mut oc: *mut ObjectCode) -> i32 {
     let mut i_1 = 0;
 
     while i_1 < (*oc).n_sections {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(
+                c"ocResolve_MachO: relocating section %d/%d\n".as_ptr(),
+                i_1,
+                (*oc).n_sections,
+            );
+        }
+
         if relocateSectionAarch64(oc, (*oc).sections.offset(i_1 as isize) as *mut Section) == 0 {
             return 0;
         }
@@ -1552,8 +1808,16 @@ unsafe fn ocRunInit_MachO(mut oc: *mut ObjectCode) -> i32 {
     let mut i = 0;
 
     while i < (*oc).n_sections {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(c"ocRunInit_MachO: checking section %d\n".as_ptr(), i);
+        }
+
         if (*(*oc).sections.offset(i as isize)).kind as u32 == SECTIONKIND_INIT_ARRAY as i32 as u32
         {
+            if RtsFlags.DebugFlags.linker {
+                debugBelch(c"ocRunInit_MachO:     running mod init functions\n".as_ptr());
+            }
+
             let mut init_startC = (*(*oc).sections.offset(i as isize)).start;
             let mut init = init_startC as *mut init_t;
             let mut init_end = (init_startC as *mut u8)
@@ -1563,6 +1827,15 @@ unsafe fn ocRunInit_MachO(mut oc: *mut ObjectCode) -> i32 {
             let mut pn = 0;
 
             while init < init_end {
+                if RtsFlags.DebugFlags.linker {
+                    debugBelch(
+                        c"ocRunInit_MachO:     function pointer %d at %p to %p\n".as_ptr(),
+                        pn,
+                        init as *mut c_void,
+                        transmute::<init_t, *mut c_void>(*init),
+                    );
+                }
+
                 (*init).expect("non-null function pointer")(argc, argv, envv);
                 init = init.offset(1);
                 pn += 1;
@@ -1585,8 +1858,16 @@ unsafe fn ocRunFini_MachO(mut oc: *mut ObjectCode) -> i32 {
     let mut i = 0;
 
     while i < (*oc).n_sections {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(c"ocRunFini_MachO: checking section %d\n".as_ptr(), i);
+        }
+
         if (*(*oc).sections.offset(i as isize)).kind as u32 == SECTIONKIND_FINI_ARRAY as i32 as u32
         {
+            if RtsFlags.DebugFlags.linker {
+                debugBelch(c"ocRunFini_MachO:     running mod fini functions\n".as_ptr());
+            }
+
             let mut fini_startC = (*(*oc).sections.offset(i as isize)).start;
             let mut fini = fini_startC as *mut fini_t;
             let mut fini_end = (fini_startC as *mut u8)
@@ -1596,6 +1877,15 @@ unsafe fn ocRunFini_MachO(mut oc: *mut ObjectCode) -> i32 {
             let mut pn = 0;
 
             while fini < fini_end {
+                if RtsFlags.DebugFlags.linker {
+                    debugBelch(
+                        c"ocRunFini_MachO:     function pointer %d at %p to %p\n".as_ptr(),
+                        pn,
+                        fini as *mut c_void,
+                        transmute::<fini_t, *mut c_void>(*fini),
+                    );
+                }
+
                 (*fini).expect("non-null function pointer")();
                 fini = fini.offset(1);
                 pn += 1;
@@ -1649,6 +1939,10 @@ unsafe fn machoGetMisalignment(mut f: *mut FILE) -> i32 {
 
     misalignment =
         ((header.sizeofcmds as usize).wrapping_add(size_of::<MachOHeader>() as usize) & 0xf) as i32;
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"mach-o misalignment %d\n".as_ptr(), misalignment);
+    }
 
     return if misalignment != 0 {
         16 - misalignment

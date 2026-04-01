@@ -8,7 +8,7 @@ static mut saved_termios: [*mut c_void; 3] = [NULL, NULL, NULL];
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn __hscore_get_saved_termios(mut fd: i32) -> *mut c_void {
+pub unsafe extern "C" fn __hscore_get_saved_termios(mut fd: c_int) -> *mut c_void {
     return if 0 <= fd
         && fd
             < (size_of::<[*mut c_void; 3]>() as usize)
@@ -23,7 +23,7 @@ pub unsafe extern "C" fn __hscore_get_saved_termios(mut fd: i32) -> *mut c_void 
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn __hscore_set_saved_termios(mut fd: i32, mut ts: *mut c_void) {
+pub unsafe extern "C" fn __hscore_set_saved_termios(mut fd: c_int, mut ts: *mut c_void) {
     if 0 <= fd
         && fd
             < (size_of::<[*mut c_void; 3]>() as usize)

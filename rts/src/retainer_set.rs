@@ -1,4 +1,5 @@
 use crate::arena::{Arena, arenaAlloc, arenaFree, newArena};
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::prof::ccs::CostCentreStack;
@@ -7,7 +8,7 @@ use crate::ffi::stg::types::StgWord;
 use crate::ffi::stg::types::{StgWord, StgWord8};
 use crate::prelude::*;
 use crate::profiling::fprintCCS;
-use crate::retainer_set::{_RetainerSet, BINARY_SEARCH_THRESHOLD, RetainerSet, retainer};
+use crate::retainer_set::{_RetainerSet, BINARY_SEARCH_THRESHOLD, RetainerSet, isMember, retainer};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::trace::traceHeapProfSampleString;
 
@@ -88,7 +89,6 @@ static mut rs_MANY: RetainerSet = _RetainerSet {
     element: [null_mut::<CostCentreStack>(); 0],
 };
 
-#[inline]
 unsafe fn sizeofRetainerSet(mut elems: i32) -> usize {
     return (size_of::<RetainerSet>() as usize)
         .wrapping_add((elems as usize).wrapping_mul(size_of::<retainer>() as usize));
@@ -148,8 +148,23 @@ unsafe fn addElement(mut r: retainer, mut rs: *mut RetainerSet) -> *mut Retainer
     let mut nrs = null_mut::<RetainerSet>();
     let mut hk: StgWord = 0;
 
+    if !rs.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RetainerSet.c".as_ptr(), 132);
+    }
+
+    if ((*rs).num <= RtsFlags.ProfFlags.maxRetainerSetSize) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RetainerSet.c".as_ptr(), 133);
+    }
+
     if rs == &raw mut rs_MANY || (*rs).num == RtsFlags.ProfFlags.maxRetainerSetSize {
         return &raw mut rs_MANY;
+    }
+
+    if !isMember(r, rs) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RetainerSet.c".as_ptr(), 139);
     }
 
     nl = 0;
@@ -251,9 +266,21 @@ unsafe fn printRetainerSetShort(
     let mut tmp: Vec<c_char> = ::std::vec::from_elem(0, vla);
     let mut size: u32 = 0;
     let mut j: u32 = 0;
+
+    if ((*rs).id < 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RetainerSet.c".as_ptr(), 215);
+    }
+
     *tmp.as_mut_ptr().offset(max_length as isize) = '\0' as i32 as c_char;
     sprintf(tmp.as_mut_ptr().offset(0), c"(%d)".as_ptr(), -(*rs).id);
     size = strlen(tmp.as_mut_ptr()) as u32;
+
+    if (size < max_length) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RetainerSet.c".as_ptr(), 222);
+    }
+
     j = 0;
 
     while j < (*rs).num {
@@ -346,6 +373,11 @@ unsafe fn outputAllRetainerSet(mut prof_file: *mut FILE) {
         }
 
         i = i.wrapping_add(1);
+    }
+
+    if (j == numSet) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/RetainerSet.c".as_ptr(), 282);
     }
 
     i = numSet.wrapping_sub(1 as u32);

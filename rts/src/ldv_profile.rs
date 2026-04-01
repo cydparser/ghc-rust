@@ -1,3 +1,4 @@
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::era;
@@ -18,7 +19,6 @@ unsafe fn isInherentlyUsed(mut closure_type: StgHalfWord) -> bool {
     };
 }
 
-#[inline]
 unsafe fn processHeapClosureForDead(mut c: *const StgClosure) -> u32 {
     let mut size: u32 = 0;
     let mut info = null::<StgInfoTable>();
@@ -30,6 +30,25 @@ unsafe fn processHeapClosureForDead(mut c: *const StgClosure) -> u32 {
     }
 
     info = INFO_PTR_TO_STRUCT(info);
+
+    if (((*(c as *mut StgClosure)).header.prof.hp.ldvw & 0xfffffffc0000000) >> 30 <= era as StgWord
+        && ((*(c as *mut StgClosure)).header.prof.hp.ldvw & 0xfffffffc0000000) >> 30 > 0)
+        as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/LdvProfile.c".as_ptr(), 79);
+    }
+
+    if ((*(c as *mut StgClosure)).header.prof.hp.ldvw & 0x1000000000000000 == 0
+        || (*(c as *mut StgClosure)).header.prof.hp.ldvw & 0x3fffffff <= era as StgWord
+            && (*(c as *mut StgClosure)).header.prof.hp.ldvw & 0x3fffffff > 0) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/LdvProfile.c".as_ptr(), 84);
+    }
+
     size = closure_sizeW(c);
 
     if isInherentlyUsed((*info).r#type) {
@@ -65,6 +84,11 @@ unsafe fn processHeapForDead(mut bd: *mut bdescr) {
             while p < (*bd).c2rust_unnamed.free && *p == 0 {
                 p = p.offset(1);
             }
+        }
+
+        if (p == (*bd).c2rust_unnamed.free) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/LdvProfile.c".as_ptr(), 183);
         }
 
         bd = (*bd).link as *mut bdescr;

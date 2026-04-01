@@ -11,7 +11,7 @@ use crate::prelude::*;
 #[ffi(compiler, driver, testsuite, utils)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn hs_main(
-    mut argc: i32,
+    mut argc: c_int,
     mut argv: *mut *mut c_char,
     mut main_closure: *mut StgClosure,
     mut rts_config: RtsConfig,

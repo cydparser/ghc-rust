@@ -1,9 +1,10 @@
 use crate::alloc_array::allocateMutArrPtrs;
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::BITMAP_BITS_SHIFT;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::closure_macros::{
-    SET_INFO, UNTAG_CLOSURE, closure_sizeW, get_fun_itbl, get_itbl,
+    LOOKS_LIKE_CLOSURE_PTR, SET_INFO, UNTAG_CLOSURE, closure_sizeW, get_fun_itbl, get_itbl,
 };
 use crate::ffi::rts::storage::closures::{
     StgAP, StgAP_STACK, StgBCO, StgBlockingQueue, StgClosure_, StgInd, StgMVar, StgMutArrPtrs,
@@ -25,6 +26,11 @@ mod tests;
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn heap_view_closureSize(mut closure: *mut StgClosure) -> StgWord {
+    if LOOKS_LIKE_CLOSURE_PTR(closure as *const c_void) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/Heap.c".as_ptr(), 19);
+    }
+
     return closure_sizeW(closure) as StgWord;
 }
 
@@ -89,7 +95,7 @@ unsafe fn heap_view_closure_ptrs_in_pap_payload(
     match (*fun_info).f.fun_type {
         0 => {
             bitmap = (*fun_info).f.b.bitmap >> BITMAP_BITS_SHIFT;
-            current_block_12 = 1602666671127177107;
+            current_block_12 = 17322574907599274005;
         }
         1 => {
             heap_view_closure_ptrs_in_large_bitmap(
@@ -119,12 +125,12 @@ unsafe fn heap_view_closure_ptrs_in_pap_payload(
             bitmap = *(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 >> BITMAP_BITS_SHIFT;
-            current_block_12 = 1602666671127177107;
+            current_block_12 = 17322574907599274005;
         }
     }
 
     match current_block_12 {
-        1602666671127177107 => {
+        17322574907599274005 => {
             while size > 0 {
                 if bitmap & 1 == 0 {
                     let fresh66 = *nptrs;
@@ -255,11 +261,11 @@ pub unsafe extern "C" fn collect_pointers(
             *fresh19 = (*(closure as *mut StgBCO)).ptrs as *mut StgClosure;
         }
         27 | 28 | 38 => {
-            let fresh20 = nptrs;
+            let fresh27 = nptrs;
             nptrs = nptrs.wrapping_add(1);
 
-            let ref mut fresh21 = *ptrs.offset(fresh20 as isize);
-            *fresh21 = (*(closure as *mut StgInd)).indirectee;
+            let ref mut fresh28 = *ptrs.offset(fresh27 as isize);
+            *fresh28 = (&raw mut (*(closure as *mut StgInd)).indirectee).load(Ordering::Acquire);
         }
         43 | 44 | 46 | 45 => {
             i = 0;
@@ -316,41 +322,79 @@ pub unsafe extern "C" fn collect_pointers(
             *fresh33 = (*(closure as *mut StgMVar)).value;
         }
         52 => {
-            let fresh34 = nptrs;
+            if !((*(closure as *mut StgTSO))._link as *mut StgClosure).is_null() as i32 as i64 != 0
+            {
+            } else {
+                _assertFail(c"rts/Heap.c".as_ptr(), 210);
+            }
+
+            let fresh41 = nptrs;
             nptrs = nptrs.wrapping_add(1);
 
-            let ref mut fresh35 = *ptrs.offset(fresh34 as isize);
-            *fresh35 = (*(closure as *mut StgTSO))._link as *mut StgClosure;
+            let ref mut fresh42 = *ptrs.offset(fresh41 as isize);
+            *fresh42 = (*(closure as *mut StgTSO))._link as *mut StgClosure;
 
-            let fresh36 = nptrs;
+            if !((*(closure as *mut StgTSO)).global_link as *mut StgClosure).is_null() as i32 as i64
+                != 0
+            {
+            } else {
+                _assertFail(c"rts/Heap.c".as_ptr(), 213);
+            }
+
+            let fresh43 = nptrs;
             nptrs = nptrs.wrapping_add(1);
 
-            let ref mut fresh37 = *ptrs.offset(fresh36 as isize);
-            *fresh37 = (*(closure as *mut StgTSO)).global_link as *mut StgClosure;
+            let ref mut fresh44 = *ptrs.offset(fresh43 as isize);
+            *fresh44 = (*(closure as *mut StgTSO)).global_link as *mut StgClosure;
 
-            let fresh38 = nptrs;
+            if !((*(closure as *mut StgTSO)).stackobj as *mut StgClosure).is_null() as i32 as i64
+                != 0
+            {
+            } else {
+                _assertFail(c"rts/Heap.c".as_ptr(), 216);
+            }
+
+            let fresh45 = nptrs;
             nptrs = nptrs.wrapping_add(1);
 
-            let ref mut fresh39 = *ptrs.offset(fresh38 as isize);
-            *fresh39 = (*(closure as *mut StgTSO)).stackobj as *mut StgClosure;
+            let ref mut fresh46 = *ptrs.offset(fresh45 as isize);
+            *fresh46 = (*(closure as *mut StgTSO)).stackobj as *mut StgClosure;
 
-            let fresh40 = nptrs;
+            if !((*(closure as *mut StgTSO)).trec as *mut StgClosure).is_null() as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/Heap.c".as_ptr(), 219);
+            }
+
+            let fresh47 = nptrs;
             nptrs = nptrs.wrapping_add(1);
 
-            let ref mut fresh41 = *ptrs.offset(fresh40 as isize);
-            *fresh41 = (*(closure as *mut StgTSO)).trec as *mut StgClosure;
+            let ref mut fresh48 = *ptrs.offset(fresh47 as isize);
+            *fresh48 = (*(closure as *mut StgTSO)).trec as *mut StgClosure;
 
-            let fresh42 = nptrs;
+            if !((*(closure as *mut StgTSO)).blocked_exceptions as *mut StgClosure).is_null() as i32
+                as i64
+                != 0
+            {
+            } else {
+                _assertFail(c"rts/Heap.c".as_ptr(), 222);
+            }
+
+            let fresh49 = nptrs;
             nptrs = nptrs.wrapping_add(1);
 
-            let ref mut fresh43 = *ptrs.offset(fresh42 as isize);
-            *fresh43 = (*(closure as *mut StgTSO)).blocked_exceptions as *mut StgClosure;
+            let ref mut fresh50 = *ptrs.offset(fresh49 as isize);
+            *fresh50 = (*(closure as *mut StgTSO)).blocked_exceptions as *mut StgClosure;
 
-            let fresh44 = nptrs;
+            if !((*(closure as *mut StgTSO)).bq as *mut StgClosure).is_null() as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/Heap.c".as_ptr(), 225);
+            }
+
+            let fresh51 = nptrs;
             nptrs = nptrs.wrapping_add(1);
 
-            let ref mut fresh45 = *ptrs.offset(fresh44 as isize);
-            *fresh45 = (*(closure as *mut StgTSO)).bq as *mut StgClosure;
+            let ref mut fresh52 = *ptrs.offset(fresh51 as isize);
+            *fresh52 = (*(closure as *mut StgTSO)).bq as *mut StgClosure;
 
             if !((*(closure as *mut StgTSO)).label as *mut StgClosure).is_null() {
                 let fresh46 = nptrs;
@@ -438,6 +482,11 @@ unsafe fn heap_view_closurePtrs(
     mut cap: *mut Capability,
     mut closure: *mut StgClosure,
 ) -> *mut StgMutArrPtrs {
+    if LOOKS_LIKE_CLOSURE_PTR(closure as *const c_void) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/Heap.c".as_ptr(), 270);
+    }
+
     let mut size = heap_view_closureSize(closure);
 
     let mut ptrs = stgMallocBytes(

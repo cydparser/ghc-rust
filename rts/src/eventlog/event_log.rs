@@ -1,11 +1,13 @@
-use crate::capability::getCapability;
+use crate::capability::{SYNC_FLUSH_EVENT_LOG, getCapability};
 use crate::event_log_constants::{
     EVENT_BLOCK_MARKER, EVENT_CONC_MARK_END, EVENT_CONC_UPD_REM_SET_FLUSH, EVENT_GC_STATS_GHC,
     EVENT_HEAP_BIO_PROF_SAMPLE_BEGIN, EVENT_HEAP_INFO_GHC, EVENT_HEAP_PROF_BEGIN,
-    EVENT_HEAP_PROF_SAMPLE_BEGIN, EVENT_HEAP_PROF_SAMPLE_END, EVENT_HEAP_PROF_SAMPLE_STRING,
-    EVENT_IPE, EVENT_LOG_MSG, EVENT_MEM_RETURN, EVENT_NONMOVING_HEAP_CENSUS,
-    EVENT_NONMOVING_PRUNED_SEGMENTS, EVENT_SPARK_COUNTERS, EVENT_TASK_CREATE, EVENT_TASK_DELETE,
-    EVENT_TASK_MIGRATE, EVENT_THREAD_LABEL, EVENT_WALL_CLOCK_TIME,
+    EVENT_HEAP_PROF_COST_CENTRE, EVENT_HEAP_PROF_SAMPLE_BEGIN, EVENT_HEAP_PROF_SAMPLE_COST_CENTRE,
+    EVENT_HEAP_PROF_SAMPLE_END, EVENT_HEAP_PROF_SAMPLE_STRING, EVENT_IPE, EVENT_LOG_MSG,
+    EVENT_MEM_RETURN, EVENT_NONMOVING_HEAP_CENSUS, EVENT_NONMOVING_PRUNED_SEGMENTS,
+    EVENT_PROF_BEGIN, EVENT_PROF_SAMPLE_COST_CENTRE, EVENT_SPARK_COUNTERS, EVENT_TASK_CREATE,
+    EVENT_TASK_DELETE, EVENT_TASK_MIGRATE, EVENT_THREAD_LABEL, EVENT_TICKY_COUNTER_BEGIN_SAMPLE,
+    EVENT_TICKY_COUNTER_DEF, EVENT_TICKY_COUNTER_SAMPLE, EVENT_WALL_CLOCK_TIME,
 };
 use crate::event_types::eventTypes;
 use crate::eventlog::event_log::{EventlogInitPost, eventlog_init_func, eventlog_init_func_t};
@@ -26,10 +28,12 @@ use crate::ffi::rts::event_log_writer::{
 use crate::ffi::rts::flags::{PROFILING_FLAGS, RtsFlags};
 use crate::ffi::rts::ipe::{InfoProvEnt, formatClosureDescIpe};
 use crate::ffi::rts::messages::{barf, debugBelch, errorBelch};
-use crate::ffi::rts::os_threads::Mutex;
+use crate::ffi::rts::os_threads::{Mutex, OS_TRY_ACQUIRE_LOCK, initMutex};
+use crate::ffi::rts::prof::ccs::{CCS_MAIN, CostCentreStack};
 use crate::ffi::rts::storage::closure_macros::INFO_PTR_TO_STRUCT;
 use crate::ffi::rts::storage::tso::StgThreadID;
 use crate::ffi::rts::threads::getNumCapabilities;
+use crate::ffi::rts::ticky::StgEntCounter;
 use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{
@@ -38,10 +42,13 @@ use crate::ffi::stg::types::{
 use crate::get_time::getUnixEpochTime;
 use crate::prelude::*;
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
-use crate::schedule::{SCHED_SHUTTING_DOWN, getSchedState};
+use crate::schedule::{
+    SCHED_SHUTTING_DOWN, getSchedState, releaseAllCapabilities, stopAllCapabilitiesWith,
+};
 use crate::sm::non_moving_census::NonmovingAllocCensus;
 use crate::sparks::SparkCounters;
 use crate::stats::stat_getElapsedTime;
+use crate::task::getMyTask;
 
 #[cfg(test)]
 mod tests;
@@ -101,6 +108,11 @@ static mut eventBuf: EventsBuf = _EventsBuf {
     capno: 0,
 };
 
+static mut eventBufMutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
 #[inline]
 unsafe fn postWord8(mut eb: *mut EventsBuf, mut i: StgWord8) {
     let fresh0 = (*eb).pos;
@@ -139,6 +151,14 @@ unsafe fn postBuf(mut eb: *mut EventsBuf, mut buf: *const StgWord8, mut size: u3
 #[inline]
 unsafe fn postStringLen(mut eb: *mut EventsBuf, mut buf: *const c_char, mut len: StgWord) {
     if !buf.is_null() {
+        if ((*eb).begin.offset((*eb).size as isize) > (*eb).pos.offset(len as isize).offset(1))
+            as i32 as i64
+            != 0
+        {
+        } else {
+            _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 193);
+        }
+
         memcpy((*eb).pos as *mut c_void, buf as *const c_void, len as usize);
         (*eb).pos = (*eb).pos.offset(len as isize);
     }
@@ -276,6 +296,17 @@ unsafe fn postHeaderEvents() {
 }
 
 unsafe fn postInitEvent(mut post_init: EventlogInitPost) {
+    let mut __r = pthread_mutex_lock(&raw mut state_change_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            318,
+            __r,
+        );
+    }
+
     let mut new_func = null_mut::<eventlog_init_func_t>();
 
     new_func = stgMallocBytes(
@@ -286,7 +317,16 @@ unsafe fn postInitEvent(mut post_init: EventlogInitPost) {
     (*new_func).init_func = post_init;
     (*new_func).next = eventlog_header_funcs as *mut eventlog_init_func;
     eventlog_header_funcs = new_func;
-    post_init.expect("non-null post_init")();
+
+    if pthread_mutex_unlock(&raw mut state_change_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            328,
+        );
+    }
+
+    Some(post_init.expect("non-null function pointer")).expect("non-null function pointer")();
 }
 
 unsafe fn repostInitEvents() {
@@ -317,7 +357,13 @@ unsafe fn resetInitEvents() {
 }
 
 unsafe fn get_n_capabilities() -> u32 {
-    return 1;
+    let mut n = getNumCapabilities();
+
+    return if n != 0 {
+        n as u32
+    } else {
+        RtsFlags.ParFlags.nCapabilities
+    };
 }
 
 unsafe fn initEventLogging() {
@@ -327,10 +373,12 @@ unsafe fn initEventLogging() {
         EVENT_LOG_SIZE as StgWord64,
         -1 as EventCapNo,
     );
+    initMutex(&raw mut eventBufMutex);
+    initMutex(&raw mut state_change_mutex);
 }
 
 unsafe fn eventLogStatus() -> EventLogStatus {
-    if eventlog_enabled {
+    if (&raw mut eventlog_enabled).load(Ordering::Relaxed) {
         return EVENTLOG_RUNNING;
     } else {
         return EVENTLOG_NOT_CONFIGURED;
@@ -339,8 +387,28 @@ unsafe fn eventLogStatus() -> EventLogStatus {
 
 unsafe fn startEventLogging_() -> bool {
     initEventLogWriter();
+
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            410,
+            __r,
+        );
+    }
+
     postHeaderEvents();
     printAndClearEventBuf(&raw mut eventBuf);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            419,
+        );
+    }
 
     return true;
 }
@@ -349,11 +417,19 @@ unsafe fn startEventLogging_() -> bool {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn startEventLogging(mut ev_writer: *const EventLogWriter) -> bool {
-    if 0 != 0 {
+    if OS_TRY_ACQUIRE_LOCK(&raw mut state_change_mutex) != 0 {
         return false;
     }
 
     if eventlog_enabled as i32 != 0 || !event_log_writer.is_null() {
+        if pthread_mutex_unlock(&raw mut state_change_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/eventlog/EventLog.c".as_ptr(),
+                434,
+            );
+        }
+
         return false;
     }
 
@@ -362,6 +438,14 @@ pub unsafe extern "C" fn startEventLogging(mut ev_writer: *const EventLogWriter)
     let mut ret = startEventLogging_();
     eventlog_enabled = true;
     repostInitEvents();
+
+    if pthread_mutex_unlock(&raw mut state_change_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            442,
+        );
+    }
 
     return ret;
 }
@@ -399,7 +483,26 @@ unsafe fn finishCapEventLogging() {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn endEventLogging() {
+    let mut __r = pthread_mutex_lock(&raw mut state_change_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            479,
+            __r,
+        );
+    }
+
     if !eventlog_enabled {
+        if pthread_mutex_unlock(&raw mut state_change_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/eventlog/EventLog.c".as_ptr(),
+                481,
+            );
+        }
+
         return;
     }
 
@@ -409,10 +512,38 @@ pub unsafe extern "C" fn endEventLogging() {
         flushEventLog(null_mut::<*mut Capability>());
     }
 
+    let mut __r_0 = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r_0 != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            495,
+            __r_0,
+        );
+    }
+
     postEventTypeNum(&raw mut eventBuf, EVENT_DATA_END as EventTypeNum);
     printAndClearEventBuf(&raw mut eventBuf);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            503,
+        );
+    }
+
     stopEventLogWriter();
     event_log_writer = null::<EventLogWriter>();
+
+    if pthread_mutex_unlock(&raw mut state_change_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            508,
+        );
+    }
 }
 
 unsafe fn moreCapEventBufs(mut from: u32, mut to: u32) {
@@ -535,6 +666,17 @@ unsafe fn postSparkCountersEvent(
 }
 
 unsafe fn postCapEvent(mut tag: EventTypeNum, mut capno: EventCapNo) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            666,
+            __r,
+        );
+    }
+
     ensureRoomForEvent(&raw mut eventBuf, tag);
     postEventHeader(&raw mut eventBuf, tag);
 
@@ -545,10 +687,29 @@ unsafe fn postCapEvent(mut tag: EventTypeNum, mut capno: EventCapNo) {
         _ => {
             barf(c"postCapEvent: unknown event tag %d".as_ptr(), tag as i32);
         }
-    };
+    }
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            685,
+        );
+    }
 }
 
 unsafe fn postCapsetEvent(mut tag: EventTypeNum, mut capset: EventCapsetID, mut info: StgWord) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            692,
+            __r,
+        );
+    }
+
     ensureRoomForEvent(&raw mut eventBuf, tag);
     postEventHeader(&raw mut eventBuf, tag);
     postCapsetID(&raw mut eventBuf, capset);
@@ -570,7 +731,15 @@ unsafe fn postCapsetEvent(mut tag: EventTypeNum, mut capset: EventCapsetID, mut 
                 tag as i32,
             );
         }
-    };
+    }
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            726,
+        );
+    }
 }
 
 unsafe fn postCapsetStrEvent(
@@ -586,11 +755,31 @@ unsafe fn postCapsetStrEvent(
         return;
     }
 
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            740,
+            __r,
+        );
+    }
+
     if hasRoomForVariableEvent(&raw mut eventBuf, size as StgWord) == 0 {
         printAndClearEventBuf(&raw mut eventBuf);
 
         if hasRoomForVariableEvent(&raw mut eventBuf, size as StgWord) == 0 {
             errorBelch(c"Event size exceeds buffer size, bail out".as_ptr());
+
+            if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+                barf(
+                    c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                    c"rts/eventlog/EventLog.c".as_ptr(),
+                    747,
+                );
+            }
+
             return;
         }
     }
@@ -599,6 +788,14 @@ unsafe fn postCapsetStrEvent(
     postPayloadSize(&raw mut eventBuf, size as EventPayloadSize);
     postCapsetID(&raw mut eventBuf, capset);
     postBuf(&raw mut eventBuf, msg as *mut StgWord8, strsize as u32);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            758,
+        );
+    }
 }
 
 unsafe fn postCapsetVecEvent(
@@ -629,11 +826,31 @@ unsafe fn postCapsetVecEvent(
         }
     }
 
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            783,
+            __r,
+        );
+    }
+
     if hasRoomForVariableEvent(&raw mut eventBuf, size as StgWord) == 0 {
         printAndClearEventBuf(&raw mut eventBuf);
 
         if hasRoomForVariableEvent(&raw mut eventBuf, size as StgWord) == 0 {
             errorBelch(c"Event size exceeds buffer size, bail out".as_ptr());
+
+            if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+                barf(
+                    c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                    c"rts/eventlog/EventLog.c".as_ptr(),
+                    790,
+                );
+            }
+
             return;
         }
     }
@@ -653,12 +870,31 @@ unsafe fn postCapsetVecEvent(
 
         i_0 += 1;
     }
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            804,
+        );
+    }
 }
 
 unsafe fn postWallClockTime(mut capset: EventCapsetID) {
     let mut ts: StgWord64 = 0;
     let mut sec: StgWord64 = 0;
     let mut nsec: StgWord32 = 0;
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            813,
+            __r,
+        );
+    }
+
     getUnixEpochTime(&raw mut sec, &raw mut nsec);
     ts = time_ns();
     ensureRoomForEvent(&raw mut eventBuf, EVENT_WALL_CLOCK_TIME as EventTypeNum);
@@ -667,6 +903,14 @@ unsafe fn postWallClockTime(mut capset: EventCapsetID) {
     postCapsetID(&raw mut eventBuf, capset);
     postWord64(&raw mut eventBuf, sec);
     postWord32(&raw mut eventBuf, nsec);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            846,
+        );
+    }
 }
 
 unsafe fn postHeapEvent(
@@ -698,6 +942,17 @@ unsafe fn postEventHeapInfo(
     mut mblockSize: W_,
     mut blockSize: W_,
 ) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            885,
+            __r,
+        );
+    }
+
     ensureRoomForEvent(&raw mut eventBuf, EVENT_HEAP_INFO_GHC as EventTypeNum);
     postEventHeader(&raw mut eventBuf, EVENT_HEAP_INFO_GHC as EventTypeNum);
     postCapsetID(&raw mut eventBuf, heap_capset);
@@ -706,6 +961,14 @@ unsafe fn postEventHeapInfo(
     postWord64(&raw mut eventBuf, allocAreaSize as StgWord64);
     postWord64(&raw mut eventBuf, mblockSize as StgWord64);
     postWord64(&raw mut eventBuf, blockSize as StgWord64);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            899,
+        );
+    }
 }
 
 unsafe fn postEventGcStats(
@@ -755,11 +1018,30 @@ unsafe fn postTaskCreateEvent(
     mut capno: EventCapNo,
     mut tid: EventKernelThreadId,
 ) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            952,
+            __r,
+        );
+    }
+
     ensureRoomForEvent(&raw mut eventBuf, EVENT_TASK_CREATE as EventTypeNum);
     postEventHeader(&raw mut eventBuf, EVENT_TASK_CREATE as EventTypeNum);
     postTaskId(&raw mut eventBuf, taskId);
     postCapNo(&raw mut eventBuf, capno);
     postKernelThreadId(&raw mut eventBuf, tid);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            961,
+        );
+    }
 }
 
 unsafe fn postTaskMigrateEvent(
@@ -767,22 +1049,79 @@ unsafe fn postTaskMigrateEvent(
     mut capno: EventCapNo,
     mut new_capno: EventCapNo,
 ) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            968,
+            __r,
+        );
+    }
+
     ensureRoomForEvent(&raw mut eventBuf, EVENT_TASK_MIGRATE as EventTypeNum);
     postEventHeader(&raw mut eventBuf, EVENT_TASK_MIGRATE as EventTypeNum);
     postTaskId(&raw mut eventBuf, taskId);
     postCapNo(&raw mut eventBuf, capno);
     postCapNo(&raw mut eventBuf, new_capno);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            977,
+        );
+    }
 }
 
 unsafe fn postTaskDeleteEvent(mut taskId: EventTaskId) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            982,
+            __r,
+        );
+    }
+
     ensureRoomForEvent(&raw mut eventBuf, EVENT_TASK_DELETE as EventTypeNum);
     postEventHeader(&raw mut eventBuf, EVENT_TASK_DELETE as EventTypeNum);
     postTaskId(&raw mut eventBuf, taskId);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            989,
+        );
+    }
 }
 
 unsafe fn postEventNoCap(mut tag: EventTypeNum) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            995,
+            __r,
+        );
+    }
+
     ensureRoomForEvent(&raw mut eventBuf, tag);
     postEventHeader(&raw mut eventBuf, tag);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            998,
+        );
+    }
 }
 
 unsafe fn postEvent(mut cap: *mut Capability, mut tag: EventTypeNum) {
@@ -831,12 +1170,31 @@ unsafe fn postLogMsg(
 }
 
 unsafe fn postMsg(mut msg: *mut c_char, mut ap: VaList) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1042,
+            __r,
+        );
+    }
+
     postLogMsg(
         &raw mut eventBuf,
         EVENT_LOG_MSG as EventTypeNum,
         msg,
         ap.as_va_list(),
     );
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1044,
+        );
+    }
 }
 
 unsafe fn postCapMsg(mut cap: *mut Capability, mut msg: *mut c_char, mut ap: VaList) {
@@ -938,12 +1296,42 @@ unsafe fn postConcUpdRemSetFlush(mut cap: *mut Capability) {
 }
 
 unsafe fn postConcMarkEnd(mut marked_obj_count: StgWord32) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1138,
+            __r,
+        );
+    }
+
     ensureRoomForEvent(&raw mut eventBuf, EVENT_CONC_MARK_END as EventTypeNum);
     postEventHeader(&raw mut eventBuf, EVENT_CONC_MARK_END as EventTypeNum);
     postWord32(&raw mut eventBuf, marked_obj_count);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1142,
+        );
+    }
 }
 
 unsafe fn postNonmovingHeapCensus(mut blk_size: u16, mut census: *const NonmovingAllocCensus) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1148,
+            __r,
+        );
+    }
+
     postEventHeader(
         &raw mut eventBuf,
         EVENT_NONMOVING_HEAP_CENSUS as EventTypeNum,
@@ -952,15 +1340,42 @@ unsafe fn postNonmovingHeapCensus(mut blk_size: u16, mut census: *const Nonmovin
     postWord32(&raw mut eventBuf, (*census).n_active_segs as StgWord32);
     postWord32(&raw mut eventBuf, (*census).n_filled_segs as StgWord32);
     postWord32(&raw mut eventBuf, (*census).n_live_blocks as StgWord32);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1154,
+        );
+    }
 }
 
 unsafe fn postNonmovingPrunedSegments(mut pruned_segments: u32, mut free_segments: u32) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1159,
+            __r,
+        );
+    }
+
     postEventHeader(
         &raw mut eventBuf,
         EVENT_NONMOVING_PRUNED_SEGMENTS as EventTypeNum,
     );
     postWord32(&raw mut eventBuf, pruned_segments as StgWord32);
     postWord32(&raw mut eventBuf, free_segments as StgWord32);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1163,
+        );
+    }
 }
 
 unsafe fn closeBlockMarker(mut ebuf: *mut EventsBuf) {
@@ -1008,6 +1423,17 @@ unsafe fn getHeapProfBreakdown() -> HeapProfBreakdown {
 }
 
 unsafe fn postHeapProfBegin(mut profile_id: StgWord8) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1224,
+            __r,
+        );
+    }
+
     let mut flags: *mut PROFILING_FLAGS = &raw mut RtsFlags.ProfFlags;
 
     let mut modSelector_len: StgWord = (if !(*flags).modSelector.is_null() {
@@ -1083,9 +1509,28 @@ unsafe fn postHeapProfBegin(mut profile_id: StgWord8) {
         retainerSelector_len,
     );
     postStringLen(&raw mut eventBuf, (*flags).bioSelector, bioSelector_len);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1257,
+        );
+    }
 }
 
 unsafe fn postHeapProfSampleBegin(mut era: StgInt) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1262,
+            __r,
+        );
+    }
+
     ensureRoomForEvent(
         &raw mut eventBuf,
         EVENT_HEAP_PROF_SAMPLE_BEGIN as EventTypeNum,
@@ -1095,9 +1540,28 @@ unsafe fn postHeapProfSampleBegin(mut era: StgInt) {
         EVENT_HEAP_PROF_SAMPLE_BEGIN as EventTypeNum,
     );
     postWord64(&raw mut eventBuf, era as StgWord64);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1266,
+        );
+    }
 }
 
 unsafe fn postHeapBioProfSampleBegin(mut era: StgInt, mut time: StgWord64) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1272,
+            __r,
+        );
+    }
+
     ensureRoomForEvent(
         &raw mut eventBuf,
         EVENT_HEAP_BIO_PROF_SAMPLE_BEGIN as EventTypeNum,
@@ -1109,9 +1573,28 @@ unsafe fn postHeapBioProfSampleBegin(mut era: StgInt, mut time: StgWord64) {
     );
     postWord64(&raw mut eventBuf, era as StgWord64);
     postWord64(&raw mut eventBuf, time);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1277,
+        );
+    }
 }
 
 unsafe fn postHeapProfSampleEnd(mut era: StgInt) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1282,
+            __r,
+        );
+    }
+
     ensureRoomForEvent(
         &raw mut eventBuf,
         EVENT_HEAP_PROF_SAMPLE_END as EventTypeNum,
@@ -1121,6 +1604,14 @@ unsafe fn postHeapProfSampleEnd(mut era: StgInt) {
         EVENT_HEAP_PROF_SAMPLE_END as EventTypeNum,
     );
     postWord64(&raw mut eventBuf, era as StgWord64);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1286,
+        );
+    }
 }
 
 unsafe fn postHeapProfSampleString(
@@ -1128,6 +1619,17 @@ unsafe fn postHeapProfSampleString(
     mut label: *const c_char,
     mut residency: StgWord64,
 ) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1293,
+            __r,
+        );
+    }
+
     let mut label_len: StgWord = strlen(label) as StgWord;
     let mut len: StgWord = ((1 as i32 + 8 as i32) as StgWord)
         .wrapping_add(label_len)
@@ -1146,6 +1648,328 @@ unsafe fn postHeapProfSampleString(
     postWord8(&raw mut eventBuf, profile_id);
     postWord64(&raw mut eventBuf, residency);
     postStringLen(&raw mut eventBuf, label, label_len);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1302,
+        );
+    }
+}
+
+unsafe fn postHeapProfCostCentre(
+    mut ccID: StgWord32,
+    mut label: *const c_char,
+    mut module: *const c_char,
+    mut srcloc: *const c_char,
+    mut is_caf: StgBool,
+) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1312,
+            __r,
+        );
+    }
+
+    let mut label_len: StgWord = strlen(label) as StgWord;
+    let mut module_len: StgWord = strlen(module) as StgWord;
+    let mut srcloc_len: StgWord = strlen(srcloc) as StgWord;
+    let mut len: StgWord = (4 as StgWord)
+        .wrapping_add(label_len)
+        .wrapping_add(module_len)
+        .wrapping_add(srcloc_len)
+        .wrapping_add(3 as StgWord)
+        .wrapping_add(1 as StgWord);
+
+    if (ensureRoomForVariableEvent(&raw mut eventBuf, len) == 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1317);
+    }
+
+    postEventHeader(
+        &raw mut eventBuf,
+        EVENT_HEAP_PROF_COST_CENTRE as EventTypeNum,
+    );
+    postPayloadSize(&raw mut eventBuf, len as EventPayloadSize);
+    postWord32(&raw mut eventBuf, ccID);
+    postStringLen(&raw mut eventBuf, label, label_len);
+    postStringLen(&raw mut eventBuf, module, module_len);
+    postStringLen(&raw mut eventBuf, srcloc, srcloc_len);
+    postWord8(&raw mut eventBuf, is_caf as StgWord8);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1325,
+        );
+    }
+}
+
+unsafe fn postHeapProfSampleCostCentre(
+    mut profile_id: StgWord8,
+    mut stack: *mut CostCentreStack,
+    mut residency: StgWord64,
+) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1332,
+            __r,
+        );
+    }
+
+    let mut depth: StgWord = 0;
+    let mut ccs = null_mut::<CostCentreStack>();
+    ccs = stack;
+
+    while !ccs.is_null() && ccs != &raw mut CCS_MAIN as *mut CostCentreStack {
+        depth = depth.wrapping_add(1);
+        ccs = (*ccs).prevStack as *mut CostCentreStack;
+    }
+
+    if depth > 0xff {
+        depth = 0xff;
+    }
+
+    let mut len: StgWord = ((1 as i32 + 8 as i32 + 1 as i32) as StgWord)
+        .wrapping_add(depth.wrapping_mul(4 as StgWord));
+
+    if (ensureRoomForVariableEvent(&raw mut eventBuf, len) == 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1340);
+    }
+
+    postEventHeader(
+        &raw mut eventBuf,
+        EVENT_HEAP_PROF_SAMPLE_COST_CENTRE as EventTypeNum,
+    );
+
+    postPayloadSize(&raw mut eventBuf, len as EventPayloadSize);
+    postWord8(&raw mut eventBuf, profile_id);
+    postWord64(&raw mut eventBuf, residency);
+    postWord8(&raw mut eventBuf, depth as StgWord8);
+    ccs = stack;
+
+    while depth > 0 && !ccs.is_null() && ccs != &raw mut CCS_MAIN as *mut CostCentreStack {
+        postWord32(&raw mut eventBuf, (*(*ccs).cc).ccID as StgWord32);
+        ccs = (*ccs).prevStack as *mut CostCentreStack;
+        depth = depth.wrapping_sub(1);
+    }
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1350,
+        );
+    }
+}
+
+unsafe fn postProfSampleCostCentre(
+    mut cap: *mut Capability,
+    mut stack: *mut CostCentreStack,
+    mut tick: StgWord64,
+) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1358,
+            __r,
+        );
+    }
+
+    let mut depth: StgWord = 0;
+    let mut ccs = null_mut::<CostCentreStack>();
+    ccs = stack;
+
+    while !ccs.is_null() && ccs != &raw mut CCS_MAIN as *mut CostCentreStack {
+        depth = depth.wrapping_add(1);
+        ccs = (*ccs).prevStack as *mut CostCentreStack;
+    }
+
+    if depth > 0xff {
+        depth = 0xff;
+    }
+
+    let mut len: StgWord = ((4 as i32 + 8 as i32 + 1 as i32) as StgWord)
+        .wrapping_add(depth.wrapping_mul(4 as StgWord));
+
+    if (ensureRoomForVariableEvent(&raw mut eventBuf, len) == 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1366);
+    }
+
+    postEventHeader(
+        &raw mut eventBuf,
+        EVENT_PROF_SAMPLE_COST_CENTRE as EventTypeNum,
+    );
+    postPayloadSize(&raw mut eventBuf, len as EventPayloadSize);
+    postWord32(&raw mut eventBuf, (*cap).no as StgWord32);
+    postWord64(&raw mut eventBuf, tick);
+    postWord8(&raw mut eventBuf, depth as StgWord8);
+    ccs = stack;
+
+    while depth > 0 && !ccs.is_null() && ccs != &raw mut CCS_MAIN as *mut CostCentreStack {
+        postWord32(&raw mut eventBuf, (*(*ccs).cc).ccID as StgWord32);
+        ccs = (*ccs).prevStack as *mut CostCentreStack;
+        depth = depth.wrapping_sub(1);
+    }
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1376,
+        );
+    }
+}
+
+unsafe fn postProfBegin() {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1384,
+            __r,
+        );
+    }
+
+    postEventHeader(&raw mut eventBuf, EVENT_PROF_BEGIN as EventTypeNum);
+    postWord64(
+        &raw mut eventBuf,
+        RtsFlags.MiscFlags.tickInterval as StgWord64,
+    );
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1388,
+        );
+    }
+}
+
+unsafe fn postTickyCounterDef(mut eb: *mut EventsBuf, mut p: *mut StgEntCounter) {
+    let mut arg_kinds_len: StgWord = strlen((*p).arg_kinds) as StgWord;
+    let mut str_len: StgWord = strlen((*p).str) as StgWord;
+    let mut ticky_json_len: StgWord = strlen((*p).ticky_json) as StgWord;
+    let mut len: StgWord = ((8 as i32 + 2 as i32) as StgWord)
+        .wrapping_add(arg_kinds_len)
+        .wrapping_add(1 as StgWord)
+        .wrapping_add(str_len)
+        .wrapping_add(1 as StgWord)
+        .wrapping_add(8 as StgWord)
+        .wrapping_add(ticky_json_len)
+        .wrapping_add(1 as StgWord);
+
+    if (ensureRoomForVariableEvent(eb, len) == 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1399);
+    }
+
+    postEventHeader(eb, EVENT_TICKY_COUNTER_DEF as EventTypeNum);
+    postPayloadSize(eb, len as EventPayloadSize);
+    postWord64(eb, p as usize as StgWord64);
+    postWord16(eb, (*p).arity as StgWord16);
+    postStringLen(eb, (*p).arg_kinds, arg_kinds_len);
+    postStringLen(eb, (*p).str, str_len);
+    postWord64(eb, INFO_PTR_TO_STRUCT((*p).info) as StgWord64);
+    postStringLen(eb, (*p).ticky_json, ticky_json_len);
+}
+
+unsafe fn postTickyCounterDefs(mut counters: *mut StgEntCounter) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1414,
+            __r,
+        );
+    }
+
+    let mut p = counters;
+
+    while !p.is_null() {
+        postTickyCounterDef(&raw mut eventBuf, p);
+        p = (*p).link as *mut StgEntCounter;
+    }
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1418,
+        );
+    }
+}
+
+unsafe fn postTickyCounterSample(mut eb: *mut EventsBuf, mut p: *mut StgEntCounter) {
+    if (*p).entry_count == 0 && (*p).allocs == 0 && (*p).allocd == 0 {
+        return;
+    }
+
+    ensureRoomForEvent(eb, EVENT_TICKY_COUNTER_SAMPLE as EventTypeNum);
+    postEventHeader(eb, EVENT_TICKY_COUNTER_SAMPLE as EventTypeNum);
+    postWord64(eb, p as usize as StgWord64);
+    postWord64(eb, (*p).entry_count as StgWord64);
+    postWord64(eb, (*p).allocs as StgWord64);
+    postWord64(eb, (*p).allocd as StgWord64);
+    (*p).entry_count = 0;
+    (*p).allocs = 0;
+    (*p).allocd = 0;
+}
+
+unsafe fn postTickyCounterSamples(mut counters: *mut StgEntCounter) {
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1442,
+            __r,
+        );
+    }
+
+    ensureRoomForEvent(
+        &raw mut eventBuf,
+        EVENT_TICKY_COUNTER_SAMPLE as EventTypeNum,
+    );
+    postEventHeader(
+        &raw mut eventBuf,
+        EVENT_TICKY_COUNTER_BEGIN_SAMPLE as EventTypeNum,
+    );
+
+    let mut p = counters;
+
+    while !p.is_null() {
+        postTickyCounterSample(&raw mut eventBuf, p);
+        p = (*p).link as *mut StgEntCounter;
+    }
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1448,
+        );
+    }
 }
 
 unsafe fn postIPE(mut ipe: *const InfoProvEnt) {
@@ -1153,6 +1977,17 @@ unsafe fn postIPE(mut ipe: *const InfoProvEnt) {
     formatClosureDescIpe(ipe, &raw mut closure_desc_buf as *mut c_char);
 
     let MAX_IPE_STRING_LEN: StgWord = 65535;
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1458,
+            __r,
+        );
+    }
+
     let mut table_name_len: StgWord =
         if (strlen((*ipe).prov.table_name) as StgWord) < MAX_IPE_STRING_LEN {
             strlen((*ipe).prov.table_name) as StgWord
@@ -1250,6 +2085,14 @@ unsafe fn postIPE(mut ipe: *const InfoProvEnt) {
     let mut colon: StgWord8 = ':' as i32 as StgWord8;
     postBuf(&raw mut eventBuf, &raw mut colon, 1);
     postStringLen(&raw mut eventBuf, (*ipe).prov.src_span, src_span_len);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1488,
+        );
+    }
 }
 
 unsafe fn printAndClearEventBuf(mut ebuf: *mut EventsBuf) {
@@ -1314,6 +2157,11 @@ unsafe fn hasRoomForVariableEvent(mut eb: *mut EventsBuf, mut payload_bytes: Stg
 unsafe fn ensureRoomForEvent(mut eb: *mut EventsBuf, mut tag: EventTypeNum) {
     if hasRoomForEvent(eb, tag) == 0 {
         printAndClearEventBuf(eb);
+
+        if (hasRoomForEvent(eb, tag) != 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1559);
+        }
     }
 }
 
@@ -1358,7 +2206,26 @@ unsafe fn flushAllCapsEventsBufs() {
         return;
     }
 
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1605,
+            __r,
+        );
+    }
+
     printAndClearEventBuf(&raw mut eventBuf);
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1607,
+        );
+    }
 
     let mut i = 0;
 
@@ -1378,8 +2245,41 @@ pub unsafe extern "C" fn flushEventLog(mut cap: *mut *mut Capability) {
         return;
     }
 
+    let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1621,
+            __r,
+        );
+    }
+
     printAndClearEventBuf(&raw mut eventBuf);
-    flushLocalEventsBuf(getCapability(0));
+
+    if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/eventlog/EventLog.c".as_ptr(),
+            1623,
+        );
+    }
+
+    let mut task = getMyTask();
+    stopAllCapabilitiesWith(cap, task, SYNC_FLUSH_EVENT_LOG);
+    flushAllCapsEventsBufs();
+
+    releaseAllCapabilities(
+        getNumCapabilities() as u32,
+        if !cap.is_null() {
+            *cap
+        } else {
+            null_mut::<Capability>()
+        },
+        task,
+    );
+
     flushEventLogWriter();
 }
 

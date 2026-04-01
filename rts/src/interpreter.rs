@@ -1,11 +1,14 @@
+use crate::disassembler::disInstr;
 use crate::ffi::hs_ffi::HsStablePtr;
 use crate::ffi::mach_deps::TAG_MASK;
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::bytecodes::{bci_BRK_FUN, bci_FLAG_LARGE_ARGS};
 use crate::ffi::rts::constants::{
     LDV_SHIFT, LDV_STATE_CREATE, TSO_STOP_AFTER_RETURN, TSO_STOP_NEXT_BREAKPOINT,
     TSO_STOPPED_ON_BREAKPOINT,
 };
-use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::flags::RtsFlags;
+use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::prof::ccs::{
     CostCentre, CostCentreStack, CostCentreStack_, enterFunCCS, era, pushCostCentre, user_era,
 };
@@ -13,8 +16,8 @@ use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::stable_ptr::deRefStablePtr;
 use crate::ffi::rts::storage::closure_macros::{
     AP_STACK_sizeW, AP_sizeW, CON_INFO_PTR_TO_STRUCT, CONSTR_sizeW, GET_CLOSURE_TAG, GET_TAG,
-    PAP_sizeW, SET_INFO, TAG_CLOSURE, UNTAG_CLOSURE, doingErasProfiling, doingLDVProfiling,
-    doingRetainerProfiling, get_fun_itbl, get_itbl, stack_frame_sizeW,
+    LOOKS_LIKE_CLOSURE_PTR, PAP_sizeW, SET_INFO, TAG_CLOSURE, UNTAG_CLOSURE, doingErasProfiling,
+    doingLDVProfiling, doingRetainerProfiling, get_fun_itbl, get_itbl, stack_frame_sizeW,
 };
 use crate::ffi::rts::storage::closure_types::{BCO, RET_BCO, STOP_FRAME};
 use crate::ffi::rts::storage::closures::{
@@ -22,7 +25,7 @@ use crate::ffi::rts::storage::closures::{
     StgUpdateFrame,
 };
 use crate::ffi::rts::storage::gc::allocate;
-use crate::ffi::rts::storage::info_tables::StgLargeBitmap;
+use crate::ffi::rts::storage::info_tables::{StgLargeBitmap, closure_flags};
 use crate::ffi::rts::storage::tso::{StgStack, tso_SpLim};
 use crate::ffi::rts::threads::{resumeThread, suspendThread};
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
@@ -59,11 +62,13 @@ use crate::ffi::stg::types::{
 use crate::ffi::stg::{I_, P_, PK_DBL, PK_FLT, W_};
 use crate::ffi::{ffi_call, ffi_type_void};
 use crate::prelude::*;
+use crate::printer::{printClosure, printObj, printStackChunk};
+use crate::profiling::fprintCCS;
+use crate::sm::sanity::{checkStackChunk, checkStackFrame};
 use crate::sm::storage::doYouWantToGC;
 use crate::thread_paused::threadPaused;
 use crate::threads::updateThunk;
 
-#[inline]
 unsafe fn allocate_NONUPD(mut cap: *mut Capability, mut n_words: i32) -> StgPtr {
     return allocate(
         cap,
@@ -81,7 +86,6 @@ unsafe fn allocate_NONUPD(mut cap: *mut Capability, mut n_words: i32) -> StgPtr 
     );
 }
 
-#[inline]
 unsafe fn is_ret_bco_frame(frame_head: StgPtr) -> i32 {
     return (frame_head as W_ == &raw const stg_ret_t_info as W_
         || frame_head as W_ == &raw const stg_ret_v_info as W_
@@ -124,7 +128,6 @@ unsafe fn interp_startup() {}
 
 unsafe fn interp_shutdown() {}
 
-#[inline]
 unsafe fn newEmptyPAP(
     mut cap: *mut Capability,
     mut tagged_obj: *mut StgClosure,
@@ -152,7 +155,7 @@ unsafe fn newEmptyPAP(
         (*(pap as *mut StgClosure)).header.prof.hp.era = user_era;
     }
 
-    (*pap).header.info = &raw const stg_PAP_info;
+    (&raw mut (*pap).header.info).store(&raw const stg_PAP_info, Ordering::Relaxed);
     (*pap).arity = arity as StgHalfWord;
     (*pap).n_args = 0;
     (*pap).fun = tagged_obj;
@@ -160,7 +163,6 @@ unsafe fn newEmptyPAP(
     return pap as *mut StgClosure;
 }
 
-#[inline]
 unsafe fn copyPAP(mut cap: *mut Capability, mut oldpap: *mut StgPAP) -> *mut StgClosure {
     let mut size: u32 = PAP_sizeW((*oldpap).n_args as u32) as u32;
     let mut pap = allocate(cap, size as W_) as *mut StgPAP;
@@ -193,7 +195,7 @@ unsafe fn copyPAP(mut cap: *mut Capability, mut oldpap: *mut StgPAP) -> *mut Stg
         (*(pap as *mut StgClosure)).header.prof.hp.era = user_era;
     }
 
-    (*pap).header.info = &raw const stg_PAP_info;
+    (&raw mut (*pap).header.info).store(&raw const stg_PAP_info, Ordering::Relaxed);
 
     return pap as *mut StgClosure;
 }
@@ -240,6 +242,11 @@ unsafe fn slow_spw(
             new_stack = (*frame).next_chunk as *mut StgStack;
             stackWords = (frame as *mut StgWord).offset_from(Sp as *mut StgWord) as i64 as StgWord;
 
+            if (offset_words > stackWords) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/Interpreter.c".as_ptr(), 557);
+            }
+
             return slow_spw(
                 (*new_stack).sp as *mut c_void,
                 new_stack,
@@ -253,7 +260,6 @@ unsafe fn slow_spw(
     };
 }
 
-#[inline]
 unsafe fn tagConstr(mut con: *mut StgClosure) -> *mut StgClosure {
     return TAG_CLOSURE(
         ({
@@ -282,6 +288,23 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
     SpLim = tso_SpLim((*cap).r.rCurrentTSO as *mut StgTSO) as *mut c_void;
     (*cap).r.rCCCS = (*(*cap).r.rCurrentTSO).prof.cccs as *mut CostCentreStack_;
     (&raw mut (*cap).r.rHpLim).store(1, Ordering::Relaxed);
+
+    if RtsFlags.DebugFlags.interpreter {
+        debugBelch(c"\n---------------------------------------------------------------\n".as_ptr());
+
+        debugBelch(c"Entering the interpreter, Sp = %p\n".as_ptr(), Sp);
+        fprintCCS(__stderrp, (*cap).r.rCCCS as *mut CostCentreStack);
+        debugBelch(c"\n".as_ptr());
+        debugBelch(c"\n".as_ptr());
+
+        printStackChunk(
+            Sp as StgPtr,
+            (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize),
+        );
+
+        debugBelch(c"\n\n".as_ptr());
+    }
 
     if (*(*cap).r.rCurrentTSO).flags & TSO_STOP_AFTER_RETURN as StgWord32 != 0 {
         let mut r#type: StgHalfWord = 0;
@@ -365,10 +388,20 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
             };
         }
 
+        if (r#type == 29 || r#type == 36) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/Interpreter.c".as_ptr(), 650);
+        }
+
         if r#type == RET_BCO as StgHalfWord {
             let mut bco = *((Sp as *mut StgWord8)
                 .offset((1 * size_of::<W_>() as ptrdiff_t) as isize)
                 as *mut c_void as *mut StgWord) as *mut StgBCO;
+
+            if ((*get_itbl(bco as *mut StgClosure)).r#type == 23) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/Interpreter.c".as_ptr(), 654);
+            }
 
             let mut instrs = &raw mut (*(*bco).instrs).payload as *mut StgWord as *mut StgWord16;
 
@@ -438,7 +471,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
     {
         Sp = (Sp as *mut StgWord8).offset((1 * size_of::<W_>() as ptrdiff_t) as isize)
             as *mut c_void;
-        current_block = 6565897764251647983;
+        current_block = 12446576917863742224;
     } else if *((Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
         as *mut c_void as *mut StgWord)
         == &raw const stg_apply_interp_info as W_
@@ -466,7 +499,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
 
         Sp = (Sp as *mut StgWord8).offset((2 * size_of::<W_>() as ptrdiff_t) as isize)
             as *mut c_void;
-        current_block = 7499465236084769340;
+        current_block = 4352434474643284897;
     } else if *((Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
         as *mut c_void as *mut StgWord)
         == &raw const stg_ret_p_info as W_
@@ -491,14 +524,14 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
 
         Sp = (Sp as *mut StgWord8).offset((2 * size_of::<W_>() as ptrdiff_t) as isize)
             as *mut c_void;
-        current_block = 2959291114893992747;
+        current_block = 5739065528469071005;
     } else {
-        current_block = 15908231092227701503;
+        current_block = 12691661418490471423;
     }
 
-    's_1600: loop {
+    '_run_BCO_fun: loop {
         match current_block {
-            6565897764251647983 => {
+            12446576917863742224 => {
                 tagged_obj = *((if (((Sp as *mut StgWord8)
                     .offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
                     as *mut c_void as *mut StgWord)
@@ -525,14 +558,41 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                 loop {
                     obj = UNTAG_CLOSURE(tagged_obj);
 
+                    if RtsFlags.DebugFlags.interpreter {
+                        debugBelch(
+                            c"\n---------------------------------------------------------------\n"
+                                .as_ptr(),
+                        );
+
+                        debugBelch(c"Evaluating: ".as_ptr());
+                        printObj(obj);
+                        debugBelch(c"Sp = %p\n".as_ptr(), Sp);
+                        fprintCCS(__stderrp, (*cap).r.rCCCS as *mut CostCentreStack);
+                        debugBelch(c"\n".as_ptr());
+                        debugBelch(c"\n".as_ptr());
+
+                        printStackChunk(
+                            Sp as StgPtr,
+                            (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                                .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize),
+                        );
+
+                        debugBelch(c"\n\n".as_ptr());
+                    }
+
+                    if RtsFlags.DebugFlags.sanity {
+                        checkStackFrame(Sp as StgPtr);
+                    }
+
                     match (*get_itbl(obj)).r#type {
                         27 | 28 => {
-                            tagged_obj = (*(obj as *mut StgInd)).indirectee;
+                            tagged_obj = (&raw mut (*(obj as *mut StgInd)).indirectee)
+                                .load(Ordering::Acquire);
                         }
                         1 | 2 | 3 | 4 | 5 | 6 | 7 => {
                             tagged_obj = tagConstr(obj);
-                            current_block = 2959291114893992747;
-                            continue 's_1600;
+                            current_block = 5739065528469071005;
+                            continue '_run_BCO_fun;
                         }
                         8 | 9 | 10 | 11 | 12 | 13 | 14 => {
                             if (*cap).r.rCCCS != (*obj).header.prof.ccs {
@@ -549,25 +609,30 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                 );
                             }
 
-                            current_block = 2959291114893992747;
-                            continue 's_1600;
+                            current_block = 5739065528469071005;
+                            continue '_run_BCO_fun;
                         }
                         25 => {
                             if (*cap).r.rCCCS != (*obj).header.prof.ccs {
                                 tagged_obj = copyPAP(cap, obj as *mut StgPAP);
                             }
 
-                            current_block = 2959291114893992747;
-                            continue 's_1600;
+                            current_block = 5739065528469071005;
+                            continue '_run_BCO_fun;
                         }
                         23 => {
+                            if ((*(obj as *mut StgBCO)).arity > 0) as i32 as i64 != 0 {
+                            } else {
+                                _assertFail(c"rts/Interpreter.c".as_ptr(), 850);
+                            }
+
                             if (*cap).r.rCCCS != (*obj).header.prof.ccs {
                                 tagged_obj =
                                     newEmptyPAP(cap, obj, (*(obj as *mut StgBCO)).arity as u32);
                             }
 
-                            current_block = 2959291114893992747;
-                            continue 's_1600;
+                            current_block = 5739065528469071005;
+                            continue '_run_BCO_fun;
                         }
                         24 => {
                             let mut i_0: u32 = 0;
@@ -660,10 +725,24 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                             }
 
                             obj = UNTAG_CLOSURE((*ap).fun);
-                            current_block = 7499465236084769340;
-                            continue 's_1600;
+
+                            if ((*get_itbl(obj)).r#type == 23) as i32 as i64 != 0 {
+                            } else {
+                                _assertFail(c"rts/Interpreter.c".as_ptr(), 898);
+                            }
+
+                            current_block = 4352434474643284897;
+                            continue '_run_BCO_fun;
                         }
                         _ => {
+                            if RtsFlags.DebugFlags.interpreter {
+                                debugBelch(
+                                    c"evaluating unknown closure -- yielding to sched\n".as_ptr(),
+                                );
+
+                                printObj(obj);
+                            }
+
                             Sp = (Sp as *mut StgWord8)
                                 .offset(-((2 * size_of::<W_>() as ptrdiff_t) as isize))
                                 as *mut c_void;
@@ -695,8 +774,43 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                     }
                 }
             }
-            2959291114893992747 => {
+            5739065528469071005 => {
                 obj = UNTAG_CLOSURE(tagged_obj);
+
+                if LOOKS_LIKE_CLOSURE_PTR(obj as *const c_void) as i32 as i64 != 0 {
+                } else {
+                    _assertFail(c"rts/Interpreter.c".as_ptr(), 937);
+                }
+
+                if RtsFlags.DebugFlags.interpreter {
+                    debugBelch(
+                        c"\n---------------------------------------------------------------\n"
+                            .as_ptr(),
+                    );
+
+                    debugBelch(c"Returning closure: ".as_ptr());
+                    printObj(obj);
+                    debugBelch(c"Sp = %p\n".as_ptr(), Sp);
+                    fprintCCS(__stderrp, (*cap).r.rCCCS as *mut CostCentreStack);
+                    debugBelch(c"\n".as_ptr());
+                    debugBelch(c"\n".as_ptr());
+
+                    printStackChunk(
+                        Sp as StgPtr,
+                        (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                            .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize),
+                    );
+
+                    debugBelch(c"\n\n".as_ptr());
+                }
+
+                if RtsFlags.DebugFlags.sanity {
+                    checkStackChunk(
+                        Sp as StgPtr,
+                        (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                            .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize),
+                    );
+                }
 
                 match (*get_itbl(Sp as *mut StgClosure)).r#type {
                     30 => {
@@ -747,7 +861,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                             Sp = (Sp as *mut StgWord8)
                                 .offset((2 * size_of::<W_>() as ptrdiff_t) as isize)
                                 as *mut c_void;
-                            current_block = 2959291114893992747;
+                            current_block = 5739065528469071005;
                             continue;
                         } else {
                             if info
@@ -823,12 +937,17 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                     == &raw const stg_ap_pppppp_info as *mut StgInfoTable
                                         as *const StgInfoTable)
                                 {
-                                    current_block = 4281248088780876322;
+                                    current_block = 3872477263874733433;
                                     break;
                                 }
 
                                 n = 6;
                                 m = 6;
+                            }
+
+                            if (obj == UNTAG_CLOSURE(tagged_obj)) as i32 as i64 != 0 {
+                            } else {
+                                _assertFail(c"rts/Interpreter.c".as_ptr(), 1207);
                             }
 
                             match (*get_itbl(obj)).r#type {
@@ -841,7 +960,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                     if (*get_itbl(UNTAG_CLOSURE((*pap).fun))).r#type
                                         != BCO as StgHalfWord
                                     {
-                                        current_block = 5600328731811258759;
+                                        current_block = 4198153499801267532;
                                         break;
                                     }
 
@@ -879,6 +998,11 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                         .offset((1 * size_of::<W_>() as ptrdiff_t) as isize)
                                         as *mut c_void;
                                     arity_0 = (*pap).arity as u32;
+
+                                    if (arity_0 > 0) as i32 as i64 != 0 {
+                                    } else {
+                                        _assertFail(c"rts/Interpreter.c".as_ptr(), 1237);
+                                    }
 
                                     if arity_0 < n {
                                         i_1 = 0;
@@ -973,7 +1097,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
 
                                         obj = UNTAG_CLOSURE((*pap).fun);
                                         enterFunCCS(&raw mut (*cap).r, (*pap).header.prof.ccs);
-                                        current_block = 7499465236084769340;
+                                        current_block = 4352434474643284897;
                                         continue;
                                     } else if arity_0 == n {
                                         Sp = (Sp as *mut StgWord8).offset(
@@ -1001,7 +1125,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
 
                                         obj = UNTAG_CLOSURE((*pap).fun);
                                         enterFunCCS(&raw mut (*cap).r, (*pap).header.prof.ccs);
-                                        current_block = 7499465236084769340;
+                                        current_block = 4352434474643284897;
                                         continue;
                                     } else {
                                         let mut new_pap = null_mut::<StgPAP>();
@@ -1104,7 +1228,8 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                                 user_era;
                                         }
 
-                                        (*new_pap).header.info = &raw const stg_PAP_info;
+                                        (&raw mut (*new_pap).header.info)
+                                            .store(&raw const stg_PAP_info, Ordering::Relaxed);
                                         tagged_obj = new_pap as *mut StgClosure;
                                         Sp = (Sp as *mut StgWord8).offset(
                                             (m as ptrdiff_t * size_of::<W_>() as ptrdiff_t)
@@ -1112,7 +1237,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                         )
                                             as *mut c_void;
 
-                                        current_block = 2959291114893992747;
+                                        current_block = 5739065528469071005;
                                         continue;
                                     }
                                 }
@@ -1123,6 +1248,11 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                         .offset((1 * size_of::<W_>() as ptrdiff_t) as isize)
                                         as *mut c_void;
                                     arity_1 = (*(obj as *mut StgBCO)).arity as u32;
+
+                                    if (arity_1 > 0) as i32 as i64 != 0 {
+                                    } else {
+                                        _assertFail(c"rts/Interpreter.c".as_ptr(), 1300);
+                                    }
 
                                     if arity_1 < n {
                                         i_2 = 0;
@@ -1192,11 +1322,11 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                         Sp = (Sp as *mut StgWord8)
                                             .offset(-((1 * size_of::<W_>() as ptrdiff_t) as isize))
                                             as *mut c_void;
-                                        current_block = 7499465236084769340;
+                                        current_block = 4352434474643284897;
                                         continue;
                                     } else {
                                         if arity_1 == n {
-                                            current_block = 7499465236084769340;
+                                            current_block = 4352434474643284897;
                                             continue;
                                         }
 
@@ -1274,7 +1404,8 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                                 user_era;
                                         }
 
-                                        (*pap_0).header.info = &raw const stg_PAP_info;
+                                        (&raw mut (*pap_0).header.info)
+                                            .store(&raw const stg_PAP_info, Ordering::Relaxed);
                                         tagged_obj = pap_0 as *mut StgClosure;
                                         Sp = (Sp as *mut StgWord8).offset(
                                             (m as ptrdiff_t * size_of::<W_>() as ptrdiff_t)
@@ -1282,12 +1413,12 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                         )
                                             as *mut c_void;
 
-                                        current_block = 2959291114893992747;
+                                        current_block = 5739065528469071005;
                                         continue;
                                     }
                                 }
                                 _ => {
-                                    current_block = 5600328731811258759;
+                                    current_block = 4198153499801267532;
                                     break;
                                 }
                             }
@@ -1311,7 +1442,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                 as isize,
                         ) as *mut c_void;
 
-                        current_block = 2959291114893992747;
+                        current_block = 5739065528469071005;
                         continue;
                     }
                     29 => {
@@ -1336,6 +1467,11 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                             slow_spw(Sp, (*(*cap).r.rCurrentTSO).stackobj as *mut StgStack, 1)
                         }) as *mut StgWord) as *mut StgClosure;
 
+                        if ((*get_itbl(obj)).r#type == 23) as i32 as i64 != 0 {
+                        } else {
+                            _assertFail(c"rts/Interpreter.c".as_ptr(), 1031);
+                        }
+
                         if doYouWantToGC(cap) {
                             Sp = (Sp as *mut StgWord8)
                                 .offset(-((2 * size_of::<W_>() as ptrdiff_t) as isize))
@@ -1356,6 +1492,36 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
 
                             return cap;
                         } else {
+                            if (*((if (((Sp as *mut StgWord8)
+                                .offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                                as *mut c_void
+                                as *mut StgWord)
+                                < (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack
+                                    as *mut StgWord)
+                                    .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize)
+                                    .offset(
+                                        -((size_of::<StgUnderflowFrame>() as usize)
+                                            .wrapping_add(size_of::<W_>() as usize)
+                                            .wrapping_sub(1 as usize)
+                                            .wrapping_div(size_of::<W_>() as usize)
+                                            as isize),
+                                    )) as i32 as i64
+                                != 0
+                            {
+                                (Sp as *mut StgWord8)
+                                    .offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                                    as *mut c_void
+                            } else {
+                                slow_spw(Sp, (*(*cap).r.rCurrentTSO).stackobj as *mut StgStack, 0)
+                            }) as *mut StgWord)
+                                == &raw const stg_ctoi_R1p_info as W_)
+                                as i32 as i64
+                                != 0
+                            {
+                            } else {
+                                _assertFail(c"rts/Interpreter.c".as_ptr(), 1046);
+                            }
+
                             Sp = (Sp as *mut StgWord8)
                                 .offset(-((2 * size_of::<W_>() as ptrdiff_t) as isize))
                                 as *mut c_void;
@@ -1369,13 +1535,161 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                         }
                     }
                     _ => {
-                        current_block = 4281248088780876322;
+                        current_block = 3872477263874733433;
                         break;
                     }
                 }
             }
-            15908231092227701503 => {
+            12691661418490471423 => {
                 let mut offset: i32 = 0;
+
+                if (*((if (((Sp as *mut StgWord8)
+                    .offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                    as *mut c_void as *mut StgWord)
+                    < (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                        .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize)
+                        .offset(
+                            -((size_of::<StgUnderflowFrame>() as usize)
+                                .wrapping_add(size_of::<W_>() as usize)
+                                .wrapping_sub(1 as usize)
+                                .wrapping_div(size_of::<W_>() as usize)
+                                as isize),
+                        )) as i32 as i64
+                    != 0
+                {
+                    (Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                        as *mut c_void
+                } else {
+                    slow_spw(Sp, (*(*cap).r.rCurrentTSO).stackobj as *mut StgStack, 0)
+                }) as *mut StgWord)
+                    == &raw const stg_ret_v_info as W_
+                    || *((if (((Sp as *mut StgWord8)
+                        .offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                        as *mut c_void as *mut StgWord)
+                        < (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                            .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize)
+                            .offset(
+                                -((size_of::<StgUnderflowFrame>() as usize)
+                                    .wrapping_add(size_of::<W_>() as usize)
+                                    .wrapping_sub(1 as usize)
+                                    .wrapping_div(size_of::<W_>() as usize)
+                                    as isize),
+                            )) as i32 as i64
+                        != 0
+                    {
+                        (Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                            as *mut c_void
+                    } else {
+                        slow_spw(Sp, (*(*cap).r.rCurrentTSO).stackobj as *mut StgStack, 0)
+                    }) as *mut StgWord)
+                        == &raw const stg_ret_n_info as W_
+                    || *((if (((Sp as *mut StgWord8)
+                        .offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                        as *mut c_void as *mut StgWord)
+                        < (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                            .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize)
+                            .offset(
+                                -((size_of::<StgUnderflowFrame>() as usize)
+                                    .wrapping_add(size_of::<W_>() as usize)
+                                    .wrapping_sub(1 as usize)
+                                    .wrapping_div(size_of::<W_>() as usize)
+                                    as isize),
+                            )) as i32 as i64
+                        != 0
+                    {
+                        (Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                            as *mut c_void
+                    } else {
+                        slow_spw(Sp, (*(*cap).r.rCurrentTSO).stackobj as *mut StgStack, 0)
+                    }) as *mut StgWord)
+                        == &raw const stg_ret_f_info as W_
+                    || *((if (((Sp as *mut StgWord8)
+                        .offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                        as *mut c_void as *mut StgWord)
+                        < (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                            .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize)
+                            .offset(
+                                -((size_of::<StgUnderflowFrame>() as usize)
+                                    .wrapping_add(size_of::<W_>() as usize)
+                                    .wrapping_sub(1 as usize)
+                                    .wrapping_div(size_of::<W_>() as usize)
+                                    as isize),
+                            )) as i32 as i64
+                        != 0
+                    {
+                        (Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                            as *mut c_void
+                    } else {
+                        slow_spw(Sp, (*(*cap).r.rCurrentTSO).stackobj as *mut StgStack, 0)
+                    }) as *mut StgWord)
+                        == &raw const stg_ret_d_info as W_
+                    || *((if (((Sp as *mut StgWord8)
+                        .offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                        as *mut c_void as *mut StgWord)
+                        < (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                            .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize)
+                            .offset(
+                                -((size_of::<StgUnderflowFrame>() as usize)
+                                    .wrapping_add(size_of::<W_>() as usize)
+                                    .wrapping_sub(1 as usize)
+                                    .wrapping_div(size_of::<W_>() as usize)
+                                    as isize),
+                            )) as i32 as i64
+                        != 0
+                    {
+                        (Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                            as *mut c_void
+                    } else {
+                        slow_spw(Sp, (*(*cap).r.rCurrentTSO).stackobj as *mut StgStack, 0)
+                    }) as *mut StgWord)
+                        == &raw const stg_ret_l_info as W_
+                    || *((if (((Sp as *mut StgWord8)
+                        .offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                        as *mut c_void as *mut StgWord)
+                        < (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                            .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize)
+                            .offset(
+                                -((size_of::<StgUnderflowFrame>() as usize)
+                                    .wrapping_add(size_of::<W_>() as usize)
+                                    .wrapping_sub(1 as usize)
+                                    .wrapping_div(size_of::<W_>() as usize)
+                                    as isize),
+                            )) as i32 as i64
+                        != 0
+                    {
+                        (Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                            as *mut c_void
+                    } else {
+                        slow_spw(Sp, (*(*cap).r.rCurrentTSO).stackobj as *mut StgStack, 0)
+                    }) as *mut StgWord)
+                        == &raw const stg_ret_t_info as W_) as i32 as i64
+                    != 0
+                {
+                } else {
+                    _assertFail(c"rts/Interpreter.c".as_ptr(), 1107);
+                }
+
+                if RtsFlags.DebugFlags.interpreter {
+                    debugBelch(
+                        c"\n---------------------------------------------------------------\n"
+                            .as_ptr(),
+                    );
+
+                    debugBelch(c"Returning nonpointer\n".as_ptr());
+                    debugBelch(c"Sp = %p\n".as_ptr(), Sp);
+                    fprintCCS(__stderrp, (*cap).r.rCCCS as *mut CostCentreStack);
+                    debugBelch(c"\n".as_ptr());
+                    debugBelch(c"\n".as_ptr());
+
+                    printStackChunk(
+                        Sp as StgPtr,
+                        (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                            .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize),
+                    );
+
+                    debugBelch(c"\n\n".as_ptr());
+                }
+
                 offset = stack_frame_sizeW(Sp as *mut StgClosure) as i32;
 
                 let mut next_frame = (if (((Sp as *mut StgWord8)
@@ -1430,6 +1744,11 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                             )
                         }) as *mut StgWord) as *mut StgClosure;
 
+                        if ((*get_itbl(obj)).r#type == 23) as i32 as i64 != 0 {
+                        } else {
+                            _assertFail(c"rts/Interpreter.c".as_ptr(), 1136);
+                        }
+
                         if doYouWantToGC(cap) {
                             (*(*(*cap).r.rCurrentTSO).stackobj).sp = Sp as StgPtr;
                             (*(*cap).r.rCurrentTSO).prof.cccs =
@@ -1477,6 +1796,21 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                         }
                     }
                     _ => {
+                        if RtsFlags.DebugFlags.interpreter {
+                            debugBelch(
+                                c"returning to unknown frame -- yielding to sched\n".as_ptr(),
+                            );
+
+                            printStackChunk(
+                                Sp as StgPtr,
+                                (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack
+                                    as *mut StgWord)
+                                    .offset(
+                                        (*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize,
+                                    ),
+                            );
+                        }
+
                         (*(*(*cap).r.rCurrentTSO).stackobj).sp = Sp as StgPtr;
                         (*(*cap).r.rCurrentTSO).prof.cccs = (*cap).r.rCCCS as *mut CostCentreStack;
                         (*(*cap).r.rCurrentTSO).what_next = 1;
@@ -1487,6 +1821,26 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                 }
             }
             _ => {
+                if RtsFlags.DebugFlags.sanity {
+                    Sp = (Sp as *mut StgWord8)
+                        .offset(-((2 * size_of::<W_>() as ptrdiff_t) as isize))
+                        as *mut c_void;
+                    *((Sp as *mut StgWord8).offset((1 * size_of::<W_>() as ptrdiff_t) as isize)
+                        as *mut c_void as *mut StgWord) = obj as W_ as StgWord;
+                    *((Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
+                        as *mut c_void as *mut StgWord) =
+                        &raw const stg_apply_interp_info as W_ as StgWord;
+
+                    checkStackChunk(
+                        Sp as StgPtr,
+                        (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                            .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize),
+                    );
+
+                    Sp = (Sp as *mut StgWord8).offset((2 * size_of::<W_>() as ptrdiff_t) as isize)
+                        as *mut c_void;
+                }
+
                 if doYouWantToGC(cap) {
                     Sp = (Sp as *mut StgWord8)
                         .offset(-((2 * size_of::<W_>() as ptrdiff_t) as isize))
@@ -1543,10 +1897,29 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
             .bytes
             .wrapping_div(size_of::<StgWord16>() as StgWord) as i32;
 
+        if RtsFlags.DebugFlags.interpreter {
+            debugBelch(c"bcoSize = %d\n".as_ptr(), bcoSize);
+        }
+
         loop {
-            let fresh16 = bciPtr_0;
+            if (bciPtr_0 < bcoSize) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/Interpreter.c".as_ptr(), 1480);
+            }
+
+            if RtsFlags.DebugFlags.interpreter {
+                debugBelch(c"Sp = %p   pc = %-4d ".as_ptr(), Sp, bciPtr_0);
+                disInstr(bco_0, bciPtr_0);
+            }
+
+            let fresh22 = bciPtr_0;
             bciPtr_0 = bciPtr_0 + 1;
-            bci_0 = *instrs_0.offset(fresh16 as isize);
+            bci_0 = *instrs_0.offset(fresh22 as isize);
+
+            if (bci_0 as i32 & 0xff00 == bci_0 as i32 & 0x8000) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/Interpreter.c".as_ptr(), 1512);
+            }
 
             match bci_0 as i32 & 0xff {
                 bci_BRK_FUN => {
@@ -1689,6 +2062,54 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                             if is_case_cont_BCO != 0 {
                                 let mut size_returned_frame =
                                     stack_frame_sizeW(Sp as *mut StgClosure) as i32;
+
+                                if (obj
+                                    == UNTAG_CLOSURE(
+                                        *((if (((Sp as *mut StgWord8).offset(
+                                            ((size_returned_frame + 1) as ptrdiff_t
+                                                * size_of::<W_>() as ptrdiff_t)
+                                                as isize,
+                                        )
+                                            as *mut c_void
+                                            as *mut StgWord)
+                                            < (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack
+                                                as *mut StgWord)
+                                                .offset(
+                                                    (*(*(*cap).r.rCurrentTSO).stackobj).stack_size
+                                                        as isize,
+                                                )
+                                                .offset(
+                                                    -((size_of::<StgUnderflowFrame>() as usize)
+                                                        .wrapping_add(size_of::<W_>() as usize)
+                                                        .wrapping_sub(1 as usize)
+                                                        .wrapping_div(size_of::<W_>() as usize)
+                                                        as isize),
+                                                ))
+                                            as i32
+                                            as i64
+                                            != 0
+                                        {
+                                            (Sp as *mut StgWord8).offset(
+                                                ((size_returned_frame + 1) as ptrdiff_t
+                                                    * size_of::<W_>() as ptrdiff_t)
+                                                    as isize,
+                                            )
+                                                as *mut c_void
+                                        } else {
+                                            slow_spw(
+                                                Sp,
+                                                (*(*cap).r.rCurrentTSO).stackobj as *mut StgStack,
+                                                (size_returned_frame + 1) as StgWord,
+                                            )
+                                        })
+                                            as *mut StgWord)
+                                            as *mut StgClosure,
+                                    )) as i32 as i64
+                                    != 0
+                                {
+                                } else {
+                                    _assertFail(c"rts/Interpreter.c".as_ptr(), 1610);
+                                }
 
                                 let mut size_cont_frame_head = stack_frame_sizeW(
                                     (if (((Sp as *mut StgWord8).offset(
@@ -1862,7 +2283,8 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                                 (*(new_aps as *mut StgClosure)).header.prof.hp.era = user_era;
                             }
 
-                            (*new_aps).header.info = &raw const stg_AP_STACK_info;
+                            (&raw mut (*new_aps).header.info)
+                                .store(&raw const stg_AP_STACK_info, Ordering::Relaxed);
 
                             ioAction = deRefStablePtr(rts_breakpoint_io_action as StgStablePtr)
                                 as *mut StgClosure;
@@ -2639,12 +3061,23 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
 
                     let mut tagged_obj_0 = *ptrs_0.offset(o1_2 as isize) as W_ as *mut StgClosure;
 
-                    while GET_CLOSURE_TAG(tagged_obj_0) == 0 {
+                    loop {
+                        if LOOKS_LIKE_CLOSURE_PTR(tagged_obj_0 as *const c_void) as i32 as i64 != 0
+                        {
+                        } else {
+                            _assertFail(c"rts/Interpreter.c".as_ptr(), 1808);
+                        }
+
+                        if !(GET_CLOSURE_TAG(tagged_obj_0) == 0) {
+                            break;
+                        }
+
                         let mut obj_0 = UNTAG_CLOSURE(tagged_obj_0);
 
                         match (*get_itbl(obj_0)).r#type {
                             27 | 28 => {
-                                tagged_obj_0 = (*(obj_0 as *mut StgInd)).indirectee;
+                                tagged_obj_0 = (&raw mut (*(obj_0 as *mut StgInd)).indirectee)
+                                    .load(Ordering::Acquire);
                             }
                             1 | 2 | 3 | 4 | 5 | 6 | 7 => {
                                 tagged_obj_0 = tagConstr(obj_0);
@@ -3516,7 +3949,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                         (*(ap_0 as *mut StgClosure)).header.prof.hp.era = user_era;
                     }
 
-                    (*ap_0).header.info = &raw const stg_AP_info;
+                    (&raw mut (*ap_0).header.info).store(&raw const stg_AP_info, Ordering::Relaxed);
                     Sp = (Sp as *mut StgWord8)
                         .offset(-((1 * size_of::<W_>() as ptrdiff_t) as isize))
                         as *mut c_void;
@@ -3564,7 +3997,8 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                         (*(ap_1 as *mut StgClosure)).header.prof.hp.era = user_era;
                     }
 
-                    (*ap_1).header.info = &raw const stg_AP_NOUPD_info;
+                    (&raw mut (*ap_1).header.info)
+                        .store(&raw const stg_AP_NOUPD_info, Ordering::Relaxed);
                     Sp = (Sp as *mut StgWord8)
                         .offset(-((1 * size_of::<W_>() as ptrdiff_t) as isize))
                         as *mut c_void;
@@ -3633,7 +4067,8 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                         (*(pap_1 as *mut StgClosure)).header.prof.hp.era = user_era;
                     }
 
-                    (*pap_1).header.info = &raw const stg_PAP_info;
+                    (&raw mut (*pap_1).header.info)
+                        .store(&raw const stg_PAP_info, Ordering::Relaxed);
                     Sp = (Sp as *mut StgWord8)
                         .offset(-((1 * size_of::<W_>() as ptrdiff_t) as isize))
                         as *mut c_void;
@@ -3704,6 +4139,11 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                         )
                     }) as *mut StgWord) as *mut StgAP;
 
+                    if ((*ap_2).n_args == n_payload_2) as i32 as i64 != 0 {
+                    } else {
+                        _assertFail(c"rts/Interpreter.c".as_ptr(), 2163);
+                    }
+
                     (*ap_2).fun = *((if (((Sp as *mut StgWord8)
                         .offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
                         as *mut c_void as *mut StgWord)
@@ -3723,6 +4163,17 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                     } else {
                         slow_spw(Sp, (*(*cap).r.rCurrentTSO).stackobj as *mut StgStack, 0)
                     }) as *mut StgWord) as *mut StgClosure;
+
+                    if ((*get_itbl((*ap_2).fun)).r#type == 23
+                        && (*(&raw mut (*((*ap_2).fun as *mut StgBCO)).bitmap as *mut StgWord
+                            as *mut StgLargeBitmap))
+                            .size
+                            == (*ap_2).n_args as StgWord) as i32 as i64
+                        != 0
+                    {
+                    } else {
+                        _assertFail(c"rts/Interpreter.c".as_ptr(), 2169);
+                    }
 
                     i_6 = 0;
 
@@ -3766,6 +4217,11 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                         (n_payload_2.wrapping_add(1 as StgHalfWord) as ptrdiff_t
                             * size_of::<W_>() as ptrdiff_t) as isize,
                     ) as *mut c_void;
+
+                    if RtsFlags.DebugFlags.interpreter {
+                        debugBelch(c"\tBuilt ".as_ptr());
+                        printObj(ap_2 as *mut StgClosure);
+                    }
                 }
                 bci_MKPAP => {
                     let mut i_7: StgHalfWord = 0;
@@ -3833,6 +4289,11 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                         )
                     }) as *mut StgWord) as *mut StgPAP;
 
+                    if ((*pap_2).n_args == n_payload_3) as i32 as i64 != 0 {
+                    } else {
+                        _assertFail(c"rts/Interpreter.c".as_ptr(), 2187);
+                    }
+
                     (*pap_2).fun = *((if (((Sp as *mut StgWord8)
                         .offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
                         as *mut c_void as *mut StgWord)
@@ -3854,6 +4315,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                     }) as *mut StgWord) as *mut StgClosure;
 
                     if (*get_itbl((*pap_2).fun)).r#type != BCO as StgHalfWord {
+                        printClosure((*pap_2).fun);
                         barf(c"bci_MKPAP".as_ptr());
                     }
 
@@ -3899,6 +4361,11 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                         (n_payload_3.wrapping_add(1 as StgHalfWord) as ptrdiff_t
                             * size_of::<W_>() as ptrdiff_t) as isize,
                     ) as *mut c_void;
+
+                    if RtsFlags.DebugFlags.interpreter {
+                        debugBelch(c"\tBuilt ".as_ptr());
+                        printObj(pap_2 as *mut StgClosure);
+                    }
                 }
                 bci_UNPACK => {
                     let mut i_8: W_ = 0;
@@ -4007,6 +4474,29 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                     let mut request = CONSTR_sizeW(n_ptrs as u32, n_nptrs as u32) as W_;
                     let mut con_0 = allocate_NONUPD(cap, request as i32) as *mut StgClosure;
 
+                    if (*(&raw const closure_flags as *const StgWord16)
+                        .offset((*itbl).i.r#type as isize) as i32
+                        & 1 << 0
+                        != 0) as i32 as i64
+                        != 0
+                    {
+                    } else {
+                        _assertFail(c"rts/Interpreter.c".as_ptr(), 2229);
+                    }
+
+                    if (n_ptrs.wrapping_add(n_nptrs) == n_words_1 || n_nptrs == 1 && n_ptrs == 0)
+                        as i32 as i64
+                        != 0
+                    {
+                    } else {
+                        _assertFail(c"rts/Interpreter.c".as_ptr(), 2233);
+                    }
+
+                    if (n_ptrs.wrapping_add(n_nptrs) > 0) as i32 as i64 != 0 {
+                    } else {
+                        _assertFail(c"rts/Interpreter.c".as_ptr(), 2234);
+                    }
+
                     let mut i_9: W_ = 0;
 
                     while i_9 < n_words_1 {
@@ -4064,11 +4554,16 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                         (*con_0).header.prof.hp.era = user_era;
                     }
 
-                    (*con_0).header.info = con_ptr;
+                    (&raw mut (*con_0).header.info).store(con_ptr, Ordering::Relaxed);
 
                     let mut tagged_con = tagConstr(con_0);
                     *((Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
                         as *mut c_void as *mut StgWord) = tagged_con as W_ as StgWord;
+
+                    if RtsFlags.DebugFlags.interpreter {
+                        debugBelch(c"\tBuilt ".as_ptr());
+                        printObj(tagged_con);
+                    }
                 }
                 bci_TESTLT_P => {
                     let fresh74 = bciPtr_0;
@@ -5805,7 +6300,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                     }
                 }
                 bci_ENTER => {
-                    if (*cap).r.rHpLim.is_null() {
+                    if (&raw mut (*cap).r.rHpLim).load(Ordering::Relaxed).is_null() {
                         Sp = (Sp as *mut StgWord8)
                             .offset(-((1 * size_of::<W_>() as ptrdiff_t) as isize))
                             as *mut c_void;
@@ -5821,7 +6316,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                         return cap;
                     }
 
-                    current_block = 6565897764251647983;
+                    current_block = 12446576917863742224;
                     break;
                 }
                 bci_RETURN_P => {
@@ -5847,7 +6342,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
 
                     Sp = (Sp as *mut StgWord8).offset((1 * size_of::<W_>() as ptrdiff_t) as isize)
                         as *mut c_void;
-                    current_block = 2959291114893992747;
+                    current_block = 5739065528469071005;
                     break;
                 }
                 bci_RETURN_N => {
@@ -5857,7 +6352,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                     *((Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
                         as *mut c_void as *mut StgWord) =
                         &raw const stg_ret_n_info as W_ as StgWord;
-                    current_block = 15908231092227701503;
+                    current_block = 12691661418490471423;
                     break;
                 }
                 bci_RETURN_F => {
@@ -5867,7 +6362,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                     *((Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
                         as *mut c_void as *mut StgWord) =
                         &raw const stg_ret_f_info as W_ as StgWord;
-                    current_block = 15908231092227701503;
+                    current_block = 12691661418490471423;
                     break;
                 }
                 bci_RETURN_D => {
@@ -5877,7 +6372,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                     *((Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
                         as *mut c_void as *mut StgWord) =
                         &raw const stg_ret_d_info as W_ as StgWord;
-                    current_block = 15908231092227701503;
+                    current_block = 12691661418490471423;
                     break;
                 }
                 bci_RETURN_L => {
@@ -5887,7 +6382,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                     *((Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
                         as *mut c_void as *mut StgWord) =
                         &raw const stg_ret_l_info as W_ as StgWord;
-                    current_block = 15908231092227701503;
+                    current_block = 12691661418490471423;
                     break;
                 }
                 bci_RETURN_V => {
@@ -5897,7 +6392,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                     *((Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
                         as *mut c_void as *mut StgWord) =
                         &raw const stg_ret_v_info as W_ as StgWord;
-                    current_block = 15908231092227701503;
+                    current_block = 12691661418490471423;
                     break;
                 }
                 bci_RETURN_T => {
@@ -5907,7 +6402,7 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
                     *((Sp as *mut StgWord8).offset((0 * size_of::<W_>() as ptrdiff_t) as isize)
                         as *mut c_void as *mut StgWord) =
                         &raw const stg_ret_t_info as W_ as StgWord;
-                    current_block = 15908231092227701503;
+                    current_block = 12691661418490471423;
                     break;
                 }
                 bci_BCO_NAME => {
@@ -17540,7 +18035,17 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
     }
 
     match current_block {
-        4281248088780876322 => {
+        3872477263874733433 => {
+            if RtsFlags.DebugFlags.interpreter {
+                debugBelch(c"returning to unknown frame -- yielding to sched\n".as_ptr());
+
+                printStackChunk(
+                    Sp as StgPtr,
+                    (&raw mut (*(*(*cap).r.rCurrentTSO).stackobj).stack as *mut StgWord)
+                        .offset((*(*(*cap).r.rCurrentTSO).stackobj).stack_size as isize),
+                );
+            }
+
             Sp = (Sp as *mut StgWord8).offset(-((2 * size_of::<W_>() as ptrdiff_t) as isize))
                 as *mut c_void;
             *((Sp as *mut StgWord8).offset((1 * size_of::<W_>() as ptrdiff_t) as isize)
@@ -17555,6 +18060,10 @@ unsafe fn interpretBCO(mut cap: *mut Capability) -> *mut Capability {
             return cap;
         }
         _ => {
+            if RtsFlags.DebugFlags.interpreter {
+                debugBelch(c"Cannot apply compiled function; yielding to scheduler\n".as_ptr());
+            }
+
             Sp = (Sp as *mut StgWord8).offset(-((2 * size_of::<W_>() as ptrdiff_t) as isize))
                 as *mut c_void;
             *((Sp as *mut StgWord8).offset((1 * size_of::<W_>() as ptrdiff_t) as isize)

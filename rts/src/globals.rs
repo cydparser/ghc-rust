@@ -1,4 +1,6 @@
 use crate::ffi::hs_ffi::{HsInt, HsWord64};
+use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::stg::types::StgStablePtr;
 use crate::prelude::*;
 use crate::stable_ptr::freeStablePtr;
@@ -34,6 +36,11 @@ const GHCConcWindowsPendingDelaysStore: StoreKey = 1;
 
 const GHCConcSignalSignalHandlerStore: StoreKey = 0;
 
+static mut globalStoreLock: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
 static mut store: [StgStablePtr; 12] = [null_mut::<c_void>(); 12];
 
 unsafe fn initGlobalStore() {
@@ -44,10 +51,13 @@ unsafe fn initGlobalStore() {
         store[i as usize] = null_mut::<c_void>();
         i = i.wrapping_add(1);
     }
+
+    initMutex(&raw mut globalStoreLock);
 }
 
 unsafe fn exitGlobalStore() {
     let mut i: u32 = 0;
+    closeMutex(&raw mut globalStoreLock);
     i = 0;
 
     while i < MaxStoreKey as i32 as u32 {
@@ -64,8 +74,31 @@ unsafe fn getOrSetKey(mut key: StoreKey, mut ptr: StgStablePtr) -> StgStablePtr 
     let mut ret = store[key as usize];
 
     if ret.is_null() {
-        ret = ptr;
-        store[key as usize] = ret;
+        let mut __r = pthread_mutex_lock(&raw mut globalStoreLock);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/Globals.c".as_ptr(),
+                80,
+                __r,
+            );
+        }
+
+        ret = store[key as usize];
+
+        if ret.is_null() {
+            ret = ptr;
+            store[key as usize] = ret;
+        }
+
+        if pthread_mutex_unlock(&raw mut globalStoreLock) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/Globals.c".as_ptr(),
+                87,
+            );
+        }
     }
 
     return ret;

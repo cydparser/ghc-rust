@@ -4,6 +4,7 @@ use crate::ffi::rts::messages::{barf, sysErrorBelch};
 use crate::ffi::rts::os_threads::{Condition, KernelThreadId, Mutex, OSThreadId};
 use crate::ffi::rts::time::gettimeofday;
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time};
+use crate::ffi::rts_api::{rts_done, rts_evalStableIO, rts_lock, rts_unlock};
 use crate::ffi::stg::types::StgWord64;
 use crate::ffi::stg::types::StgWord64;
 use crate::prelude::*;
@@ -12,14 +13,14 @@ use crate::rts_utils::{stgFree, stgMallocBytes};
 #[cfg(test)]
 mod tests;
 
+#[ffi(testsuite)]
+pub type Mutex = pthread_mutex_t;
+
 #[ffi(compiler, testsuite)]
 #[repr(C)]
 pub struct Condition {
     pub cond: pthread_cond_t,
 }
-
-#[ffi(testsuite)]
-pub type Mutex = pthread_mutex_t;
 
 #[ffi(testsuite)]
 pub type OSThreadId = pthread_t;
@@ -174,7 +175,7 @@ pub unsafe extern "C" fn createOSThread(
     mut name: *const c_char,
     mut startProc: Option<OSThreadProc>,
     mut param: *mut c_void,
-) -> i32 {
+) -> c_int {
     let mut result = createAttachedOSThread(pId, name, startProc, param);
 
     if result == 0 {
@@ -232,27 +233,96 @@ unsafe fn osThreadIsAlive(mut id: OSThreadId) -> bool {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn initMutex(mut pMut: *mut Mutex) {
-    pthread_mutex_init(pMut as *mut pthread_mutex_t, null::<pthread_mutexattr_t>());
+    let mut attr = _opaque_pthread_mutexattr_t {
+        __sig: 0,
+        __opaque: [0; 8],
+    };
+
+    pthread_mutexattr_init(&raw mut attr);
+    pthread_mutexattr_settype(&raw mut attr, PTHREAD_MUTEX_ERRORCHECK);
+    pthread_mutex_init(pMut as *mut pthread_mutex_t, &raw mut attr);
 }
 
 unsafe fn closeMutex(mut pMut: *mut Mutex) {
     pthread_mutex_destroy(pMut as *mut pthread_mutex_t);
 }
 
+unsafe fn forkOS_createThreadWrapper(mut entry: *mut c_void) -> *mut c_void {
+    let mut cap = null_mut::<Capability>();
+    cap = rts_lock();
+    rts_evalStableIO(&raw mut cap, entry, null_mut::<HsStablePtr>());
+    rts_unlock(cap);
+    rts_done();
+
+    return NULL;
+}
+
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn forkOS_createThread(mut entry: HsStablePtr) -> i32 {
-    return -1;
+pub unsafe extern "C" fn forkOS_createThread(mut entry: HsStablePtr) -> c_int {
+    let mut tid = null_mut::<_opaque_pthread_t>();
+
+    let mut result = pthread_create(
+        &raw mut tid,
+        null::<pthread_attr_t>(),
+        Some(forkOS_createThreadWrapper as unsafe extern "C" fn(*mut c_void) -> *mut c_void),
+        entry,
+    );
+
+    if result == 0 {
+        pthread_detach(tid as pthread_t);
+    }
+
+    return result;
 }
 
 unsafe fn freeThreadingResources() {}
 
+static mut nproc_cache: u32 = 0;
+
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn getNumberOfProcessors() -> u32 {
-    return 1;
+pub unsafe extern "C" fn getNumberOfProcessors() -> c_uint {
+    let mut nproc: u32 = (&raw mut nproc_cache).load(Ordering::Relaxed);
+
+    if nproc == 0 {
+        let mut size: usize = size_of::<u32>() as usize;
+
+        if sysctlbyname(
+            c"machdep.cpu.thread_count".as_ptr(),
+            &raw mut nproc as *mut c_void,
+            &raw mut size,
+            NULL,
+            0,
+        ) != 0
+        {
+            if sysctlbyname(
+                c"hw.logicalcpu".as_ptr(),
+                &raw mut nproc as *mut c_void,
+                &raw mut size,
+                NULL,
+                0,
+            ) != 0
+            {
+                if sysctlbyname(
+                    c"hw.ncpu".as_ptr(),
+                    &raw mut nproc as *mut c_void,
+                    &raw mut size,
+                    NULL,
+                    0,
+                ) != 0
+                {
+                    nproc = 1;
+                }
+            }
+        }
+
+        (&raw mut nproc_cache).store(nproc, Ordering::Relaxed);
+    }
+
+    return nproc;
 }
 
 unsafe fn setThreadAffinity(mut n: u32, mut m: u32) {

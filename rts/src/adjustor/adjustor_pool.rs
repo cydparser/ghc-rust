@@ -1,5 +1,7 @@
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::exec_page::{allocateExecPage, freezeExecPage};
 use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::os_threads::{Mutex, initMutex};
 use crate::ffi::stg::types::{StgFunPtr, StgStablePtr};
 use crate::ffi::stg::types::{StgFunPtr, StgStablePtr};
 use crate::prelude::*;
@@ -30,6 +32,7 @@ struct AdjustorPool {
     context_size: usize,
     chunk_slots: usize,
     free_list: *mut AdjustorChunk,
+    lock: Mutex,
 }
 
 /// cbindgen:no-export
@@ -85,6 +88,7 @@ unsafe fn new_adjustor_pool(
     );
 
     (*pool).free_list = null_mut::<AdjustorChunk>();
+    initMutex(&raw mut (*pool).lock);
 
     return pool;
 }
@@ -94,11 +98,11 @@ unsafe fn bitmap_set(mut bitmap: *mut u8, mut idx: usize, mut value: bool) {
     let mut bit: u8 = (1 << idx.wrapping_rem(8 as usize)) as u8;
 
     if value {
-        let ref mut fresh5 = *bitmap.offset(word_n as isize);
-        *fresh5 = (*fresh5 as i32 | bit as i32) as u8;
+        let ref mut fresh12 = *bitmap.offset(word_n as isize);
+        *fresh12 = (*fresh12 as i32 | bit as i32) as u8;
     } else {
-        let ref mut fresh6 = *bitmap.offset(word_n as isize);
-        *fresh6 = (*fresh6 as i32 & !(bit as i32)) as u8;
+        let ref mut fresh13 = *bitmap.offset(word_n as isize);
+        *fresh13 = (*fresh13 as i32 & !(bit as i32)) as u8;
     };
 }
 
@@ -137,6 +141,16 @@ unsafe fn get_context(mut chunk: *mut AdjustorChunk, mut slot_idx: usize) -> *mu
 unsafe fn alloc_adjustor(mut pool: *mut AdjustorPool, mut context: *mut c_void) -> *mut c_void {
     let mut slot_idx: usize = 0;
     let mut chunk = null_mut::<AdjustorChunk>();
+    let mut __r = pthread_mutex_lock(&raw mut (*pool).lock);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/adjustor/AdjustorPool.c".as_ptr(),
+            217,
+            __r,
+        );
+    }
 
     if (*pool).free_list.is_null() {
         (*pool).free_list = alloc_adjustor_chunk(pool);
@@ -144,6 +158,19 @@ unsafe fn alloc_adjustor(mut pool: *mut AdjustorPool, mut context: *mut c_void) 
 
     chunk = (*pool).free_list;
     slot_idx = (*chunk).first_free;
+
+    if (slot_idx < (*pool).chunk_slots) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/adjustor/AdjustorPool.c".as_ptr(), 225);
+    }
+
+    if (bitmap_get(&raw mut (*chunk).slot_bitmap as *mut u8, slot_idx) as i32 == 0) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/adjustor/AdjustorPool.c".as_ptr(), 226);
+    }
+
     bitmap_set(&raw mut (*chunk).slot_bitmap as *mut u8, slot_idx, 1 != 0);
 
     (*chunk).first_free = bitmap_first_unset(
@@ -157,12 +184,25 @@ unsafe fn alloc_adjustor(mut pool: *mut AdjustorPool, mut context: *mut c_void) 
         (*chunk).free_list_next = null_mut::<AdjustorChunk>();
     }
 
+    if bitmap_get(&raw mut (*chunk).slot_bitmap as *mut u8, slot_idx) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/adjustor/AdjustorPool.c".as_ptr(), 239);
+    }
+
     bitmap_set(&raw mut (*chunk).slot_bitmap as *mut u8, slot_idx, true);
     memcpy(get_context(chunk, slot_idx), context, (*pool).context_size);
 
     let mut adjustor = (&raw mut (*(*chunk).exec_page).adjustor_code as *mut u8)
         .offset((*pool).adjustor_code_size.wrapping_mul(slot_idx) as isize)
         as *mut u8 as *mut c_void;
+
+    if pthread_mutex_unlock(&raw mut (*pool).lock) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/adjustor/AdjustorPool.c".as_ptr(),
+            245,
+        );
+    }
 
     return adjustor;
 }
@@ -183,6 +223,28 @@ unsafe fn free_adjustor(mut adjustor: *mut c_void, mut context: *mut c_void) {
         as i64 as usize;
 
     let mut slot_idx: usize = slot_off.wrapping_div((*pool).adjustor_code_size);
+
+    if (slot_off.wrapping_rem((*pool).adjustor_code_size) == 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/adjustor/AdjustorPool.c".as_ptr(), 266);
+    }
+
+    let mut __r = pthread_mutex_lock(&raw mut (*pool).lock);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/adjustor/AdjustorPool.c".as_ptr(),
+            268,
+            __r,
+        );
+    }
+
+    if bitmap_get(&raw mut (*chunk).slot_bitmap as *mut u8, slot_idx) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/adjustor/AdjustorPool.c".as_ptr(), 271);
+    }
+
     bitmap_set(&raw mut (*chunk).slot_bitmap as *mut u8, slot_idx, false);
 
     if (*chunk).first_free == (*pool).chunk_slots {
@@ -196,6 +258,14 @@ unsafe fn free_adjustor(mut adjustor: *mut c_void, mut context: *mut c_void) {
 
     memcpy(context, get_context(chunk, slot_idx), (*pool).context_size);
     memset(get_context(chunk, slot_idx), 0, (*pool).context_size);
+
+    if pthread_mutex_unlock(&raw mut (*pool).lock) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/adjustor/AdjustorPool.c".as_ptr(),
+            288,
+        );
+    }
 }
 
 unsafe fn alloc_adjustor_chunk(mut owner: *mut AdjustorPool) -> *mut AdjustorChunk {

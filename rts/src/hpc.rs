@@ -1,6 +1,6 @@
 use crate::ffi::rts::flags::{HPC_YES_EXPLICIT, HPC_YES_IMPLICIT, RtsFlags};
 use crate::ffi::rts::hpc::{_HpcModuleInfo, HpcModuleInfo};
-use crate::ffi::rts::{prog_name, stg_exit};
+use crate::ffi::rts::{_assertFail, prog_name, stg_exit};
 use crate::ffi::stg::types::{StgWord32, StgWord64};
 use crate::ffi::stg::types::{StgWord32, StgWord64};
 use crate::fs::__rts_fopen;
@@ -195,6 +195,16 @@ unsafe fn readTix() {
 
             insertStrHashTable(moduleHash, (*tmpModule).modName, tmpModule as *const c_void);
         } else {
+            if !(*lookup).tixArr.is_null() as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/Hpc.c".as_ptr(), 161);
+            }
+
+            if (strcmp((*tmpModule).modName, (*lookup).modName) == 0) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/Hpc.c".as_ptr(), 162);
+            }
+
             if DEBUG_RTS != 0 && RtsFlags.DebugFlags.hpc as i64 != 0 {
                 trace_(
                     c"readTix: existing HpcModuleInfo for %s".as_ptr(),
@@ -341,6 +351,11 @@ pub unsafe extern "C" fn hs_hpc_module(
     } else {
         if (*tmpModule).tickCount != modCount {
             failure(c"inconsistent number of tick boxes".as_ptr());
+        }
+
+        if !(*tmpModule).tixArr.is_null() as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/Hpc.c".as_ptr(), 301);
         }
 
         if (*tmpModule).hashNo != modHashNo {

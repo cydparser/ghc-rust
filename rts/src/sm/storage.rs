@@ -3,9 +3,14 @@ use crate::capability::{
 };
 use crate::eventlog::event_log::postInitEvent;
 use crate::ffi::hs_ffi::{HS_INT32_MAX, HS_WORD_MAX};
+use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
 use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::messages::errorBelch;
+use crate::ffi::rts::messages::{barf, errorBelch};
+use crate::ffi::rts::non_moving::{nonmoving_write_barrier_enabled, updateRemembSetPushClosure_};
+use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
+use crate::ffi::rts::prof::ccs::{era, user_era};
+use crate::ffi::rts::spin_lock::initSpinLock;
 use crate::ffi::rts::storage::block::{
     BF_EVACUATED, BF_LARGE, BF_PINNED, BLOCK_MASK, BLOCK_SIZE, BLOCK_SIZE_W, BLOCKS_PER_MBLOCK,
     Bdescr, LARGE_OBJECT_THRESHOLD, MBLOCK_SIZE, allocBlockOnNode, allocGroupOnNode, bdescr,
@@ -13,13 +18,18 @@ use crate::ffi::rts::storage::block::{
 };
 use crate::ffi::rts::storage::block::{BLOCK_SIZE, bdescr};
 use crate::ffi::rts::storage::closure_macros::{
-    INFO_PTR_TO_STRUCT, SET_INFO_RELAXED, SET_INFO_RELEASE,
+    INFO_PTR_TO_STRUCT, LOOKS_LIKE_CLOSURE_PTR, LOOKS_LIKE_INFO_PTR_NOT_NULL, SET_INFO_RELAXED,
+    SET_INFO_RELEASE, doingErasProfiling, doingLDVProfiling, doingRetainerProfiling,
+    itbl_to_thunk_itbl,
 };
-use crate::ffi::rts::storage::closures::{StgInd, StgIndStatic, StgMutVar, StgTVar};
+use crate::ffi::rts::storage::closures::{
+    StgClosure_, StgInd, StgIndStatic, StgMVar, StgMutVar, StgTVar,
+};
 use crate::ffi::rts::storage::gc::{
     AdjustorExecutable, ListBlocksCb, generation, generation_, initBdescr, memcount, nursery,
     nursery_,
 };
+use crate::ffi::rts::storage::heap_alloc::{gc_alloc_block_sync, mblock_address_space};
 use crate::ffi::rts::storage::m_block::{freeAllMBlocks, initMBlocks};
 use crate::ffi::rts::storage::tso::{StgStack, StgTSO_};
 use crate::ffi::rts::threads::getNumCapabilities;
@@ -29,15 +39,17 @@ use crate::ffi::rts::{_assertFail, exitHeapOverflow};
 use crate::ffi::rts_api::Capability;
 use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::misc_closures::{
-    stg_CAF_BLACKHOLE_info, stg_END_TSO_QUEUE_closure, stg_IND_STATIC_info, stg_MUT_VAR_DIRTY_info,
-    stg_TVAR_CLEAN_info, stg_TVAR_DIRTY_info,
+    stg_BLOCKING_QUEUE_CLEAN_info, stg_CAF_BLACKHOLE_info, stg_END_TSO_QUEUE_closure,
+    stg_IND_STATIC_info, stg_MUT_VAR_DIRTY_info, stg_TVAR_CLEAN_info, stg_TVAR_DIRTY_info,
+    stg_WHITEHOLE_info, stg_dummy_ret_closure,
 };
 use crate::ffi::stg::regs::StgRegTable;
 use crate::ffi::stg::smp::cas;
+use crate::ffi::stg::types::StgWord32;
 use crate::ffi::stg::types::{
-    StgInt64, StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord16, StgWord32,
+    StgHalfWord, StgInt64, StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord16, StgWord32,
+    StgWord64,
 };
-use crate::ffi::stg::types::{StgPtr, StgWord32};
 use crate::ffi::stg::{ASSIGN_Int64, BITS_PER_BYTE, PK_Int64, W_};
 use crate::prelude::*;
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
@@ -52,12 +64,14 @@ use crate::sm::non_moving_allocate::{nonmovingAllocate, nonmovingInitCapability}
 use crate::sm::non_moving_mark::{
     n_nonmoving_compact_blocks, n_nonmoving_large_blocks, n_nonmoving_marked_compact_blocks,
     n_nonmoving_marked_large_blocks, nonmoving_compact_objects, nonmoving_compact_words,
-    nonmoving_large_objects, nonmoving_large_words,
+    nonmoving_large_objects, nonmoving_large_words, updateRemembSetPushClosure,
+    updateRemembSetPushStack, updateRemembSetPushTSO,
 };
+use crate::sm::sanity::checkNurserySanity;
 use crate::sm::storage::{
     END_OF_CAF_LIST, STATIC_FLAG_LIST, clear_blocks, finishedNurseryBlock, newNurseryBlock,
 };
-use crate::stats::stat_exitReport;
+use crate::stats::{stat_exitReport, statDescribeGens};
 use crate::trace::{
     CAPSET_HEAP_DEFAULT, DEBUG_RTS, trace_, traceEventHeapAllocated, traceEventHeapInfo,
 };
@@ -68,7 +82,7 @@ mod tests;
 #[inline]
 pub(crate) unsafe fn doYouWantToGC(mut cap: *mut Capability) -> bool {
     return (*(*cap).r.rCurrentNursery).link.is_null() && !getNewNursery(cap)
-        || (*g0).n_new_large_words >= large_alloc_lim;
+        || (&raw mut (*g0).n_new_large_words).load(Ordering::Relaxed) >= large_alloc_lim;
 }
 
 #[inline]
@@ -80,7 +94,7 @@ pub(crate) unsafe fn finishedNurseryBlock(mut cap: *mut Capability, mut bd: *mut
 
 #[inline]
 pub(crate) unsafe fn newNurseryBlock(mut bd: *mut bdescr) {
-    (*bd).c2rust_unnamed.free = (*bd).start;
+    (&raw mut (*bd).c2rust_unnamed.free).store((*bd).start, Ordering::Relaxed);
 }
 
 pub(crate) const STATIC_FLAG_LIST: i32 = 3;
@@ -134,6 +148,11 @@ const PINNED_EMPTY_SIZE: W_ = BLOCKS_PER_MBLOCK;
 
 static mut next_nursery: [StgWord; 16] = [0; 16];
 
+static mut sm_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
 unsafe fn initGeneration(mut r#gen: *mut generation, mut g: i32) {
     (*r#gen).no = g as u32;
     (*r#gen).collections = 0;
@@ -163,6 +182,7 @@ unsafe fn initGeneration(mut r#gen: *mut generation, mut g: i32) {
     (*r#gen).mark = 0;
     (*r#gen).compact = 0;
     (*r#gen).bitmap = null_mut::<bdescr>();
+    initSpinLock(&raw mut (*r#gen).sync);
     (*r#gen).threads = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
     (*r#gen).old_threads = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO;
     (*r#gen).weak_ptr_list = null_mut::<StgWeak>();
@@ -189,12 +209,46 @@ unsafe fn initStorage() {
     }
 
     initMBlocks();
+
+    if LOOKS_LIKE_INFO_PTR_NOT_NULL(&raw const stg_BLOCKING_QUEUE_CLEAN_info as StgWord) as i32
+        as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/sm/Storage.c".as_ptr(), 188);
+    }
+
+    if LOOKS_LIKE_CLOSURE_PTR(&raw mut stg_dummy_ret_closure as *const c_void) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Storage.c".as_ptr(), 189);
+    }
+
+    if !(&raw mut stg_dummy_ret_closure as W_ >= mblock_address_space.0.begin
+        && (&raw mut stg_dummy_ret_closure as W_) < mblock_address_space.0.end) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/sm/Storage.c".as_ptr(), 190);
+    }
+
     initBlockAllocator();
+    initMutex(&raw mut sm_mutex);
 
     generations = stgMallocBytes(
         (RtsFlags.GcFlags.generations as usize).wrapping_mul(size_of::<generation_>() as usize),
         c"initStorage: gens".as_ptr(),
     ) as *mut generation;
+
+    let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/Storage.c".as_ptr(),
+            204,
+            __r,
+        );
+    }
 
     g = 0;
 
@@ -216,6 +270,7 @@ unsafe fn initStorage() {
     }
 
     (*oldest_gen).to = oldest_gen as *mut generation_;
+    initSpinLock(&raw mut gc_alloc_block_sync);
     nonmovingInit();
 
     if RtsFlags.GcFlags.compact as i32 != 0 || RtsFlags.GcFlags.sweep as i32 != 0 {
@@ -253,6 +308,19 @@ unsafe fn initStorage() {
     }
 
     storageAddCapabilities(0, getNumCapabilities() as u32);
+
+    if RtsFlags.DebugFlags.gc {
+        statDescribeGens();
+    }
+
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/Storage.c".as_ptr(),
+            262,
+        );
+    }
+
     postInitEvent(Some(traceHeapInfo as unsafe extern "C" fn() -> ()));
 }
 
@@ -299,8 +367,8 @@ unsafe fn storageAddCapabilities(mut from: u32, mut to: u32) {
         let mut index: u32 =
             (*getCapability(i)).r.rNursery.offset_from(old_nurseries) as i64 as u32;
 
-        let ref mut fresh13 = (*getCapability(i)).r.rNursery;
-        *fresh13 = nurseries.offset(index as isize) as *mut nursery as *mut nursery_;
+        let ref mut fresh6 = (*getCapability(i)).r.rNursery;
+        *fresh6 = nurseries.offset(index as isize) as *mut nursery as *mut nursery_;
         i = i.wrapping_add(1);
     }
 
@@ -313,8 +381,8 @@ unsafe fn storageAddCapabilities(mut from: u32, mut to: u32) {
         g = 1;
 
         while g < RtsFlags.GcFlags.generations {
-            let ref mut fresh14 = *(*getCapability(n)).mut_lists.offset(g as isize);
-            *fresh14 = allocBlockOnNode(n.wrapping_rem(n_numa_nodes));
+            let ref mut fresh7 = *(*getCapability(n)).mut_lists.offset(g as isize);
+            *fresh7 = allocBlockOnNode(n.wrapping_rem(n_numa_nodes));
             g = g.wrapping_add(1);
         }
 
@@ -346,6 +414,7 @@ unsafe fn freeStorage(mut free_heap: bool) {
         freeAllMBlocks();
     }
 
+    closeMutex(&raw mut sm_mutex);
     stgFree(nurseries as *mut c_void);
     freeGcThreads();
 }
@@ -484,9 +553,49 @@ unsafe fn lockCAF(mut reg: *mut StgRegTable, mut caf: *mut StgIndStatic) -> *mut
     let mut orig_info = null::<StgInfoTable>();
     let mut cap = regTableToCapability(reg);
     let mut bh = null_mut::<StgInd>();
-    orig_info = (*caf).header.info;
+    orig_info = (&raw mut (*caf).header.info).load(Ordering::Relaxed);
+
+    let mut cur_info = null::<StgInfoTable>();
+
+    if orig_info == &raw const stg_IND_STATIC_info || orig_info == &raw const stg_WHITEHOLE_info {
+        return null_mut::<StgInd>();
+    }
+
+    cur_info = cas(
+        &raw mut (*caf).header.info as StgVolatilePtr,
+        orig_info as StgWord,
+        &raw const stg_WHITEHOLE_info as StgWord,
+    ) as *const StgInfoTable;
+
+    if cur_info != orig_info {
+        return null_mut::<StgInd>();
+    }
 
     let mut orig_info_tbl: *const StgInfoTable = INFO_PTR_TO_STRUCT(orig_info);
+
+    if ((*orig_info_tbl).r#type == 21) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Storage.c".as_ptr(), 566);
+    }
+
+    if ((*orig_info_tbl).layout.payload.ptrs == 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Storage.c".as_ptr(), 569);
+    }
+
+    if nonmoving_write_barrier_enabled as i64 != 0 {
+        let mut thunk_info = itbl_to_thunk_itbl(orig_info_tbl);
+
+        if (*thunk_info).i.srt != 0 {
+            updateRemembSetPushClosure(
+                cap,
+                (thunk_info.offset(1 as i32 as isize) as StgWord)
+                    .wrapping_add((*thunk_info).i.srt as StgWord)
+                    as *mut StgClosure,
+            );
+        }
+    }
+
     (*caf).saved_info = orig_info;
 
     if RtsFlags.GcFlags.useNonmoving {
@@ -514,8 +623,23 @@ unsafe fn lockCAF(mut reg: *mut StgRegTable, mut caf: *mut StgIndStatic) -> *mut
     }
 
     (*bh).indirectee = (*cap).r.rCurrentTSO as *mut StgClosure;
-    (*bh).header.info = &raw const stg_CAF_BLACKHOLE_info;
-    (*caf).indirectee = bh as *mut StgClosure;
+
+    let ref mut fresh19 = (*(bh as *mut StgClosure)).header.prof.ccs;
+    *fresh19 = (*caf).header.prof.ccs;
+
+    if doingLDVProfiling() {
+        if doingLDVProfiling() {
+            (*(bh as *mut StgClosure)).header.prof.hp.ldvw =
+                (era as StgWord) << LDV_SHIFT | LDV_STATE_CREATE as StgWord;
+        }
+    } else if doingRetainerProfiling() {
+        (*(bh as *mut StgClosure)).header.prof.hp.trav = 0;
+    } else if doingErasProfiling() {
+        (*(bh as *mut StgClosure)).header.prof.hp.era = user_era;
+    }
+
+    (&raw mut (*bh).header.info).store(&raw const stg_CAF_BLACKHOLE_info, Ordering::Relaxed);
+    (&raw mut (*caf).indirectee).store(bh as *mut StgClosure, Ordering::Release);
     SET_INFO_RELEASE(caf as *mut StgClosure, &raw const stg_IND_STATIC_info);
 
     return bh;
@@ -536,14 +660,57 @@ pub unsafe extern "C" fn newCAF(
     }
 
     if keepCAFs as i32 != 0 && !(highMemDynamic as i32 != 0 && caf as *mut c_void > 0x80000000) {
+        let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/sm/Storage.c".as_ptr(),
+                621,
+                __r,
+            );
+        }
+
         (*caf).static_link = dyn_caf_list as *mut StgClosure;
         dyn_caf_list = (caf as StgWord | STATIC_FLAG_LIST as StgWord) as *mut StgIndStatic;
-    } else if (*oldest_gen).no != 0 && !RtsFlags.GcFlags.useNonmoving {
-        recordMutableCap(
-            caf as *mut StgClosure,
-            regTableToCapability(reg),
-            (*oldest_gen).no,
-        );
+
+        if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/sm/Storage.c".as_ptr(),
+                624,
+            );
+        }
+    } else {
+        if (*oldest_gen).no != 0 && !RtsFlags.GcFlags.useNonmoving {
+            recordMutableCap(
+                caf as *mut StgClosure,
+                regTableToCapability(reg),
+                (*oldest_gen).no,
+            );
+        }
+
+        let mut __r_0 = pthread_mutex_lock(&raw mut sm_mutex);
+
+        if __r_0 != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/sm/Storage.c".as_ptr(),
+                645,
+                __r_0,
+            );
+        }
+
+        (*caf).saved_info = debug_caf_list as *const StgInfoTable;
+        debug_caf_list = caf;
+
+        if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/sm/Storage.c".as_ptr(),
+                648,
+            );
+        }
     }
 
     return bh;
@@ -571,8 +738,27 @@ unsafe fn newRetainedCAF(mut reg: *mut StgRegTable, mut caf: *mut StgIndStatic) 
         return null_mut::<StgInd>();
     }
 
+    let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/Storage.c".as_ptr(),
+            685,
+            __r,
+        );
+    }
+
     (*caf).static_link = revertible_caf_list as *mut StgClosure;
     revertible_caf_list = (caf as StgWord | STATIC_FLAG_LIST as StgWord) as *mut StgIndStatic;
+
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/Storage.c".as_ptr(),
+            690,
+        );
+    }
 
     return bh;
 }
@@ -662,12 +848,21 @@ unsafe fn allocNursery(mut node: u32, mut tail: *mut bdescr, mut blocks: W_) -> 
     return bd.offset(0) as *mut bdescr;
 }
 
-#[inline]
 unsafe fn assignNurseryToCapability(mut cap: *mut Capability, mut n: u32) {
+    if (n < n_nurseries) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Storage.c".as_ptr(), 782);
+    }
+
     (*cap).r.rNursery = nurseries.offset(n as isize) as *mut nursery as *mut nursery_;
     (*cap).r.rCurrentNursery = (*nurseries.offset(n as isize)).blocks as *mut bdescr_;
     newNurseryBlock((*nurseries.offset(n as isize)).blocks);
     (*cap).r.rCurrentAlloc = null_mut::<bdescr_>();
+
+    if ((*(*cap).r.rCurrentNursery).node as u32 == (*cap).node) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/Storage.c".as_ptr(), 787);
+    };
 }
 
 unsafe fn assignNurseriesToCapabilities(mut from: u32, mut to: u32) {
@@ -725,6 +920,38 @@ unsafe fn resetNurseries() {
     }
 
     assignNurseriesToCapabilities(0, getNumCapabilities() as u32);
+
+    let mut bd = null_mut::<bdescr>();
+    n = 0;
+
+    while n < n_nurseries {
+        bd = (*nurseries.offset(n as isize)).blocks;
+
+        while !bd.is_null() {
+            if ((*bd).gen_no as i32 == 0) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/Storage.c".as_ptr(), 838);
+            }
+
+            if ((*bd).r#gen == g0) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/Storage.c".as_ptr(), 839);
+            }
+
+            if ((*bd).node as u32 == n.wrapping_rem(n_numa_nodes)) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/Storage.c".as_ptr(), 840);
+            }
+
+            if RtsFlags.DebugFlags.zero_on_gc {
+                memset((*bd).start as *mut c_void, 0xaa, 1 << 12);
+            }
+
+            bd = (*bd).link as *mut bdescr;
+        }
+
+        n = n.wrapping_add(1);
+    }
 }
 
 unsafe fn countNurseryBlocks() -> StgWord {
@@ -806,6 +1033,11 @@ unsafe fn resizeNurseriesEach(mut blocks: W_) {
             }
 
             (*nursery).n_blocks = blocks as memcount;
+
+            if (countBlocks((*nursery).blocks) == (*nursery).n_blocks) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/Storage.c".as_ptr(), 908);
+            }
         }
 
         i = i.wrapping_add(1);
@@ -891,6 +1123,15 @@ unsafe fn move_STACK(mut src: *mut StgStack, mut dest: *mut StgStack) {
 }
 
 unsafe fn accountAllocation(mut cap: *mut Capability, mut n: W_) {
+    (*(*cap).r.rCCCS).mem_alloc = ((*(*cap).r.rCCCS).mem_alloc as u64).wrapping_add(
+        n.wrapping_sub(
+            (size_of::<StgProfHeader>() as usize)
+                .wrapping_add(size_of::<W_>() as usize)
+                .wrapping_sub(1 as usize)
+                .wrapping_div(size_of::<W_>() as usize) as W_,
+        ) as u64,
+    ) as StgWord64 as StgWord64;
+
     if !(*cap).r.rCurrentTSO.is_null() {
         ASSIGN_Int64(
             &raw mut (*(*cap).r.rCurrentTSO).alloc_limit as *mut W_,
@@ -947,14 +1188,36 @@ unsafe fn allocateMightFail(mut cap: *mut Capability, mut n: W_) -> StgPtr {
         }
 
         accountAllocation(cap, n);
+
+        let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/sm/Storage.c".as_ptr(),
+                1117,
+                __r,
+            );
+        }
+
         bd = allocGroupOnNode((*cap).node, req_blocks);
         dbl_link_onto(bd, &raw mut (*g0).large_objects);
         (*g0).n_large_blocks = (*g0).n_large_blocks.wrapping_add((*bd).blocks as memcount);
         (*g0).n_new_large_words =
             ((*g0).n_new_large_words as StgWord).wrapping_add(n as StgWord) as memcount as memcount;
+
+        if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/sm/Storage.c".as_ptr(),
+                1122,
+            );
+        }
+
         initBdescr(bd, g0, g0);
-        (*bd).flags = 2;
-        (*bd).c2rust_unnamed.free = (*bd).start.offset(n as isize);
+        (&raw mut (*bd).flags).store(2, Ordering::Relaxed);
+        (&raw mut (*bd).c2rust_unnamed.free)
+            .store((*bd).start.offset(n as isize), Ordering::Relaxed);
         (*cap).total_allocated = (*cap).total_allocated.wrapping_add(n as u64);
 
         return (*bd).start;
@@ -977,8 +1240,28 @@ unsafe fn allocateMightFail(mut cap: *mut Capability, mut n: W_) -> StgPtr {
         bd = (*(*cap).r.rCurrentNursery).link as *mut bdescr;
 
         if bd.is_null() {
+            let mut __r_0 = pthread_mutex_lock(&raw mut sm_mutex);
+
+            if __r_0 != 0 {
+                barf(
+                    c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                    c"rts/sm/Storage.c".as_ptr(),
+                    1146,
+                    __r_0,
+                );
+            }
+
             bd = allocBlockOnNode((*cap).node);
             (*(*cap).r.rNursery).n_blocks = (*(*cap).r.rNursery).n_blocks.wrapping_add(1);
+
+            if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+                barf(
+                    c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                    c"rts/sm/Storage.c".as_ptr(),
+                    1149,
+                );
+            }
+
             initBdescr(bd, g0, g0);
             (*bd).flags = 0;
         } else {
@@ -992,10 +1275,21 @@ unsafe fn allocateMightFail(mut cap: *mut Capability, mut n: W_) -> StgPtr {
 
         dbl_link_onto(bd, &raw mut (*(*cap).r.rNursery).blocks);
         (*cap).r.rCurrentAlloc = bd as *mut bdescr_;
+
+        if RtsFlags.DebugFlags.sanity {
+            checkNurserySanity((*cap).r.rNursery as *mut nursery);
+        }
     }
 
     p = (*bd).c2rust_unnamed.free;
     (*bd).c2rust_unnamed.free = (*bd).c2rust_unnamed.free.offset(n as isize);
+
+    if RtsFlags.DebugFlags.sanity {
+        if (*(p as *mut StgWord8) as i32 == 0xaa) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/Storage.c".as_ptr(), 1194);
+        }
+    }
 
     return p;
 }
@@ -1011,7 +1305,26 @@ unsafe fn start_new_pinned_block(mut cap: *mut Capability) -> *mut bdescr {
     bd = (*cap).pinned_object_empty;
 
     if bd.is_null() {
+        let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+        if __r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                c"rts/sm/Storage.c".as_ptr(),
+                1242,
+                __r,
+            );
+        }
+
         bd = allocNursery((*cap).node, null_mut::<bdescr>(), PINNED_EMPTY_SIZE);
+
+        if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                c"rts/sm/Storage.c".as_ptr(),
+                1244,
+            );
+        }
     }
 
     let mut nbd = (*(*cap).r.rCurrentNursery).link as *mut bdescr;
@@ -1112,6 +1425,17 @@ unsafe fn allocatePinned(
             n = n.wrapping_add(off_w);
             p = p.offset(off_w as isize);
             (*bd).c2rust_unnamed.free = (*bd).c2rust_unnamed.free.offset(n as isize);
+
+            if ((*bd).c2rust_unnamed.free
+                <= (*bd).start.offset(((*bd).blocks as usize).wrapping_mul(
+                    ((1 as usize) << 12 as i32).wrapping_div(size_of::<W_>() as usize),
+                ) as isize)) as i32 as i64
+                != 0
+            {
+            } else {
+                _assertFail(c"rts/sm/Storage.c".as_ptr(), 1359);
+            }
+
             accountAllocation(cap, n);
 
             return p;
@@ -1161,43 +1485,67 @@ pub unsafe extern "C" fn dirty_MUT_VAR(
     let mut cap = regTableToCapability(reg);
     SET_INFO_RELAXED(mvar as *mut StgClosure, &raw const stg_MUT_VAR_DIRTY_info);
     recordClosureMutated(cap, mvar as *mut StgClosure);
+
+    if nonmoving_write_barrier_enabled as i64 != 0 {
+        updateRemembSetPushClosure_(reg, old as *mut StgClosure_);
+    }
 }
 
 unsafe fn dirty_TVAR(mut cap: *mut Capability, mut p: *mut StgTVar, mut old: *mut StgClosure) {
-    if (*p).header.info == &raw const stg_TVAR_CLEAN_info {
+    if (&raw mut (*p).header.info).load(Ordering::Relaxed) == &raw const stg_TVAR_CLEAN_info {
         SET_INFO_RELAXED(p as *mut StgClosure, &raw const stg_TVAR_DIRTY_info);
         recordClosureMutated(cap, p as *mut StgClosure);
+
+        if nonmoving_write_barrier_enabled as i64 != 0 {
+            updateRemembSetPushClosure(cap, old);
+        }
     }
 }
 
 unsafe fn setTSOLink(mut cap: *mut Capability, mut tso: *mut StgTSO, mut target: *mut StgTSO) {
-    if (*tso).dirty == 0 {
-        (*tso).dirty = 1;
+    if (&raw mut (*tso).dirty).load(Ordering::Relaxed) == 0 {
+        (&raw mut (*tso).dirty).store(1, Ordering::Relaxed);
         recordClosureMutated(cap, tso as *mut StgClosure);
+
+        if nonmoving_write_barrier_enabled as i64 != 0 {
+            updateRemembSetPushClosure(cap, (*tso)._link as *mut StgClosure);
+        }
     }
 
     (*tso)._link = target as *mut StgTSO_;
 }
 
 unsafe fn setTSOPrev(mut cap: *mut Capability, mut tso: *mut StgTSO, mut target: *mut StgTSO) {
-    if (*tso).dirty == 0 {
-        (*tso).dirty = 1;
+    if (&raw mut (*tso).dirty).load(Ordering::Relaxed) == 0 {
+        (&raw mut (*tso).dirty).store(1, Ordering::Relaxed);
         recordClosureMutated(cap, tso as *mut StgClosure);
+
+        if nonmoving_write_barrier_enabled as i64 != 0 {
+            updateRemembSetPushClosure(cap, (*tso).block_info.prev as *mut StgClosure);
+        }
     }
 
     (*tso).block_info.prev = target;
 }
 
 unsafe fn dirty_TSO(mut cap: *mut Capability, mut tso: *mut StgTSO) {
-    if (*tso).dirty == 0 {
-        (*tso).dirty = 1;
+    if (&raw mut (*tso).dirty).load(Ordering::Relaxed) == 0 {
+        (&raw mut (*tso).dirty).store(1, Ordering::Relaxed);
         recordClosureMutated(cap, tso as *mut StgClosure);
+    }
+
+    if nonmoving_write_barrier_enabled as i64 != 0 {
+        updateRemembSetPushTSO(cap, tso);
     }
 }
 
 unsafe fn dirty_STACK(mut cap: *mut Capability, mut stack: *mut StgStack) {
-    if (*stack).dirty as i32 == 0 {
-        (*stack).dirty = 1;
+    if nonmoving_write_barrier_enabled as i64 != 0 {
+        updateRemembSetPushStack(cap, stack);
+    }
+
+    if (&raw mut (*stack).dirty).load(Ordering::Relaxed) as i32 == 0 {
+        (&raw mut (*stack).dirty).store(1, Ordering::Relaxed);
         recordClosureMutated(cap, stack as *mut StgClosure);
     }
 }
@@ -1208,6 +1556,13 @@ unsafe fn update_MVAR(
     mut old_val: *mut StgClosure,
 ) {
     let mut cap = regTableToCapability(reg);
+
+    if nonmoving_write_barrier_enabled as i64 != 0 {
+        let mut mvar = p as *mut StgMVar;
+        updateRemembSetPushClosure(cap, old_val);
+        updateRemembSetPushClosure(cap, (*mvar).head as *mut StgClosure);
+        updateRemembSetPushClosure(cap, (*mvar).tail as *mut StgClosure);
+    }
 }
 
 unsafe fn dirty_MVAR(
@@ -1267,6 +1622,18 @@ unsafe fn countOccupied(mut bd: *mut bdescr) -> StgWord {
     words = 0;
 
     while !bd.is_null() {
+        if ((*bd).c2rust_unnamed.free
+            <= (*bd).start.offset(
+                ((*bd).blocks as usize).wrapping_mul(
+                    ((1 as usize) << 12 as i32).wrapping_div(size_of::<W_>() as usize),
+                ) as isize,
+            )) as i32 as i64
+            != 0
+        {
+        } else {
+            _assertFail(c"rts/sm/Storage.c".as_ptr(), 1623);
+        }
+
         words = words.wrapping_add((*bd).c2rust_unnamed.free.offset_from((*bd).start) as i64 as W_);
 
         bd = (*bd).link as *mut bdescr;
@@ -1407,9 +1774,10 @@ unsafe fn calcNeeded(mut force_major: bool, mut blocks_needed: *mut memcount) ->
         };
 
         blocks = (blocks as StgWord).wrapping_add(
-            (*r#gen)
-                .n_large_blocks
-                .wrapping_add((*r#gen).n_compact_blocks) as StgWord,
+            (&raw mut (*r#gen).n_large_blocks)
+                .load(Ordering::Relaxed)
+                .wrapping_add((&raw mut (*r#gen).n_compact_blocks).load(Ordering::Relaxed))
+                as StgWord,
         ) as W_ as W_;
 
         needed = needed.wrapping_add(blocks);
@@ -1488,10 +1856,25 @@ unsafe fn flushExec(mut len: W_, mut exec_addr: AdjustorExecutable) {
     sys_icache_invalidate(exec_addr as *mut c_void, len as usize);
 }
 
+unsafe fn _bdescr(mut p: StgPtr) -> *mut bdescr {
+    return Bdescr(p);
+}
+
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn rts_clearMemory() {
+    let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/Storage.c".as_ptr(),
+            1957,
+            __r,
+        );
+    }
+
     clear_free_list();
 
     let mut i: u32 = 0;
@@ -1560,5 +1943,13 @@ pub unsafe extern "C" fn rts_clearMemory() {
 
             i_1 += 1;
         }
+    }
+
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/Storage.c".as_ptr(),
+            1997,
+        );
     }
 }

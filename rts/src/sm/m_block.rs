@@ -3,7 +3,7 @@ use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::errorBelch;
 use crate::ffi::rts::storage::block::MBLOCK_SIZE;
 use crate::ffi::rts::storage::heap_alloc::{mblock_address_range, mblock_address_range_Inner};
-use crate::ffi::rts::{EXIT_HEAPOVERFLOW, stg_exit};
+use crate::ffi::rts::{_assertFail, EXIT_HEAPOVERFLOW, stg_exit};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
@@ -123,6 +123,11 @@ unsafe fn getReusableMBlocks(mut n: u32) -> *mut c_void {
                 next = (*iter).next;
 
                 if prev.is_null() {
+                    if (free_list_head == iter) as i32 as i64 != 0 {
+                    } else {
+                        _assertFail(c"rts/sm/MBlock.c".as_ptr(), 175);
+                    }
+
                     free_list_head = next as *mut free_list;
                 } else {
                     (*prev).next = next;
@@ -167,6 +172,11 @@ unsafe fn getCommittedMBlocks(mut n: u32) -> *mut c_void {
         p = getFreshMBlocks(n);
     }
 
+    if (!p.is_null() && p != -1 as *mut c_void) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/MBlock.c".as_ptr(), 219);
+    }
+
     return p;
 }
 
@@ -193,6 +203,11 @@ unsafe fn decommitMBlocks(mut addr: *mut c_char, mut n: u32) {
                 if !(*iter).prev.is_null() {
                     (*(*iter).prev).next = null_mut::<free_list>();
                 } else {
+                    if (iter == free_list_head) as i32 as i64 != 0 {
+                    } else {
+                        _assertFail(c"rts/sm/MBlock.c".as_ptr(), 247);
+                    }
+
                     free_list_head = null_mut::<free_list>();
                 }
 
@@ -210,6 +225,14 @@ unsafe fn decommitMBlocks(mut addr: *mut c_char, mut n: u32) {
 
                 if !(*iter).next.is_null() {
                     (*(*iter).next).prev = iter;
+
+                    if ((*(*iter).next).address > (*iter).address.wrapping_add((*iter).size)) as i32
+                        as i64
+                        != 0
+                    {
+                    } else {
+                        _assertFail(c"rts/sm/MBlock.c".as_ptr(), 266);
+                    }
                 }
 
                 stgFree(next as *mut c_void);
@@ -219,10 +242,25 @@ unsafe fn decommitMBlocks(mut addr: *mut c_char, mut n: u32) {
         } else if address.wrapping_add(size) == (*iter).address {
             (*iter).address = address;
             (*iter).size = (*iter).size.wrapping_add(size);
-            !(*iter).prev.is_null();
+
+            if !(*iter).prev.is_null() {
+                if ((*(*iter).prev).address.wrapping_add((*(*iter).prev).size) < (*iter).address)
+                    as i32 as i64
+                    != 0
+                {
+                } else {
+                    _assertFail(c"rts/sm/MBlock.c".as_ptr(), 280);
+                }
+            }
+
             return;
         } else {
             let mut new_iter = null_mut::<free_list>();
+
+            if ((*iter).address > address.wrapping_add(size)) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/MBlock.c".as_ptr(), 287);
+            }
 
             new_iter = stgMallocBytes(size_of::<free_list>() as usize, c"freeMBlocks".as_ptr())
                 as *mut free_list;
@@ -235,12 +273,22 @@ unsafe fn decommitMBlocks(mut addr: *mut c_char, mut n: u32) {
             if !(*new_iter).prev.is_null() {
                 (*(*new_iter).prev).next = new_iter;
             } else {
+                if (iter == free_list_head) as i32 as i64 != 0 {
+                } else {
+                    _assertFail(c"rts/sm/MBlock.c".as_ptr(), 297);
+                }
+
                 free_list_head = new_iter as *mut free_list;
             }
 
             (*iter).prev = new_iter;
             return;
         }
+    }
+
+    if (address.wrapping_add(size) <= mblock_high_watermark) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/MBlock.c".as_ptr(), 308);
     }
 
     if address.wrapping_add(size) == mblock_high_watermark {
@@ -257,8 +305,18 @@ unsafe fn decommitMBlocks(mut addr: *mut c_char, mut n: u32) {
         (*new_iter_0).prev = prev;
 
         if !(*new_iter_0).prev.is_null() {
+            if (*(*new_iter_0).prev).next.is_null() as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/MBlock.c".as_ptr(), 322);
+            }
+
             (*(*new_iter_0).prev).next = new_iter_0;
         } else {
+            if free_list_head.is_null() as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/MBlock.c".as_ptr(), 325);
+            }
+
             free_list_head = new_iter_0 as *mut free_list;
         }
     };
@@ -299,6 +357,10 @@ unsafe fn getMBlocks(mut n: u32) -> *mut c_void {
 
 unsafe fn getMBlocksOnNode(mut node: u32, mut n: u32) -> *mut c_void {
     let mut addr = getMBlocks(n);
+
+    if RtsFlags.DebugFlags.numa {
+        return addr;
+    }
 
     osBindMBlocksToNode(
         addr,

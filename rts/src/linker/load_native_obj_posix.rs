@@ -1,10 +1,15 @@
 use crate::check_unload::{insertOCSectionIndices, loaded_objects};
+use crate::ffi::rts::_assertFail;
+use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::linker::{OBJECT_READY, OBJECT_UNLOADED, pathchar};
+use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::foreign_exports::{foreignExportsFinishedLoadingObject, foreignExportsLoadingObject};
 use crate::linker_internals::{
-    _ObjectCode, DYNAMIC_OBJECT, NativeCodeRange, ObjectCode, lookupObjectByPath, mkOc,
+    _ObjectCode, DYNAMIC_OBJECT, NativeCodeRange, ObjectCode, linker_mutex, lookupObjectByPath,
+    mkOc,
 };
 use crate::prelude::*;
+use crate::profiling::{ccs_mutex, refreshProfilingCCSs};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 
 unsafe fn copyErrmsg(mut errmsg_dest: *mut *mut c_char, mut errmsg: *mut c_char) {
@@ -21,6 +26,11 @@ unsafe fn copyErrmsg(mut errmsg_dest: *mut *mut c_char, mut errmsg: *mut c_char)
 }
 
 unsafe fn freeNativeCode_POSIX(mut nc: *mut ObjectCode) {
+    if (pthread_mutex_lock(&raw mut linker_mutex) == 11) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/linker/LoadNativeObjPosix.c".as_ptr(), 79);
+    }
+
     dlclose((*nc).dlopen_handle);
 
     let mut ncr = (*nc).nc_ranges;
@@ -41,6 +51,16 @@ unsafe fn loadNativeObj_POSIX(
     let mut nc = null_mut::<ObjectCode>();
     let mut hdl = null_mut::<c_void>();
     let mut retval = null_mut::<c_void>();
+
+    if (pthread_mutex_lock(&raw mut linker_mutex) == 11) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/linker/LoadNativeObjPosix.c".as_ptr(), 117);
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"loadNativeObj_POSIX %s\n".as_ptr(), path);
+    }
+
     retval = NULL;
 
     let mut existing_oc = lookupObjectByPath(path);
@@ -70,6 +90,18 @@ unsafe fn loadNativeObj_POSIX(
 
         loop {
             foreignExportsLoadingObject(nc);
+
+            let mut __r = pthread_mutex_lock(&raw mut ccs_mutex);
+
+            if __r != 0 {
+                barf(
+                    c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                    c"rts/linker/LoadNativeObjPosix.c".as_ptr(),
+                    166,
+                    __r,
+                );
+            }
+
             dlopen_mode = if load_now as i32 != 0 {
                 RTLD_NOW
             } else {
@@ -78,6 +110,15 @@ unsafe fn loadNativeObj_POSIX(
             hdl = dlopen(path, dlopen_mode | RTLD_LOCAL);
             (*nc).dlopen_handle = hdl;
             (*nc).status = OBJECT_READY;
+
+            if pthread_mutex_unlock(&raw mut ccs_mutex) != 0 {
+                barf(
+                    c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                    c"rts/linker/LoadNativeObjPosix.c".as_ptr(),
+                    175,
+                );
+            }
+
             foreignExportsFinishedLoadingObject();
 
             if hdl.is_null() {
@@ -94,9 +135,14 @@ unsafe fn loadNativeObj_POSIX(
                 (*nc).next_loaded_object = loaded_objects as *mut _ObjectCode;
                 loaded_objects = nc;
                 retval = (*nc).dlopen_handle;
+                refreshProfilingCCSs();
                 break;
             }
         }
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"loadNativeObj_POSIX result=%p\n".as_ptr(), retval);
     }
 
     return retval;

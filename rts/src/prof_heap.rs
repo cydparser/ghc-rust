@@ -11,8 +11,8 @@ use crate::ffi::rts::storage::block::{BF_LARGE, BF_PINNED, bdescr};
 use crate::ffi::rts::storage::closure_macros::{
     BLACKHOLE_sizeW, ap_sizeW, ap_stack_sizeW, arr_words_sizeW, bco_sizeW,
     compact_nfdata_full_sizeW, continuation_sizeW, doingErasProfiling, doingLDVProfiling,
-    doingRetainerProfiling, get_itbl, itbl_to_con_itbl, mut_arr_ptrs_sizeW, pap_sizeW,
-    sizeW_fromITBL, small_mut_arr_ptrs_sizeW, stack_sizeW, thunk_sizeW_fromITBL,
+    doingRetainerProfiling, get_itbl, isInherentlyUsed, itbl_to_con_itbl, mut_arr_ptrs_sizeW,
+    pap_sizeW, sizeW_fromITBL, small_mut_arr_ptrs_sizeW, stack_sizeW, thunk_sizeW_fromITBL,
 };
 use crate::ffi::rts::storage::closure_types::ARR_WORDS;
 use crate::ffi::rts::storage::closures::{
@@ -24,7 +24,7 @@ use crate::ffi::rts::storage::tso::StgStack;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time};
 use crate::ffi::rts::types::StgClosure;
-use crate::ffi::rts::{prog_argc, prog_argv, prog_name, stg_exit};
+use crate::ffi::rts::{_assertFail, prog_argc, prog_argv, prog_name, stg_exit};
 use crate::ffi::rts_api::{_RTSStats, GCDetails_, RtsOptsAll, getRTSStats};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::smp::atomic_inc;
@@ -100,11 +100,10 @@ static mut hp_file: *mut FILE = null_mut::<FILE>();
 
 static mut hp_filename: *mut c_char = null_mut::<c_char>();
 
-static mut prof_locale: locale_t = null_mut::<_xlocale>();
-
 static mut saved_locale: locale_t = null_mut::<_xlocale>();
 
-#[inline]
+static mut prof_locale: locale_t = null_mut::<_xlocale>();
+
 unsafe fn init_prof_locale() {
     if prof_locale.is_null() {
         prof_locale = newlocale(LC_NUMERIC_MASK, c"POSIX".as_ptr(), null_mut::<_xlocale>());
@@ -115,7 +114,6 @@ unsafe fn init_prof_locale() {
     }
 }
 
-#[inline]
 unsafe fn free_prof_locale() {
     if !prof_locale.is_null() {
         freelocale(prof_locale);
@@ -123,19 +121,17 @@ unsafe fn free_prof_locale() {
     }
 }
 
-#[inline]
 unsafe fn set_prof_locale() {
     saved_locale = uselocale(prof_locale);
 }
 
-#[inline]
 unsafe fn restore_locale() {
     uselocale(saved_locale);
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
-pub static mut era: u32 = 0;
+pub static mut era: c_uint = 0;
 
 static mut max_era: u32 = 0;
 
@@ -228,6 +224,11 @@ unsafe fn LDV_recordDead(mut c: *const StgClosure, mut size: u32) {
     let mut t: u32 = 0;
     let mut ctr = null_mut::<counter>();
 
+    if !isInherentlyUsed((*get_itbl(c)).r#type) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/ProfHeap.c".as_ptr(), 263);
+    }
+
     if era > 0 && closureSatisfiesConstraints(c) as i32 != 0 {
         size = (size as u64).wrapping_sub(
             (size_of::<StgProfHeader>() as usize)
@@ -235,6 +236,11 @@ unsafe fn LDV_recordDead(mut c: *const StgClosure, mut size: u32) {
                 .wrapping_sub(1 as usize)
                 .wrapping_div(size_of::<W_>() as usize) as u64,
         ) as u32 as u32;
+
+        if ((*(c as *mut StgClosure)).header.prof.hp.ldvw != 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/ProfHeap.c".as_ptr(), 267);
+        }
 
         if (*(c as *mut StgClosure)).header.prof.hp.ldvw & LDV_STATE_MASK as StgWord
             == LDV_STATE_CREATE as StgWord
@@ -246,6 +252,15 @@ unsafe fn LDV_recordDead(mut c: *const StgClosure, mut size: u32) {
                 if RtsFlags.ProfFlags.bioSelector.is_null() {
                     (*censuses.offset(t as isize)).void_total += size as isize;
                     (*censuses.offset(era as isize)).void_total -= size as isize;
+
+                    if ((*censuses.offset(t as isize)).void_total
+                        <= (*censuses.offset(t as isize)).not_used) as i32
+                        as i64
+                        != 0
+                    {
+                    } else {
+                        _assertFail(c"rts/ProfHeap.c".as_ptr(), 274);
+                    }
                 } else {
                     id = closureIdentity(c);
 
@@ -305,6 +320,11 @@ unsafe fn LDV_recordDead(mut c: *const StgClosure, mut size: u32) {
                         id_0 as StgWord,
                     ) as *mut counter;
 
+                    if !ctr.is_null() as i32 as i64 != 0 {
+                    } else {
+                        _assertFail(c"rts/ProfHeap.c".as_ptr(), 304);
+                    }
+
                     (*ctr).c.ldv.drag_total += size as isize;
 
                     ctr = lookupHashTable((*censuses.offset(era as isize)).hash, id_0 as StgWord)
@@ -338,7 +358,6 @@ unsafe fn LDV_recordDead(mut c: *const StgClosure, mut size: u32) {
     }
 }
 
-#[inline]
 unsafe fn initEra(mut census: *mut Census) {
     if !(*census).hash.is_null() {
         freeHashTable((*census).hash, None);
@@ -358,7 +377,6 @@ unsafe fn initEra(mut census: *mut Census) {
     (*census).drag_total = 0;
 }
 
-#[inline]
 unsafe fn freeEra(mut census: *mut Census) {
     arenaFree((*census).arena);
     freeHashTable((*census).hash, None);
@@ -494,6 +512,11 @@ unsafe fn initHeapProfiling() {
 
     if doingLDVProfiling() as i32 != 0 && doingRetainerProfiling() as i32 != 0 {
         errorBelch(c"cannot mix -hb and -hr".as_ptr());
+        stg_exit(EXIT_FAILURE);
+    }
+
+    if doingLDVProfiling() as i32 != 0 && RtsFlags.ParFlags.nCapabilities > 1 {
+        errorBelch(c"-hb cannot be used with multiple capabilities".as_ptr());
         stg_exit(EXIT_FAILURE);
     }
 
@@ -853,6 +876,23 @@ unsafe fn aggregateCensusInfo() {
             drag_total += (*censuses.offset(t as isize)).drag_total as i64;
             (*censuses.offset(t as isize)).void_total = void_total as isize;
             (*censuses.offset(t as isize)).drag_total = drag_total as isize;
+
+            if ((*censuses.offset(t as isize)).void_total
+                <= (*censuses.offset(t as isize)).not_used) as i32 as i64
+                != 0
+            {
+            } else {
+                _assertFail(c"rts/ProfHeap.c".as_ptr(), 783);
+            }
+
+            if ((*censuses.offset(t as isize)).drag_total <= (*censuses.offset(t as isize)).used)
+                as i32 as i64
+                != 0
+            {
+            } else {
+                _assertFail(c"rts/ProfHeap.c".as_ptr(), 789);
+            }
+
             t = t.wrapping_add(1);
         }
 
@@ -873,11 +913,26 @@ unsafe fn aggregateCensusInfo() {
                 (*c).identity as StgWord,
             ) as *mut counter;
 
-            if !d.is_null() {
+            if d.is_null() {
+                if ((*c).c.ldv.void_total == 0 && (*c).c.ldv.drag_total == 0) as i32 as i64 != 0 {
+                } else {
+                    _assertFail(c"rts/ProfHeap.c".as_ptr(), 817);
+                }
+            } else {
                 (*d).c.ldv.void_total += (*c).c.ldv.void_total;
                 (*d).c.ldv.drag_total += (*c).c.ldv.drag_total;
                 (*c).c.ldv.void_total = (*d).c.ldv.void_total;
                 (*c).c.ldv.drag_total = (*d).c.ldv.drag_total;
+
+                if ((*c).c.ldv.void_total >= 0) as i32 as i64 != 0 {
+                } else {
+                    _assertFail(c"rts/ProfHeap.c".as_ptr(), 828);
+                }
+
+                if ((*c).c.ldv.drag_total >= 0) as i32 as i64 != 0 {
+                } else {
+                    _assertFail(c"rts/ProfHeap.c".as_ptr(), 829);
+                }
             }
 
             c = (*c).next as *mut counter;
@@ -897,6 +952,16 @@ unsafe fn aggregateCensusInfo() {
                 ctrs = d;
                 (*d).c.ldv.void_total = (*c).c.ldv.void_total;
                 (*d).c.ldv.drag_total = (*c).c.ldv.drag_total;
+            }
+
+            if ((*c).c.ldv.void_total >= 0) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/ProfHeap.c".as_ptr(), 846);
+            }
+
+            if ((*c).c.ldv.drag_total >= 0) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/ProfHeap.c".as_ptr(), 847);
             }
 
             c = (*c).next as *mut counter;
@@ -1014,6 +1079,11 @@ unsafe fn dumpCensus(mut census: *mut Census) {
             }
         } else {
             count = (*ctr).c.resid;
+        }
+
+        if (count >= 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/ProfHeap.c".as_ptr(), 937);
         }
 
         if !(count == 0) {

@@ -1,9 +1,15 @@
-use crate::capability::regTableToCapability;
+use crate::capability::{SYNC_FLUSH_UPD_REM_SET, getCapability, regTableToCapability};
 use crate::ffi::mach_deps::TAG_MASK;
 use crate::ffi::mach_deps::TAG_MASK;
+use crate::ffi::rts::_assertFail;
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK};
 use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::messages::{barf, debugBelch};
+use crate::ffi::rts::os_threads::{
+    Condition, Mutex, initCondition, initMutex, signalCondition, waitCondition,
+};
+use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK};
 use crate::ffi::rts::storage::block::{
     BF_COMPACT, BF_LARGE, BF_MARKED, BF_NONMOVING, BF_NONMOVING_SWEEPING, BF_PINNED, BLOCK_SIZE,
     BLOCK_SIZE_W, Bdescr, allocGroup, bdescr, bdescr_, block_get_flags, block_set_flag,
@@ -11,37 +17,40 @@ use crate::ffi::rts::storage::block::{
 };
 use crate::ffi::rts::storage::block::{BLOCK_SIZE, bdescr};
 use crate::ffi::rts::storage::closure_macros::{
-    GET_CLOSURE_TAG, STATIC_LINK, TAG_CLOSURE, THUNK_INFO_PTR_TO_STRUCT, UNTAG_CLOSURE,
-    UNTAG_CONST_CLOSURE, get_fun_itbl, get_itbl, get_ret_itbl, itbl_to_fun_itbl,
+    GET_CLOSURE_TAG, LOOKS_LIKE_CLOSURE_PTR, STATIC_LINK, TAG_CLOSURE, THUNK_INFO_PTR_TO_STRUCT,
+    UNTAG_CLOSURE, UNTAG_CONST_CLOSURE, get_fun_itbl, get_itbl, get_ret_itbl, itbl_to_fun_itbl,
     itbl_to_thunk_itbl,
 };
 use crate::ffi::rts::storage::closure_types::{CONSTR_0_1, CONSTR_0_2, CONSTR_NOCAF};
 use crate::ffi::rts::storage::closures::StgMutArrPtrs;
 use crate::ffi::rts::storage::closures::{
     _StgWeak, MessageThrowTo, StgAP, StgAP_STACK, StgBCO, StgBlockingQueue, StgClosure_,
-    StgContinuation, StgInd, StgMVar, StgMutArrPtrs, StgMutVar, StgPAP, StgRetFun, StgSelector,
-    StgSmallMutArrPtrs, StgTRecChunk, StgTRecHeader, StgTVar, StgThunk, StgUpdateFrame, StgWeak,
-    TRecEntry,
+    StgContinuation, StgInd, StgIndStatic, StgMVar, StgMutArrPtrs, StgMutVar, StgPAP, StgRetFun,
+    StgSelector, StgSmallMutArrPtrs, StgTRecChunk, StgTRecHeader, StgTVar, StgThunk,
+    StgUpdateFrame, StgWeak, TRecEntry,
 };
 use crate::ffi::rts::storage::gc::{memcount, oldest_gen};
-use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
+use crate::ffi::rts::storage::heap_alloc::{gc_alloc_block_sync, mblock_address_space};
 use crate::ffi::rts::storage::info_tables::{
     StgFunInfoTable, StgLargeBitmap, StgSRTField, StgThunkInfoTable, stg_arg_bitmaps,
 };
 use crate::ffi::rts::storage::tso::{StgStack, StgTSO_};
+use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
 use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
     stg_DEAD_WEAK_info, stg_END_STM_CHUNK_LIST_closure, stg_END_TSO_QUEUE_closure,
-    stg_NO_FINALIZER_closure, stg_NO_TREC_closure, stg_WHITEHOLE_info,
+    stg_NO_FINALIZER_closure, stg_NO_TREC_closure, stg_WEAK_info, stg_WHITEHOLE_info,
 };
 use crate::ffi::stg::regs::StgRegTable;
-use crate::ffi::stg::smp::{cas, cas_word8};
+use crate::ffi::stg::smp::{atomic_inc, cas, cas_word8};
 use crate::ffi::stg::types::StgWord;
 use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord32};
 use crate::prelude::*;
+use crate::printer::printClosure;
+use crate::schedule::{releaseAllCapabilities, stopAllCapabilitiesWith};
 use crate::sm::cnf::objectGetCompact;
 use crate::sm::heap_utils::walk_large_bitmap;
 use crate::sm::non_moving::{
@@ -51,14 +60,19 @@ use crate::sm::non_moving::{
     nonmovingSetMark,
 };
 use crate::sm::non_moving_mark::{
-    C2RustUnnamed_2, C2RustUnnamed_3, C2RustUnnamed_4, C2RustUnnamed_5, EntryType, MARK_ARRAY,
+    C2RustUnnamed_3, C2RustUnnamed_4, C2RustUnnamed_5, C2RustUnnamed_6, EntryType, MARK_ARRAY,
     MARK_CLOSURE, MARK_PREFETCH_QUEUE_DEPTH, MARK_QUEUE_BLOCK_ENTRIES, MARK_QUEUE_BLOCKS,
     MarkBudget, MarkQueue, MarkQueue_, MarkQueueBlock, MarkQueueEnt, NULL_ENTRY,
     UNLIMITED_MARK_BUDGET, UpdRemSet, markQueueIsEmpty, nonmovingMarkQueueEntryType,
 };
 use crate::sm::non_moving_shortcut::nonmoving_eval_thunk_selector;
-use crate::sm::storage::{STATIC_BITS, static_flag};
-use crate::trace::{DEBUG_RTS, trace_, traceConcMarkBegin, traceConcMarkEnd};
+use crate::sm::storage::{END_OF_CAF_LIST, STATIC_BITS, sm_mutex, static_flag};
+use crate::stats::{stat_endNonmovingGcSync, stat_startNonmovingGcSync};
+use crate::task::Task;
+use crate::trace::{
+    DEBUG_RTS, trace_, traceConcMarkBegin, traceConcMarkEnd, traceConcSyncBegin, traceConcSyncEnd,
+    traceConcUpdRemSetFlush,
+};
 
 #[cfg(test)]
 mod tests;
@@ -81,29 +95,29 @@ pub(crate) struct MarkQueue_ {
 
 /// cbindgen:no-export
 pub(crate) struct MarkQueueEnt {
-    pub(crate) c2rust_unnamed: C2RustUnnamed_2,
+    pub(crate) c2rust_unnamed: C2RustUnnamed_3,
 }
 
-pub(crate) union C2RustUnnamed_2 {
-    pub(crate) null_entry: C2RustUnnamed_5,
-    pub(crate) mark_closure: C2RustUnnamed_4,
-    pub(crate) mark_array: C2RustUnnamed_3,
+pub(crate) union C2RustUnnamed_3 {
+    pub(crate) null_entry: C2RustUnnamed_6,
+    pub(crate) mark_closure: C2RustUnnamed_5,
+    pub(crate) mark_array: C2RustUnnamed_4,
 }
 
 /// cbindgen:no-export
-pub(crate) struct C2RustUnnamed_3 {
+pub(crate) struct C2RustUnnamed_4 {
     pub(crate) array: *const StgMutArrPtrs,
     pub(crate) start_index: StgWord,
 }
 
 /// cbindgen:no-export
-pub(crate) struct C2RustUnnamed_4 {
+pub(crate) struct C2RustUnnamed_5 {
     pub(crate) p: *mut StgClosure,
     pub(crate) origin: *mut *mut StgClosure,
 }
 
 /// cbindgen:no-export
-pub(crate) struct C2RustUnnamed_5 {
+pub(crate) struct C2RustUnnamed_6 {
     pub(crate) p: *mut c_void,
 }
 
@@ -126,6 +140,11 @@ pub(crate) type MarkBudget = i64;
 #[inline]
 pub(crate) unsafe fn nonmovingMarkQueueEntryType(mut ent: *mut MarkQueueEnt) -> EntryType {
     let mut tag: usize = (*ent).c2rust_unnamed.null_entry.p as usize & TAG_MASK as usize;
+
+    if (tag <= MARK_ARRAY as i32 as usize) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.h".as_ptr(), 65);
+    }
 
     return tag as EntryType;
 }
@@ -174,6 +193,11 @@ static mut n_nonmoving_compact_blocks: memcount = 0;
 
 static mut n_nonmoving_marked_compact_blocks: memcount = 0;
 
+static mut nonmoving_large_objects_mutex: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
 static mut nonmoving_old_threads: *mut StgTSO = unsafe {
     &raw const stg_END_TSO_QUEUE_closure as *mut StgClosure as *mut c_void as *mut StgTSO
 };
@@ -186,7 +210,24 @@ static mut nonmoving_threads: *mut StgTSO = unsafe {
 
 static mut nonmoving_weak_ptr_list: *mut StgWeak = null_mut::<StgWeak>();
 
+static mut debug_caf_list_snapshot: *mut StgIndStatic =
+    unsafe { END_OF_CAF_LIST as *mut StgIndStatic };
+
 static mut upd_rem_set_block_list: *mut bdescr = null_mut::<bdescr>();
+
+static mut upd_rem_set_lock: Mutex = _opaque_pthread_mutex_t {
+    __sig: 0,
+    __opaque: [0; 56],
+};
+
+static mut upd_rem_set_flush_count: StgWord = 0;
+
+static mut upd_rem_set_flushed_cond: Condition = Condition {
+    cond: _opaque_pthread_cond_t {
+        __sig: 0,
+        __opaque: [0; 40],
+    },
+};
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
@@ -194,7 +235,11 @@ pub static mut nonmoving_write_barrier_enabled: StgWord = false;
 
 static mut current_mark_queue: *mut MarkQueue = null_mut::<MarkQueue>();
 
-unsafe fn nonmovingMarkInit() {}
+unsafe fn nonmovingMarkInit() {
+    initMutex(&raw mut upd_rem_set_lock);
+    initCondition(&raw mut upd_rem_set_flushed_cond);
+    initMutex(&raw mut nonmoving_large_objects_mutex);
+}
 
 unsafe fn nonmovingAddUpdRemSetBlocks_(mut rset: *mut MarkQueue) {
     let mut start = (*rset).blocks;
@@ -205,8 +250,28 @@ unsafe fn nonmovingAddUpdRemSetBlocks_(mut rset: *mut MarkQueue) {
     }
 
     (*rset).blocks = null_mut::<bdescr>();
+
+    let mut __r = pthread_mutex_lock(&raw mut upd_rem_set_lock);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/NonMovingMark.c".as_ptr(),
+            286,
+            __r,
+        );
+    }
+
     (*end).link = upd_rem_set_block_list as *mut bdescr_;
     upd_rem_set_block_list = start;
+
+    if pthread_mutex_unlock(&raw mut upd_rem_set_lock) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/NonMovingMark.c".as_ptr(),
+            289,
+        );
+    }
 }
 
 unsafe fn nonmovingAddUpdRemSetBlocks_lock(mut rset: *mut MarkQueue) {
@@ -215,7 +280,28 @@ unsafe fn nonmovingAddUpdRemSetBlocks_lock(mut rset: *mut MarkQueue) {
     }
 
     nonmovingAddUpdRemSetBlocks_(rset);
+
+    let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/NonMovingMark.c".as_ptr(),
+            305,
+            __r,
+        );
+    }
+
     init_mark_queue_(rset);
+
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/NonMovingMark.c".as_ptr(),
+            307,
+        );
+    }
+
     (*rset).is_upd_rem_set = true;
 }
 
@@ -229,17 +315,125 @@ unsafe fn nonmovingAddUpdRemSetBlocks(mut rset: *mut UpdRemSet) {
     (*rset).queue.is_upd_rem_set = true;
 }
 
-#[inline]
+unsafe fn nonmovingFlushCapUpdRemSetBlocks(mut cap: *mut Capability) {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as i64 != 0 {
+        trace_(
+            c"Capability %d flushing update remembered set: %d".as_ptr(),
+            (*cap).no,
+            markQueueLength(&raw mut (*cap).upd_rem_set.queue),
+        );
+    }
+
+    traceConcUpdRemSetFlush(cap);
+    nonmovingAddUpdRemSetBlocks_lock(&raw mut (*cap).upd_rem_set.queue);
+    atomic_inc(&raw mut upd_rem_set_flush_count, 1);
+    signalCondition(&raw mut upd_rem_set_flushed_cond);
+}
+
+unsafe fn nonmovingBeginFlush(mut task: *mut Task) {
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as i64 != 0 {
+        trace_(c"Starting update remembered set flush...".as_ptr());
+    }
+
+    traceConcSyncBegin();
+    write_volatile(&mut upd_rem_set_flush_count as *mut StgWord, 0);
+    stat_startNonmovingGcSync();
+    stopAllCapabilitiesWith(null_mut::<*mut Capability>(), task, SYNC_FLUSH_UPD_REM_SET);
+
+    let mut i: u32 = 0;
+
+    while i < getNumCapabilities() as u32 {
+        nonmovingFlushCapUpdRemSetBlocks(getCapability(i));
+        i = i.wrapping_add(1);
+    }
+}
+
+unsafe fn nonmovingWaitForFlush() -> bool {
+    let mut __r = pthread_mutex_lock(&raw mut upd_rem_set_lock);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/NonMovingMark.c".as_ptr(),
+            372,
+            __r,
+        );
+    }
+
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as i64 != 0 {
+        trace_(c"Flush count %d".as_ptr(), upd_rem_set_flush_count);
+    }
+
+    let mut finished = upd_rem_set_flush_count == getNumCapabilities() as StgWord;
+
+    if !finished {
+        waitCondition(&raw mut upd_rem_set_flushed_cond, &raw mut upd_rem_set_lock);
+    }
+
+    if pthread_mutex_unlock(&raw mut upd_rem_set_lock) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/NonMovingMark.c".as_ptr(),
+            378,
+        );
+    }
+
+    return finished;
+}
+
+unsafe fn nonmovingFinishFlush(mut task: *mut Task) {
+    let mut i: u32 = 0;
+
+    while i < getNumCapabilities() as u32 {
+        nonmovingResetUpdRemSet(
+            &raw mut (*(getCapability as unsafe extern "C" fn(c_uint) -> *mut Capability)(i))
+                .upd_rem_set,
+        );
+
+        i = i.wrapping_add(1);
+    }
+
+    freeChain_lock(upd_rem_set_block_list);
+    upd_rem_set_block_list = null_mut::<bdescr>();
+
+    if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as i64 != 0 {
+        trace_(c"Finished update remembered set flush...".as_ptr());
+    }
+
+    traceConcSyncEnd();
+    stat_endNonmovingGcSync();
+    releaseAllCapabilities(getNumCapabilities() as u32, null_mut::<Capability>(), task);
+}
+
 unsafe fn push(mut q: *mut MarkQueue, mut ent: *const MarkQueueEnt) {
     if (*(*q).top).head as usize == MARK_QUEUE_BLOCK_ENTRIES {
         if (*q).is_upd_rem_set {
             nonmovingAddUpdRemSetBlocks_lock(q);
         } else {
+            let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+            if __r != 0 {
+                barf(
+                    c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                    c"rts/sm/NonMovingMark.c".as_ptr(),
+                    467,
+                    __r,
+                );
+            }
+
             let mut bd = allocGroup(MARK_QUEUE_BLOCKS as W_);
             (*bd).link = (*q).blocks as *mut bdescr_;
             (*q).blocks = bd;
             (*q).top = (*bd).start as *mut MarkQueueBlock;
             (*(*q).top).head = 0;
+
+            if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+                barf(
+                    c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                    c"rts/sm/NonMovingMark.c".as_ptr(),
+                    473,
+                );
+            }
         }
     }
 
@@ -253,16 +447,19 @@ unsafe fn markQueuePushClosureGC(mut q: *mut MarkQueue, mut p: *mut StgClosure) 
     }
 
     if (*(*q).top).head as usize == MARK_QUEUE_BLOCK_ENTRIES {
+        ACQUIRE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
+
         let mut bd = allocGroup(MARK_QUEUE_BLOCKS as W_);
         (*bd).link = (*q).blocks as *mut bdescr_;
         (*q).blocks = bd;
         (*q).top = (*bd).start as *mut MarkQueueBlock;
         (*(*q).top).head = 0;
+        RELEASE_SPIN_LOCK(&raw mut gc_alloc_block_sync);
     }
 
     let mut ent = MarkQueueEnt {
-        c2rust_unnamed: C2RustUnnamed_2 {
-            mark_closure: C2RustUnnamed_4 {
+        c2rust_unnamed: C2RustUnnamed_3 {
+            mark_closure: C2RustUnnamed_5 {
                 p: TAG_CLOSURE(MARK_CLOSURE as i32 as StgWord, UNTAG_CLOSURE(p)),
                 origin: null_mut::<*mut StgClosure>(),
             },
@@ -279,9 +476,27 @@ unsafe fn push_closure(
     mut p: *mut StgClosure,
     mut origin: *mut *mut StgClosure,
 ) {
+    if (!(p as W_ >= mblock_address_space.0.begin && (p as W_) < mblock_address_space.0.end)
+        || (*Bdescr(p as StgPtr)).r#gen == oldest_gen) as i32 as i64
+        != 0
+    {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 530);
+    }
+
+    if LOOKS_LIKE_CLOSURE_PTR(p as *const c_void) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 531);
+    }
+
+    if (origin as usize & 0x3 == 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 543);
+    }
+
     let mut ent = MarkQueueEnt {
-        c2rust_unnamed: C2RustUnnamed_2 {
-            mark_closure: C2RustUnnamed_4 {
+        c2rust_unnamed: C2RustUnnamed_3 {
+            mark_closure: C2RustUnnamed_5 {
                 p: TAG_CLOSURE(MARK_CLOSURE as i32 as StgWord, UNTAG_CLOSURE(p)),
                 origin: origin,
             },
@@ -304,8 +519,8 @@ unsafe fn push_array(
     }
 
     let mut ent = MarkQueueEnt {
-        c2rust_unnamed: C2RustUnnamed_2 {
-            mark_array: C2RustUnnamed_3 {
+        c2rust_unnamed: C2RustUnnamed_3 {
+            mark_array: C2RustUnnamed_4 {
                 array: TAG_CLOSURE(
                     MARK_ARRAY as i32 as StgWord,
                     UNTAG_CLOSURE(array as *mut StgClosure),
@@ -357,7 +572,7 @@ unsafe fn updateRemembSetPushThunk(mut cap: *mut Capability, mut thunk: *mut Stg
     let mut info = null::<StgInfoTable>();
 
     loop {
-        info = (*thunk).header.info as *mut StgInfoTable;
+        info = (&raw mut (*thunk).header.info).load(Ordering::Relaxed) as *mut StgInfoTable;
 
         if !(info == &raw const stg_WHITEHOLE_info) {
             break;
@@ -421,7 +636,7 @@ unsafe fn updateRemembSetPushThunkEager(
         38 => {}
         27 => {
             let mut ind = thunk as *mut StgInd;
-            let mut indirectee = (*ind).indirectee;
+            let mut indirectee = (&raw mut (*ind).indirectee).load(Ordering::Acquire);
 
             if check_in_nonmoving_heap(indirectee) {
                 push_closure(queue, indirectee, null_mut::<*mut StgClosure>());
@@ -465,7 +680,6 @@ pub unsafe extern "C" fn updateRemembSetPushClosure_(
     updateRemembSetPushClosure(regTableToCapability(reg), p as *mut StgClosure);
 }
 
-#[inline]
 unsafe fn needs_upd_rem_set_mark(mut p: *mut StgClosure) -> bool {
     let mut bd = Bdescr(p as StgPtr);
     let mut flags = block_get_flags(bd);
@@ -487,6 +701,17 @@ unsafe fn needs_upd_rem_set_mark(mut p: *mut StgClosure) -> bool {
 }
 
 unsafe fn finish_upd_rem_set_mark_large(mut bd: *mut bdescr) {
+    let mut __r = pthread_mutex_lock(&raw mut nonmoving_large_objects_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/NonMovingMark.c".as_ptr(),
+            743,
+            __r,
+        );
+    }
+
     if block_get_flags(bd) as i32 & BF_MARKED == 0 {
         block_set_flag(bd, BF_MARKED as u16);
         dbl_link_remove(bd, &raw mut nonmoving_large_objects);
@@ -495,9 +720,16 @@ unsafe fn finish_upd_rem_set_mark_large(mut bd: *mut bdescr) {
         n_nonmoving_marked_large_blocks =
             n_nonmoving_marked_large_blocks.wrapping_add((*bd).blocks as memcount);
     }
+
+    if pthread_mutex_unlock(&raw mut nonmoving_large_objects_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/NonMovingMark.c".as_ptr(),
+            751,
+        );
+    }
 }
 
-#[inline]
 unsafe fn finish_upd_rem_set_mark(mut p: *mut StgClosure) {
     let mut bd = Bdescr(p as StgPtr);
 
@@ -600,8 +832,8 @@ unsafe fn markQueuePop_(mut q: *mut MarkQueue) -> MarkQueueEnt {
         if (*top).head == 0 {
             if (*(*q).blocks).link.is_null() {
                 let mut none = MarkQueueEnt {
-                    c2rust_unnamed: C2RustUnnamed_2 {
-                        null_entry: C2RustUnnamed_5 { p: NULL },
+                    c2rust_unnamed: C2RustUnnamed_3 {
+                        null_entry: C2RustUnnamed_6 { p: NULL },
                     },
                 };
 
@@ -610,7 +842,27 @@ unsafe fn markQueuePop_(mut q: *mut MarkQueue) -> MarkQueueEnt {
                 let mut old_block = (*q).blocks;
                 (*q).blocks = (*old_block).link as *mut bdescr;
                 (*q).top = (*(*q).blocks).start as *mut MarkQueueBlock;
+
+                let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+                if __r != 0 {
+                    barf(
+                        c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                        c"rts/sm/NonMovingMark.c".as_ptr(),
+                        884,
+                        __r,
+                    );
+                }
+
                 freeGroup(old_block);
+
+                if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+                    barf(
+                        c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                        c"rts/sm/NonMovingMark.c".as_ptr(),
+                        886,
+                    );
+                }
             }
         } else {
             (*top).head = (*top).head.wrapping_sub(1);
@@ -661,7 +913,6 @@ unsafe fn markQueuePop(mut q: *mut MarkQueue) -> MarkQueueEnt {
             ))
             .header
             .info;
-            Bdescr(new.c2rust_unnamed.mark_closure.p as StgPtr);
             (*q).prefetch_queue[i as usize] = new;
             i = i
                 .wrapping_add(1 as u32)
@@ -678,6 +929,12 @@ unsafe fn markQueuePop(mut q: *mut MarkQueue) -> MarkQueueEnt {
 
 unsafe fn init_mark_queue_(mut queue: *mut MarkQueue) {
     let mut bd = allocGroup(MARK_QUEUE_BLOCKS as W_);
+
+    if (*queue).blocks.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 947);
+    }
+
     (*queue).blocks = bd;
     (*queue).top = (*bd).start as *mut MarkQueueBlock;
     (*(*queue).top).head = 0;
@@ -701,8 +958,39 @@ unsafe fn nonmovingInitUpdRemSet(mut rset: *mut UpdRemSet) {
     (*rset).queue.is_upd_rem_set = true;
 }
 
+unsafe fn nonmovingResetUpdRemSetQueue(mut rset: *mut MarkQueue) {
+    if (*rset).is_upd_rem_set as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 976);
+    }
+
+    if (*(*rset).blocks).link.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 977);
+    }
+
+    (*(*rset).top).head = 0;
+}
+
+unsafe fn nonmovingResetUpdRemSet(mut rset: *mut UpdRemSet) {
+    nonmovingResetUpdRemSetQueue(&raw mut (*rset).queue);
+}
+
 unsafe fn freeMarkQueue(mut queue: *mut MarkQueue) {
     freeChain_lock((*queue).blocks);
+}
+
+unsafe fn markQueueLength(mut q: *mut MarkQueue) -> u32 {
+    let mut n: u32 = 0;
+    let mut block = (*q).blocks;
+
+    while !block.is_null() {
+        let mut queue = (*block).start as *mut MarkQueueBlock;
+        n = n.wrapping_add((*queue).head);
+        block = (*block).link as *mut bdescr;
+    }
+
+    return n;
 }
 
 unsafe fn trace_trec_chunk(mut queue: *mut MarkQueue, mut chunk: *mut StgTRecChunk) {
@@ -749,7 +1037,7 @@ unsafe fn trace_tso(mut queue: *mut MarkQueue, mut tso: *mut StgTSO) {
         markQueuePushClosure_(queue, (*tso).label as *mut StgClosure);
     }
 
-    match (*tso).why_blocked {
+    match (&raw mut (*tso).why_blocked).load(Ordering::Acquire) {
         1 | 14 | 2 | 12 | 0 => {
             markQueuePushClosure_(queue, (*tso).block_info.closure);
         }
@@ -801,14 +1089,20 @@ unsafe fn trace_PAP_payload(
     mut size: StgWord,
 ) {
     let mut fun_info = get_fun_itbl(UNTAG_CONST_CLOSURE(fun));
+
+    if ((*fun_info).i.r#type != 25) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 1109);
+    }
+
     let mut p = payload as StgPtr;
     let mut bitmap: StgWord = 0;
-    let mut current_block_7: u64;
+    let mut current_block_9: u64;
 
     match (*fun_info).f.fun_type {
         0 => {
             bitmap = (*fun_info).f.b.bitmap >> BITMAP_BITS_SHIFT;
-            current_block_7 = 4348410881353642614;
+            current_block_9 = 1367529635785947261;
         }
         1 => {
             trace_large_bitmap(
@@ -820,7 +1114,7 @@ unsafe fn trace_PAP_payload(
                 size,
             );
 
-            current_block_7 = 13536709405535804910;
+            current_block_9 = 1856101646708284338;
         }
         2 => {
             trace_large_bitmap(
@@ -830,18 +1124,18 @@ unsafe fn trace_PAP_payload(
                 size,
             );
 
-            current_block_7 = 13536709405535804910;
+            current_block_9 = 1856101646708284338;
         }
         _ => {
             bitmap = *(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 >> BITMAP_BITS_SHIFT;
-            current_block_7 = 4348410881353642614;
+            current_block_9 = 1367529635785947261;
         }
     }
 
-    match current_block_7 {
-        4348410881353642614 => {
+    match current_block_9 {
+        1367529635785947261 => {
             trace_small_bitmap(queue, p as *mut *mut StgClosure, size, bitmap);
         }
         _ => {}
@@ -862,7 +1156,7 @@ unsafe fn mark_arg_block(
         0 => {
             bitmap = (*fun_info).f.b.bitmap >> BITMAP_BITS_SHIFT;
             size = (*fun_info).f.b.bitmap & BITMAP_SIZE_MASK as StgWord;
-            current_block_8 = 9372144099661896856;
+            current_block_8 = 8619088362930747469;
         }
         1 => {
             size = (*((fun_info.offset(1 as i32 as isize) as StgWord)
@@ -889,12 +1183,12 @@ unsafe fn mark_arg_block(
             size = *(&raw const stg_arg_bitmaps as *const StgWord)
                 .offset((*fun_info).f.fun_type as isize)
                 & BITMAP_SIZE_MASK as StgWord;
-            current_block_8 = 9372144099661896856;
+            current_block_8 = 8619088362930747469;
         }
     }
 
     match current_block_8 {
-        9372144099661896856 => {
+        8619088362930747469 => {
             trace_small_bitmap(queue, p as *mut *mut StgClosure, size, bitmap);
             p = p.offset(size as isize);
         }
@@ -905,6 +1199,11 @@ unsafe fn mark_arg_block(
 }
 
 unsafe fn trace_stack_(mut queue: *mut MarkQueue, mut sp: StgPtr, mut spBottom: StgPtr) {
+    if (sp <= spBottom) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 1162);
+    }
+
     while sp < spBottom {
         let mut info = get_ret_itbl(sp as *mut StgClosure);
 
@@ -1006,6 +1305,17 @@ unsafe fn trace_stack(mut queue: *mut MarkQueue, mut stack: *mut StgStack) {
 }
 
 unsafe fn bump_static_flag(mut link_field: *mut *mut StgClosure, mut q: *mut StgClosure) -> bool {
+    let mut __r = pthread_mutex_lock(&raw mut sm_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/sm/NonMovingMark.c".as_ptr(),
+            1256,
+            __r,
+        );
+    }
+
     let mut needs_marking: bool = false;
     let mut link: StgWord = *link_field as StgWord;
 
@@ -1014,6 +1324,14 @@ unsafe fn bump_static_flag(mut link_field: *mut *mut StgClosure, mut q: *mut Stg
     } else {
         *link_field = (link & !STATIC_BITS as StgWord | static_flag as StgWord) as *mut StgClosure;
         needs_marking = true;
+    }
+
+    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/sm/NonMovingMark.c".as_ptr(),
+            1265,
+        );
     }
 
     return needs_marking;
@@ -1127,7 +1445,11 @@ unsafe fn mark_closure(
 
                     break;
                 }
-                58 => while (*p).header.info == &raw const stg_WHITEHOLE_info {},
+                58 => {
+                    while (&raw mut (*p).header.info).load(Ordering::Relaxed)
+                        == &raw const stg_WHITEHOLE_info
+                    {}
+                }
                 _ => {
                     barf(
                         c"mark_closure(static): strange closure type %d".as_ptr(),
@@ -1138,8 +1460,18 @@ unsafe fn mark_closure(
         } else {
             bd = Bdescr(p as StgPtr);
 
-            if (*bd).r#gen != oldest_gen {
+            if (&raw mut (*bd).r#gen).load(Ordering::Relaxed) != oldest_gen {
                 break;
+            }
+
+            if LOOKS_LIKE_CLOSURE_PTR(p as *const c_void) as i32 as i64 != 0 {
+            } else {
+                barf(c"invalid closure, info=%p".as_ptr(), (*p).header.info);
+            }
+
+            if !((*p).header.info as StgWord & 1 != 0) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 1377);
             }
 
             flags = block_get_flags(bd) as u16;
@@ -1206,36 +1538,41 @@ unsafe fn mark_closure(
 
                             markQueuePushClosure(
                                 queue,
-                                (*mvar).head as *mut StgClosure,
+                                (&raw mut (*mvar).head).load(Ordering::Acquire) as *mut StgClosure,
                                 &raw mut (*mvar).head as *mut *mut StgClosure,
                             );
 
                             markQueuePushClosure(
                                 queue,
-                                (*mvar).tail as *mut StgClosure,
+                                (&raw mut (*mvar).tail).load(Ordering::Acquire) as *mut StgClosure,
                                 &raw mut (*mvar).tail as *mut *mut StgClosure,
                             );
 
-                            markQueuePushClosure(queue, (*mvar).value, &raw mut (*mvar).value);
+                            markQueuePushClosure(
+                                queue,
+                                (&raw mut (*mvar).value).load(Ordering::Acquire),
+                                &raw mut (*mvar).value,
+                            );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         41 => {
                             let mut tvar = p as *mut StgTVar;
 
                             markQueuePushClosure(
                                 queue,
-                                (*tvar).current_value,
+                                (&raw mut (*tvar).current_value).load(Ordering::Acquire),
                                 &raw mut (*tvar).current_value,
                             );
 
                             markQueuePushClosure(
                                 queue,
-                                (*tvar).first_watch_queue_entry as *mut StgClosure,
+                                (&raw mut (*tvar).first_watch_queue_entry).load(Ordering::Acquire)
+                                    as *mut StgClosure,
                                 &raw mut (*tvar).first_watch_queue_entry as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         11 => {
                             markQueuePushFunSrt(queue, info_0);
@@ -1258,7 +1595,7 @@ unsafe fn mark_closure(
                                     as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         18 => {
                             let mut thunk = p as *mut StgThunk;
@@ -1282,7 +1619,7 @@ unsafe fn mark_closure(
                                     as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         4 => {
                             markQueuePushClosure(
@@ -1303,7 +1640,7 @@ unsafe fn mark_closure(
                                     as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         16 => {
                             markQueuePushThunkSrt(queue, info_0);
@@ -1318,7 +1655,7 @@ unsafe fn mark_closure(
                                     as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         9 => {
                             markQueuePushFunSrt(queue, info_0);
@@ -1332,7 +1669,7 @@ unsafe fn mark_closure(
                                     as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         2 => {
                             markQueuePushClosure(
@@ -1344,23 +1681,23 @@ unsafe fn mark_closure(
                                     as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         17 => {
                             markQueuePushThunkSrt(queue, info_0);
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         10 => {
                             markQueuePushFunSrt(queue, info_0);
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         20 => {
                             markQueuePushThunkSrt(queue, info_0);
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         13 => {
                             markQueuePushFunSrt(queue, info_0);
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         19 => {
                             markQueuePushThunkSrt(queue, info_0);
@@ -1375,7 +1712,7 @@ unsafe fn mark_closure(
                                     as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         12 => {
                             markQueuePushFunSrt(queue, info_0);
@@ -1389,7 +1726,7 @@ unsafe fn mark_closure(
                                     as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         5 => {
                             markQueuePushClosure(
@@ -1401,31 +1738,39 @@ unsafe fn mark_closure(
                                     as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         8 => {
                             markQueuePushFunSrt(queue, info_0);
-                            current_block = 4751196792806374320;
+                            current_block = 1069630499025798221;
                         }
                         15 => {
                             markQueuePushThunkSrt(queue, info_0);
 
-                            let mut i_1: StgWord = 0;
+                            let mut i_2: StgWord = 0;
 
-                            while i_1 < (*info_0).layout.payload.ptrs as StgWord {
+                            while i_2 < (*info_0).layout.payload.ptrs as StgWord {
                                 let mut field: *mut *mut StgClosure =
                                     (&raw mut (*(p as *mut StgThunk)).payload
                                         as *mut *mut StgClosure_)
-                                        .offset(i_1 as isize)
+                                        .offset(i_2 as isize)
                                         as *mut *mut StgClosure;
                                 markQueuePushClosure(queue, *field, field);
-                                i_1 = i_1.wrapping_add(1);
+                                i_2 = i_2.wrapping_add(1);
                             }
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
-                        49 | 1 | 7 | 50 => {
-                            current_block = 4751196792806374320;
+                        49 => {
+                            if is_nonmoving_weak(p as *mut StgWeak) as i32 as i64 != 0 {
+                            } else {
+                                _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 1564);
+                            }
+
+                            current_block = 1069630499025798221;
+                        }
+                        1 | 7 | 50 => {
+                            current_block = 1069630499025798221;
                         }
                         23 => {
                             let mut bco = p as *mut StgBCO;
@@ -1448,7 +1793,7 @@ unsafe fn mark_closure(
                                 &raw mut (*bco).ptrs as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         27 => {
                             markQueuePushClosure(
@@ -1461,11 +1806,15 @@ unsafe fn mark_closure(
                                 p_next = (*(p as *mut StgInd)).indirectee;
                             }
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         38 => {
                             let mut ind = p as *mut StgInd;
-                            let mut indirectee = (*ind).indirectee;
+
+                            ::std::sync::atomic::fence(::std::sync::atomic::Ordering::Acquire);
+
+                            let mut indirectee =
+                                (&raw mut (*ind).indirectee).load(Ordering::Relaxed);
 
                             markQueuePushClosure(queue, indirectee, &raw mut (*ind).indirectee);
 
@@ -1473,16 +1822,16 @@ unsafe fn mark_closure(
                                 p_next = indirectee;
                             }
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         47 | 48 => {
                             markQueuePushClosure(
                                 queue,
-                                (*(p as *mut StgMutVar)).var,
+                                (&raw mut (*(p as *mut StgMutVar)).var).load(Ordering::Acquire),
                                 &raw mut (*(p as *mut StgMutVar)).var,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         37 => {
                             let mut bq = p as *mut StgBlockingQueue;
@@ -1506,7 +1855,7 @@ unsafe fn mark_closure(
                                 &raw mut (*bq).link as *mut *mut StgClosure,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         22 => {
                             let mut sel = p as *mut StgSelector;
@@ -1514,7 +1863,7 @@ unsafe fn mark_closure(
                             markQueuePushClosure(queue, (*sel).selectee, &raw mut (*sel).selectee);
 
                             nonmoving_eval_thunk_selector(queue, sel, origin);
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         26 => {
                             let mut ap = p as *mut StgAP_STACK;
@@ -1527,7 +1876,7 @@ unsafe fn mark_closure(
                                     .offset((*ap).size as isize),
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         25 => {
                             let mut pap = p as *mut StgPAP;
@@ -1540,7 +1889,7 @@ unsafe fn mark_closure(
                                 (*pap).n_args as StgWord,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         24 => {
                             let mut ap_0 = p as *mut StgAP;
@@ -1554,30 +1903,36 @@ unsafe fn mark_closure(
                                 (*ap_0).n_args as StgWord,
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         43 | 44 | 46 | 45 => {
                             markQueuePushArray(queue, p as *mut StgMutArrPtrs, 0);
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         59 | 60 | 62 | 61 => {
                             let mut arr = p as *mut StgSmallMutArrPtrs;
-                            let mut i_3: StgWord = 0;
+                            let mut i_4: StgWord = 0;
 
-                            while i_3 < (*arr).ptrs {
+                            while i_4 < (*arr).ptrs {
                                 let mut field_1: *mut *mut StgClosure = (&raw mut (*arr).payload
                                     as *mut *mut StgClosure)
-                                    .offset(i_3 as isize)
+                                    .offset(i_4 as isize)
                                     as *mut *mut StgClosure;
-                                markQueuePushClosure(queue, *field_1, field_1);
-                                i_3 = i_3.wrapping_add(1);
+
+                                markQueuePushClosure(
+                                    queue,
+                                    (field_1).load(Ordering::Acquire),
+                                    field_1,
+                                );
+
+                                i_4 = i_4.wrapping_add(1);
                             }
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         52 => {
                             trace_tso(queue, p as *mut StgTSO);
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         53 => {
                             let mut stack = p as *mut StgStack;
@@ -1594,7 +1949,7 @@ unsafe fn mark_closure(
                             }
 
                             trace_stack(queue, stack);
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         51 => {
                             let mut p_idx: StgHalfWord = 0;
@@ -1608,17 +1963,18 @@ unsafe fn mark_closure(
                                 p_idx = p_idx.wrapping_add(1);
                             }
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         58 => {
-                            while (*p).header.info as *mut StgInfoTable
+                            while (&raw mut (*p).header.info).load(Ordering::Relaxed)
+                                as *mut StgInfoTable
                                 == &raw const stg_WHITEHOLE_info as *mut StgInfoTable
                             {
                             }
                             continue;
                         }
                         3 | 6 | 42 | 54 | 63 => {
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         64 => {
                             let mut cont = p as *mut StgContinuation;
@@ -1630,7 +1986,7 @@ unsafe fn mark_closure(
                                     .offset((*cont).stack_size as isize),
                             );
 
-                            current_block = 2413388577390654262;
+                            current_block = 9952640327414195044;
                         }
                         _ => {
                             barf(
@@ -1643,16 +1999,16 @@ unsafe fn mark_closure(
                     }
 
                     match current_block {
-                        4751196792806374320 => {
-                            let mut i_2: StgWord = 0;
+                        1069630499025798221 => {
+                            let mut i_3: StgWord = 0;
 
-                            while i_2 < (*info_0).layout.payload.ptrs as StgWord {
+                            while i_3 < (*info_0).layout.payload.ptrs as StgWord {
                                 let mut field_0: *mut *mut StgClosure = (&raw mut (*p).payload
                                     as *mut *mut StgClosure_)
-                                    .offset(i_2 as isize)
+                                    .offset(i_3 as isize)
                                     as *mut *mut StgClosure;
                                 markQueuePushClosure(queue, *field_0, field_0);
-                                i_2 = i_2.wrapping_add(1);
+                                i_3 = i_3.wrapping_add(1);
                             }
                         }
                         _ => {}
@@ -1661,6 +2017,17 @@ unsafe fn mark_closure(
                     bd_flags = block_get_flags(bd);
 
                     if bd_flags as i32 & BF_LARGE != 0 {
+                        let mut __r = pthread_mutex_lock(&raw mut nonmoving_large_objects_mutex);
+
+                        if __r != 0 {
+                            barf(
+                                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                                c"rts/sm/NonMovingMark.c".as_ptr(),
+                                1749,
+                                __r,
+                            );
+                        }
+
                         if bd_flags as i32 & BF_MARKED == 0 {
                             dbl_link_remove(bd, &raw mut nonmoving_large_objects);
                             dbl_link_onto(bd, &raw mut nonmoving_marked_large_objects);
@@ -1669,6 +2036,14 @@ unsafe fn mark_closure(
                             n_nonmoving_marked_large_blocks = n_nonmoving_marked_large_blocks
                                 .wrapping_add((*bd).blocks as memcount);
                             block_set_flag(bd, BF_MARKED as u16);
+                        }
+
+                        if pthread_mutex_unlock(&raw mut nonmoving_large_objects_mutex) != 0 {
+                            barf(
+                                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                                c"rts/sm/NonMovingMark.c".as_ptr(),
+                                1759,
+                            );
                         }
                     } else if bd_flags as i32 & BF_NONMOVING != 0 {
                         let mut seg_0 = nonmovingGetSegment(p as StgPtr);
@@ -1688,6 +2063,23 @@ unsafe fn mark_closure(
                     p = p_next;
                 }
             } else if (*bd).flags as i32 & BF_PINNED != 0 {
+                let mut found_it = false;
+                let mut i_1: u32 = 0;
+
+                while i_1 < getNumCapabilities() as u32 {
+                    if (*getCapability(i_1)).pinned_object_block == bd {
+                        found_it = true;
+                        break;
+                    } else {
+                        i_1 = i_1.wrapping_add(1);
+                    }
+                }
+
+                if found_it as i32 as i64 != 0 {
+                } else {
+                    _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 1451);
+                }
+
                 return;
             } else {
                 barf(c"Strange closure in nonmoving mark: %p".as_ptr(), p);
@@ -1753,19 +2145,63 @@ unsafe fn nonmovingMark(mut budget: *mut MarkBudget, mut queue: *mut MarkQueue) 
                 let mut i: StgWord = start;
 
                 while i < end {
-                    let mut c =
-                        *(&raw const (*arr).payload as *const *mut StgClosure).offset(i as isize);
+                    let mut c = ((&raw const (*arr).payload as *const *mut StgClosure)
+                        .offset(i as isize)
+                        as *const *mut StgClosure)
+                        .load(Ordering::Acquire);
                     markQueuePushClosure_(queue, c);
                     i = i.wrapping_add(1);
                 }
             }
             0 => {
-                if !upd_rem_set_block_list.is_null() {
+                if !(&raw mut upd_rem_set_block_list)
+                    .load(Ordering::Relaxed)
+                    .is_null()
+                {
+                    let mut __r = pthread_mutex_lock(&raw mut upd_rem_set_lock);
+
+                    if __r != 0 {
+                        barf(
+                            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                            c"rts/sm/NonMovingMark.c".as_ptr(),
+                            1836,
+                            __r,
+                        );
+                    }
+
                     let mut old = (*queue).blocks;
                     (*queue).blocks = upd_rem_set_block_list;
                     (*queue).top = (*(*queue).blocks).start as *mut MarkQueueBlock;
                     upd_rem_set_block_list = null_mut::<bdescr>();
+
+                    if pthread_mutex_unlock(&raw mut upd_rem_set_lock) != 0 {
+                        barf(
+                            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                            c"rts/sm/NonMovingMark.c".as_ptr(),
+                            1841,
+                        );
+                    }
+
+                    let mut __r_0 = pthread_mutex_lock(&raw mut sm_mutex);
+
+                    if __r_0 != 0 {
+                        barf(
+                            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                            c"rts/sm/NonMovingMark.c".as_ptr(),
+                            1843,
+                            __r_0,
+                        );
+                    }
+
                     freeGroup(old);
+
+                    if pthread_mutex_unlock(&raw mut sm_mutex) != 0 {
+                        barf(
+                            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                            c"rts/sm/NonMovingMark.c".as_ptr(),
+                            1845,
+                        );
+                    }
                 } else {
                     if DEBUG_RTS != 0 && RtsFlags.DebugFlags.nonmoving_gc as i64 != 0 {
                         trace_(c"Finished mark pass: %d".as_ptr(), count);
@@ -1787,6 +2223,11 @@ unsafe fn nonmovingIsAlive(mut p: *mut StgClosure) -> bool {
 
     let mut bd = Bdescr(p as StgPtr);
     let mut bd_flags = block_get_flags(bd);
+
+    if (bd_flags as i32 & 1024 != 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 1876);
+    }
 
     if bd_flags as i32 & (BF_COMPACT | BF_LARGE) != 0 {
         if bd_flags as i32 & BF_COMPACT != 0 {
@@ -1821,8 +2262,18 @@ unsafe fn nonmovingIsNowAlive(mut p: *mut StgClosure) -> bool {
             return true;
         }
 
+        if (flags as i32 & 1024 != 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 1950);
+        }
+
         return flags as i32 & BF_NONMOVING_SWEEPING == 0 || flags as i32 & BF_MARKED != 0;
     } else {
+        if (flags as i32 & 1024 != 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 1958);
+        }
+
         let mut seg = nonmovingGetSegment(p as StgPtr);
 
         let mut snapshot_loc = nonmovingSegmentGetBlock(
@@ -1839,6 +2290,11 @@ unsafe fn nonmovingIsNowAlive(mut p: *mut StgClosure) -> bool {
 }
 
 unsafe fn nonmovingMarkWeakPtrList(mut queue: *mut MarkQueue_) {
+    if nonmoving_weak_ptr_list.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 1979);
+    }
+
     let mut w = nonmoving_old_weak_ptr_list;
 
     while !w.is_null() {
@@ -1883,10 +2339,20 @@ unsafe fn nonmovingTidyWeaks(mut queue: *mut MarkQueue_) -> bool {
     let mut w = nonmoving_old_weak_ptr_list;
 
     while !w.is_null() {
+        if nonmovingIsNowAlive(w as *mut StgClosure) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 2007);
+        }
+
         if (*w).header.info == &raw const stg_DEAD_WEAK_info {
             next_w = (*w).link as *mut StgWeak;
             *last_w = next_w;
         } else {
+            if ((*w).header.info == &raw const stg_WEAK_info) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 2017);
+            }
+
             let mut key_bd = Bdescr((*w).key as StgPtr);
             let mut key_in_nonmoving = (*w).key as W_ >= mblock_address_space.0.begin
                 && ((*w).key as W_) < mblock_address_space.0.end
@@ -1920,6 +2386,16 @@ unsafe fn nonmovingMarkDeadWeak(mut queue: *mut MarkQueue_, mut w: *mut StgWeak)
 }
 
 unsafe fn nonmovingMarkLiveWeak(mut queue: *mut MarkQueue_, mut w: *mut StgWeak) {
+    if nonmovingIsNowAlive(w as *mut StgClosure) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 2053);
+    }
+
+    if nonmovingIsNowAlive((*w).key) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 2054);
+    }
+
     markQueuePushClosure_(queue as *mut MarkQueue, (*w).value);
     markQueuePushClosure_(queue as *mut MarkQueue, (*w).finalizer);
     markQueuePushClosure_(queue as *mut MarkQueue, (*w).cfinalizers);
@@ -1930,6 +2406,11 @@ unsafe fn nonmovingMarkDeadWeaks(mut queue: *mut MarkQueue_, mut dead_weaks: *mu
     let mut w = nonmoving_old_weak_ptr_list;
 
     while !w.is_null() {
+        if !nonmovingIsNowAlive((*w).key) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/sm/NonMovingMark.c".as_ptr(), 2068);
+        }
+
         nonmovingMarkDeadWeak(queue, w);
         next_w = (*w).link as *mut StgWeak;
         (*w).link = *dead_weaks as *mut _StgWeak;
@@ -1979,4 +2460,44 @@ unsafe fn nonmovingResurrectThreads(
 
         t = next;
     }
+}
+
+unsafe fn printMarkQueueEntry(mut ent: *mut MarkQueueEnt) {
+    match nonmovingMarkQueueEntryType(ent) as u32 {
+        1 => {
+            debugBelch(c"Closure: ".as_ptr());
+            printClosure((*ent).c2rust_unnamed.mark_closure.p);
+        }
+        2 => {
+            debugBelch(c"Array\n".as_ptr());
+        }
+        0 => {
+            debugBelch(c"End of mark\n".as_ptr());
+        }
+        _ => {}
+    };
+}
+
+unsafe fn printMarkQueue(mut q: *mut MarkQueue) {
+    debugBelch(c"======== MARK QUEUE ========\n".as_ptr());
+
+    let mut block = (*q).blocks;
+
+    while !block.is_null() {
+        let mut queue = (*block).start as *mut MarkQueueBlock;
+        let mut i: u32 = 0;
+
+        while i < (*queue).head {
+            printMarkQueueEntry(
+                (&raw mut (*queue).entries as *mut MarkQueueEnt).offset(i as isize)
+                    as *mut MarkQueueEnt,
+            );
+
+            i = i.wrapping_add(1);
+        }
+
+        block = (*block).link as *mut bdescr;
+    }
+
+    debugBelch(c"===== END OF MARK QUEUE ====\n".as_ptr());
 }

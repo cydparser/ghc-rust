@@ -1,9 +1,10 @@
 use crate::capability::getCapability;
+use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{
     BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK, ThreadComplete, ThreadKilled,
 };
 use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::messages::barf;
+use crate::ffi::rts::messages::{barf, vdebugBelch};
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::block::bdescr;
 use crate::ffi::rts::storage::block::{BLOCK_SIZE_W, allocGroup, bdescr, bdescr_, freeChain};
@@ -145,11 +146,21 @@ unsafe fn isTravDataValid(mut ts: *const traverseState, mut c: *const StgClosure
     return (*c).header.prof.hp.trav & 1 == (*ts).flip;
 }
 
-unsafe fn debug(mut s: *const c_char, mut args: ...) {}
+static mut g_traversalDebugLevel: u32 = 0;
+
+unsafe fn debug(mut s: *const c_char, mut args: ...) {
+    let mut ap: VaListImpl;
+
+    if g_traversalDebugLevel == 0 {
+        return;
+    }
+
+    ap = args.clone();
+    vdebugBelch(s, ap.as_va_list());
+}
 
 const BLOCKS_IN_STACK: i32 = 1;
 
-#[inline]
 unsafe fn newStackBlock(mut ts: *mut traverseState, mut bd: *mut bdescr) {
     (*ts).currentStack = bd;
     (*ts).stackTop = (*bd)
@@ -161,7 +172,6 @@ unsafe fn newStackBlock(mut ts: *mut traverseState, mut bd: *mut bdescr) {
     (*bd).c2rust_unnamed.free = (*ts).stackLimit as StgPtr;
 }
 
-#[inline]
 unsafe fn returnToOldStack(mut ts: *mut traverseState, mut bd: *mut bdescr) {
     (*ts).currentStack = bd;
     (*ts).stackTop = (*bd).c2rust_unnamed.free as *mut stackElement;
@@ -195,7 +205,6 @@ unsafe fn getTraverseStackMaxSize(mut ts: *mut traverseState) -> i32 {
     return (*ts).maxStackSize;
 }
 
-#[inline]
 unsafe fn isEmptyWorkStack(mut ts: *mut traverseState) -> bool {
     return (*ts).firstStack == (*ts).currentStack && (*ts).stackTop == (*ts).stackLimit;
 }
@@ -213,7 +222,6 @@ unsafe fn traverseWorkStackBlocks(mut ts: *mut traverseState) -> W_ {
     return res;
 }
 
-#[inline]
 unsafe fn init_ptrs(mut info: *mut stackPos, mut ptrs: u32, mut payload: StgPtr) {
     (*info).r#type = posTypePtrs;
     (*info).next.ptrs.pos = 0;
@@ -221,7 +229,6 @@ unsafe fn init_ptrs(mut info: *mut stackPos, mut ptrs: u32, mut payload: StgPtr)
     (*info).next.ptrs.payload = payload;
 }
 
-#[inline]
 unsafe fn find_ptrs(mut info: *mut stackPos) -> *mut StgClosure {
     if (*info).next.ptrs.pos < (*info).next.ptrs.ptrs {
         let fresh6 = (*info).next.ptrs.pos;
@@ -233,7 +240,6 @@ unsafe fn find_ptrs(mut info: *mut stackPos) -> *mut StgClosure {
     };
 }
 
-#[inline]
 unsafe fn init_srt_fun(mut info: *mut stackPos, mut infoTable: *const StgFunInfoTable) {
     (*info).r#type = posTypeSRT;
 
@@ -246,7 +252,6 @@ unsafe fn init_srt_fun(mut info: *mut stackPos, mut infoTable: *const StgFunInfo
     };
 }
 
-#[inline]
 unsafe fn init_srt_thunk(mut info: *mut stackPos, mut infoTable: *const StgThunkInfoTable) {
     (*info).r#type = posTypeSRT;
 
@@ -259,7 +264,6 @@ unsafe fn init_srt_thunk(mut info: *mut stackPos, mut infoTable: *const StgThunk
     };
 }
 
-#[inline]
 unsafe fn find_srt(mut info: *mut stackPos) -> *mut StgClosure {
     let mut c = null_mut::<StgClosure>();
 
@@ -298,6 +302,11 @@ unsafe fn pushStackElement(mut ts: *mut traverseState, se: stackElement) -> *mut
 
     if (*ts).stackSize > (*ts).maxStackSize {
         (*ts).maxStackSize = (*ts).stackSize;
+    }
+
+    if ((*ts).stackSize >= 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 259);
     }
 
     debug(c"stackSize = %d\n".as_ptr(), (*ts).stackSize);
@@ -344,7 +353,6 @@ unsafe fn traversePushRoot(
     traversePushClosure(ts, c, cp, null_mut::<stackElement>(), data);
 }
 
-#[inline]
 unsafe fn traversePushReturn(
     mut ts: *mut traverseState,
     mut c: *mut StgClosure,
@@ -382,13 +390,22 @@ unsafe fn traversePushReturn(
     return pushStackElement(ts, se);
 }
 
-#[inline]
 unsafe fn traverseGetChildren(
     mut c: *mut StgClosure,
     mut first_child: *mut *mut StgClosure,
     mut other_children: *mut bool,
     mut se: *mut stackElement,
 ) {
+    if ((*get_itbl(c)).r#type != 52) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 347);
+    }
+
+    if ((*get_itbl(c)).r#type != 26) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 348);
+    }
+
     (*se).c = c;
     *other_children = false;
 
@@ -421,19 +438,19 @@ unsafe fn traverseGetChildren(
                 *(&raw mut (*c).payload as *mut *mut StgClosure_).offset(0) as *mut StgClosure;
             (*se).info.r#type = posTypeStep;
             (*se).info.next.step = 2;
-            current_block_68 = 919954187481050311;
+            current_block_68 = 8716029205547827362;
         }
         39 | 40 => {
             *first_child = (*(c as *mut StgMVar)).head as *mut StgClosure;
             (*se).info.r#type = posTypeStep;
             (*se).info.next.step = 2;
-            current_block_68 = 919954187481050311;
+            current_block_68 = 8716029205547827362;
         }
         49 => {
             *first_child = (*(c as *mut StgWeak)).key;
             (*se).info.r#type = posTypeStep;
             (*se).info.next.step = 2;
-            current_block_68 = 919954187481050311;
+            current_block_68 = 8716029205547827362;
         }
         41 | 1 | 7 | 50 | 51 | 23 => {
             init_ptrs(
@@ -448,7 +465,7 @@ unsafe fn traverseGetChildren(
                 return;
             }
 
-            current_block_68 = 919954187481050311;
+            current_block_68 = 8716029205547827362;
         }
         43 | 44 | 46 | 45 => {
             init_ptrs(
@@ -463,7 +480,7 @@ unsafe fn traverseGetChildren(
                 return;
             }
 
-            current_block_68 = 919954187481050311;
+            current_block_68 = 8716029205547827362;
         }
         59 | 60 | 62 | 61 => {
             init_ptrs(
@@ -479,7 +496,7 @@ unsafe fn traverseGetChildren(
                 return;
             }
 
-            current_block_68 = 919954187481050311;
+            current_block_68 = 8716029205547827362;
         }
         14 | 8 | 11 => {
             init_ptrs(
@@ -491,9 +508,9 @@ unsafe fn traverseGetChildren(
             *first_child = find_ptrs(&raw mut (*se).info);
 
             if (*first_child).is_null() {
-                current_block_68 = 4178741199610584029;
+                current_block_68 = 2391886799049156403;
             } else {
-                current_block_68 = 919954187481050311;
+                current_block_68 = 8716029205547827362;
             }
         }
         15 | 18 => {
@@ -506,34 +523,54 @@ unsafe fn traverseGetChildren(
             *first_child = find_ptrs(&raw mut (*se).info);
 
             if (*first_child).is_null() {
-                current_block_68 = 11115585723499683456;
+                current_block_68 = 14093766898566112057;
             } else {
-                current_block_68 = 919954187481050311;
+                current_block_68 = 8716029205547827362;
             }
         }
         9 | 12 => {
             *first_child =
                 *(&raw mut (*c).payload as *mut *mut StgClosure_).offset(0) as *mut StgClosure;
+
+            if !(*first_child).is_null() as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/TraverseHeap.c".as_ptr(), 477);
+            }
+
             init_srt_fun(&raw mut (*se).info, get_fun_itbl(c));
-            current_block_68 = 919954187481050311;
+            current_block_68 = 8716029205547827362;
         }
         16 | 19 => {
             *first_child = *(&raw mut (*(c as *mut StgThunk)).payload as *mut *mut StgClosure_)
                 .offset(0) as *mut StgClosure;
+
+            if !(*first_child).is_null() as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/TraverseHeap.c".as_ptr(), 484);
+            }
+
             init_srt_thunk(&raw mut (*se).info, get_thunk_itbl(c));
-            current_block_68 = 919954187481050311;
+            current_block_68 = 8716029205547827362;
         }
         10 | 13 => {
-            current_block_68 = 4178741199610584029;
+            current_block_68 = 2391886799049156403;
         }
-        21 | 17 | 20 => {
-            current_block_68 = 11115585723499683456;
+        21 => {
+            if ((*get_itbl(c)).srt != 0) as i32 as i64 != 0 {
+            } else {
+                _assertFail(c"rts/TraverseHeap.c".as_ptr(), 499);
+            }
+
+            current_block_68 = 14093766898566112057;
+        }
+        17 | 20 => {
+            current_block_68 = 14093766898566112057;
         }
         54 => {
             *first_child = (*(c as *mut StgTRecChunk)).prev_chunk as *mut StgClosure;
             (*se).info.r#type = posTypeStep;
             (*se).info.next.step = 0;
-            current_block_68 = 919954187481050311;
+            current_block_68 = 8716029205547827362;
         }
 
         25 | 24 | 26 | 64 | 52 | 53 | 28 | 33 | 34 | 35 | 36 | 29 | 30 | 31 | 65 | 27 | 0 | _ => {
@@ -545,7 +582,7 @@ unsafe fn traverseGetChildren(
     }
 
     match current_block_68 {
-        11115585723499683456 => {
+        14093766898566112057 => {
             init_srt_thunk(&raw mut (*se).info, get_thunk_itbl(c));
             *first_child = find_srt(&raw mut (*se).info);
 
@@ -553,7 +590,7 @@ unsafe fn traverseGetChildren(
                 return;
             }
         }
-        4178741199610584029 => {
+        2391886799049156403 => {
             init_srt_fun(&raw mut (*se).info, get_fun_itbl(c));
             *first_child = find_srt(&raw mut (*se).info);
 
@@ -564,15 +601,29 @@ unsafe fn traverseGetChildren(
         _ => {}
     }
 
+    if ((*se).info.r#type as u32 != posTypeFresh as i32 as u32) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 543);
+    }
+
     *other_children = true;
 }
 
-#[inline]
 unsafe fn popStackElement(mut ts: *mut traverseState) {
     debug(
         c"popStackElement(): stackTop = 0x%x\n".as_ptr(),
         (*ts).stackTop,
     );
+
+    if ((*ts).stackTop != (*ts).stackLimit) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 552);
+    }
+
+    if !isEmptyWorkStack(ts) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 553);
+    }
 
     if (*ts).stackTop.offset(1) < (*ts).stackLimit {
         (*ts).stackTop = (*ts).stackTop.offset(1);
@@ -582,6 +633,11 @@ unsafe fn popStackElement(mut ts: *mut traverseState) {
             (*ts).maxStackSize = (*ts).stackSize;
         }
 
+        if ((*ts).stackSize >= 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/TraverseHeap.c".as_ptr(), 561);
+        }
+
         debug(c"stackSize = (--) %d\n".as_ptr(), (*ts).stackSize);
         return;
     }
@@ -589,12 +645,33 @@ unsafe fn popStackElement(mut ts: *mut traverseState) {
     let mut pbd = null_mut::<bdescr>();
     debug(c"popStackElement() to the previous stack.\n".as_ptr());
 
+    if ((*ts).stackTop.offset(1) == (*ts).stackLimit) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 571);
+    }
+
+    if ((*ts).stackBottom == (*(*ts).currentStack).start as *mut stackElement) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 572);
+    }
+
     if (*ts).firstStack == (*ts).currentStack {
         (*ts).stackTop = (*ts).stackTop.offset(1);
+
+        if ((*ts).stackTop == (*ts).stackLimit) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/TraverseHeap.c".as_ptr(), 577);
+        }
+
         (*ts).stackSize -= 1;
 
         if (*ts).stackSize > (*ts).maxStackSize {
             (*ts).maxStackSize = (*ts).stackSize;
+        }
+
+        if ((*ts).stackSize >= 0) as i32 as i64 != 0 {
+        } else {
+            _assertFail(c"rts/TraverseHeap.c".as_ptr(), 581);
         }
 
         debug(c"stackSize = %d\n".as_ptr(), (*ts).stackSize);
@@ -603,11 +680,22 @@ unsafe fn popStackElement(mut ts: *mut traverseState) {
 
     (*(*ts).currentStack).c2rust_unnamed.free = (*ts).stackLimit as StgPtr;
     pbd = (*(*ts).currentStack).u.back as *mut bdescr;
+
+    if !pbd.is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 593);
+    }
+
     returnToOldStack(ts, pbd);
     (*ts).stackSize -= 1;
 
     if (*ts).stackSize > (*ts).maxStackSize {
         (*ts).maxStackSize = (*ts).stackSize;
+    }
+
+    if ((*ts).stackSize >= 0) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 599);
     }
 
     debug(c"stackSize = %d\n".as_ptr(), (*ts).stackSize);
@@ -628,7 +716,6 @@ unsafe fn callReturnAndPopStackElement(mut ts: *mut traverseState) {
     popStackElement(ts);
 }
 
-#[inline]
 unsafe fn traversePop(
     mut ts: *mut traverseState,
     mut c: *mut *mut StgClosure,
@@ -741,9 +828,9 @@ unsafe fn traversePop(
                             }
 
                             init_srt_fun(&raw mut (*se).info, get_fun_itbl((*se).c));
-                            current_block = 16536810277441930617;
+                            current_block = 9963957861488720293;
                         } else {
-                            current_block = 16536810277441930617;
+                            current_block = 9963957861488720293;
                         }
                     }
                     15 | 18 => {
@@ -755,13 +842,13 @@ unsafe fn traversePop(
                             }
 
                             init_srt_thunk(&raw mut (*se).info, get_thunk_itbl((*se).c));
-                            current_block = 16536810277441930617;
+                            current_block = 9963957861488720293;
                         } else {
-                            current_block = 16536810277441930617;
+                            current_block = 9963957861488720293;
                         }
                     }
                     21 | 10 | 13 | 17 | 20 | 9 | 12 | 16 | 19 => {
-                        current_block = 16536810277441930617;
+                        current_block = 9963957861488720293;
                     }
 
                     3 | 6 | 42 | 47 | 48 | 22 | 5 | 25 | 24 | 26 | 64 | 52 | 53 | 28 | 7 | 33
@@ -791,6 +878,11 @@ unsafe fn traversePop(
                 break;
             }
         }
+    }
+
+    if !(*c).is_null() as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 848);
     }
 
     *cp = (*se).c;
@@ -853,7 +945,6 @@ unsafe fn traverseLargeBitmap(
     }
 }
 
-#[inline]
 unsafe fn traverseSmallBitmap(
     mut ts: *mut traverseState,
     mut p: StgPtr,
@@ -888,6 +979,12 @@ unsafe fn traversePushStack(
     let mut info = null::<StgRetInfoTable>();
     let mut bitmap: StgWord = 0;
     let mut size: u32 = 0;
+
+    if ((*get_itbl(cp)).r#type == 53) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 950);
+    }
+
     p = stackStart;
 
     while p < stackEnd {
@@ -1036,6 +1133,12 @@ unsafe fn traversePAP(
     traversePushClosure(ts, fun, pap, sep, data);
     fun = UNTAG_CLOSURE(fun);
     fun_info = get_fun_itbl(fun);
+
+    if ((*fun_info).i.r#type != 25) as i32 as i64 != 0 {
+    } else {
+        _assertFail(c"rts/TraverseHeap.c".as_ptr(), 1059);
+    }
+
     p = payload as StgPtr;
 
     match (*fun_info).f.fun_type {
@@ -1244,7 +1347,7 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
 
                     traversePushClosure(ts, (*tso).trec as *mut StgClosure, c, sep, child_data);
 
-                    match (*tso).why_blocked {
+                    match (&raw mut (*tso).why_blocked).load(Ordering::Acquire) {
                         1 | 14 | 2 | 12 => {
                             traversePushClosure(ts, (*tso).block_info.closure, c, sep, child_data);
                         }
@@ -1353,6 +1456,11 @@ unsafe fn traverseWorkStack(mut ts: *mut traverseState, mut visit_cb: visitClosu
                     );
 
                     if first_child.is_null() && (*ts).return_cb.is_some() {
+                        if ((*sep).c == cp) as i32 as i64 != 0 {
+                        } else {
+                            _assertFail(c"rts/TraverseHeap.c".as_ptr(), 1319);
+                        }
+
                         (*ts).return_cb.expect("non-null function pointer")(
                             c,
                             accum,

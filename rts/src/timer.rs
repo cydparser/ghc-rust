@@ -7,6 +7,7 @@ use crate::prelude::*;
 use crate::proftimer::{handleProfTick, initProfTimer};
 use crate::schedule::{
     ACTIVITY_DONE_GC, ACTIVITY_INACTIVE, ACTIVITY_MAYBE_NO, getRecentActivity, setRecentActivity,
+    wakeUpRts,
 };
 use crate::ticker::{exitTicker, initTicker, startTicker, stopTicker};
 
@@ -60,9 +61,15 @@ unsafe fn handle_tick(mut unused: i32) {
                     setRecentActivity(ACTIVITY_INACTIVE);
                     inter_gc_ticks_to_gc =
                         (RtsFlags.GcFlags.interIdleGCWait / RtsFlags.MiscFlags.tickInterval) as i32;
+                    wakeUpRts();
                 } else {
                     setRecentActivity(ACTIVITY_DONE_GC);
-                    stopTimer();
+
+                    if !(RtsFlags.ProfFlags.doHeapProfile != 0
+                        || RtsFlags.CcFlags.doCostCentres != 0)
+                    {
+                        stopTimer();
+                    }
                 }
             } else {
                 if idle_ticks_to_gc != 0 {

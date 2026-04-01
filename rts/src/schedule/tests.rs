@@ -88,7 +88,9 @@ fn test_suspendThread() {
 fn equivalent_suspendThread(interruptible: bool) -> bool {
     let expected = {
         let mut arg1: sys::StgRegTable = todo!();
+
         let result: &c_void = unsafe { &*sys::suspendThread(&raw mut arg1, interruptible) };
+
         todo!()
     };
 
@@ -122,7 +124,9 @@ fn test_resumeThread() {
 fn equivalent_resumeThread() {
     let expected = {
         let mut arg1: c_void = todo!();
+
         let result: &StgRegTable = unsafe { transmute(&*sys::resumeThread(&raw mut arg1)) };
+
         todo!()
     };
 

@@ -1,11 +1,14 @@
 use crate::check_unload::{insertOCSectionIndices, loaded_objects};
 use crate::ffi::hs_ffi::HsInt;
 use crate::ffi::rts::_assertFail;
+use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::linker::pathchar;
-use crate::ffi::rts::messages::errorBelch;
+use crate::ffi::rts::messages::{barf, debugBelch, errorBelch};
 use crate::linker::m_map::{mmapAnonForLinker, munmapForLinker};
 use crate::linker::mach_o::ocInit_MachO;
-use crate::linker_internals::{_ObjectCode, STATIC_OBJECT, isAlreadyLoaded, loadOc, mkOc};
+use crate::linker_internals::{
+    _ObjectCode, STATIC_OBJECT, isAlreadyLoaded, linker_mutex, loadOc, mkOc,
+};
 use crate::path_utils::{mkPath, pathdir, pathdup, pathsize};
 use crate::prelude::*;
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
@@ -61,6 +64,13 @@ unsafe fn loadFatArchive(
     let mycpusubtype: u32 = CPU_SUBTYPE_ARM64_ALL as u32;
     nfat_arch = read4Bytes(input.offset(4) as *const c_char);
 
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(
+            c"loadArchive: found a fat archive containing %d architectures\n".as_ptr(),
+            nfat_arch,
+        );
+    }
+
     let mut tmp: [c_char; 20] = [0; 20];
     nfat_offset = 0;
 
@@ -80,6 +90,10 @@ unsafe fn loadFatArchive(
         cpusubtype = read4Bytes((&raw mut tmp as *mut c_char).offset(4) as *const c_char);
 
         if cputype == mycputype && cpusubtype == mycpusubtype {
+            if RtsFlags.DebugFlags.linker {
+                debugBelch(c"loadArchive: found my archive in a fat archive\n".as_ptr());
+            }
+
             nfat_offset = read4Bytes((&raw mut tmp as *mut c_char).offset(8) as *const c_char);
 
             break;
@@ -417,7 +431,19 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
     let mut thisFileNameSize: usize = -1 as usize;
     let mut misalignment = 0;
 
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"loadArchive: start\n".as_ptr());
+    }
+
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"loadArchive: Loading archive `%s'\n".as_ptr(), path);
+    }
+
     if isAlreadyLoaded(path) != 0 {
+        if RtsFlags.DebugFlags.linker {
+            debugBelch(c"ignoring repeated load of %s\n".as_ptr(), path);
+        }
+
         return 1;
     }
 
@@ -441,29 +467,49 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
         } else {
             isThin = archive_fmt as u32 == ThinArchive as i32 as u32;
 
+            if RtsFlags.DebugFlags.linker {
+                debugBelch(c"loadArchive: loading archive contents\n".as_ptr());
+            }
+
             loop {
                 let mut n: usize = 0;
+
+                if RtsFlags.DebugFlags.linker {
+                    debugBelch(c"loadArchive: reading at %ld\n".as_ptr(), ftell(f));
+                }
+
                 n = fread(fileName as *mut c_void, 1, 16, f) as usize;
 
                 if n != 16 {
                     if feof(f) != 0 {
-                        current_block = 1691841359054504885;
+                        if RtsFlags.DebugFlags.linker {
+                            debugBelch(
+                                c"loadArchive: EOF while reading from '%s'\n".as_ptr(),
+                                path,
+                            );
+                        }
+
+                        current_block = 14723615986260991866;
+                        break;
+                    } else {
+                        errorBelch(
+                            c"loadArchive: Failed reading file name from `%s'".as_ptr(),
+                            path,
+                        );
+
+                        current_block = 8840649376158258189;
                         break;
                     }
+                } else if strncmp(fileName, c"!<arch>\n".as_ptr(), 8) == 0 {
+                    if RtsFlags.DebugFlags.linker {
+                        debugBelch(
+                            c"loadArchive: found the start of another archive, breaking\n".as_ptr(),
+                        );
+                    }
 
-                    errorBelch(
-                        c"loadArchive: Failed reading file name from `%s'".as_ptr(),
-                        path,
-                    );
-
-                    current_block = 15851283293817637459;
+                    current_block = 14723615986260991866;
                     break;
                 } else {
-                    if strncmp(fileName, c"!<arch>\n".as_ptr(), 8) == 0 {
-                        current_block = 1691841359054504885;
-                        break;
-                    }
-
                     let mut tmp: [c_char; 32] = [0; 32];
                     n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 12, f) as usize;
 
@@ -473,7 +519,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                             path,
                         );
 
-                        current_block = 15851283293817637459;
+                        current_block = 8840649376158258189;
                         break;
                     } else {
                         n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 6, f) as usize;
@@ -484,7 +530,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                 path,
                             );
 
-                            current_block = 15851283293817637459;
+                            current_block = 8840649376158258189;
                             break;
                         } else {
                             n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 6, f) as usize;
@@ -495,7 +541,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                     path,
                                 );
 
-                                current_block = 15851283293817637459;
+                                current_block = 8840649376158258189;
                                 break;
                             } else {
                                 n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 8, f)
@@ -507,7 +553,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                         path,
                                     );
 
-                                    current_block = 15851283293817637459;
+                                    current_block = 8840649376158258189;
                                     break;
                                 } else {
                                     n = fread(&raw mut tmp as *mut c_char as *mut c_void, 1, 10, f)
@@ -519,7 +565,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                             path,
                                         );
 
-                                        current_block = 15851283293817637459;
+                                        current_block = 8840649376158258189;
                                         break;
                                     } else {
                                         tmp[10] = '\0' as i32 as c_char;
@@ -544,9 +590,17 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                     .as_ptr(),
                                             );
 
-                                            current_block = 15851283293817637459;
+                                            current_block = 8840649376158258189;
                                             break;
                                         } else {
+                                            if RtsFlags.DebugFlags.linker {
+                                                debugBelch(
+                                                    c"loadArchive: size of this archive member is %zd\n"
+                                                        .as_ptr(),
+                                                    memberSize,
+                                                );
+                                            }
+
                                             n = fread(
                                                 &raw mut tmp as *mut c_char as *mut c_void,
                                                 1,
@@ -562,7 +616,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                     path,
                                                 );
 
-                                                current_block = 15851283293817637459;
+                                                current_block = 8840649376158258189;
                                                 break;
                                             } else if strncmp(
                                                 &raw mut tmp as *mut c_char,
@@ -579,7 +633,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                     tmp[1] as i32,
                                                 );
 
-                                                current_block = 15851283293817637459;
+                                                current_block = 8840649376158258189;
                                                 break;
                                             } else {
                                                 let mut isGnuIndex = false;
@@ -631,7 +685,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                                 path,
                                                             );
 
-                                                            current_block = 15851283293817637459;
+                                                            current_block = 8840649376158258189;
                                                             break;
                                                         } else {
                                                             *fileName.offset(
@@ -646,7 +700,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                             path,
                                                         );
 
-                                                        current_block = 15851283293817637459;
+                                                        current_block = 8840649376158258189;
                                                         break;
                                                     }
                                                 } else if 0 == strncmp(fileName, c"//".as_ptr(), 2)
@@ -663,7 +717,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                         &raw mut thisFileNameSize,
                                                         &raw mut fileNameSize,
                                                     ) {
-                                                        current_block = 15851283293817637459;
+                                                        current_block = 8840649376158258189;
                                                         break;
                                                     }
                                                 } else {
@@ -706,6 +760,14 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                     }
                                                 }
 
+                                                if RtsFlags.DebugFlags.linker {
+                                                    debugBelch(
+                                                        c"loadArchive: Found member file `%s'\n"
+                                                            .as_ptr(),
+                                                        fileName,
+                                                    );
+                                                }
+
                                                 let mut is_symbol_table =
                                                     strcmp(c"".as_ptr(), fileName) == 0;
 
@@ -719,9 +781,31 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
 
                                                 let mut isImportLib = false;
 
+                                                if RtsFlags.DebugFlags.linker {
+                                                    debugBelch(
+                                                        c"loadArchive: \tthisFileNameSize = %d\n"
+                                                            .as_ptr(),
+                                                        thisFileNameSize as i32,
+                                                    );
+                                                }
+
+                                                if RtsFlags.DebugFlags.linker {
+                                                    debugBelch(
+                                                        c"loadArchive: \tisObject = %d\n".as_ptr(),
+                                                        object_fmt as u32,
+                                                    );
+                                                }
+
                                                 if !is_symbol_table && isThin as i32 != 0
                                                     || object_fmt as u32 != NotObject as i32 as u32
                                                 {
+                                                    if RtsFlags.DebugFlags.linker {
+                                                        debugBelch(
+                                                            c"loadArchive: Member is an object file...loading...\n"
+                                                                .as_ptr(),
+                                                        );
+                                                    }
+
                                                     image = mmapAnonForLinker(memberSize)
                                                         as *mut c_char;
 
@@ -733,7 +817,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                             fileName,
                                                             image,
                                                         ) {
-                                                            current_block = 15851283293817637459;
+                                                            current_block = 8840649376158258189;
                                                             break;
                                                         }
                                                     } else {
@@ -751,7 +835,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                                 path,
                                                             );
 
-                                                            current_block = 15851283293817637459;
+                                                            current_block = 8840649376158258189;
                                                             break;
                                                         }
                                                     }
@@ -795,6 +879,20 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                         misalignment,
                                                     );
 
+                                                    if (object_fmt as u32 == MachO32 as i32 as u32
+                                                        || object_fmt as u32
+                                                            == MachO64 as i32 as u32)
+                                                        as i32
+                                                        as i64
+                                                        != 0
+                                                    {
+                                                    } else {
+                                                        _assertFail(
+                                                            c"rts/linker/LoadArchive.c".as_ptr(),
+                                                            616,
+                                                        );
+                                                    }
+
                                                     ocInit_MachO(oc);
                                                     stgFree(archiveMemberName as *mut c_void);
 
@@ -817,9 +915,15 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                             path,
                                                         );
 
-                                                        current_block = 15851283293817637459;
+                                                        current_block = 8840649376158258189;
                                                         break;
                                                     } else {
+                                                        if RtsFlags.DebugFlags.linker {
+                                                            debugBelch(
+                                                                c"loadArchive: Found GNU-variant file index\n".as_ptr(),
+                                                            );
+                                                        }
+
                                                         gnuFileIndex = mmapAnonForLinker(
                                                             memberSize.wrapping_add(1 as usize),
                                                         )
@@ -839,7 +943,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                                 path,
                                                             );
 
-                                                            current_block = 15851283293817637459;
+                                                            current_block = 8840649376158258189;
                                                             break;
                                                         } else {
                                                             *gnuFileIndex
@@ -849,6 +953,14 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                         }
                                                     }
                                                 } else if !isImportLib {
+                                                    if RtsFlags.DebugFlags.linker {
+                                                        debugBelch(
+                                                            c"loadArchive: `%s' does not appear to be an object file\n"
+                                                                .as_ptr(),
+                                                            fileName,
+                                                        );
+                                                    }
+
                                                     if !isThin || thisFileNameSize == 0 {
                                                         n = fseek(f, memberSize as i64, SEEK_CUR)
                                                             as usize;
@@ -861,7 +973,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                                 path,
                                                             );
 
-                                                            current_block = 15851283293817637459;
+                                                            current_block = 8840649376158258189;
                                                             break;
                                                         }
                                                     }
@@ -870,6 +982,12 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
                                                 if !(isThin as i32 != 0 && thisFileNameSize > 0)
                                                     && memberSize.wrapping_rem(2 as usize) != 0
                                                 {
+                                                    if RtsFlags.DebugFlags.linker {
+                                                        debugBelch(
+                                                            c"loadArchive: trying to read one pad byte\n".as_ptr(),
+                                                        );
+                                                    }
+
                                                     n = fread(
                                                         &raw mut tmp as *mut c_char as *mut c_void,
                                                         1,
@@ -880,21 +998,39 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
 
                                                     if n != 1 {
                                                         if feof(f) != 0 {
-                                                            current_block = 1691841359054504885;
+                                                            if RtsFlags.DebugFlags.linker {
+                                                                debugBelch(
+                                                                    c"loadArchive: found EOF while reading one pad byte\n"
+                                                                        .as_ptr(),
+                                                                );
+                                                            }
+
+                                                            current_block = 14723615986260991866;
+                                                            break;
+                                                        } else {
+                                                            errorBelch(
+                                                                c"loadArchive: Failed reading padding from `%s'".as_ptr(),
+                                                                path,
+                                                            );
+
+                                                            current_block = 8840649376158258189;
                                                             break;
                                                         }
-
-                                                        errorBelch(
-                                                            c"loadArchive: Failed reading padding from `%s'".as_ptr(),
-                                                            path,
+                                                    } else if RtsFlags.DebugFlags.linker {
+                                                        debugBelch(
+                                                            c"loadArchive: successfully read one pad byte\n".as_ptr(),
                                                         );
-
-                                                        current_block = 15851283293817637459;
-                                                        break;
                                                     }
                                                 }
 
                                                 memberIdx += 1;
+
+                                                if RtsFlags.DebugFlags.linker {
+                                                    debugBelch(
+                                                        c"loadArchive: reached end of archive loading while loop\n"
+                                                            .as_ptr(),
+                                                    );
+                                                }
                                             }
                                         }
                                     }
@@ -906,7 +1042,7 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
             }
 
             match current_block {
-                15851283293817637459 => {}
+                8840649376158258189 => {}
                 _ => {
                     retcode = 1;
                 }
@@ -930,6 +1066,10 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
         );
     }
 
+    if RtsFlags.DebugFlags.linker {
+        debugBelch(c"loadArchive: done\n".as_ptr());
+    }
+
     return retcode;
 }
 
@@ -937,7 +1077,26 @@ unsafe fn loadArchive_(mut path: *mut pathchar) -> HsInt {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn loadArchive(mut path: *mut pathchar) -> HsInt {
+    let mut __r = pthread_mutex_lock(&raw mut linker_mutex);
+
+    if __r != 0 {
+        barf(
+            c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+            c"rts/linker/LoadArchive.c".as_ptr(),
+            720,
+            __r,
+        );
+    }
+
     let mut r = loadArchive_(path);
+
+    if pthread_mutex_unlock(&raw mut linker_mutex) != 0 {
+        barf(
+            c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+            c"rts/linker/LoadArchive.c".as_ptr(),
+            722,
+        );
+    }
 
     return r;
 }

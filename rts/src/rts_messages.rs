@@ -39,7 +39,7 @@ pub unsafe extern "C" fn vbarf(mut s: *const c_char, mut ap: VaList) -> ! {
 
 #[ffi(utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn _assertFail(mut filename: *const c_char, mut linenum: u32) -> ! {
+pub unsafe extern "C" fn _assertFail(mut filename: *const c_char, mut linenum: c_uint) -> ! {
     barf(
         c"ASSERTION FAILED: file %s, line %u\n".as_ptr(),
         filename,

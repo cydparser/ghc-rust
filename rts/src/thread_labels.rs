@@ -1,11 +1,13 @@
 use crate::alloc_array::allocateArrBytes;
 use crate::capability::recordClosureMutated;
+use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::closures::StgArrBytes;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
+use crate::sm::non_moving_mark::updateRemembSetPushClosure;
 use crate::trace::traceThreadLabel;
 
 unsafe fn setThreadLabel(mut cap: *mut Capability, mut tso: *mut StgTSO, mut label: *mut c_char) {
@@ -26,9 +28,14 @@ unsafe fn setThreadLabel(mut cap: *mut Capability, mut tso: *mut StgTSO, mut lab
 }
 
 unsafe fn labelThread(mut cap: *mut Capability, mut tso: *mut StgTSO, mut label: *mut StgArrBytes) {
-    !(*tso).label.is_null();
+    if !(*tso).label.is_null() {
+        if nonmoving_write_barrier_enabled as i64 != 0 {
+            updateRemembSetPushClosure(cap, (*tso).label as *mut StgClosure);
+        }
+    }
+
     recordClosureMutated(cap, tso as *mut StgClosure);
-    (*tso).label = label;
+    (&raw mut (*tso).label).store(label, Ordering::Release);
 
     traceThreadLabel(
         cap,

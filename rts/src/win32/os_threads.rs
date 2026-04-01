@@ -53,7 +53,7 @@ pub unsafe extern "C" fn createOSThread(
     mut name: *const c_char,
     mut startProc: Option<OSThreadProc>,
     mut param: *mut c_void,
-) -> i32 {
+) -> c_int {
     let mut h = null_mut::<c_void>();
 
     h = CreateThread(
@@ -114,7 +114,7 @@ unsafe fn forkOS_createThreadWrapper(mut entry: *mut c_void) -> u32 {
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn forkOS_createThread(mut entry: HsStablePtr) -> i32 {
+pub unsafe extern "C" fn forkOS_createThread(mut entry: HsStablePtr) -> c_int {
     let mut pId: u64 = 0;
 
     return (_beginthreadex(
@@ -201,7 +201,7 @@ unsafe fn createProcessorGroupMap() -> *mut u8 {
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn getNumberOfProcessors() -> u32 {
+pub unsafe extern "C" fn getNumberOfProcessors() -> c_uint {
     static mut nproc: u32 = 0;
 
     if nproc == 0 {
