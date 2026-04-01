@@ -2,13 +2,11 @@ use generate_refactor::{args_rs, format, has_ffi_attr};
 use proc_macro2::Span;
 use std::ffi::CStr;
 use std::hash::{DefaultHasher, Hash, Hasher};
-use syn::LitCStr;
-
 use std::{fs, iter, mem};
 use syn::visit_mut::{self, VisitMut};
 use syn::{
-    Expr, ExprBinary, ExprCall, ExprCast, ExprLit, ExprPath, Ident, Item, Lit, Path, PathSegment,
-    Type, TypePath, TypePtr, punctuated::Punctuated,
+    Block, Expr, ExprBinary, ExprCall, ExprCast, ExprLit, ExprPath, Ident, Item, Lit, LitCStr,
+    Path, PathSegment, Type, TypePath, TypePtr, punctuated::Punctuated,
 };
 
 fn main() {
@@ -75,6 +73,13 @@ impl Refactor {
 }
 
 impl VisitMut for Refactor {
+    fn visit_block_mut(&mut self, block: &mut Block) {
+        // Use idiomatic Rust types in blocks.
+        self.ffi_scope(false, |s| {
+            visit_mut::visit_block_mut(s, block);
+        })
+    }
+
     fn visit_expr_mut(&mut self, expr: &mut Expr) {
         if let Some(replace) = match expr {
             Expr::Binary(binary) => replace_c_bool_ne_0(binary),
