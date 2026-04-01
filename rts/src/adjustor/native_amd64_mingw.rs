@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 #[cfg(test)]
+#[path = "native_amd64_mingw/tests.rs"]
 mod tests;
 
 extern "C" {

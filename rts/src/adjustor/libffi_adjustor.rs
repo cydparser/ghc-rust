@@ -15,6 +15,7 @@ use crate::sm::storage::sm_mutex;
 use crate::stable_ptr::freeStablePtr;
 
 #[cfg(test)]
+#[path = "libffi_adjustor/tests.rs"]
 mod tests;
 
 unsafe fn ffi_alloc_prep_closure(
