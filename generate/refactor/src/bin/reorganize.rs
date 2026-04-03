@@ -689,7 +689,13 @@ impl Transformed {
     fn add_item(&mut self, context: &mut Context, item: Item) {
         // This is brittle, but the reorganize binary will only run once.
         let possible_test_idents: Vec<Ident> = match &item {
-            Item::Const(item_const) => vec![format_ident!("sys_{}_eq", item_const.ident)],
+            Item::Const(item_const) => {
+                let ident = &item_const.ident;
+                vec![
+                    format_ident!("sys_{}_eq", ident),
+                    format_ident!("sys_{}_layout", ident),
+                ]
+            }
             Item::Enum(item_enum) => {
                 let ident = &item_enum.ident;
                 vec![
