@@ -7,6 +7,7 @@ use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::tty::__hscore_get_saved_termios;
 use crate::ffi::rts::{EXIT_INTERRUPTED, stg_exit};
 use crate::ffi::rts_api::{Capability, HaskellObj, rts_evalIO, rts_lock, rts_unlock};
+use crate::ffi::signals::{STG_SIG_DFL, STG_SIG_ERR, STG_SIG_HAN, STG_SIG_IGN, STG_SIG_RST};
 use crate::ffi::stg::types::{StgInt, StgWord8};
 use crate::posix::signals::{STG_SIG_DFL, STG_SIG_ERR, STG_SIG_HAN, STG_SIG_RST};
 use crate::prelude::*;
@@ -16,21 +17,6 @@ use crate::ticker::TickProc;
 
 #[cfg(test)]
 mod tests;
-
-#[ffi(ghc_lib, libraries)]
-pub const STG_SIG_DFL: c_int = -1;
-
-#[ffi(ghc_lib, libraries)]
-pub const STG_SIG_IGN: c_int = -2;
-
-#[ffi(libraries)]
-pub const STG_SIG_ERR: c_int = -3;
-
-#[ffi(ghc_lib, libraries)]
-pub const STG_SIG_HAN: c_int = -4;
-
-#[ffi(ghc_lib, libraries)]
-pub const STG_SIG_RST: c_int = -5;
 
 pub(crate) static mut nocldstop: HsInt = 0;
 

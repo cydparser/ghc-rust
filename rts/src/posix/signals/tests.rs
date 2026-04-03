@@ -1,35 +1,5 @@
 use super::*;
 
-#[cfg(feature = "sys")]
-#[test]
-fn sys_STG_SIG_DFL_eq() {
-    assert_eq!(STG_SIG_DFL, sys::STG_SIG_DFL);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_STG_SIG_IGN_eq() {
-    assert_eq!(STG_SIG_IGN, sys::STG_SIG_IGN);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_STG_SIG_ERR_eq() {
-    assert_eq!(STG_SIG_ERR, sys::STG_SIG_ERR);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_STG_SIG_HAN_eq() {
-    assert_eq!(STG_SIG_HAN, sys::STG_SIG_HAN);
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_STG_SIG_RST_eq() {
-    assert_eq!(STG_SIG_RST, sys::STG_SIG_RST);
-}
-
 #[test]
 #[ignore]
 #[expect(unreachable_code, unused_variables)]
