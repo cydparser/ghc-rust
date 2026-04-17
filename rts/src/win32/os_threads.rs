@@ -1,12 +1,12 @@
-use crate::ffi::hs_ffi::HsStablePtr;
 use crate::ffi::rts::messages::{barf, sysErrorBelch};
 use crate::ffi::rts::os_threads::{Condition, KernelThreadId, Mutex, OSThreadId};
 use crate::ffi::rts::time::Time;
 use crate::ffi::rts::{_assertFail, stg_exit};
-use crate::ffi::rts_api::{rts_done, rts_evalStableIO, rts_lock, rts_unlock};
 use crate::ffi::stg::types::StgWord64;
 use crate::ffi::stg::types::{StgWord, StgWord64};
+use crate::hs_ffi::HsStablePtr;
 use crate::prelude::*;
+use crate::rts_api::{rts_done, rts_evalStableIO, rts_lock, rts_unlock};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::sm::os_mem::osNumaAvailable;
 

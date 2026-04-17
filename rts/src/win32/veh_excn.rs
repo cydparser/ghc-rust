@@ -1,10 +1,10 @@
-use crate::ffi::hs_ffi::hs_restoreConsoleCP;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::linker::pathchar;
 use crate::ffi::rts::messages::errorBelch;
 use crate::ffi::rts::{_assertFail, stg_exit};
+use crate::hs_ffi::hs_restoreConsoleCP;
 use crate::linker_internals::resolveSymbolAddr;
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 
 const EH_UNWINDING: i32 = 0x2;
 

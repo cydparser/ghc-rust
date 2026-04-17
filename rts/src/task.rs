@@ -1,6 +1,6 @@
+use crate::capability::Capability;
 use crate::capability::Capability_;
 use crate::capability::{Capability_, n_numa_nodes, numa_map};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, debugBelch, errorBelch, sysErrorBelch};
 use crate::ffi::rts::os_threads::{Condition, Mutex, OSThreadId};
 use crate::ffi::rts::os_threads::{
@@ -11,11 +11,10 @@ use crate::ffi::rts::threads::{getNumCapabilities, n_capabilities};
 use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::rts::{_assertFail, DEBUG_IS_ON, stg_exit};
-use crate::ffi::rts_api::{Capability, NoStatus, SchedulerStatus};
-use crate::ffi::rts_api::{Capability, SchedulerStatus};
-use crate::ffi::stg::types::StgWord64;
 use crate::ffi::stg::types::StgWord64;
 use crate::prelude::*;
+use crate::rts_api::{NoStatus, SchedulerStatus};
+use crate::rts_flags::RtsFlags;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::schedule::scheduleWorker;
 use crate::task::{

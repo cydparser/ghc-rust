@@ -1,11 +1,11 @@
 use crate::arena::{arenaBlocks, checkPtrInArena};
+use crate::capability::Capability;
 use crate::capability::getCapability;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{
     BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK, BlockedOnBlackHole, BlockedOnMVar, BlockedOnMVarRead,
     BlockedOnMsgThrowTo, NotBlocked, TSO_MARKED,
 };
-use crate::ffi::rts::flags::{HEAP_BY_RETAINER, RtsFlags};
 use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::storage::block::{
     BF_PINNED, BF_SWEPT, BLOCK_SIZE_W, BLOCKS_PER_MBLOCK, Bdescr, bdescr,
@@ -30,7 +30,6 @@ use crate::ffi::rts::storage::m_block::mblocks_allocated;
 use crate::ffi::rts::storage::tso::{STACK_DIRTY, STACK_SANE, StgStack};
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::misc_closures::{
     stg_DEAD_WEAK_info, stg_END_TSO_QUEUE_closure, stg_IND_info, stg_MSG_BLACKHOLE_info,
     stg_MVAR_TSO_QUEUE_info, stg_TSO_info, stg_WEAK_info, stg_WHITEHOLE_info,
@@ -45,6 +44,7 @@ use crate::prelude::*;
 use crate::printer::info_type;
 use crate::profiling::prof_arena;
 use crate::retainer_profile::retainerStackBlocks;
+use crate::rts_flags::{HEAP_BY_RETAINER, RtsFlags};
 use crate::sm::block_alloc::{
     checkFreeListSanity, countAllocdBlocks, countBlocks, countFreeList, markBlocks, n_alloc_blocks,
     reportUnmarkedBlocks,

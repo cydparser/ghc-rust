@@ -1,5 +1,5 @@
-use crate::ffi::hs_ffi::HsBool;
 use crate::ffi::rts::linker::pathchar;
+use crate::hs_ffi::HsBool;
 use crate::path_utils::pathsize;
 use crate::prelude::*;
 use crate::rts_utils::stgMallocBytes;

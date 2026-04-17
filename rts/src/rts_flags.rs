@@ -1,8 +1,26 @@
 use crate::capability::n_numa_nodes;
-use crate::ffi::hs_ffi::{HS_INT_MAX, HS_WORD_MAX, HS_WORD64_MAX, HsBool};
+use crate::config::RtsOptsEnabledEnum;
+use crate::eventlog::event_log_writer::FileEventLogWriter;
 use crate::ffi::rts::constants::MAX_NUMA_NODES;
-use crate::ffi::rts::event_log_writer::FileEventLogWriter;
-use crate::ffi::rts::flags::{
+use crate::ffi::rts::messages::{barf, errorBelch, vdebugBelch};
+use crate::ffi::rts::os_threads::getNumberOfProcessors;
+use crate::ffi::rts::stg_exit;
+use crate::ffi::rts::storage::block::{BLOCK_SIZE, MBLOCK_SIZE};
+use crate::ffi::rts::time::{Time, fsecondsToTime};
+use crate::ffi::stg::W_;
+use crate::ffi::stg::types::{StgDouble, StgWord, StgWord64};
+use crate::fs::__rts_fopen;
+use crate::hooks::hooks::{
+    FlagDefaultsHook, LongGCSync, LongGCSyncEnd, MallocFailHook, OnExitHook, OutOfHeapHook,
+    StackOverflowHook,
+};
+use crate::hs_ffi::{HS_INT_MAX, HS_WORD_MAX, HS_WORD64_MAX, HsBool};
+use crate::io_manager::{IOManagerAvailable, IOManagerUnavailable, parseIOManagerFlag};
+use crate::prelude::*;
+use crate::rts_api::{
+    RtsConfig, RtsOptsAll, RtsOptsIgnore, RtsOptsIgnoreAll, RtsOptsNone, RtsOptsSafeOnly,
+};
+use crate::rts_flags::{
     _CONCURRENT_FLAGS, _COST_CENTRE_FLAGS, _DEBUG_FLAGS, _GC_FLAGS, _HPC_FLAGS, _MISC_FLAGS,
     _PAR_FLAGS, _PROFILING_FLAGS, _RTS_FLAGS, _TICKY_FLAGS, _TRACE_FLAGS, COLLECT_GC_STATS,
     COST_CENTRES_NONE, DEFAULT_LINKER_ALWAYS_PIC, DEFAULT_TICK_INTERVAL, HEAP_BY_CCS,
@@ -11,24 +29,6 @@ use crate::ffi::rts::flags::{
     IO_MNGR_FLAG_AUTO, NO_GC_STATS, ONELINE_GC_STATS, RTS_FLAGS, STATS_FILENAME_MAXLEN,
     SUMMARY_GC_STATS, TRACE_NONE, TRACE_STDERR, VERBOSE_GC_STATS,
 };
-use crate::ffi::rts::messages::{barf, errorBelch, vdebugBelch};
-use crate::ffi::rts::os_threads::getNumberOfProcessors;
-use crate::ffi::rts::stg_exit;
-use crate::ffi::rts::storage::block::{BLOCK_SIZE, MBLOCK_SIZE};
-use crate::ffi::rts::time::{Time, fsecondsToTime};
-use crate::ffi::rts_api::{
-    RtsConfig, RtsOptsAll, RtsOptsEnabledEnum, RtsOptsIgnore, RtsOptsIgnoreAll, RtsOptsNone,
-    RtsOptsSafeOnly,
-};
-use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgDouble, StgWord, StgWord64};
-use crate::fs::__rts_fopen;
-use crate::hooks::hooks::{
-    FlagDefaultsHook, LongGCSync, LongGCSyncEnd, MallocFailHook, OnExitHook, OutOfHeapHook,
-    StackOverflowHook,
-};
-use crate::io_manager::{IOManagerAvailable, IOManagerUnavailable, parseIOManagerFlag};
-use crate::prelude::*;
 use crate::rts_utils::{
     printRtsInfo, stgCallocBytes, stgFree, stgMallocBytes, stgReallocBytes, stgStrndup,
 };

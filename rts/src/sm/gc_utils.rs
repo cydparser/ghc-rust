@@ -1,6 +1,5 @@
 use crate::capability::n_numa_nodes;
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK, SpinLock, SpinLock_};
 use crate::ffi::rts::storage::block::{
     BLOCK_MASK, BLOCK_SIZE, BLOCK_SIZE_W, allocGroupOnNode, bdescr, bdescr_, freeChain, freeGroup,
@@ -13,6 +12,7 @@ use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{StgPtr, StgWord};
 use crate::ffi::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::sm::block_alloc::{allocLargeChunkOnNode, countBlocks};
 use crate::sm::gc::WORK_UNIT_WORDS;
 use crate::sm::gc::{WORK_UNIT_WORDS, notifyTodoBlock};

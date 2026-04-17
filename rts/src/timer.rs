@@ -1,10 +1,10 @@
 use crate::capability::contextSwitchAllCapabilities;
 use crate::ffi::rts::event_log_writer::{EVENTLOG_RUNNING, eventLogStatus, flushEventLog};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::time::Time;
 use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
 use crate::proftimer::{handleProfTick, initProfTimer};
+use crate::rts_flags::RtsFlags;
 use crate::schedule::{
     ACTIVITY_DONE_GC, ACTIVITY_INACTIVE, ACTIVITY_MAYBE_NO, getRecentActivity, setRecentActivity,
     wakeUpRts,

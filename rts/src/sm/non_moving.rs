@@ -1,8 +1,6 @@
 use crate::capability::{getCapability, markCapability};
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::os_threads::{
@@ -34,6 +32,8 @@ use crate::ghcautoconf::SIZEOF_VOID_P;
 use crate::ghcautoconf::SIZEOF_VOID_P;
 use crate::prelude::*;
 use crate::printer::printClosure;
+use crate::rts_flags::RtsFlags;
+use crate::rts_flags::RtsFlags;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::schedule::{SCHED_RUNNING, getSchedState, releaseAllCapabilities, resurrectThreads};
 use crate::sm::gc::{markCAFs, resizeGenerations};

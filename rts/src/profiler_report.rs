@@ -1,4 +1,3 @@
-use crate::ffi::rts::flags::{COST_CENTRES_ALL, COST_CENTRES_VERBOSE, RtsFlags, rts_argv};
 use crate::ffi::rts::prof::ccs::{CC_LIST, CostCentre, CostCentre_, CostCentreStack, IndexTable};
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time};
@@ -6,6 +5,7 @@ use crate::ffi::rts::{prog_argv, prog_name};
 use crate::ffi::stg::types::{StgFloat, StgInt, StgWord, StgWord64};
 use crate::prelude::*;
 use crate::profiling::{ProfilerTotals, ignoreCC, ignoreCCS};
+use crate::rts_flags::{COST_CENTRES_ALL, COST_CENTRES_VERBOSE, RtsFlags, rts_argv};
 use crate::rts_utils::{showStgWord64, time_str};
 
 unsafe fn strlen_utf8(mut s: *mut c_char) -> u32 {

@@ -1,4 +1,5 @@
 use crate::arena::arenaBlocks;
+use crate::capability::Capability;
 use crate::capability::{
     getCapability, interruptCapability, markCapability, n_numa_nodes, prodCapability,
 };
@@ -6,8 +7,6 @@ use crate::check_unload::{checkUnload, prepareUnloadCheck};
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::block_signals::{blockUserSignals, unblockUserSignals};
-use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::flags::{HEAP_BY_LDV, HEAP_BY_RETAINER, RtsFlags};
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::os_threads::{
     Condition, Mutex, broadcastCondition, closeCondition, closeMutex, initCondition, initMutex,
@@ -35,7 +34,6 @@ use crate::ffi::rts::threads::{getNumCapabilities, n_capabilities};
 use crate::ffi::rts::time::{Time, getProcessElapsedTime};
 use crate::ffi::rts::types::StgTSO;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts_api::{_RTSStats, Capability, GCDetails_, getRTSStats};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{stg_END_TSO_QUEUE_closure, stg_GCD_CAF_info};
 use crate::ffi::stg::smp::{atomic_dec, atomic_inc};
@@ -49,7 +47,10 @@ use crate::prelude::*;
 use crate::prof_heap::heapCensus;
 use crate::proftimer::performTickySample;
 use crate::retainer_profile::{g_retainerTraverseState, retainerStackBlocks};
+use crate::rts_api::{_RTSStats, GCDetails_, getRTSStats};
+use crate::rts_flags::RtsFlags;
 use crate::rts_flags::rtsConfig;
+use crate::rts_flags::{HEAP_BY_LDV, HEAP_BY_RETAINER, RtsFlags};
 use crate::rts_utils::{
     stgFree, stgFreeAligned, stgMallocAlignedBytes, stgMallocBytes, stgReallocBytes,
 };

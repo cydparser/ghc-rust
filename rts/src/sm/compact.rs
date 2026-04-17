@@ -2,7 +2,6 @@ use crate::capability::{getCapability, markCapabilities};
 use crate::ffi::mach_deps::TAG_MASK;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::block::bdescr;
 use crate::ffi::rts::storage::block::{
@@ -36,6 +35,7 @@ use crate::hash::{
     HashTable, allocHashTable, freeHashTable, insertHashTable, mapHashTable, mapHashTableKeys,
 };
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::sm::gc::markCAFs;
 use crate::sm::gc_thread::{gc_threads, gen_workspace};
 use crate::sm::storage::{STATIC_BITS, move_STACK, static_flag};

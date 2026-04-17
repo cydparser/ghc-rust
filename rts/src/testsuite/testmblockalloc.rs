@@ -1,7 +1,7 @@
-use crate::ffi::hs_ffi::hs_exit;
 use crate::ffi::rts::storage::m_block::{freeMBlocks, getMBlocks, releaseFreeMemory};
-use crate::ffi::rts_api::{RtsOptsAll, defaultRtsConfig, hs_init_ghc};
+use crate::hs_ffi::hs_exit;
 use crate::prelude::*;
+use crate::rts_api::{RtsOptsAll, defaultRtsConfig, hs_init_ghc};
 
 static mut MAXALLOC: i32 = 16;
 

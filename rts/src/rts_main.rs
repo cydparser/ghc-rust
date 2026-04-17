@@ -1,12 +1,12 @@
 use crate::ffi::rts::messages::{barf, errorBelch};
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::rts::{EXIT_HEAPOVERFLOW, EXIT_INTERRUPTED, EXIT_KILLED};
-use crate::ffi::rts_api::{
+use crate::interpreter::{interp_shutdown, interp_startup};
+use crate::prelude::*;
+use crate::rts_api::{
     HaskellObj, NoStatus, RtsConfig, hs_init_ghc, rts_evalLazyIO, rts_getSchedStatus, rts_lock,
     rts_unlock, shutdownHaskellAndExit,
 };
-use crate::interpreter::{interp_shutdown, interp_startup};
-use crate::prelude::*;
 
 #[ffi(compiler, driver, testsuite, utils)]
 #[unsafe(no_mangle)]

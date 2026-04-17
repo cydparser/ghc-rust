@@ -1,16 +1,16 @@
 use crate::ffi::ghcversion::__GLASGOW_HASKELL_FULL_VERSION__;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::storage::block::BLOCK_SIZE;
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time};
 use crate::ffi::rts::time::{ctime_r, nanosleep, time};
 use crate::ffi::rts::types::StgTSO;
 use crate::ffi::rts::{EXIT_HEAPOVERFLOW, EXIT_INTERNAL_ERROR, stg_exit};
-use crate::ffi::rts_api::RtsConfig;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::types::StgWord64;
 use crate::ghcplatform::{HOST_ARCH, HOST_OS, HOST_VENDOR};
 use crate::io_manager::{selectIOManager, showIOManager};
 use crate::prelude::*;
+use crate::rts_api::RtsConfig;
+use crate::rts_flags::RtsFlags;
 use crate::rts_flags::rtsConfig;
 use crate::ticky::PrintTickyInfo;
 

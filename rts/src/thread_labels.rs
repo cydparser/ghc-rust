@@ -1,10 +1,10 @@
 use crate::alloc_array::allocateArrBytes;
+use crate::capability::Capability;
 use crate::capability::recordClosureMutated;
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::closures::StgArrBytes;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
 use crate::sm::non_moving_mark::updateRemembSetPushClosure;

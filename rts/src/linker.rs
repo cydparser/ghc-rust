@@ -2,10 +2,7 @@ use crate::check_unload::{
     exitUnloadCheck, initUnloadCheck, insertOCSectionIndices, loaded_objects, n_unloaded_objects,
     object_code_mark_bit, objects,
 };
-use crate::ffi::hs_ffi::HsInt;
-use crate::ffi::hs_ffi::{HS_BOOL_FALSE, HS_BOOL_TRUE, HsBool, HsInt, HsPtr};
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::foreign_exports::ForeignExportsList;
 use crate::ffi::rts::foreign_exports::ForeignExportsList;
 use crate::ffi::rts::linker::{
@@ -27,6 +24,8 @@ use crate::hash::{
     HashSet, StrHashTable, allocHashSet, allocStrHashTable, freeHashSet, freeStrHashTable,
     insertHashSet, insertStrHashTable, lookupStrHashTable, removeStrHashTable,
 };
+use crate::hs_ffi::HsInt;
+use crate::hs_ffi::{HS_BOOL_FALSE, HS_BOOL_TRUE, HsBool, HsInt, HsPtr};
 use crate::linker::load_native_obj_posix::{freeNativeCode_POSIX, loadNativeObj_POSIX};
 use crate::linker::m_map::{MEM_READ_WRITE, mmapForLinker, munmapForLinker};
 use crate::linker::m32_alloc::m32_allocator;
@@ -53,6 +52,7 @@ use crate::linker_internals::{
 use crate::path_utils::{pathdup, pathsize};
 use crate::prelude::*;
 use crate::profiling::refreshProfilingCCSs;
+use crate::rts_flags::RtsFlags;
 use crate::rts_symbol_info::{isSymbolImport, isSymbolWeak};
 use crate::rts_symbols::{
     RtsSymbolVal, STRENGTH_NORMAL, STRENGTH_STRONG, STRENGTH_WEAK, SYM_TYPE_CODE,

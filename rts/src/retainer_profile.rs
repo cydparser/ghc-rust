@@ -1,6 +1,5 @@
 use crate::capability::{getCapability, markCapabilities};
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack};
 use crate::ffi::rts::storage::block::bdescr;
@@ -18,6 +17,7 @@ use crate::retainer_set::{
     RetainerSet, addElement, initializeAllRetainerSet, isMember, outputAllRetainerSet, retainer,
     singleton,
 };
+use crate::rts_flags::RtsFlags;
 use crate::stable_name::rememberOldStableNameAddresses;
 use crate::stable_ptr::markStablePtrTable;
 use crate::stats::{stat_endRP, stat_startRP};

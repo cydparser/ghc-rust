@@ -1,4 +1,5 @@
 use crate::alloc_array::allocateMutArrPtrs;
+use crate::capability::Capability;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::BITMAP_BITS_SHIFT;
 use crate::ffi::rts::messages::barf;
@@ -12,7 +13,6 @@ use crate::ffi::rts::storage::closures::{
 };
 use crate::ffi::rts::storage::info_tables::{StgLargeBitmap, stg_arg_bitmaps};
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::misc_closures::stg_MUT_ARR_PTRS_FROZEN_CLEAN_info;
 use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;

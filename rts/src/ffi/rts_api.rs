@@ -1,5 +1,5 @@
 pub use crate::capability::{Capability, rts_unsafeGetMyCapability};
-pub use crate::config::RtsConfig;
+pub use crate::config::{RtsConfig, RtsOptsEnabledEnum};
 pub use crate::eventlog::event_log_writer::EventLogWriter;
 pub use crate::ffi::rts::time::Time;
 pub use crate::rts_api::{
@@ -14,9 +14,7 @@ pub use crate::rts_api::{
     rts_mkPtr, rts_mkStablePtr, rts_mkString, rts_mkWord, rts_mkWord8, rts_mkWord16, rts_mkWord32,
     rts_mkWord64, rts_pause, rts_resume, rts_unlock,
 };
-pub use crate::rts_flags::{
-    RtsOptsEnabledEnum, defaultRtsConfig, getFullProgArgv, getProgArgv, setProgArgv,
-};
+pub use crate::rts_flags::{defaultRtsConfig, getFullProgArgv, getProgArgv, setProgArgv};
 pub use crate::rts_startup::{
     hs_init_ghc, hs_init_with_rtsopts, shutdownHaskellAndExit, shutdownHaskellAndSignal,
 };

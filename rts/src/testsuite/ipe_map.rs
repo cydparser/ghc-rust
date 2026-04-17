@@ -1,4 +1,4 @@
-use crate::ffi::hs_ffi::{HsInt, HsInt8, HsInt16, HsInt32, hs_exit, hs_init};
+use crate::capability::Capability;
 use crate::ffi::rts::ipe::{
     InfoProv_, InfoProvEnt, InfoProvEnt_, IpeBufferEntry, IpeBufferListNode, StringIdx,
     formatClosureDescIpe, lookupIPE, registerInfoProvList,
@@ -6,11 +6,12 @@ use crate::ffi::rts::ipe::{
 use crate::ffi::rts::messages::{barf, errorBelch};
 use crate::ffi::rts::storage::closure_macros::{UNTAG_CLOSURE, get_itbl};
 use crate::ffi::rts::types::{StgClosure, StgInfoTable};
-use crate::ffi::rts_api::{
-    Capability, HaskellObj, rts_lock, rts_mkInt, rts_mkInt8, rts_mkInt16, rts_mkInt32, rts_unlock,
-};
 use crate::ffi::stg::types::StgWord;
+use crate::hs_ffi::{HsInt, HsInt8, HsInt16, HsInt32, hs_exit, hs_init};
 use crate::prelude::*;
+use crate::rts_api::{
+    HaskellObj, rts_lock, rts_mkInt, rts_mkInt8, rts_mkInt16, rts_mkInt32, rts_unlock,
+};
 
 unsafe fn main_0(mut argc: i32, mut argv: *mut *mut c_char) -> i32 {
     hs_init(&raw mut argc, &raw mut argv);

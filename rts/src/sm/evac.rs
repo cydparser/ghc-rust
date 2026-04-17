@@ -3,7 +3,6 @@ use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{
     LDV_SHIFT, LDV_STATE_CREATE, MAX_CHARLIKE, MAX_INTLIKE, MIN_INTLIKE,
 };
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::era;
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
@@ -39,6 +38,7 @@ use crate::ffi::stg::types::{
     StgChar, StgHalfWord, StgInt, StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord64,
 };
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::sm::cnf::objectGetCompact;
 use crate::sm::compact::{is_marked, mark};
 use crate::sm::gc::{deadlock_detect_gc, major_gc, unload_mark_needed, whitehole_gc_spin};

@@ -1,6 +1,5 @@
 use crate::capability::{getCapability, recordMutableCap};
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::os_threads::yieldThread;
 use crate::ffi::rts::stable_name::{snEntry, stable_name_table};
@@ -24,6 +23,7 @@ use crate::ffi::stg::misc_closures::{
 use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord16};
 use crate::ffi::stg::{P_, W_};
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::sm::cnf::compactFree;
 use crate::sm::non_moving::{
     FILLED_SWEEPING, NONMOVING_SEGMENT_SIZE, NonmovingSegment, nonmoving_block_idx,

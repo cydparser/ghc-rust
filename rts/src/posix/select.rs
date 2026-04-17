@@ -1,20 +1,20 @@
-use crate::ffi::hs_ffi::HsInt;
+use crate::capability::Capability;
 use crate::ffi::rts::constants::NotBlocked;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, errorBelch, sysErrorBelch};
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::stg_exit;
 use crate::ffi::rts::storage::tso::{StgTSO_, setTSOLink};
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time, getProcessElapsedTime};
 use crate::ffi::rts::types::StgTSO;
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::misc_closures::stg_END_TSO_QUEUE_closure;
 use crate::ffi::stg::types::StgWord;
 use crate::ffi::stg::types::{StgWord, StgWord32};
+use crate::hs_ffi::HsInt;
 use crate::posix::select::LowResTime;
 use crate::posix::signals::{next_pending_handler, pending_handler_buf, startSignalHandlers};
 use crate::prelude::*;
 use crate::raise_async::raiseAsync;
+use crate::rts_flags::RtsFlags;
 use crate::schedule::{
     SCHED_INTERRUPTING, SCHED_RUNNING, emptyRunQueue, getSchedState, pushOnRunQueue,
 };

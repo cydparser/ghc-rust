@@ -1,7 +1,7 @@
-use crate::ffi::hs_ffi::{hs_exit, hs_init};
 use crate::ffi::rts::ipe::registerInfoProvList;
-use crate::ffi::rts_api::{rts_lock, rts_unlock};
+use crate::hs_ffi::{hs_exit, hs_init};
 use crate::prelude::*;
+use crate::rts_api::{rts_lock, rts_unlock};
 
 unsafe fn main_0(mut argc: i32, mut argv: *mut *mut c_char) -> i32 {
     hs_init(&raw mut argc, &raw mut argv);

@@ -1,10 +1,10 @@
+use crate::capability::Capability;
 use crate::capability::{SYNC_FLUSH_UPD_REM_SET, getCapability, regTableToCapability};
 use crate::ffi::mach_deps::TAG_MASK;
 use crate::ffi::mach_deps::TAG_MASK;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::os_threads::{
     Condition, Mutex, initCondition, initMutex, signalCondition, waitCondition,
@@ -38,7 +38,6 @@ use crate::ffi::rts::storage::tso::{StgStack, StgTSO_};
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
     stg_DEAD_WEAK_info, stg_END_STM_CHUNK_LIST_closure, stg_END_TSO_QUEUE_closure,
@@ -50,6 +49,7 @@ use crate::ffi::stg::types::StgWord;
 use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord32};
 use crate::prelude::*;
 use crate::printer::printClosure;
+use crate::rts_flags::RtsFlags;
 use crate::schedule::{releaseAllCapabilities, stopAllCapabilitiesWith};
 use crate::sm::cnf::objectGetCompact;
 use crate::sm::heap_utils::walk_large_bitmap;

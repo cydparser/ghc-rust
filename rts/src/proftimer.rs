@@ -1,9 +1,9 @@
 use crate::capability::getCapability;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::trace::traceProfSampleCostCentre;
 
 #[cfg(test)]

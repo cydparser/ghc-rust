@@ -1,7 +1,6 @@
 use crate::capability::n_numa_nodes;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BLOCK_SHIFT, MAX_NUMA_NODES, MBLOCK_SHIFT};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::storage::block::{
     BDESCR_SHIFT, BF_KNOWN, BLOCK_SIZE, BLOCK_SIZE_W, BLOCKS_PER_MBLOCK, Bdescr, FIRST_BLOCK_OFF,
@@ -14,6 +13,7 @@ use crate::ffi::rts::storage::m_block::{
 use crate::ffi::stg::types::{StgPtr, StgWord, StgWord8, StgWord16, StgWord32};
 use crate::ffi::stg::{P_, W_};
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::sm::storage::{clear_blocks, sm_mutex};
 
 #[cfg(test)]

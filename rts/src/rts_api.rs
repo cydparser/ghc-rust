@@ -160,9 +160,6 @@ pub(crate) const Success: SchedulerStatus = 1;
 pub(crate) const NoStatus: SchedulerStatus = 0;
 
 #[ffi(compiler, ghc_lib, testsuite)]
-pub type Capability = Capability_;
-
-#[ffi(compiler, ghc_lib, testsuite)]
 pub type HaskellObj = *mut StgClosure_;
 
 #[ffi(ghc_lib, testsuite)]

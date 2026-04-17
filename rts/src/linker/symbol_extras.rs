@@ -1,4 +1,3 @@
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ghcautoconf::RTS_LINKER_USE_MMAP;
 use crate::linker::m_map::{
     MEM_READ_EXECUTE, mmapAnonForLinker, mprotectForLinker, munmapForLinker,
@@ -7,6 +6,7 @@ use crate::linker::m32_alloc::m32_alloc;
 use crate::linker::mach_o::ocInit_MachO;
 use crate::linker_internals::{ObjectCode, SymbolExtra, USE_CONTIGUOUS_MMAP};
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::rts_utils::stgReallocBytes;
 use crate::sm::os_mem::roundUpToPage;
 

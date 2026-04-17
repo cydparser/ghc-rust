@@ -1,7 +1,5 @@
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, debugBelch, errorBelch, sysErrorBelch};
-use crate::ffi::rts_api::getProgArgv;
 use crate::ffi::stg::types::StgWord;
 use crate::get_env::{freeProgEnvv, getProgEnvv};
 use crate::linker::m_map::{
@@ -23,6 +21,8 @@ use crate::linker_internals::{
     ghciInsertSymbolTable, init_t, initSegment, lookupDependentSymbol, symhash,
 };
 use crate::prelude::*;
+use crate::rts_api::getProgArgv;
+use crate::rts_flags::RtsFlags;
 use crate::rts_symbols::{STRENGTH_NORMAL, SYM_TYPE_CODE, SymbolName};
 use crate::rts_utils::{stgCallocBytes, stgFree, stgMallocBytes};
 use crate::sm::os_mem::{roundUpToAlign, roundUpToPage};

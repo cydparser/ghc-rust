@@ -3,7 +3,6 @@ use crate::builtin_closures::initBuiltinClosures;
 use crate::capability::getCapability;
 use crate::check_vector_support::setVectorSupport;
 use crate::eventlog::event_log::{finishCapEventLogging, postInitEvent};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::hpc::{exitHpc, startupHpc};
 use crate::ffi::rts::messages::errorBelch;
 use crate::ffi::rts::os_threads::freeThreadingResources;
@@ -12,10 +11,6 @@ use crate::ffi::rts::stable_ptr::getStablePtr;
 use crate::ffi::rts::storage::gc::{generations, setKeepCAFs};
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::timer::{startTimer, stopTimer};
-use crate::ffi::rts_api::{
-    HaskellObj, RtsConfig, RtsOptsAll, defaultRtsConfig, rts_evalIO, rts_lock, rts_unlock,
-    setFullProgArgv,
-};
 use crate::ffi::stg::smp::{atomic_dec, atomic_inc};
 use crate::ffi::stg::types::{StgInt, StgPtr, StgVolatilePtr, StgWord};
 use crate::file_lock::{freeFileLocking, initFileLocking};
@@ -32,6 +27,11 @@ use crate::prelude::*;
 use crate::printer::DEBUG_LoadSymbols;
 use crate::prof_heap::{endHeapProfiling, freeHeapProfiling, initHeapProfiling};
 use crate::profiling::{endProfiling, freeProfiling, initProfiling, prof_file, reportCCSProfiling};
+use crate::rts_api::{
+    HaskellObj, RtsConfig, RtsOptsAll, defaultRtsConfig, rts_evalIO, rts_lock, rts_unlock,
+    setFullProgArgv,
+};
+use crate::rts_flags::RtsFlags;
 use crate::rts_flags::{freeRtsArgs, initRtsFlagsDefaults, rtsConfig, setupRtsFlags};
 use crate::rts_signals::{
     freeSignalHandlers, initDefaultHandlers, initUserSignals, resetDefaultHandlers,

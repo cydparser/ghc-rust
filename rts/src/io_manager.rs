@@ -1,19 +1,20 @@
+use crate::capability::Capability;
 use crate::capability::{CapIOManager, getCapability};
-use crate::ffi::hs_ffi::HsInt;
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::flags::{IO_MANAGER_FLAG, IO_MNGR_FLAG_AUTO, IO_MNGR_FLAG_MIO, RtsFlags};
 use crate::ffi::rts::messages::{barf, errorBelch};
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::StgTSO;
-use crate::ffi::rts_api::{Capability, HaskellObj, rts_evalIO};
 use crate::ffi::stg::types::StgWord32;
+use crate::hs_ffi::HsInt;
 use crate::io_manager::{
     IO_MANAGER_MIO_POSIX, IOManagerAvailability, IOManagerAvailable, IOManagerType,
     IOManagerUnavailable, IOManagerUnrecognised, IORead, IOReadOrWrite,
 };
 use crate::posix::signals::{ioManagerDie, ioManagerStart, ioManagerStartCap, ioManagerWakeup};
 use crate::prelude::*;
+use crate::rts_api::{HaskellObj, rts_evalIO};
+use crate::rts_flags::{IO_MANAGER_FLAG, IO_MNGR_FLAG_AUTO, IO_MNGR_FLAG_MIO, RtsFlags};
 use crate::rts_utils::stgMallocBytes;
 use crate::sm::gc::evac_fn;
 use crate::trace::{DEBUG_RTS, trace_};

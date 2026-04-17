@@ -1,6 +1,5 @@
 use crate::arena::{Arena, arenaAlloc, arenaFree, newArena};
 use crate::eventlog::event_log::postInitEvent;
-use crate::ffi::rts::flags::{COST_CENTRES_ALL, COST_CENTRES_JSON, RtsFlags};
 use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::os_threads::{Mutex, initMutex};
 use crate::ffi::rts::prof::ccs::{
@@ -23,6 +22,7 @@ use crate::prof_heap::strMatchesSelector;
 use crate::profiler_report::writeCCSReport;
 use crate::profiler_report_json::writeCCSReportJson;
 use crate::profiling::ProfilerTotals;
+use crate::rts_flags::{COST_CENTRES_ALL, COST_CENTRES_JSON, RtsFlags};
 use crate::rts_utils::stgMallocBytes;
 use crate::trace::{traceBegin, traceEnd, traceHeapProfCostCentre, traceProfBegin};
 

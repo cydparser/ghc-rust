@@ -1,3 +1,4 @@
+use crate::capability::Capability;
 use crate::event_log_constants::{
     EVENT_CONC_MARK_BEGIN, EVENT_CONC_SWEEP_BEGIN, EVENT_CONC_SWEEP_END, EVENT_CONC_SYNC_BEGIN,
     EVENT_CONC_SYNC_END, EVENT_OSPROCESS_PID, EVENT_OSPROCESS_PPID, EVENT_PROGRAM_ARGS,
@@ -28,9 +29,6 @@ use crate::ffi::rts::event_log_format::{
 use crate::ffi::rts::event_log_writer::{
     NullEventLogWriter, endEventLogging, flushEventLog, startEventLogging,
 };
-use crate::ffi::rts::flags::{
-    COLLECT_GC_STATS, NO_GC_STATS, RtsFlags, TRACE_EVENTLOG, TRACE_STDERR,
-};
 use crate::ffi::rts::ipe::{InfoProvEnt, formatClosureDescIpe};
 use crate::ffi::rts::messages::{barf, debugBelch, vdebugBelch};
 use crate::ffi::rts::os_threads::{Mutex, initMutex, kernelThreadId, osThreadId};
@@ -39,15 +37,15 @@ use crate::ffi::rts::storage::tso::{StgThreadID, StgThreadReturnCode};
 use crate::ffi::rts::storage::tso::{StgThreadID, StgThreadReturnCode};
 use crate::ffi::rts::types::StgTSO;
 use crate::ffi::rts::types::StgTSO;
-use crate::ffi::rts_api::Capability;
-use crate::ffi::rts_api::{Capability, getFullProgArgv};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{StgBool, StgInt, StgWord, StgWord8, StgWord16, StgWord32, StgWord64};
 use crate::ffi::stg::types::{StgWord, StgWord16, StgWord32, StgWord64};
 use crate::prelude::*;
 use crate::printer::what_next_strs;
+use crate::rts_api::getFullProgArgv;
 use crate::rts_flags::rtsConfig;
+use crate::rts_flags::{COLLECT_GC_STATS, NO_GC_STATS, RtsFlags, TRACE_EVENTLOG, TRACE_STDERR};
 use crate::sm::non_moving_census::NonmovingAllocCensus;
 use crate::sparks::sparkPoolSize;
 use crate::sparks::{SparkCounters, sparkPoolSize};

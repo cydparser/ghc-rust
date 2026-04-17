@@ -1,8 +1,8 @@
 use crate::eventlog::event_log::flushAllCapsEventsBufs;
 use crate::ffi::ghcversion::__GLASGOW_HASKELL_FULL_VERSION__;
-use crate::ffi::rts::flags::{RtsFlags, TRACE_EVENTLOG};
 use crate::ffi::rts::{EXIT_INTERNAL_ERROR, prog_argv, prog_name, stg_exit};
 use crate::prelude::*;
+use crate::rts_flags::{RtsFlags, TRACE_EVENTLOG};
 
 #[cfg(test)]
 mod tests;

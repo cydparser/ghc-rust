@@ -1,3 +1,4 @@
+use crate::capability::Capability;
 use crate::capability::{
     Capability_, PendingSync, PutMVar, SYNC_GC_PAR, SYNC_GC_SEQ, SYNC_OTHER, SyncType, anySparks,
     checkSparkCountInvariant, contextSwitchCapability, discardSparksCap, emptyInbox,
@@ -7,14 +8,12 @@ use crate::capability::{
     waitForCapability, yieldCapability,
 };
 use crate::eventlog::event_log::flushAllCapsEventsBufs;
-use crate::ffi::hs_ffi::HsStablePtr;
 use crate::ffi::rts::constants::{
     BlockedOnBlackHole, BlockedOnCCall, BlockedOnCCall_Interruptible, LDV_SHIFT, LDV_STATE_CREATE,
     NotBlocked, StackOverflow, TSO_ALLOC_LIMIT, TSO_BLOCKEX, TSO_INTERRUPTIBLE, TSO_LOCKED,
     ThreadBlocked, ThreadComplete, ThreadFinished, ThreadKilled,
 };
 use crate::ffi::rts::event_log_format::THREAD_SUSPENDED_FOREIGN_CALL;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, errorBelch};
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::os_threads::{
@@ -54,12 +53,6 @@ use crate::ffi::rts::timer::{startTimer, stopTimer};
 use crate::ffi::rts::types::StgTSO;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::rts::{_assertFail, stg_exit};
-use crate::ffi::rts_api::Capability;
-use crate::ffi::rts_api::{
-    Capability, HaskellObj, HeapExhausted, Interrupted, Killed, NoStatus, Success, getAllocations,
-    rts_apply, rts_checkSchedStatus, rts_evalStableIOMain, rts_lock, rts_unlock,
-    shutdownHaskellAndExit,
-};
 use crate::ffi::stg::misc_closures::stg_END_TSO_QUEUE_closure;
 use crate::ffi::stg::misc_closures::{
     stg_END_TSO_QUEUE_closure, stg_NO_TREC_closure, stg_dead_thread_info,
@@ -73,6 +66,7 @@ use crate::ffi::stg::types::{
     StgFunPtr, StgHalfWord, StgInt64, StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32,
 };
 use crate::ffi::stg::{ASSIGN_Int64, PK_Int64, W_};
+use crate::hs_ffi::HsStablePtr;
 use crate::interpreter::interpretBCO;
 use crate::io_manager::{
     anyPendingTimeoutsOrIO, initIOManagerAfterFork, notifyIOManagerCapabilitiesChanged,
@@ -86,6 +80,12 @@ use crate::raise_async::{
     awakenBlockedExceptionQueue, maybePerformBlockedException, throwToSelf, throwToSingleThreaded,
     throwToSingleThreaded_,
 };
+use crate::rts_api::{
+    Capability, HaskellObj, HeapExhausted, Interrupted, Killed, NoStatus, Success, getAllocations,
+    rts_apply, rts_checkSchedStatus, rts_evalStableIOMain, rts_lock, rts_unlock,
+    shutdownHaskellAndExit,
+};
+use crate::rts_flags::RtsFlags;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::schedule::{
     ACTIVITY_DONE_GC, ACTIVITY_INACTIVE, ACTIVITY_YES, RecentActivity, SCHED_INTERRUPTING,

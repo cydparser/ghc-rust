@@ -1,3 +1,4 @@
+use crate::capability::Capability;
 use crate::capability::{SYNC_FLUSH_EVENT_LOG, getCapability};
 use crate::event_log_constants::{
     EVENT_BLOCK_MARKER, EVENT_CONC_MARK_END, EVENT_CONC_UPD_REM_SET_FLUSH, EVENT_GC_STATS_GHC,
@@ -25,7 +26,6 @@ use crate::ffi::rts::event_log_format::{
 use crate::ffi::rts::event_log_writer::{
     EVENTLOG_NOT_CONFIGURED, EVENTLOG_RUNNING, EventLogStatus, EventLogWriter,
 };
-use crate::ffi::rts::flags::{PROFILING_FLAGS, RtsFlags};
 use crate::ffi::rts::ipe::{InfoProvEnt, formatClosureDescIpe};
 use crate::ffi::rts::messages::{barf, debugBelch, errorBelch};
 use crate::ffi::rts::os_threads::{Mutex, OS_TRY_ACQUIRE_LOCK, initMutex};
@@ -34,13 +34,13 @@ use crate::ffi::rts::storage::closure_macros::INFO_PTR_TO_STRUCT;
 use crate::ffi::rts::storage::tso::StgThreadID;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::ticky::StgEntCounter;
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{
     StgBool, StgInt, StgInt8, StgInt32, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
 };
 use crate::get_time::getUnixEpochTime;
 use crate::prelude::*;
+use crate::rts_flags::{PROFILING_FLAGS, RtsFlags};
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
 use crate::schedule::{
     SCHED_SHUTTING_DOWN, getSchedState, releaseAllCapabilities, stopAllCapabilitiesWith,

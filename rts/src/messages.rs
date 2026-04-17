@@ -1,10 +1,11 @@
+use crate::capability::Capability;
+use crate::capability::Capability;
 use crate::capability::{interruptCapability, recordClosureMutated, releaseCapability_};
 use crate::clone_stack::handleCloneStackMessage;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE, NotBlocked};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::messages::{doneWithMsgThrowTo, whitehole_executeMessage_spin};
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
@@ -27,8 +28,6 @@ use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts_api::Capability;
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
     __stg_EAGER_BLACKHOLE_info, stg_BLACKHOLE_info, stg_BLOCKING_QUEUE_CLEAN_info,
@@ -42,6 +41,7 @@ use crate::ffi::stg::types::{StgWord, StgWord32, StgWord64};
 use crate::ffi::stg::types::{StgWord, StgWord64};
 use crate::prelude::*;
 use crate::raise_async::throwToMsg;
+use crate::rts_flags::RtsFlags;
 use crate::schedule::{SCHED_INTERRUPTING, getSchedState};
 use crate::schedule::{SCHED_INTERRUPTING, getSchedState, promoteInRunQueue};
 use crate::sm::non_moving_mark::updateRemembSetPushMessageThrowTo;

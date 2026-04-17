@@ -1,3 +1,4 @@
+use crate::capability::Capability;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK};
@@ -8,7 +9,6 @@ use crate::ffi::rts::storage::closure_macros::GET_CLOSURE_TAG;
 use crate::ffi::rts::storage::gc::{initBdescr, memcount, oldest_gen};
 use crate::ffi::rts::storage::heap_alloc::gc_alloc_block_sync;
 use crate::ffi::rts::types::StgClosure;
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::smp::{atomic_inc, cas};
 use crate::ffi::stg::types::{StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32};

@@ -1,5 +1,4 @@
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::stable_name::snEntry;
@@ -13,6 +12,7 @@ use crate::hash::{
     removeHashTable,
 };
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
 use crate::sm::gc::{evac_fn, isAlive};
 use crate::trace::{DEBUG_RTS, trace_};

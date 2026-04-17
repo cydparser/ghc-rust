@@ -1,6 +1,6 @@
+use crate::capability::Capability;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE, TSO_BLOCKEX, TSO_INTERRUPTIBLE};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::debugBelch;
 use crate::ffi::rts::prof::ccs::{era, user_era};
 use crate::ffi::rts::storage::closure_macros::{
@@ -14,7 +14,6 @@ use crate::ffi::rts::storage::closures::{
 use crate::ffi::rts::storage::gc::allocate;
 use crate::ffi::rts::storage::tso::{StgStack, dirty_STACK, dirty_TSO};
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
     stg_CONTINUATION_info, stg_maskAsyncExceptionszh_ret_info, stg_maskUninterruptiblezh_ret_info,
@@ -23,6 +22,7 @@ use crate::ffi::stg::misc_closures::{
 use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord32};
 use crate::prelude::*;
 use crate::printer::{printClosure, printStackChunk};
+use crate::rts_flags::RtsFlags;
 use crate::sm::sanity::{checkClosure, checkTSO};
 use crate::threads::threadStackUnderflow;
 

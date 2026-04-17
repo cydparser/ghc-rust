@@ -1,9 +1,9 @@
-use crate::ffi::hs_ffi::HsWord32;
 use crate::ffi::rts::io_interface::sendIOManagerEvent;
 use crate::ffi::rts::messages::errorBelch;
 use crate::ffi::rts::signals::{STG_SIG_DFL, STG_SIG_HAN, STG_SIG_IGN};
 use crate::ffi::rts::{EXIT_INTERRUPTED, stg_exit};
 use crate::ffi::stg::types::{StgInt, StgStablePtr, StgWord8};
+use crate::hs_ffi::HsWord32;
 use crate::prelude::*;
 use crate::schedule::{SCHED_INTERRUPTING, getSchedState, interruptStgRts};
 use crate::win32::mio_manager::interruptIOManagerEvent;

@@ -1,5 +1,5 @@
-use crate::ffi::hs_ffi::HsInt;
 use crate::ffi::rts::os_threads::Mutex;
+use crate::hs_ffi::HsInt;
 use crate::prelude::*;
 use crate::win32::mio_manager::{
     AddDelayRequest, AddIORequest, AddProcRequest, ShutdownIOManager, StartIOManager,

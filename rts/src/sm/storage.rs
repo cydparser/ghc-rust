@@ -1,11 +1,10 @@
+use crate::capability::Capability;
+use crate::capability::Capability;
 use crate::capability::{
     getCapability, n_numa_nodes, recordClosureMutated, recordMutableCap, regTableToCapability,
 };
 use crate::eventlog::event_log::postInitEvent;
-use crate::ffi::hs_ffi::{HS_INT32_MAX, HS_WORD_MAX};
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
-use crate::ffi::rts::flags::RtsFlags;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, errorBelch};
 use crate::ffi::rts::non_moving::{nonmoving_write_barrier_enabled, updateRemembSetPushClosure_};
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
@@ -36,8 +35,6 @@ use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
 use crate::ffi::rts::{_assertFail, exitHeapOverflow};
-use crate::ffi::rts_api::Capability;
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::misc_closures::{
     stg_BLOCKING_QUEUE_CLEAN_info, stg_CAF_BLACKHOLE_info, stg_END_TSO_QUEUE_closure,
     stg_IND_STATIC_info, stg_MUT_VAR_DIRTY_info, stg_TVAR_CLEAN_info, stg_TVAR_DIRTY_info,
@@ -51,7 +48,10 @@ use crate::ffi::stg::types::{
     StgWord64,
 };
 use crate::ffi::stg::{ASSIGN_Int64, BITS_PER_BYTE, PK_Int64, W_};
+use crate::hs_ffi::{HS_INT32_MAX, HS_WORD_MAX};
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
+use crate::rts_flags::RtsFlags;
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
 use crate::sm::block_alloc::{allocLargeChunkOnNode, clear_free_list, countBlocks};
 use crate::sm::gc::{N, freeGcThreads, initGcThreads};

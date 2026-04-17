@@ -1,4 +1,3 @@
-use crate::ffi::rts::flags::{RtsFlags, rts_argv};
 use crate::ffi::rts::prof::ccs::{CC_LIST, CostCentre, CostCentreStack, IndexTable};
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time};
@@ -6,6 +5,7 @@ use crate::ffi::rts::{prog_argv, prog_name};
 use crate::ffi::stg::types::StgWord64;
 use crate::prelude::*;
 use crate::profiling::ProfilerTotals;
+use crate::rts_flags::{RtsFlags, rts_argv};
 use crate::rts_utils::{stgFree, stgMallocBytes, time_str};
 
 unsafe fn escaped_size(mut str: *const c_char) -> usize {

@@ -1,13 +1,13 @@
-use crate::ffi::hs_ffi::HsWord32;
 use crate::ffi::rts::io_interface::{IO_MANAGER_DIE, IO_MANAGER_WAKEUP};
 use crate::ffi::rts::messages::{errorBelch, sysErrorBelch};
 use crate::ffi::rts::os_threads::{Mutex, initMutex};
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::stg_exit;
-use crate::ffi::rts_api::{HaskellObj, rts_evalIO, rts_lock, rts_unlock};
 use crate::ffi::stg::types::StgWord32;
+use crate::hs_ffi::HsWord32;
 use crate::io_manager::is_io_mng_native_p;
 use crate::prelude::*;
+use crate::rts_api::{HaskellObj, rts_evalIO, rts_lock, rts_unlock};
 
 #[cfg(test)]
 mod tests;

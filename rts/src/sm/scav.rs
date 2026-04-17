@@ -1,6 +1,6 @@
+use crate::capability::Capability;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK, MUT_ARR_PTRS_CARD_BITS};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK};
 use crate::ffi::rts::storage::block::{BF_COMPACT, BLOCK_SIZE_W, Bdescr, bdescr, dbl_link_onto};
@@ -20,7 +20,6 @@ use crate::ffi::rts::storage::gc::{generation, generations, memcount, oldest_gen
 use crate::ffi::rts::storage::info_tables::{StgFunInfoTable, StgLargeBitmap, stg_arg_bitmaps};
 use crate::ffi::rts::storage::tso::StgStack;
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::misc_closures::{
     stg_BLOCKING_QUEUE_CLEAN_info, stg_BLOCKING_QUEUE_DIRTY_info, stg_COMPACT_NFDATA_CLEAN_info,
     stg_COMPACT_NFDATA_DIRTY_info, stg_END_TSO_QUEUE_closure, stg_MUT_ARR_PTRS_CLEAN_info,
@@ -36,6 +35,7 @@ use crate::ffi::stg::{P_, W_};
 use crate::hash::{HashTable, allocHashTable, freeHashTable, insertHashTable, mapHashTable};
 use crate::io_manager::scavengeTSOIOManager;
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::sm::evac::{evacuate_BLACKHOLE1, evacuate1};
 use crate::sm::gc::{
     MutListScavStats, N, addMutListScavStats, deadlock_detect_gc, major_gc, mark_stack_bd,

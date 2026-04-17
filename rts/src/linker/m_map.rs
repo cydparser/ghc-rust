@@ -1,4 +1,3 @@
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, debugBelch, errorBelch, sysErrorBelch};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::stg_upd_frame_info;
@@ -6,6 +5,7 @@ use crate::ffi::stg::types::StgWord;
 use crate::linker::m_map::{MEM_READ_WRITE_THEN_READ_EXECUTE, MemoryAccess};
 use crate::prelude::*;
 use crate::report_memory_map::reportMemoryMap;
+use crate::rts_flags::RtsFlags;
 use crate::sm::os_mem::roundUpToPage;
 
 pub(crate) type MemoryAccess = u32;

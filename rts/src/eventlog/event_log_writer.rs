@@ -1,11 +1,10 @@
-use crate::ffi::rts::event_log_writer::EventLogWriter;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, sysErrorBelch};
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::{prog_name, stg_exit};
 use crate::ffi::stg::types::StgWord64;
 use crate::fs::__rts_fopen;
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
+use crate::capability::Capability;
 use crate::capability::recordClosureMutated;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE, TSO_SQUEEZED, ThreadKilled};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::prof::ccs::era;
 use crate::ffi::rts::storage::closure_macros::{
@@ -12,7 +12,6 @@ use crate::ffi::rts::storage::closure_macros::{
 use crate::ffi::rts::storage::closures::{StgInd, StgThunk, StgUpdateFrame};
 use crate::ffi::rts::storage::info_tables::{_IND, _THU, closure_flags};
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::misc_closures::{
     __stg_EAGER_BLACKHOLE_info, stg_BLACKHOLE_info, stg_CAF_BLACKHOLE_info, stg_TSO_info,
     stg_WHITEHOLE_info, stg_bh_upd_frame_info, stg_enter_info, stg_marked_upd_frame_info,
@@ -25,6 +24,7 @@ use crate::ffi::stg::types::{
 use crate::ffi::stg::{P_, W_};
 use crate::prelude::*;
 use crate::raise_async::{maybePerformBlockedException, suspendComputation};
+use crate::rts_flags::RtsFlags;
 use crate::sm::non_moving_mark::{updateRemembSetPushClosure, updateRemembSetPushThunkEager};
 use crate::thread_paused::whitehole_threadPaused_spin;
 use crate::threads::updateThunk;

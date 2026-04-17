@@ -1,5 +1,5 @@
+use crate::capability::Capability;
 use crate::disassembler::disInstr;
-use crate::ffi::hs_ffi::HsStablePtr;
 use crate::ffi::mach_deps::TAG_MASK;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::bytecodes::{bci_BRK_FUN, bci_FLAG_LARGE_ARGS};
@@ -7,7 +7,6 @@ use crate::ffi::rts::constants::{
     LDV_SHIFT, LDV_STATE_CREATE, TSO_STOP_AFTER_RETURN, TSO_STOP_NEXT_BREAKPOINT,
     TSO_STOPPED_ON_BREAKPOINT,
 };
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::prof::ccs::{
     CostCentre, CostCentreStack, CostCentreStack_, enterFunCCS, era, pushCostCentre, user_era,
@@ -29,7 +28,6 @@ use crate::ffi::rts::storage::info_tables::{StgLargeBitmap, closure_flags};
 use crate::ffi::rts::storage::tso::{StgStack, tso_SpLim};
 use crate::ffi::rts::threads::{resumeThread, suspendThread};
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::misc_closures::{
     stg_AP_NOUPD_info, stg_AP_STACK_info, stg_AP_info, stg_PAP_info, stg_ap_d_info, stg_ap_f_info,
     stg_ap_l_info, stg_ap_n_info, stg_ap_p_info, stg_ap_pp_info, stg_ap_ppp_info, stg_ap_pppp_info,
@@ -61,9 +59,11 @@ use crate::ffi::stg::types::{
 };
 use crate::ffi::stg::{I_, P_, PK_DBL, PK_FLT, W_};
 use crate::ffi::{ffi_call, ffi_type_void};
+use crate::hs_ffi::HsStablePtr;
 use crate::prelude::*;
 use crate::printer::{printClosure, printObj, printStackChunk};
 use crate::profiling::fprintCCS;
+use crate::rts_flags::RtsFlags;
 use crate::sm::sanity::{checkStackChunk, checkStackFrame};
 use crate::sm::storage::doYouWantToGC;
 use crate::thread_paused::threadPaused;

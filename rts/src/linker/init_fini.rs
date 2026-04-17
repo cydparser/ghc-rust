@@ -1,10 +1,10 @@
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::messages::barf;
-use crate::ffi::rts_api::getProgArgv;
 use crate::get_env::{freeProgEnvv, getProgEnvv};
 use crate::linker_internals::Section;
 use crate::linker_internals::{Section, fini_t, init_t};
 use crate::prelude::*;
+use crate::rts_api::getProgArgv;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 
 pub(crate) type InitFiniKind = u32;

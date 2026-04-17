@@ -1,6 +1,6 @@
 pub use crate::libdw::{
-    Backtrace, Backtrace_, BacktraceChunk, BacktraceChunk_, LibdwSession, Location, Location_,
-    backtraceFree, libdwGetBacktrace, libdwLookupLocation,
+    Backtrace, Backtrace_, BacktraceChunk, BacktraceChunk_, Location, Location_, backtraceFree,
+    libdwGetBacktrace, libdwLookupLocation,
 };
 use crate::prelude::*;
 

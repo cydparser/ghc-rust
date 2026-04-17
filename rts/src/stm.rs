@@ -1,6 +1,6 @@
+use crate::capability::Capability;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack, era, user_era};
 use crate::ffi::rts::storage::closure_macros::{
@@ -14,7 +14,6 @@ use crate::ffi::rts::storage::closures::{
 use crate::ffi::rts::storage::gc::allocate;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
     stg_END_STM_CHUNK_LIST_closure, stg_END_STM_WATCH_QUEUE_closure, stg_END_TSO_QUEUE_closure,
@@ -23,6 +22,7 @@ use crate::ffi::stg::misc_closures::{
 use crate::ffi::stg::smp::cas;
 use crate::ffi::stg::types::{StgBool, StgInt, StgInt64, StgVolatilePtr, StgWord, StgWord32};
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::sm::non_moving_mark::updateRemembSetPushClosure;
 use crate::sm::storage::dirty_TVAR;
 use crate::threads::tryWakeupThread;

@@ -1,7 +1,6 @@
 use crate::alloc_array::allocateMutArrPtrs;
-use crate::ffi::hs_ffi::HsInt;
+use crate::capability::Capability;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack, era, user_era};
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::storage::closure_macros::{
@@ -12,14 +11,16 @@ use crate::ffi::rts::storage::closures::{StgCFinalizerList, StgMutArrPtrs, StgWe
 use crate::ffi::rts::threads::createIOThread;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::rts::{_assertFail, exitHeapOverflow};
-use crate::ffi::rts_api::{Capability, HaskellObj, rts_apply, rts_mkInt};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
     stg_DEAD_WEAK_info, stg_MUT_ARR_PTRS_FROZEN_CLEAN_info, stg_NO_FINALIZER_closure,
 };
 use crate::ffi::stg::smp::cas;
 use crate::ffi::stg::types::StgWord;
+use crate::hs_ffi::HsInt;
 use crate::prelude::*;
+use crate::rts_api::{HaskellObj, rts_apply, rts_mkInt};
+use crate::rts_flags::RtsFlags;
 use crate::schedule::scheduleThread;
 use crate::task::myTask;
 use crate::trace::{DEBUG_RTS, trace_};

@@ -1,9 +1,9 @@
 use crate::capability::getCapability;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::storage::closure_macros::closure_sizeW;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::StgClosure;
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::sm::non_moving::{
     NONMOVING_ALLOCA0, NonmovingAllocator, nonmoving_alloca_cnt, nonmoving_block_idx,
     nonmovingGetMark, nonmovingHeap, nonmovingMarkEpoch, nonmovingSegmentBlockCount,

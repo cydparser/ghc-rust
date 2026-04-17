@@ -1,6 +1,5 @@
 use crate::capability::getCapability;
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::block::Bdescr;
 use crate::ffi::rts::storage::closure_macros::{INFO_PTR_TO_STRUCT, UNTAG_CLOSURE, get_itbl};
@@ -14,6 +13,7 @@ use crate::ffi::stg::misc_closures::{
 };
 use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord32};
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
 use crate::sm::evac::evacuate;
 use crate::sm::gc::{N, isAlive};
 use crate::sm::gc_utils::recordMutableGen_GC;

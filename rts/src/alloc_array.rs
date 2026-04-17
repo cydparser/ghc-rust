@@ -1,3 +1,4 @@
+use crate::capability::Capability;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
 use crate::ffi::rts::prof::ccs::{CostCentreStack, era, user_era};
 use crate::ffi::rts::storage::closure_macros::{
@@ -7,7 +8,6 @@ use crate::ffi::rts::storage::closure_macros::{
 use crate::ffi::rts::storage::closures::{StgArrBytes, StgMutArrPtrs, StgSmallMutArrPtrs};
 use crate::ffi::rts::storage::gc::{allocateMightFail, allocatePinned};
 use crate::ffi::rts::types::StgClosure;
-use crate::ffi::rts_api::Capability;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
     stg_ARR_WORDS_info, stg_MUT_ARR_PTRS_DIRTY_info, stg_SMALL_MUT_ARR_PTRS_DIRTY_info,

@@ -1,8 +1,3 @@
-use crate::ffi::rts::libdw::{
-    Backtrace, Backtrace_, BacktraceChunk, BacktraceChunk_, LibdwSession, LibdwSession_, Location,
-    Location_,
-};
-use crate::ffi::stg::types::{StgPtr, StgWord, StgWord32};
 use crate::ffi::stg::types::{StgPtr, StgWord, StgWord32};
 use crate::prelude::*;
 

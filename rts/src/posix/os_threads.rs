@@ -1,13 +1,13 @@
-use crate::ffi::hs_ffi::HsStablePtr;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::messages::{barf, sysErrorBelch};
 use crate::ffi::rts::os_threads::{Condition, KernelThreadId, Mutex, OSThreadId};
 use crate::ffi::rts::time::gettimeofday;
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time};
-use crate::ffi::rts_api::{rts_done, rts_evalStableIO, rts_lock, rts_unlock};
 use crate::ffi::stg::types::StgWord64;
 use crate::ffi::stg::types::StgWord64;
+use crate::hs_ffi::HsStablePtr;
 use crate::prelude::*;
+use crate::rts_api::{rts_done, rts_evalStableIO, rts_lock, rts_unlock};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 
 #[cfg(test)]

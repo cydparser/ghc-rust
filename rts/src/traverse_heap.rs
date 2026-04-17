@@ -3,7 +3,6 @@ use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{
     BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK, ThreadComplete, ThreadKilled,
 };
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, vdebugBelch};
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::block::bdescr;
@@ -30,6 +29,7 @@ use crate::ffi::stg::{BITS_PER_BYTE, P_, W_};
 use crate::prelude::*;
 use crate::retainer_set::retainer;
 use crate::retainer_set::retainer;
+use crate::rts_flags::RtsFlags;
 use crate::sm::storage::{STATIC_BITS, static_flag};
 use crate::traverse_heap::{
     C2RustUnnamed_11, C2RustUnnamed_12, nextPos, nextPosType, posTypeEmpty, posTypeFresh,

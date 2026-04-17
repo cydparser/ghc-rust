@@ -1,19 +1,11 @@
 use crate::arena::{Arena, arenaAlloc, arenaFree, newArena};
+use crate::capability::Capability;
 use crate::clone_stack::{cloneStack, sendCloneStackMessage};
-use crate::ffi::hs_ffi::{
-    HsBool, HsChar, HsDouble, HsFloat, HsFunPtr, HsInt, HsInt8, HsInt16, HsInt32, HsInt64, HsPtr,
-    HsStablePtr, HsWord, HsWord8, HsWord16, HsWord32, HsWord64, hs_exit, hs_exit_nowait,
-    hs_free_fun_ptr, hs_free_stable_ptr, hs_free_stable_ptr_unsafe, hs_init,
-    hs_lock_stable_ptr_table, hs_lock_stable_tables, hs_perform_gc, hs_set_argv, hs_spt_key_count,
-    hs_spt_keys, hs_spt_lookup, hs_thread_done, hs_try_putmvar, hs_try_putmvar_with_value,
-    hs_unlock_stable_ptr_table, hs_unlock_stable_tables,
-};
 use crate::ffi::rts::adjustor::{createAdjustor, freeHaskellFunctionPtr};
 use crate::ffi::rts::block_signals::{blockUserSignals, unblockUserSignals};
 use crate::ffi::rts::event_log_writer::flushEventLog;
 use crate::ffi::rts::exec_page::{ExecPage, allocateExecPage, freeExecPage, freezeExecPage};
 use crate::ffi::rts::file_lock::{lockFile, unlockFile};
-use crate::ffi::rts::flags::{RTS_FLAGS, RtsFlags};
 use crate::ffi::rts::foreign_exports::{ForeignExportsList, registerForeignExports};
 use crate::ffi::rts::get_time::getMonotonicNSec;
 use crate::ffi::rts::globals::{
@@ -90,20 +82,6 @@ use crate::ffi::rts::utils::genericRaise;
 use crate::ffi::rts::{
     _assertFail, prog_argc, prog_argv, reportHeapOverflow, reportStackOverflow, rts_isDebugged,
     rts_isDynamic, rts_isProfiled, rts_isThreaded, rts_isTracing, stg_exit, stg_sig_install,
-};
-use crate::ffi::rts_api::{
-    Capability, HaskellObj, RTSStats, RtsConfig, defaultRtsConfig, freeFullProgArgv,
-    getAllocations, getFullProgArgv, getProgArgv, getRTSStats, getRTSStatsEnabled, hs_init_ghc,
-    hs_init_with_rtsopts, rts_apply, rts_checkSchedStatus, rts_clearMemory, rts_eval, rts_eval_,
-    rts_evalIO, rts_evalLazyIO, rts_evalStableIO, rts_evalStableIOMain, rts_getBool, rts_getChar,
-    rts_getDouble, rts_getFloat, rts_getFunPtr, rts_getInt, rts_getInt8, rts_getInt16,
-    rts_getInt32, rts_getInt64, rts_getPtr, rts_getStablePtr, rts_getWord, rts_getWord8,
-    rts_getWord16, rts_getWord32, rts_getWord64, rts_inCall, rts_lock, rts_mkBool, rts_mkChar,
-    rts_mkDouble, rts_mkFloat, rts_mkFunPtr, rts_mkInt, rts_mkInt8, rts_mkInt16, rts_mkInt32,
-    rts_mkInt64, rts_mkPtr, rts_mkStablePtr, rts_mkString, rts_mkWord, rts_mkWord8, rts_mkWord16,
-    rts_mkWord32, rts_mkWord64, rts_setInCallCapability, rts_unlock, rts_unsafeGetMyCapability,
-    setFullProgArgv, setProgArgv, shutdownHaskell, shutdownHaskellAndExit,
-    shutdownHaskellAndSignal, startupHaskell,
 };
 use crate::ffi::stg::misc_closures::{
     __stg_EAGER_BLACKHOLE_info, __stg_gc_enter_1, __stg_gc_fun, StgReturn, stg_ARR_WORDS_info,
@@ -223,6 +201,14 @@ use crate::ffi::stg::types::{
     StgWord16, StgWord32, StgWord64,
 };
 use crate::ffi::stg::{I_, W_};
+use crate::hs_ffi::{
+    HsBool, HsChar, HsDouble, HsFloat, HsFunPtr, HsInt, HsInt8, HsInt16, HsInt32, HsInt64, HsPtr,
+    HsStablePtr, HsWord, HsWord8, HsWord16, HsWord32, HsWord64, hs_exit, hs_exit_nowait,
+    hs_free_fun_ptr, hs_free_stable_ptr, hs_free_stable_ptr_unsafe, hs_init,
+    hs_lock_stable_ptr_table, hs_lock_stable_tables, hs_perform_gc, hs_set_argv, hs_spt_key_count,
+    hs_spt_keys, hs_spt_lookup, hs_thread_done, hs_try_putmvar, hs_try_putmvar_with_value,
+    hs_unlock_stable_ptr_table, hs_unlock_stable_tables,
+};
 use crate::interpreter::{
     rts_breakpoint_io_action, rts_disableStopAfterReturn, rts_disableStopNextBreakpoint,
     rts_disableStopNextBreakpointAll, rts_enableStopAfterReturn, rts_enableStopNextBreakpoint,
@@ -231,6 +217,21 @@ use crate::interpreter::{
 use crate::posix::signals::nocldstop;
 use crate::posix::signals::signal_handlers;
 use crate::prelude::*;
+use crate::rts_api::{
+    HaskellObj, RTSStats, RtsConfig, defaultRtsConfig, freeFullProgArgv, getAllocations,
+    getFullProgArgv, getProgArgv, getRTSStats, getRTSStatsEnabled, hs_init_ghc,
+    hs_init_with_rtsopts, rts_apply, rts_checkSchedStatus, rts_clearMemory, rts_eval, rts_eval_,
+    rts_evalIO, rts_evalLazyIO, rts_evalStableIO, rts_evalStableIOMain, rts_getBool, rts_getChar,
+    rts_getDouble, rts_getFloat, rts_getFunPtr, rts_getInt, rts_getInt8, rts_getInt16,
+    rts_getInt32, rts_getInt64, rts_getPtr, rts_getStablePtr, rts_getWord, rts_getWord8,
+    rts_getWord16, rts_getWord32, rts_getWord64, rts_inCall, rts_lock, rts_mkBool, rts_mkChar,
+    rts_mkDouble, rts_mkFloat, rts_mkFunPtr, rts_mkInt, rts_mkInt8, rts_mkInt16, rts_mkInt32,
+    rts_mkInt64, rts_mkPtr, rts_mkStablePtr, rts_mkString, rts_mkWord, rts_mkWord8, rts_mkWord16,
+    rts_mkWord32, rts_mkWord64, rts_setInCallCapability, rts_unlock, rts_unsafeGetMyCapability,
+    setFullProgArgv, setProgArgv, shutdownHaskell, shutdownHaskellAndExit,
+    shutdownHaskellAndSignal, startupHaskell,
+};
+use crate::rts_flags::{RTS_FLAGS, RtsFlags};
 use crate::rts_symbols::{
     _RtsSymbolVal, _SymStrength, _SymType, RtsSymbolVal, STRENGTH_NORMAL, SYM_TYPE_CODE,
     SYM_TYPE_DATA, SymStrength, SymType, SymbolName,

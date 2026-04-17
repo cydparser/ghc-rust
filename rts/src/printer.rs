@@ -2,7 +2,6 @@ use crate::capability::getCapability;
 use crate::disassembler::disassemble;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK};
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::ipe::{InfoProv_, InfoProvEnt_, lookupIPE};
 use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::prof::ccs::CostCentreStack;
@@ -40,6 +39,7 @@ use crate::ffi::stg::{BITS_PER_BYTE, P_, W_};
 use crate::hash::{HashTable, lookupHashTable};
 use crate::prelude::*;
 use crate::profiling::fprintCCS;
+use crate::rts_flags::RtsFlags;
 use crate::sm::gc_thread::{gc_threads, gen_workspace};
 use crate::sm::storage::{STATIC_BITS, static_flag};
 

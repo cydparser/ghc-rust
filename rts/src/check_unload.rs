@@ -1,5 +1,4 @@
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::flags::{NO_HEAP_PROFILING, RtsFlags};
 use crate::ffi::rts::linker::OBJECT_UNLOADED;
 use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
@@ -12,6 +11,7 @@ use crate::linker_internals::{
     linker_mutex,
 };
 use crate::prelude::*;
+use crate::rts_flags::{NO_HEAP_PROFILING, RtsFlags};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 
 /// cbindgen:no-export
