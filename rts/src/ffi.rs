@@ -1,8 +1,10 @@
 use crate::prelude::*;
 
+#[cfg(feature = "header")]
 pub mod hs_ffi;
 pub mod mach_deps;
 pub mod rts;
+#[cfg(feature = "header")]
 pub mod rts_api;
 pub mod stg;
 

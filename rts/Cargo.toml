@@ -11,6 +11,7 @@ license-file = "LICENSE"
 
 [features]
 default = ["sys", "way_debug", "way_profiling", "way_threaded"]
+header = []
 sys = ["dep:ghc-rts-sys"]
 tracing = ["dep:tracing", "ghc-macros/tracing"]
 way_debug = ["ghc-rts-sys/way_debug"]
