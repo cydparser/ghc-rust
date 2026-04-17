@@ -1,27 +1,19 @@
-use crate::capability::Capability_;
 use crate::capability::{
     Capability_, PutMVar, PutMVar_, getCapability, releaseCapability, releaseCapability_,
     waitForCapability,
-};
-use crate::ffi::hs_ffi::{
-    HsBool, HsChar, HsDouble, HsFloat, HsFunPtr, HsInt, HsInt8, HsInt16, HsInt32, HsInt64, HsPtr,
-    HsStablePtr, HsWord, HsWord8, HsWord16, HsWord32, HsWord64,
 };
 use crate::ffi::rts::constants::{
     LDV_SHIFT, LDV_STATE_CREATE, MAX_CHARLIKE, MAX_INTLIKE, MIN_INTLIKE, TSO_BLOCKEX,
     TSO_INTERRUPTIBLE, TSO_LOCKED,
 };
-use crate::ffi::rts::flags::RtsFlags;
 use crate::ffi::rts::messages::{barf, errorBelch};
 use crate::ffi::rts::os_threads::{osThreadId, shutdownThread};
 use crate::ffi::rts::prof::ccs::{CCS_MAIN, CCS_SYSTEM, CostCentreStack, era, user_era};
-use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::stable_ptr::{deRefStablePtr, getStablePtr};
 use crate::ffi::rts::storage::closure_macros::{
     CHARLIKE_CLOSURE, CONSTR_sizeW, GET_CLOSURE_TAG, INTLIKE_CLOSURE, TAG_CLOSURE, UNTAG_CLOSURE,
     UNTAG_CONST_CLOSURE, doingErasProfiling, doingLDVProfiling, doingRetainerProfiling, get_itbl,
 };
-use crate::ffi::rts::storage::closures::StgClosure_;
 use crate::ffi::rts::storage::closures::{StgClosure_, StgMVar, StgThunk};
 use crate::ffi::rts::storage::gc::{allocate, generations};
 use crate::ffi::rts::storage::info_tables::StgSRTField;
@@ -29,12 +21,7 @@ use crate::ffi::rts::threads::{
     createThread, enabled_capabilities, getNumCapabilities, scheduleWaitThread,
 };
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
-use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::rts::{_assertFail, stg_exit};
-use crate::ffi::rts_api::{
-    Capability, HaskellObj, HeapExhausted, Interrupted, Killed, ListRootsCb, ListThreadsCb,
-    NoStatus, PauseToken, SchedulerStatus, SchedulerStatus_End, Success,
-};
 use crate::ffi::stg::misc_closures::{
     stg_END_TSO_QUEUE_closure, stg_ap_2_upd_info, stg_ap_v_info, stg_enter_info, stg_forceIO_info,
 };
@@ -45,7 +32,13 @@ use crate::ffi::stg::types::{
 use crate::ffi::stg::{
     ASSIGN_DBL, ASSIGN_FLT, ASSIGN_Int64, ASSIGN_Word64, PK_DBL, PK_FLT, PK_Int64, PK_Word64, W_,
 };
+use crate::hs_ffi::{
+    HsBool, HsChar, HsDouble, HsFloat, HsFunPtr, HsInt, HsInt8, HsInt16, HsInt32, HsInt64, HsPtr,
+    HsStablePtr, HsWord, HsWord8, HsWord16, HsWord32, HsWord64,
+};
 use crate::prelude::*;
+use crate::rts_flags::RtsFlags;
+use crate::rts_to_hs_iface::ghc_hs_iface;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::schedule::{releaseAllCapabilities, stopAllCapabilities};
 use crate::sm::non_moving::{nonmovingBlockConcurrentMark, nonmovingUnblockConcurrentMark};
@@ -68,6 +61,24 @@ pub enum SchedulerStatus {
     Interrupted = 3,
     HeapExhausted = 4,
     SchedulerStatus_End = 5,
+}
+
+impl TryFrom<u32> for SchedulerStatus {
+    type Error = ();
+
+    fn try_from(d: u32) -> Result<SchedulerStatus, ()> {
+        use SchedulerStatus::*;
+
+        match d {
+            0 => Ok(NoStatus),
+            1 => Ok(Success),
+            2 => Ok(Killed),
+            3 => Ok(Interrupted),
+            4 => Ok(HeapExhausted),
+            5 => Ok(SchedulerStatus_End),
+            _ => Err(()),
+        }
+    }
 }
 
 #[cfg(feature = "sys")]

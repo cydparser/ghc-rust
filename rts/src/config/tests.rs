@@ -112,17 +112,3 @@ fn sys_RtsConfig_layout() {
     assert_eq!(size_of::<RtsConfig>(), size_of::<sys::RtsConfig>());
     assert_eq!(align_of::<RtsConfig>(), align_of::<sys::RtsConfig>());
 }
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_GCDetails_layout() {
-    assert_eq!(size_of::<GCDetails>(), size_of::<sys::GCDetails>());
-    assert_eq!(align_of::<GCDetails>(), align_of::<sys::GCDetails>());
-}
-
-#[cfg(feature = "sys")]
-#[test]
-fn sys_RTSStats_layout() {
-    assert_eq!(size_of::<RTSStats>(), size_of::<sys::RTSStats>());
-    assert_eq!(align_of::<RTSStats>(), align_of::<sys::RTSStats>());
-}

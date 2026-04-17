@@ -1,7 +1,4 @@
 use crate::capability::getCapability;
-use crate::ffi::rts::flags::{
-    NO_GC_STATS, ONELINE_GC_STATS, RtsFlags, SUMMARY_GC_STATS, VERBOSE_GC_STATS,
-};
 use crate::ffi::rts::messages::{barf, debugBelch, vdebugBelch};
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::storage::block::{
@@ -14,13 +11,14 @@ use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::time::Time;
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time, getProcessElapsedTime};
 use crate::ffi::rts::{_assertFail, _warnFail};
-use crate::ffi::rts_api::{_RTSStats, Capability, GCDetails_, RTSStats};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{StgInt, StgWord, StgWord64};
 use crate::get_time::{getCurrentThreadCPUTime, getPageFaults, getProcessTimes};
 use crate::prelude::*;
 use crate::profiling::prof_file;
-use crate::rts_flags::rtsConfig;
+use crate::rts_flags::{
+    NO_GC_STATS, ONELINE_GC_STATS, RtsFlags, SUMMARY_GC_STATS, VERBOSE_GC_STATS, rtsConfig,
+};
 use crate::rts_utils::{showStgWord64, stgFree, stgMallocBytes};
 use crate::sm::block_alloc::{hw_alloc_blocks, n_alloc_blocks};
 use crate::sm::gc::{waitForGcThreads_spin, waitForGcThreads_yield, whitehole_gc_spin};
@@ -30,10 +28,6 @@ use crate::sm::storage::{
     gcThreadLiveBlocks, gcThreadLiveWords, genLiveBlocks, genLiveWords, updateNurseriesStats,
 };
 use crate::sparks::SparkCounters;
-use crate::sparks::SparkCounters;
-use crate::stats::{
-    GenerationSummaryStats, GenerationSummaryStats_, RTSSummaryStats, RTSSummaryStats_,
-};
 use crate::task::{all_tasks_mutex, peakWorkerCount, taskCount, workerCount};
 use crate::trace::{
     CAPSET_HEAP_DEFAULT, traceConcSyncBegin, traceConcSyncEnd, traceEventBlocksSize,
@@ -43,6 +37,142 @@ use crate::trace::{
 
 #[cfg(test)]
 mod tests;
+
+#[ffi(ghc_lib)]
+pub type GCDetails = GCDetails_;
+
+/// cbindgen:no-export
+#[repr(C)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
+pub struct GCDetails_ {
+    r#gen: u32,
+    threads: u32,
+    allocated_bytes: u64,
+    live_bytes: u64,
+    large_objects_bytes: u64,
+    compact_bytes: u64,
+    slop_bytes: u64,
+    mem_in_use_bytes: u64,
+    copied_bytes: u64,
+    block_fragmentation_bytes: u64,
+    par_max_copied_bytes: u64,
+    par_balanced_copied_bytes: u64,
+    sync_elapsed_ns: Time,
+    cpu_ns: Time,
+    elapsed_ns: Time,
+    nonmoving_gc_sync_cpu_ns: Time,
+    nonmoving_gc_sync_elapsed_ns: Time,
+    nonmoving_gc_cpu_ns: Time,
+    nonmoving_gc_elapsed_ns: Time,
+}
+
+#[cfg(test)]
+impl Arbitrary for GCDetails_ {
+    fn arbitrary(g: &mut Gen) -> Self {
+        GCDetails_ {
+            r#gen: Arbitrary::arbitrary(g),
+            threads: Arbitrary::arbitrary(g),
+            allocated_bytes: Arbitrary::arbitrary(g),
+            live_bytes: Arbitrary::arbitrary(g),
+            large_objects_bytes: Arbitrary::arbitrary(g),
+            compact_bytes: Arbitrary::arbitrary(g),
+            slop_bytes: Arbitrary::arbitrary(g),
+            mem_in_use_bytes: Arbitrary::arbitrary(g),
+            copied_bytes: Arbitrary::arbitrary(g),
+            block_fragmentation_bytes: Arbitrary::arbitrary(g),
+            par_max_copied_bytes: Arbitrary::arbitrary(g),
+            par_balanced_copied_bytes: Arbitrary::arbitrary(g),
+            sync_elapsed_ns: Arbitrary::arbitrary(g),
+            cpu_ns: Arbitrary::arbitrary(g),
+            elapsed_ns: Arbitrary::arbitrary(g),
+            nonmoving_gc_sync_cpu_ns: Arbitrary::arbitrary(g),
+            nonmoving_gc_sync_elapsed_ns: Arbitrary::arbitrary(g),
+            nonmoving_gc_cpu_ns: Arbitrary::arbitrary(g),
+            nonmoving_gc_elapsed_ns: Arbitrary::arbitrary(g),
+        }
+    }
+}
+
+#[ffi(ghc_lib, testsuite)]
+pub type RTSStats = _RTSStats;
+
+/// cbindgen:no-export
+#[repr(C)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
+pub struct _RTSStats {
+    gcs: u32,
+    major_gcs: u32,
+    allocated_bytes: u64,
+    max_live_bytes: u64,
+    max_large_objects_bytes: u64,
+    max_compact_bytes: u64,
+    max_slop_bytes: u64,
+    max_mem_in_use_bytes: u64,
+    cumulative_live_bytes: u64,
+    copied_bytes: u64,
+    par_copied_bytes: u64,
+    cumulative_par_max_copied_bytes: u64,
+    cumulative_par_balanced_copied_bytes: u64,
+    init_cpu_ns: Time,
+    init_elapsed_ns: Time,
+    mutator_cpu_ns: Time,
+    mutator_elapsed_ns: Time,
+    gc_cpu_ns: Time,
+    gc_elapsed_ns: Time,
+    cpu_ns: Time,
+    elapsed_ns: Time,
+    gc: GCDetails,
+    any_work: u64,
+    scav_find_work: u64,
+    max_n_todo_overflow: u64,
+    nonmoving_gc_sync_cpu_ns: Time,
+    nonmoving_gc_sync_elapsed_ns: Time,
+    nonmoving_gc_sync_max_elapsed_ns: Time,
+    nonmoving_gc_cpu_ns: Time,
+    nonmoving_gc_elapsed_ns: Time,
+    nonmoving_gc_max_elapsed_ns: Time,
+}
+
+#[cfg(test)]
+impl Arbitrary for _RTSStats {
+    fn arbitrary(g: &mut Gen) -> Self {
+        _RTSStats {
+            gcs: Arbitrary::arbitrary(g),
+            major_gcs: Arbitrary::arbitrary(g),
+            allocated_bytes: Arbitrary::arbitrary(g),
+            max_live_bytes: Arbitrary::arbitrary(g),
+            max_large_objects_bytes: Arbitrary::arbitrary(g),
+            max_compact_bytes: Arbitrary::arbitrary(g),
+            max_slop_bytes: Arbitrary::arbitrary(g),
+            max_mem_in_use_bytes: Arbitrary::arbitrary(g),
+            cumulative_live_bytes: Arbitrary::arbitrary(g),
+            copied_bytes: Arbitrary::arbitrary(g),
+            par_copied_bytes: Arbitrary::arbitrary(g),
+            cumulative_par_max_copied_bytes: Arbitrary::arbitrary(g),
+            cumulative_par_balanced_copied_bytes: Arbitrary::arbitrary(g),
+            init_cpu_ns: Arbitrary::arbitrary(g),
+            init_elapsed_ns: Arbitrary::arbitrary(g),
+            mutator_cpu_ns: Arbitrary::arbitrary(g),
+            mutator_elapsed_ns: Arbitrary::arbitrary(g),
+            gc_cpu_ns: Arbitrary::arbitrary(g),
+            gc_elapsed_ns: Arbitrary::arbitrary(g),
+            cpu_ns: Arbitrary::arbitrary(g),
+            elapsed_ns: Arbitrary::arbitrary(g),
+            gc: Arbitrary::arbitrary(g),
+            any_work: Arbitrary::arbitrary(g),
+            scav_find_work: Arbitrary::arbitrary(g),
+            max_n_todo_overflow: Arbitrary::arbitrary(g),
+            nonmoving_gc_sync_cpu_ns: Arbitrary::arbitrary(g),
+            nonmoving_gc_sync_elapsed_ns: Arbitrary::arbitrary(g),
+            nonmoving_gc_sync_max_elapsed_ns: Arbitrary::arbitrary(g),
+            nonmoving_gc_cpu_ns: Arbitrary::arbitrary(g),
+            nonmoving_gc_elapsed_ns: Arbitrary::arbitrary(g),
+            nonmoving_gc_max_elapsed_ns: Arbitrary::arbitrary(g),
+        }
+    }
+}
 
 pub(crate) type RTSSummaryStats = RTSSummaryStats_;
 

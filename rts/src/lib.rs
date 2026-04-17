@@ -5,6 +5,7 @@
 
 mod adjustor;
 mod capability;
+mod config;
 mod prelude;
 mod utils;
 
