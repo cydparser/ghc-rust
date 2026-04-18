@@ -31,3 +31,6 @@ test-rts-rust:
 
 test-rts-sys:
     cargo test -p ghc-rts --no-default-features --features sys,tracing
+
+test-rts-loom *args:
+    cargo test -p ghc-rts --no-default-features --features loom,tracing --release {{ args }}

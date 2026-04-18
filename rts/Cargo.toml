@@ -12,6 +12,7 @@ license-file = "LICENSE"
 [features]
 default = ["sys", "way_debug", "way_profiling", "way_threaded"]
 header = []
+loom = ["dep:loom"]
 sys = ["dep:ghc-rts-sys"]
 tracing = ["dep:tracing", "ghc-macros/tracing"]
 way_debug = ["ghc-rts-sys/way_debug"]
@@ -25,6 +26,7 @@ build-utils.workspace = true
 ghc-macros = { path = "../macros" }
 ghc-rts-sys = { path = "../rts-sys", optional = true }
 libc.workspace = true
+loom = { version = "0.7.2", optional = true }
 quickcheck_macros = "1.0.0"
 tracing = { workspace = true, optional = true }
 
