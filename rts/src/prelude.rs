@@ -1,8 +1,8 @@
-// XXX #![expect(unused_imports)]
+#![expect(unused_imports)]
 
 pub use crate::utils::bindgen::__IncompleteArrayField;
 pub(crate) use crate::utils::macros::sys;
-pub use crate::utils::sync;
+pub(crate) use crate::utils::sync;
 pub use crate::utils::sync::*;
 #[cfg(test)]
 pub use crate::utils::test::*;
