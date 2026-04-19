@@ -3,8 +3,8 @@ use crate::ffi::rts::storage::block::bdescr_;
 use crate::ffi::rts::storage::gc::nursery_;
 use crate::ffi::rts::storage::tso::StgTSO_;
 use crate::ffi::stg::types::{
-    StgAddr, StgChar, StgDouble, StgFloat, StgFunPtr, StgInt, StgPtr, StgWord, StgWord64,
-    StgWord128, StgWord256, StgWord512,
+    StgAddr, StgAtomicPtr, StgChar, StgDouble, StgFloat, StgFunPtr, StgInt, StgPtr, StgWord,
+    StgWord64, StgWord128, StgWord256, StgWord512,
 };
 use crate::prelude::*;
 
@@ -14,9 +14,9 @@ mod tests;
 /// cbindgen:no-export
 #[repr(C)]
 pub struct StgFunTable {
-    stgEagerBlackholeInfo: StgWord,
-    stgGCEnter1: StgFunPtr,
-    stgGCFun: StgFunPtr,
+    pub(crate) stgEagerBlackholeInfo: StgWord,
+    pub(crate) stgGCEnter1: StgFunPtr,
+    pub(crate) stgGCFun: StgFunPtr,
 }
 
 #[ffi(compiler, ghc_lib, testsuite, utils)]
@@ -77,7 +77,7 @@ pub struct StgRegTable {
     pub rSp: StgPtr,
     pub rSpLim: StgPtr,
     pub rHp: StgPtr,
-    pub rHpLim: StgPtr,
+    pub rHpLim: StgAtomicPtr,
     pub rCCCS: *mut CostCentreStack_,
     pub rCurrentTSO: *mut StgTSO_,
     pub rNursery: *mut nursery_,

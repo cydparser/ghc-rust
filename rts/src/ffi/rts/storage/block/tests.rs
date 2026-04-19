@@ -52,7 +52,7 @@ fn sys_NonmovingSegmentInfo_layout() {
 fn sys_bdescr__layout() {
     assert_eq!(offset_of!(bdescr_, start), offset_of!(sys::bdescr_, start));
     assert_eq!(
-        offset_of!(bdescr_, __bindgen_anon_1),
+        offset_of!(bdescr_, union_free_or_nonmoving),
         offset_of!(sys::bdescr_, __bindgen_anon_1)
     );
     assert_eq!(size_of::<*mut bdescr_>(), size_of::<*mut sys::bdescr_>());
@@ -87,14 +87,14 @@ fn sys_bdescr__layout() {
 
 #[cfg(feature = "sys")]
 #[test]
-fn sys_bdescr___bindgen_ty_1_layout() {
+fn sys_bdescr_free_or_nonmoving_layout() {
     assert_eq!(
-        size_of::<bdescr___bindgen_ty_1>(),
-        size_of::<bdescr___bindgen_ty_1>()
+        size_of::<bdescr_free_or_nonmoving>(),
+        size_of::<sys::bdescr___bindgen_ty_1>()
     );
     assert_eq!(
-        align_of::<bdescr___bindgen_ty_1>(),
-        align_of::<bdescr___bindgen_ty_1>()
+        align_of::<bdescr_free_or_nonmoving>(),
+        align_of::<sys::bdescr___bindgen_ty_1>()
     );
 }
 

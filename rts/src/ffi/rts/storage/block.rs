@@ -69,8 +69,9 @@ impl Arbitrary for NonmovingSegmentInfo {
 #[ffi(compiler, ghc_lib)]
 #[repr(C)]
 pub struct bdescr_ {
+    /// [READ ONLY] start addr of memory
     pub start: StgPtr,
-    pub __bindgen_anon_1: bdescr___bindgen_ty_1,
+    pub union_free_or_nonmoving: bdescr_free_or_nonmoving,
     pub link: *mut bdescr_,
     pub u: bdescr___bindgen_ty_2,
     pub gen_: *mut generation_,
@@ -84,7 +85,16 @@ pub struct bdescr_ {
 
 #[ffi(compiler, docs, ghc_lib)]
 #[repr(C)]
-pub union bdescr___bindgen_ty_1 {
+pub union bdescr_free_or_nonmoving {
+    /// First free byte of memory.
+    ///
+    /// `allocGroup` sets this to the value of start.
+    ///
+    /// NB: during use this value should lie between start and (start + blocks * BLOCK_SIZE).
+    /// Values outside this range are reserved for use by the block allocator. In particular, the
+    /// value (StgPtr)(-1) is used to indicate that a block is unallocated.
+    ///
+    /// Unused by the non-moving allocator.
     pub free: StgPtr,
     pub nonmoving_segment: NonmovingSegmentInfo,
 }

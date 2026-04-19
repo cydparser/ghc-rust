@@ -1,4 +1,7 @@
 pub use crate::builtin_closures::stg_INTLIKE_closure;
+use crate::ffi::rts::storage::closures::{
+    StgClosure, StgHeader, StgProfHeader, StgProfHeader__bindgen_ty_1,
+};
 use crate::ffi::rts::storage::info_tables::{
     StgClosureInfo, StgFunInfoExtraRev_, StgFunInfoExtraRev___bindgen_ty_1, StgFunInfoTable,
     StgInfoTable, StgInfoTable_, StgProfInfo,
@@ -118,6 +121,18 @@ pub static stg_unpack_cstring_utf8_info: StgInfoTable = TODO_StgInfoTable;
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 pub static stg_ap_pp_info: StgInfoTable = TODO_StgInfoTable;
+
+/// TODO(rust): What size should payload be?
+pub(crate) static mut stg_END_TSO_QUEUE_closure: StgClosure = StgClosure {
+    header: StgHeader {
+        info: null(),
+        prof: StgProfHeader {
+            ccs: null_mut(),
+            hp: StgProfHeader__bindgen_ty_1 { trav: 0 },
+        },
+    },
+    payload: __IncompleteArrayField::new(),
+};
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]

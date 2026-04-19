@@ -22,6 +22,8 @@ use crate::trace::{DEBUG_RTS, trace_};
 #[cfg(test)]
 mod tests;
 
+pub(crate) type CapIOManager = _CapIOManager;
+
 /// cbindgen:no-export
 pub(crate) struct _CapIOManager {
     pub(crate) control_fd: i32,

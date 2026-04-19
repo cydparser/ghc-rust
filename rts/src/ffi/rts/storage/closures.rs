@@ -72,8 +72,8 @@ pub type StgClosure = StgClosure_;
 #[repr(C)]
 #[derive(Debug)]
 pub struct StgClosure_ {
-    header: StgHeader,
-    payload: __IncompleteArrayField<*mut StgClosure_>,
+    pub(crate) header: StgHeader,
+    pub(crate) payload: __IncompleteArrayField<*mut StgClosure_>,
 }
 
 #[ffi(ghc_lib)]

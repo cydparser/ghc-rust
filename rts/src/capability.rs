@@ -27,6 +27,7 @@ use crate::ffi::stg::regs::{StgFunTable, StgRegTable, StgUnion};
 use crate::ffi::stg::types::{
     StgFunPtr, StgPtr, StgStablePtr, StgWord, StgWord64, StgWord128, StgWord256, StgWord512,
 };
+use crate::io_manager::CapIOManager;
 use crate::io_manager::{initCapabilityIOManager, markCapabilityIOManager, stopIOManager};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
@@ -87,17 +88,17 @@ pub(crate) struct Capability_ {
     pub(crate) pinned_object_empty: *mut bdescr,
     pub(crate) weak_ptr_list_hd: *mut StgWeak,
     pub(crate) weak_ptr_list_tl: *mut StgWeak,
-    pub(crate) context_switch: i32,
-    pub(crate) interrupt: i32,
+    pub(crate) context_switch: AtomicI32,
+    pub(crate) interrupt: AtomicI32,
     pub(crate) total_allocated: u64,
     pub(crate) spare_workers: *mut Task,
     pub(crate) n_spare_workers: u32,
     pub(crate) lock: Mutex,
     pub(crate) returning_tasks_hd: *mut Task,
     pub(crate) returning_tasks_tl: *mut Task,
-    pub(crate) n_returning_tasks: u32,
-    pub(crate) inbox: *mut Message,
-    pub(crate) putMVars: *mut PutMVar_,
+    pub(crate) n_returning_tasks: AtomicU32,
+    pub(crate) inbox: AtomicPtr<Message>,
+    pub(crate) putMVars: AtomicPtr<PutMVar_>,
     pub(crate) sparks: *mut SparkPool,
     pub(crate) spark_stats: SparkCounters,
     pub(crate) iomgr: *mut CapIOManager,
@@ -106,8 +107,6 @@ pub(crate) struct Capability_ {
     pub(crate) free_trec_headers: *mut StgTRecHeader,
     pub(crate) transaction_tokens: u32,
 }
-
-pub(crate) type CapIOManager = _CapIOManager;
 
 /// cbindgen:no-export
 pub(crate) struct PutMVar_ {
@@ -134,16 +133,16 @@ pub(crate) const SYNC_GC_SEQ: SyncType = 1;
 
 pub(crate) const SYNC_OTHER: SyncType = 0;
 
-pub(crate) const CAPABILITY_ALIGNMENT: i32 = CACHELINE_SIZE;
+pub(crate) const CAPABILITY_ALIGNMENT: usize = CACHELINE_SIZE;
 
 #[inline]
-pub(crate) unsafe fn regTableToCapability(mut reg: *mut StgRegTable) -> *mut Capability {
+pub(crate) unsafe fn regTableToCapability(reg: *mut StgRegTable) -> *mut Capability {
     return (reg as *mut u8).offset(-24) as *mut c_void as *mut Capability;
 }
 
 #[inline]
 pub(crate) unsafe fn getCapability(mut i: u32) -> *mut Capability {
-    return (capabilities.offset(i as isize) as *mut *mut Capability).load(Ordering::Relaxed);
+    capabilities.offset(i as isize).load(Ordering::Relaxed)
 }
 
 #[inline]
@@ -155,22 +154,22 @@ pub(crate) unsafe fn recordMutableCap(
     let mut bd = null_mut::<bdescr>();
     bd = *(*cap).mut_lists.offset(r#gen as isize);
 
-    if (&raw mut (*bd).c2rust_unnamed.free).load(Ordering::Relaxed)
+    if (&raw mut (*bd).union_free_or_nonmoving.free).load(Ordering::Relaxed)
         >= (*bd).start.offset(BLOCK_SIZE_W as isize)
     {
         let mut new_bd = null_mut::<bdescr>();
         new_bd = allocBlockOnNode_lock((*cap).node);
         (*new_bd).link = bd as *mut bdescr_;
-        (*new_bd).c2rust_unnamed.free = (*new_bd).start;
+        (*new_bd).union_free_or_nonmoving.free = (*new_bd).start;
         bd = new_bd;
 
         let ref mut fresh20 = *(*cap).mut_lists.offset(r#gen as isize);
         *fresh20 = bd;
     }
 
-    ((*bd).c2rust_unnamed.free).store(p as StgWord, Ordering::Relaxed);
-    (&raw mut (*bd).c2rust_unnamed.free).store(
-        (&raw mut (*bd).c2rust_unnamed.free)
+    ((*bd).union_free_or_nonmoving.free).store(p as StgWord, Ordering::Relaxed);
+    (&raw mut (*bd).union_free_or_nonmoving.free).store(
+        (&raw mut (*bd).union_free_or_nonmoving.free)
             .load(Ordering::Relaxed)
             .offset(1),
         Ordering::Relaxed,
@@ -204,7 +203,10 @@ pub(crate) unsafe fn discardSparksCap(mut cap: *mut Capability) {
 
 #[inline]
 pub(crate) unsafe fn stopCapability(mut cap: *mut Capability) {
-    (&raw mut (*cap).r.rHpLim).store(null_mut::<StgWord>(), Ordering::Relaxed);
+    (*cap)
+        .r
+        .rHpLim
+        .store(null_mut::<StgWord>(), Ordering::Relaxed);
 }
 
 #[inline]
@@ -219,18 +221,14 @@ pub(crate) unsafe fn contextSwitchCapability(mut cap: *mut Capability, mut immed
         stopCapability(cap);
     }
 
-    (&raw mut (*cap).context_switch).store(1, Ordering::Relaxed);
+    (*cap).context_switch.store(1, Ordering::Relaxed);
 }
 
 #[inline]
 pub(crate) unsafe fn emptyInbox(mut cap: *mut Capability) -> bool {
-    return (&raw mut (*cap).inbox).load(Ordering::Relaxed)
+    return (*cap).inbox.load(Ordering::Relaxed)
         == &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO as *mut Message
-        && (&raw mut (*cap).putMVars).load(Ordering::Relaxed).is_null();
-}
-
-extern "C" {
-    pub(crate) type _CapIOManager;
+        && (*cap).putMVars.load(Ordering::Relaxed).is_null();
 }
 
 #[ffi(compiler)]
@@ -401,8 +399,8 @@ pub static mut MainCapability: Capability = Capability_ {
     pinned_object_empty: null_mut::<bdescr>(),
     weak_ptr_list_hd: null_mut::<StgWeak>(),
     weak_ptr_list_tl: null_mut::<StgWeak>(),
-    context_switch: 0,
-    interrupt: 0,
+    context_switch: AtomicI32::new(0),
+    interrupt: AtomicI32::new(0),
     total_allocated: 0,
     spare_workers: null_mut::<Task>(),
     n_spare_workers: 0,
@@ -412,9 +410,9 @@ pub static mut MainCapability: Capability = Capability_ {
     },
     returning_tasks_hd: null_mut::<Task>(),
     returning_tasks_tl: null_mut::<Task>(),
-    n_returning_tasks: 0,
-    inbox: null_mut::<Message>(),
-    putMVars: null_mut::<PutMVar_>(),
+    n_returning_tasks: AtomicU32::new(0),
+    inbox: AtomicPtr::new(null_mut()),
+    putMVars: AtomicPtr::new(null_mut()),
     sparks: null_mut::<SparkPool>(),
     spark_stats: SparkCounters {
         created: 0,
@@ -443,9 +441,10 @@ static mut max_n_capabilities: u32 = MAX_N_CAPABILITIES as u32;
 
 static mut capabilities: *mut *mut Capability = null_mut::<*mut Capability>();
 
-static mut last_free_capability: [*mut Capability; 16] = [null_mut::<Capability>(); 16];
+static mut last_free_capability: [AtomicPtr<Capability>; MAX_NUMA_NODES] =
+    [AtomicPtr::new(null_mut()); _];
 
-static mut pending_sync: *mut PendingSync = null_mut::<PendingSync>();
+static mut pending_sync: AtomicPtr<PendingSync> = AtomicPtr::new(null_mut());
 
 static mut n_numa_nodes: u32 = 0;
 
@@ -465,7 +464,7 @@ unsafe fn globalWorkToDo() -> bool {
 
 unsafe fn findSpark(mut cap: *mut Capability) -> *mut StgClosure {
     let mut robbed = null_mut::<Capability>();
-    let mut spark = null_mut::<StgClosure_>();
+    let mut spark = null_mut::<StgClosure>();
     let mut retry: bool = false;
     let mut i: u32 = 0;
 
@@ -661,9 +660,9 @@ unsafe fn initCapability(mut cap: *mut Capability, mut i: u32) {
     (*cap).n_suspended_ccalls = 0;
     (*cap).returning_tasks_hd = null_mut::<Task>();
     (*cap).returning_tasks_tl = null_mut::<Task>();
-    (*cap).n_returning_tasks = 0;
-    (*cap).inbox = &raw mut stg_END_TSO_QUEUE_closure as *mut c_void as *mut StgTSO as *mut Message;
-    (*cap).putMVars = null_mut::<PutMVar_>();
+    (*cap).n_returning_tasks = AtomicU32::new(0);
+    (*cap).inbox = AtomicPtr::new((&raw mut stg_END_TSO_QUEUE_closure).cast());
+    (*cap).putMVars = AtomicPtr::new(null_mut());
     (*cap).sparks = allocSparkPool();
     (*cap).spark_stats.created = 0;
     (*cap).spark_stats.dud = 0;
@@ -711,8 +710,8 @@ unsafe fn initCapability(mut cap: *mut Capability, mut i: u32) {
         &raw mut stg_END_STM_CHUNK_LIST_closure as *mut c_void as *mut StgTRecChunk;
     (*cap).free_trec_headers = &raw mut stg_NO_TREC_closure as *mut c_void as *mut StgTRecHeader;
     (*cap).transaction_tokens = 0;
-    (*cap).context_switch = 0;
-    (*cap).interrupt = 0;
+    (*cap).context_switch = AtomicI32::new(0);
+    (*cap).interrupt = AtomicI32::new(0);
     (*cap).pinned_object_block = null_mut::<bdescr>();
     (*cap).pinned_object_blocks = null_mut::<bdescr>();
     (*cap).pinned_object_empty = null_mut::<bdescr>();
@@ -796,7 +795,7 @@ unsafe fn initCapabilities() {
     let mut i_0: u32 = 0;
 
     while i_0 < n_numa_nodes {
-        last_free_capability[i_0 as usize] = getCapability(0);
+        last_free_capability[i_0 as usize].store(getCapability(0), Ordering::Relaxed);
         i_0 = i_0.wrapping_add(1);
     }
 }
@@ -809,7 +808,7 @@ unsafe fn moreCapabilities(mut from: u32, mut to: u32) {
         *fresh13 = &raw mut MainCapability;
         initCapability(&raw mut MainCapability, 0);
     } else {
-        let mut i: u32 = 0;
+        let mut i = 0;
 
         while i < to {
             if i >= from {
@@ -817,7 +816,7 @@ unsafe fn moreCapabilities(mut from: u32, mut to: u32) {
 
                 *fresh14 = stgMallocAlignedBytes(
                     size_of::<Capability>() as usize,
-                    CAPABILITY_ALIGNMENT as usize,
+                    CAPABILITY_ALIGNMENT,
                     c"moreCapabilities".as_ptr(),
                 ) as *mut Capability;
 
@@ -893,7 +892,7 @@ unsafe fn giveCapabilityToTask(mut cap: *mut Capability, mut task: *mut Task) {
         );
     }
 
-    if (*task).wakeup as i32 == false {
+    if !(*task).wakeup {
         (*task).wakeup = true;
         signalCondition(&raw mut (*task).cond);
     }
@@ -944,8 +943,10 @@ unsafe fn releaseCapability_(mut cap: *mut Capability, mut always_wakeup: bool) 
         _assertFail(c"rts/Capability.c".as_ptr(), 556);
     }
 
+    let n_returning_tasks = (*cap).n_returning_tasks.load(Ordering::Relaxed);
+
     if (if (*cap).returning_tasks_hd.is_null() {
-        ((*cap).returning_tasks_tl.is_null() && (*cap).n_returning_tasks == 0) as i32
+        ((*cap).returning_tasks_tl.is_null() && n_returning_tasks == 0) as i32
     } else {
         1
     } != 0) as i32 as i64
@@ -962,12 +963,12 @@ unsafe fn releaseCapability_(mut cap: *mut Capability, mut always_wakeup: bool) 
 
     (&raw mut (*cap).running_task).store(null_mut::<Task>(), Ordering::Relaxed);
 
-    if (*cap).n_returning_tasks != 0 {
+    if n_returning_tasks != 0 {
         giveCapabilityToTask(cap, (*cap).returning_tasks_hd);
         return;
     }
 
-    let mut sync = (&raw mut pending_sync).load(Ordering::SeqCst);
+    let mut sync = pending_sync.load(Ordering::SeqCst);
 
     if !sync.is_null()
         && ((*sync).r#type as u32 != SYNC_GC_PAR as i32 as u32
@@ -1324,10 +1325,7 @@ unsafe fn find_capability_for_task(mut task: *const Task) -> *mut Capability {
             let mut i: u32 = (*task).node;
 
             while i < enabled_capabilities {
-                if (&raw mut (*(getCapability as unsafe extern "C" fn(c_uint) -> *mut Capability)(
-                    i,
-                ))
-                .running_task)
+                if ((*getCapability(i)).running_task)
                     .load(Ordering::Relaxed)
                     .is_null()
                 {
@@ -1454,7 +1452,7 @@ unsafe fn yieldCapability(
     let mut cap = *pCap;
 
     if gcAllowed {
-        let mut sync = (&raw mut pending_sync).load(Ordering::SeqCst);
+        let mut sync = pending_sync.load(Ordering::SeqCst);
 
         if !sync.is_null() {
             match (*sync).r#type as u32 {
@@ -1836,23 +1834,24 @@ unsafe fn freeCapabilities() {
 }
 
 unsafe fn markCapability(
-    mut evac: evac_fn,
+    evac: evac_fn,
     mut user: *mut c_void,
     mut cap: *mut Capability,
     mut no_mark_sparks: bool,
 ) {
     let mut incall = null_mut::<InCall>();
-    evac.expect("non-null function pointer")(
+    let evac = evac.expect("non-null evac in markCapability");
+    evac(
         user,
         &raw mut (*cap).run_queue_hd as *mut c_void as *mut *mut StgClosure,
     );
 
-    evac.expect("non-null function pointer")(
+    evac(
         user,
         &raw mut (*cap).run_queue_tl as *mut c_void as *mut *mut StgClosure,
     );
 
-    evac.expect("non-null function pointer")(
+    evac(
         user,
         &raw mut (*cap).inbox as *mut c_void as *mut *mut StgClosure,
     );
@@ -1860,7 +1859,7 @@ unsafe fn markCapability(
     incall = (*cap).suspended_ccalls;
 
     while !incall.is_null() {
-        evac.expect("non-null function pointer")(
+        evac(
             user,
             &raw mut (*incall).suspended_tso as *mut c_void as *mut *mut StgClosure,
         );

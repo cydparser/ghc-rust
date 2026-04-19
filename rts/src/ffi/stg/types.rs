@@ -223,6 +223,8 @@ pub type StgDouble = f64;
 #[ffi(compiler, docs, ghc_lib, libraries, testsuite, utils)]
 pub type StgPtr = *mut StgWord;
 
+pub(crate) type StgAtomicPtr = AtomicPtr<StgWord>;
+
 /// A pointer to a volatile word.
 pub(crate) type StgVolatilePtr = *mut StgWord;
 
