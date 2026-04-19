@@ -7,6 +7,10 @@ use crate::rts_flags::{RtsFlags, TRACE_EVENTLOG};
 #[cfg(test)]
 mod tests;
 
+pub type RtsMsgFunction = unsafe extern "C" fn(*const c_char, VaList) -> ();
+
+pub type RtsMsgFunctionRetLen = unsafe extern "C" fn(*const c_char, VaList) -> c_int;
+
 static mut fatalInternalErrorFn: Option<RtsMsgFunction> =
     unsafe { Some(rtsFatalInternalErrorFn as unsafe extern "C" fn(*const c_char, VaList) -> !) };
 
