@@ -17,15 +17,15 @@ use crate::ticky::PrintTickyInfo;
 #[cfg(test)]
 mod tests;
 
-unsafe fn stgMallocBytes(mut n: usize, mut msg: *mut c_char) -> *mut c_void {
-    let mut space = malloc(n);
+unsafe fn stgMallocBytes(n: usize, msg: *const c_char) -> *mut c_void {
+    let mut space = libc::malloc(n);
 
     if space.is_null() {
         if n == 0 {
-            return NULL;
+            return null_mut();
         }
 
-        rtsConfig.mallocFailHook.expect("non-null function pointer")(n as W_, msg);
+        rtsConfig.mallocFailHook.expect("non-null mallocFailHook")(n as W_, msg);
         stg_exit(EXIT_INTERNAL_ERROR);
     }
 
@@ -36,24 +36,24 @@ unsafe fn stgMallocBytes(mut n: usize, mut msg: *mut c_char) -> *mut c_void {
     return space;
 }
 
-unsafe fn stgReallocBytes(mut p: *mut c_void, mut n: usize, mut msg: *mut c_char) -> *mut c_void {
+unsafe fn stgReallocBytes(p: *mut c_void, n: usize, msg: *const c_char) -> *mut c_void {
     let mut space = null_mut::<c_void>();
-    space = realloc(p, n);
+    space = libc::realloc(p, n);
 
     if space.is_null() {
-        rtsConfig.mallocFailHook.expect("non-null function pointer")(n as W_, msg);
+        rtsConfig.mallocFailHook.expect("non-null mallocFailHook")(n as W_, msg);
         stg_exit(EXIT_INTERNAL_ERROR);
     }
 
     return space;
 }
 
-unsafe fn stgCallocBytes(mut count: usize, mut size: usize, mut msg: *mut c_char) -> *mut c_void {
+unsafe fn stgCallocBytes(count: usize, size: usize, msg: *const c_char) -> *mut c_void {
     let mut space = null_mut::<c_void>();
-    space = calloc(count, size);
+    space = libc::calloc(count, size);
 
     if space.is_null() {
-        rtsConfig.mallocFailHook.expect("non-null function pointer")(
+        rtsConfig.mallocFailHook.expect("non-null mallocFailHook")(
             (count as W_).wrapping_mul(size as W_),
             msg,
         );
@@ -64,38 +64,38 @@ unsafe fn stgCallocBytes(mut count: usize, mut size: usize, mut msg: *mut c_char
     return space;
 }
 
-unsafe fn stgStrndup(mut s: *const c_char, mut n: usize) -> *mut c_char {
-    let mut l = strnlen(s, n);
-    let mut d = stgMallocBytes(l.wrapping_add(1 as usize), c"stgStrndup".as_ptr()) as *mut c_char;
+unsafe fn stgStrndup(s: *const c_char, n: usize) -> *const c_char {
+    let l = libc::strnlen(s, n);
+    let d = stgMallocBytes(l.wrapping_add(1 as usize), c"stgStrndup".as_ptr()) as *mut c_char;
 
     if d.is_null() {
         return null_mut::<c_char>();
     }
 
-    memcpy(d as *mut c_void, s as *const c_void, l);
+    libc::memcpy(d as *mut c_void, s as *const c_void, l);
     *d.offset(l as isize) = 0;
 
     return d;
 }
 
-unsafe fn stgFree(mut p: *mut c_void) {
-    free(p);
+unsafe fn stgFree(p: *mut c_void) {
+    libc::free(p);
 }
 
 unsafe fn stgMallocAlignedBytes(
     mut n: usize,
     mut align: usize,
-    mut msg: *mut c_char,
+    mut msg: *const c_char,
 ) -> *mut c_void {
     let mut space = null_mut::<c_void>();
 
     if posix_memalign(&raw mut space, align, n) != 0 {
-        space = NULL;
+        space = null_mut();
     }
 
     if space.is_null() {
         if n == 0 {
-            return NULL;
+            return null_mut();
         }
 
         rtsConfig.mallocFailHook.expect("non-null function pointer")(n as W_, msg);
@@ -109,8 +109,8 @@ unsafe fn stgMallocAlignedBytes(
     return space;
 }
 
-unsafe fn stgFreeAligned(mut p: *mut c_void) {
-    free(p);
+unsafe fn stgFreeAligned(p: *mut c_void) {
+    libc::free(p);
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -140,11 +140,11 @@ pub unsafe extern "C" fn reportHeapOverflow() {
 
 unsafe fn exitHeapOverflow() -> ! {
     reportHeapOverflow();
-    stg_exit(EXIT_HEAPOVERFLOW);
+    stg_exit(EXIT_HEAPOVERFLOW)
 }
 
 unsafe fn rtsSleep(mut t: Time) -> i32 {
-    let mut req = timespec {
+    let mut req = libc::timespec {
         tv_sec: 0,
         tv_nsec: 0,
     };
@@ -156,7 +156,7 @@ unsafe fn rtsSleep(mut t: Time) -> i32 {
     loop {
         ret = nanosleep(&raw mut req, &raw mut req);
 
-        if !(ret == -1 && *__error() == EINTR) {
+        if !(ret == -1 && *libc::__error() == libc::EINTR) {
             break;
         }
     }
@@ -165,7 +165,7 @@ unsafe fn rtsSleep(mut t: Time) -> i32 {
 }
 
 unsafe fn time_str() -> *mut c_char {
-    static mut now: time_t = 0;
+    static mut now: libc::time_t = 0;
 
     static mut nowstr: [c_char; 26] = [0; 26];
 
@@ -173,7 +173,7 @@ unsafe fn time_str() -> *mut c_char {
         time(&raw mut now);
         ctime_r(&raw mut now, &raw mut nowstr as *mut c_char);
 
-        memmove(
+        libc::memmove(
             (&raw mut nowstr as *mut c_char).offset(16) as *mut c_void,
             (&raw mut nowstr as *mut c_char).offset(19) as *const c_void,
             7,
@@ -185,75 +185,85 @@ unsafe fn time_str() -> *mut c_char {
     return &raw mut nowstr as *mut c_char;
 }
 
-unsafe fn showStgWord64(
-    mut x: StgWord64,
-    mut s: *mut c_char,
-    mut with_commas: bool,
-) -> *mut c_char {
+unsafe fn showStgWord64(x: StgWord64, s: *mut c_char, with_commas: bool) -> *mut c_char {
     if with_commas {
-        if x < 10.pow(3) {
-            sprintf(s, c"%llu".as_ptr(), x);
-        } else if x < 10.pow(6) {
-            sprintf(
+        if x < 10_u64.pow(3) {
+            libc::sprintf(s, c"%llu".as_ptr(), x);
+        } else if x < 10_u64.pow(6) {
+            libc::sprintf(
                 s,
                 c"%llu,%03llu".as_ptr(),
                 x.wrapping_div(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
-        } else if x < 10.pow(9) {
-            sprintf(
+        } else if x < 10_u64.pow(9) {
+            libc::sprintf(
                 s,
                 c"%llu,%03llu,%03llu".as_ptr(),
-                (x as f64 / 10.pow(6)) as StgWord64,
+                (x as f64 / 1e6) as StgWord64,
                 x.wrapping_div(1000 as StgWord64)
                     .wrapping_rem(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
-        } else if x < 10.pow(12) {
-            sprintf(
+        } else if x < 10_u64.pow(12) {
+            libc::sprintf(
                 s,
                 c"%llu,%03llu,%03llu,%03llu".as_ptr(),
-                x.wrapping_div(10.pow(9)),
-                x.wrapping_div(10.pow(6)).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(10.pow(3)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(9)),
+                x.wrapping_div(10_u64.pow(6))
+                    .wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(3))
+                    .wrapping_rem(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
-        } else if x < 10.pow(15) {
-            sprintf(
+        } else if x < 10_u64.pow(15) {
+            libc::sprintf(
                 s,
                 c"%llu,%03llu,%03llu,%03llu,%03llu".as_ptr(),
-                x.wrapping_div(10.pow(12)),
-                x.wrapping_div(10.pow(9)).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(10.pow(6)).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(10.pow(3)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(12)),
+                x.wrapping_div(10_u64.pow(9))
+                    .wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(6))
+                    .wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(3))
+                    .wrapping_rem(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
-        } else if x < 10.pow(18) {
-            sprintf(
+        } else if x < 10_u64.pow(18) {
+            libc::sprintf(
                 s,
                 c"%llu,%03llu,%03llu,%03llu,%03llu,%03llu".as_ptr(),
-                x.wrapping_div(10.pow(15)),
-                x.wrapping_div(10.pow(12)).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(10.pow(9)).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(10.pow(6)).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(10.pow(3)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(15)),
+                x.wrapping_div(10_u64.pow(12))
+                    .wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(9))
+                    .wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(6))
+                    .wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(3))
+                    .wrapping_rem(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
         } else {
-            sprintf(
+            libc::sprintf(
                 s,
                 c"%llu,%03llu,%03llu,%03llu,%03llu,%03llu,%03llu".as_ptr(),
-                x.wrapping_div(10.pow(18)),
-                x.wrapping_div(10.pow(15)).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(10.pow(12)).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(10.pow(9)).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(10.pow(6)).wrapping_rem(1000 as StgWord64),
-                x.wrapping_div(10.pow(3)).wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(18)),
+                x.wrapping_div(10_u64.pow(15))
+                    .wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(12))
+                    .wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(9))
+                    .wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(6))
+                    .wrapping_rem(1000 as StgWord64),
+                x.wrapping_div(10_u64.pow(3))
+                    .wrapping_rem(1000 as StgWord64),
                 x.wrapping_rem(1000 as StgWord64),
             );
         }
     } else {
-        sprintf(s, c"%llu".as_ptr(), x);
+        libc::sprintf(s, c"%llu".as_ptr(), x);
     }
 
     return s;
@@ -268,12 +278,12 @@ pub unsafe extern "C" fn genericRaise(mut sig: c_int) -> c_int {
     return pthread_kill(pthread_self(), sig);
 }
 
-unsafe fn mkRtsInfoPair(mut key: *const c_char, mut val: *const c_char) {
-    printf(c" ,(\"%s\", \"%s\")\n".as_ptr(), key, val);
+unsafe fn mkRtsInfoPair(key: *const c_char, val: *const c_char) {
+    libc::printf(c" ,(\"%s\", \"%s\")\n".as_ptr(), key, val);
 }
 
 unsafe fn printRtsInfo(rts_config: RtsConfig) {
-    printf(c" [(\"GHC RTS\", \"YES\")\n".as_ptr());
+    libc::printf(c" [(\"GHC RTS\", \"YES\")\n".as_ptr());
     mkRtsInfoPair(
         c"GHC version".as_ptr(),
         __GLASGOW_HASKELL_FULL_VERSION__.as_ptr(),
@@ -298,55 +308,48 @@ unsafe fn printRtsInfo(rts_config: RtsConfig) {
 
     selectIOManager();
     mkRtsInfoPair(c"I/O manager default".as_ptr(), showIOManager());
-    printf(c" ]\n".as_ptr());
+    libc::printf(c" ]\n".as_ptr());
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn rts_isProfiled() -> c_int {
-    return 1;
+pub extern "C" fn rts_isProfiled() -> c_int {
+    return cfg!(feature = "way_profiling") as c_int;
 }
 
+/// TODO(rust)
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn rts_isDynamic() -> c_int {
+pub extern "C" fn rts_isDynamic() -> c_int {
     return 0;
 }
 
 #[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn rts_isThreaded() -> c_int {
-    return 1;
+pub extern "C" fn rts_isThreaded() -> c_int {
+    return cfg!(feature = "way_threaded") as c_int;
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn rts_isDebugged() -> c_int {
-    return 1;
+pub extern "C" fn rts_isDebugged() -> c_int {
+    return cfg!(feature = "way_debug") as c_int;
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn rts_isTracing() -> c_int {
-    return 1;
+pub extern "C" fn rts_isTracing() -> c_int {
+    return 1; // TODO(rust)
 }
 
-unsafe fn checkFPUStack() {}
+/// TODO(rust): Implement the assembly.
+#[cfg(target_arch = "x86")]
+pub(crate) unsafe fn checkFPUStack() {
+    let mut buf: [c_char; 108] = [0; _];
+    asm!("FSAVE %0":"=m" (buf));
 
-unsafe fn dropExtension(mut path: *mut c_char, mut extension: *const c_char) {
-    let mut ext_len = strlen(extension) as i32;
-    let mut path_len = strlen(path) as i32;
-
-    if ext_len < path_len {
-        let mut s: *mut c_char = path.offset((path_len - ext_len) as isize) as *mut c_char;
-
-        if strcmp(s, extension) == 0 {
-            *s = '\0' as i32 as c_char;
-        }
+    if buf[8] != 255 || buf[9] != 255 {
+        errorBelch("NONEMPTY FPU Stack, TAG = %x %x\n", buf[8], buf[9]);
+        abort();
     }
 }
