@@ -66,8 +66,8 @@ fn sys_StgClosureInfo__bindgen_ty_1_layout() {
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgSRTField_layout() {
-    assert_eq!(size_of::<StgSRTField>(), size_of::<StgSRTField>());
-    assert_eq!(align_of::<StgSRTField>(), align_of::<StgSRTField>());
+    assert_eq!(size_of::<StgSRTField>(), size_of::<sys::StgSRTField>());
+    assert_eq!(align_of::<StgSRTField>(), align_of::<sys::StgSRTField>());
 }
 
 #[cfg(feature = "sys")]

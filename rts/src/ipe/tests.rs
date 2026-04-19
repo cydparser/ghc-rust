@@ -56,8 +56,8 @@ fn sys_InfoProvEnt_layout() {
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StringIdx_layout() {
-    assert_eq!(size_of::<StringIdx>(), size_of::<StringIdx>());
-    assert_eq!(align_of::<StringIdx>(), align_of::<StringIdx>());
+    assert_eq!(size_of::<StringIdx>(), size_of::<sys::StringIdx>());
+    assert_eq!(align_of::<StringIdx>(), align_of::<sys::StringIdx>());
 }
 
 #[cfg(feature = "sys")]

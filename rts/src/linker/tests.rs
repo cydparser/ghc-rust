@@ -3,8 +3,8 @@ use super::*;
 #[cfg(feature = "sys")]
 #[test]
 fn sys_pathchar_layout() {
-    assert_eq!(size_of::<pathchar>(), size_of::<pathchar>());
-    assert_eq!(align_of::<pathchar>(), align_of::<pathchar>());
+    assert_eq!(size_of::<pathchar>(), size_of::<sys::pathchar>());
+    assert_eq!(align_of::<pathchar>(), align_of::<sys::pathchar>());
 }
 
 #[cfg(feature = "sys")]

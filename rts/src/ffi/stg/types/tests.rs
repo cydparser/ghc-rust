@@ -71,57 +71,57 @@ fn sys_STG_WORD_MAX_eq() {
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgInt8_layout() {
-    assert_eq!(size_of::<StgInt8>(), size_of::<StgInt8>());
-    assert_eq!(align_of::<StgInt8>(), align_of::<StgInt8>());
+    assert_eq!(size_of::<StgInt8>(), size_of::<sys::StgInt8>());
+    assert_eq!(align_of::<StgInt8>(), align_of::<sys::StgInt8>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgWord8_layout() {
-    assert_eq!(size_of::<StgWord8>(), size_of::<StgWord8>());
-    assert_eq!(align_of::<StgWord8>(), align_of::<StgWord8>());
+    assert_eq!(size_of::<StgWord8>(), size_of::<sys::StgWord8>());
+    assert_eq!(align_of::<StgWord8>(), align_of::<sys::StgWord8>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgInt16_layout() {
-    assert_eq!(size_of::<StgInt16>(), size_of::<StgInt16>());
-    assert_eq!(align_of::<StgInt16>(), align_of::<StgInt16>());
+    assert_eq!(size_of::<StgInt16>(), size_of::<sys::StgInt16>());
+    assert_eq!(align_of::<StgInt16>(), align_of::<sys::StgInt16>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgWord16_layout() {
-    assert_eq!(size_of::<StgWord16>(), size_of::<StgWord16>());
-    assert_eq!(align_of::<StgWord16>(), align_of::<StgWord16>());
+    assert_eq!(size_of::<StgWord16>(), size_of::<sys::StgWord16>());
+    assert_eq!(align_of::<StgWord16>(), align_of::<sys::StgWord16>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgInt32_layout() {
-    assert_eq!(size_of::<StgInt32>(), size_of::<StgInt32>());
-    assert_eq!(align_of::<StgInt32>(), align_of::<StgInt32>());
+    assert_eq!(size_of::<StgInt32>(), size_of::<sys::StgInt32>());
+    assert_eq!(align_of::<StgInt32>(), align_of::<sys::StgInt32>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgWord32_layout() {
-    assert_eq!(size_of::<StgWord32>(), size_of::<StgWord32>());
-    assert_eq!(align_of::<StgWord32>(), align_of::<StgWord32>());
+    assert_eq!(size_of::<StgWord32>(), size_of::<sys::StgWord32>());
+    assert_eq!(align_of::<StgWord32>(), align_of::<sys::StgWord32>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgInt64_layout() {
-    assert_eq!(size_of::<StgInt64>(), size_of::<StgInt64>());
-    assert_eq!(align_of::<StgInt64>(), align_of::<StgInt64>());
+    assert_eq!(size_of::<StgInt64>(), size_of::<sys::StgInt64>());
+    assert_eq!(align_of::<StgInt64>(), align_of::<sys::StgInt64>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgWord64_layout() {
-    assert_eq!(size_of::<StgWord64>(), size_of::<StgWord64>());
-    assert_eq!(align_of::<StgWord64>(), align_of::<StgWord64>());
+    assert_eq!(size_of::<StgWord64>(), size_of::<sys::StgWord64>());
+    assert_eq!(align_of::<StgWord64>(), align_of::<sys::StgWord64>());
 }
 
 #[cfg(feature = "sys")]
@@ -158,83 +158,83 @@ fn sys_StgWord512_layout() {
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgInt_layout() {
-    assert_eq!(size_of::<StgInt>(), size_of::<StgInt>());
-    assert_eq!(align_of::<StgInt>(), align_of::<StgInt>());
+    assert_eq!(size_of::<StgInt>(), size_of::<sys::StgInt>());
+    assert_eq!(align_of::<StgInt>(), align_of::<sys::StgInt>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgWord_layout() {
-    assert_eq!(size_of::<StgWord>(), size_of::<StgWord>());
-    assert_eq!(align_of::<StgWord>(), align_of::<StgWord>());
+    assert_eq!(size_of::<StgWord>(), size_of::<sys::StgWord>());
+    assert_eq!(align_of::<StgWord>(), align_of::<sys::StgWord>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgHalfWord_layout() {
-    assert_eq!(size_of::<StgHalfWord>(), size_of::<StgHalfWord>());
-    assert_eq!(align_of::<StgHalfWord>(), align_of::<StgHalfWord>());
+    assert_eq!(size_of::<StgHalfWord>(), size_of::<sys::StgHalfWord>());
+    assert_eq!(align_of::<StgHalfWord>(), align_of::<sys::StgHalfWord>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgAddr_layout() {
-    assert_eq!(size_of::<StgAddr>(), size_of::<StgAddr>());
-    assert_eq!(align_of::<StgAddr>(), align_of::<StgAddr>());
+    assert_eq!(size_of::<StgAddr>(), size_of::<sys::StgAddr>());
+    assert_eq!(align_of::<StgAddr>(), align_of::<sys::StgAddr>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgChar_layout() {
-    assert_eq!(size_of::<StgChar>(), size_of::<StgChar>());
-    assert_eq!(align_of::<StgChar>(), align_of::<StgChar>());
+    assert_eq!(size_of::<StgChar>(), size_of::<sys::StgChar>());
+    assert_eq!(align_of::<StgChar>(), align_of::<sys::StgChar>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgBool_layout() {
-    assert_eq!(size_of::<StgBool>(), size_of::<StgBool>());
-    assert_eq!(align_of::<StgBool>(), align_of::<StgBool>());
+    assert_eq!(size_of::<StgBool>(), size_of::<sys::StgBool>());
+    assert_eq!(align_of::<StgBool>(), align_of::<sys::StgBool>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgFloat_layout() {
-    assert_eq!(size_of::<StgFloat>(), size_of::<StgFloat>());
-    assert_eq!(align_of::<StgFloat>(), align_of::<StgFloat>());
+    assert_eq!(size_of::<StgFloat>(), size_of::<sys::StgFloat>());
+    assert_eq!(align_of::<StgFloat>(), align_of::<sys::StgFloat>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgDouble_layout() {
-    assert_eq!(size_of::<StgDouble>(), size_of::<StgDouble>());
-    assert_eq!(align_of::<StgDouble>(), align_of::<StgDouble>());
+    assert_eq!(size_of::<StgDouble>(), size_of::<sys::StgDouble>());
+    assert_eq!(align_of::<StgDouble>(), align_of::<sys::StgDouble>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgPtr_layout() {
-    assert_eq!(size_of::<StgPtr>(), size_of::<StgPtr>());
-    assert_eq!(align_of::<StgPtr>(), align_of::<StgPtr>());
+    assert_eq!(size_of::<StgPtr>(), size_of::<sys::StgPtr>());
+    assert_eq!(align_of::<StgPtr>(), align_of::<sys::StgPtr>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgStablePtr_layout() {
-    assert_eq!(size_of::<StgStablePtr>(), size_of::<StgStablePtr>());
-    assert_eq!(align_of::<StgStablePtr>(), align_of::<StgStablePtr>());
+    assert_eq!(size_of::<StgStablePtr>(), size_of::<sys::StgStablePtr>());
+    assert_eq!(align_of::<StgStablePtr>(), align_of::<sys::StgStablePtr>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgFunPtr_layout() {
-    assert_eq!(size_of::<StgFunPtr>(), size_of::<StgFunPtr>());
-    assert_eq!(align_of::<StgFunPtr>(), align_of::<StgFunPtr>());
+    assert_eq!(size_of::<StgFunPtr>(), size_of::<sys::StgFunPtr>());
+    assert_eq!(align_of::<StgFunPtr>(), align_of::<sys::StgFunPtr>());
 }
 
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgFun_layout() {
-    assert_eq!(size_of::<StgFun>(), size_of::<StgFun>());
-    assert_eq!(align_of::<StgFun>(), align_of::<StgFun>());
+    assert_eq!(size_of::<StgFun>(), size_of::<sys::StgFun>());
+    assert_eq!(align_of::<StgFun>(), align_of::<sys::StgFun>());
 }

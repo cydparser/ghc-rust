@@ -103,11 +103,11 @@ fn sys_bdescr_free_or_nonmoving_layout() {
 fn sys_bdescr___bindgen_ty_2_layout() {
     assert_eq!(
         size_of::<bdescr___bindgen_ty_2>(),
-        size_of::<bdescr___bindgen_ty_2>()
+        size_of::<sys::bdescr___bindgen_ty_2>()
     );
     assert_eq!(
         align_of::<bdescr___bindgen_ty_2>(),
-        align_of::<bdescr___bindgen_ty_2>()
+        align_of::<sys::bdescr___bindgen_ty_2>()
     );
 }
 

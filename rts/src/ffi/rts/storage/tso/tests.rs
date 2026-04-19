@@ -25,8 +25,8 @@ fn sys_StgTSOProfInfo_layout() {
 #[cfg(feature = "sys")]
 #[test]
 fn sys_StgThreadID_layout() {
-    assert_eq!(size_of::<StgThreadID>(), size_of::<StgThreadID>());
-    assert_eq!(align_of::<StgThreadID>(), align_of::<StgThreadID>());
+    assert_eq!(size_of::<StgThreadID>(), size_of::<sys::StgThreadID>());
+    assert_eq!(align_of::<StgThreadID>(), align_of::<sys::StgThreadID>());
 }
 
 #[cfg(feature = "sys")]

@@ -3,8 +3,8 @@ use super::*;
 #[cfg(feature = "sys")]
 #[test]
 fn sys_OSThreadProc_layout() {
-    assert_eq!(size_of::<OSThreadProc>(), size_of::<OSThreadProc>());
-    assert_eq!(align_of::<OSThreadProc>(), align_of::<OSThreadProc>());
+    assert_eq!(size_of::<OSThreadProc>(), size_of::<sys::OSThreadProc>());
+    assert_eq!(align_of::<OSThreadProc>(), align_of::<sys::OSThreadProc>());
 }
 
 #[test]
