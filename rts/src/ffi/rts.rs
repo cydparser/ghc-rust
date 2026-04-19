@@ -1,3 +1,4 @@
+pub use crate::adjustor::{createAdjustor, freeHaskellFunctionPtr};
 pub use crate::posix::signals::stg_sig_install;
 use crate::prelude::*;
 pub use crate::rts_messages::{_assertFail, rtsMemcpyRangeOverlap, rtsOutOfBoundsAccess};
