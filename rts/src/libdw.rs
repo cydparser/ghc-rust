@@ -4,6 +4,8 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
+const BACKTRACE_CHUNK_SZ: u32 = 256;
+
 /// cbindgen:no-export
 #[repr(C, packed)]
 pub struct BacktraceChunk_ {
@@ -38,10 +40,14 @@ pub struct Location_ {
 #[ffi(compiler, ghc_lib)]
 pub type Location = Location_;
 
-pub(crate) type LibdwSession = LibdwSession_;
+#[ffi(ghc_lib)]
+pub type LibdwSession = LibdwSession_;
 
-extern "C" {
-    pub(crate) type LibdwSession_;
+/// cbindgen:no-export
+#[repr(C)]
+#[derive(Debug)]
+pub struct LibdwSession_ {
+    _unused: [u8; 0],
 }
 
 #[ffi(ghc_lib)]
