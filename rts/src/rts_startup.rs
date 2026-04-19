@@ -53,6 +53,7 @@ use crate::trace::{
     endTracing, flushTrace, freeTracing, initTracing, traceOSProcessInfo, traceWallClockTime,
 };
 use crate::weak::runAllCFinalizers;
+use std::process;
 
 #[cfg(test)]
 mod tests;
@@ -395,10 +396,10 @@ static mut exitFn: Option<extern "C" fn(c_int) -> ()> = None;
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub extern "C" fn stg_exit(mut n: c_int) -> ! {
+pub extern "C" fn stg_exit(n: c_int) -> ! {
     if let Some(exit_fn) = unsafe { exitFn } {
         exit_fn(n);
     }
 
-    exit(n)
+    process::exit(n)
 }
