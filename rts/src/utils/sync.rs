@@ -61,3 +61,13 @@ impl<T> UnsafeCell<T> {
         self.0.get()
     }
 }
+
+#[cfg(not(feature = "loom"))]
+pub mod loom {
+    pub fn model<F>(f: F)
+    where
+        F: Fn() + Sync + Send + 'static,
+    {
+        f()
+    }
+}
