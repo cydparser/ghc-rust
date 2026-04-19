@@ -1,2 +1,2 @@
-pub mod event_log;
-pub mod event_log_writer;
+mod event_log;
+mod event_log_writer;
