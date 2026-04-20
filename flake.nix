@@ -178,7 +178,6 @@
             [
               llvmPackages.clang
               just
-              nushell
               ripgrep
               tagref
               # Libraries
