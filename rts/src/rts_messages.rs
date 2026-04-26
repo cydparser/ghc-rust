@@ -1,8 +1,11 @@
 use crate::eventlog::event_log::flushAllCapsEventsBufs;
 use crate::ffi::ghcversion::__GLASGOW_HASKELL_FULL_VERSION__;
-use crate::ffi::rts::{EXIT_INTERNAL_ERROR, prog_argv, prog_name, stg_exit};
+use crate::ffi::rts::{EXIT_INTERNAL_ERROR, stg_exit};
 use crate::prelude::*;
 use crate::rts_flags::{RtsFlags, TRACE_EVENTLOG};
+use std::ffi::VaList;
+use std::io::Write as _;
+use std::{env, io};
 
 #[cfg(test)]
 mod tests;
@@ -25,42 +28,34 @@ static mut sysErrorMsgFn: Option<RtsMsgFunction> =
 
 #[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
 #[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn barf(mut s: *const c_char, mut args: ...) -> ! {
-    let mut ap: VaListImpl;
-    ap = args.clone();
-    fatalInternalErrorFn.expect("non-null fatalInternalErrorFn")(s, ap.as_va_list());
-    stg_exit(EXIT_INTERNAL_ERROR);
+pub unsafe extern "C" fn barf(s: *const c_char, args: ...) -> ! {
+    vbarf(s, args)
 }
 
 #[ffi(utils)]
 #[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn vbarf(mut s: *const c_char, mut ap: VaList) -> ! {
-    fatalInternalErrorFn.expect("non-null fatalInternalErrorFn")(s, ap.as_va_list());
-    stg_exit(EXIT_INTERNAL_ERROR);
+pub unsafe extern "C" fn vbarf(s: *const c_char, ap: VaList) -> ! {
+    fatalInternalErrorFn.expect("non-null fatalInternalErrorFn")(s, ap);
+    stg_exit(EXIT_INTERNAL_ERROR)
 }
 
 #[ffi(utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn _assertFail(mut filename: *const c_char, mut linenum: c_uint) -> ! {
+pub unsafe extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -> ! {
     barf(
         c"ASSERTION FAILED: file %s, line %u\n".as_ptr(),
         filename,
         linenum,
-    );
+    )
 }
 
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn errorBelch(mut s: *const c_char, mut args: ...) {
-    let mut ap: VaListImpl;
-    ap = args.clone();
-    errorMsgFn.expect("non-null errorMsgFn")(s, ap.as_va_list());
+pub unsafe extern "C" fn errorBelch(s: *const c_char, args: ...) {
+    errorMsgFn.expect("non-null errorMsgFn")(s, args);
 }
 
-unsafe fn _warnFail(mut filename: *const c_char, mut linenum: u32) {
+unsafe fn _warnFail(filename: *const c_char, linenum: u32) {
     errorBelch(
         c"ASSERTION FAILED: file %s, line %u\n".as_ptr(),
         filename,
@@ -68,75 +63,80 @@ unsafe fn _warnFail(mut filename: *const c_char, mut linenum: u32) {
     );
 }
 
-unsafe fn verrorBelch(mut s: *const c_char, mut ap: VaList) {
-    errorMsgFn.expect("non-null errorMsgFn")(s, ap.as_va_list());
+unsafe fn verrorBelch(s: *const c_char, ap: VaList) {
+    errorMsgFn.expect("non-null errorMsgFn")(s, ap);
 }
 
-unsafe fn sysErrorBelch(mut s: *const c_char, mut args: ...) {
-    let mut ap: VaListImpl;
-    ap = args.clone();
-    sysErrorMsgFn.expect("non-null sysErrorMsgFn")(s, ap.as_va_list());
+unsafe extern "C" fn sysErrorBelch(s: *const c_char, args: ...) {
+    sysErrorMsgFn.expect("non-null sysErrorMsgFn")(s, args);
 }
 
-unsafe fn vsysErrorBelch(mut s: *const c_char, mut ap: VaList) {
-    sysErrorMsgFn.expect("non-null sysErrorMsgFn")(s, ap.as_va_list());
+unsafe fn vsysErrorBelch(s: *const c_char, ap: VaList) {
+    sysErrorMsgFn.expect("non-null sysErrorMsgFn")(s, ap);
 }
 
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
-#[instrument]
-pub unsafe extern "C" fn debugBelch(mut s: *const c_char, mut args: ...) {
-    let mut ap: VaListImpl;
-    ap = args.clone();
-
-    debugMsgFn.expect("non-null debugMsgFn")(s, ap.as_va_list());
+pub unsafe extern "C" fn debugBelch(s: *const c_char, args: ...) {
+    debugMsgFn.expect("non-null debugMsgFn")(s, args);
 }
 
-unsafe fn vdebugBelch(mut s: *const c_char, mut ap: VaList) -> i32 {
-    return debugMsgFn.expect("non-null debugMsgFn")(s, ap.as_va_list());
+unsafe fn vdebugBelch(s: *const c_char, ap: VaList) -> i32 {
+    debugMsgFn.expect("non-null debugMsgFn")(s, ap)
 }
 
-unsafe fn rtsFatalInternalErrorFn(mut s: *const c_char, mut ap: VaList) -> ! {
-    if !prog_argv.is_null() && !prog_name.is_null() {
-        fprintf(__stderrp, c"%s: internal error: ".as_ptr(), prog_name);
-    } else {
-        fprintf(__stderrp, c"internal error: ".as_ptr());
+fn isGUIApp() -> bool {
+    cfg_select! {
+        windows => {
+            todo!()
+        }
+        _ => false,
     }
+}
 
-    vfprintf(__stderrp, s, ap.as_va_list());
-    fprintf(__stderrp, c"\n".as_ptr());
+unsafe fn rtsFatalInternalErrorFn(s: *const c_char, mut ap: VaList) -> ! {
+    let mut args_os = env::args_os();
 
-    fprintf(
-        __stderrp,
-        c"    (GHC version %s for %s)\n".as_ptr(),
+    let handle = io::stderr().lock();
+
+    if let Some(prog_name) = args_os.next() {
+        write!(handle, "{} : ", prog_name.to_string_lossy());
+    }
+    write!(handle, "internal error: ");
+
+    todo!("printf");
+
+    writeln!(
+        handle,
+        "    (GHC version {} for {})",
         __GLASGOW_HASKELL_FULL_VERSION__.as_ptr(),
-        c"aarch64_apple_darwin".as_ptr(),
+        xstr(HostPlatform_TYPE),
     );
 
-    fprintf(
-        __stderrp,
-        c"    Please report this as a GHC bug:  https://www.haskell.org/ghc/reportabug\n".as_ptr(),
+    writeln!(
+        handle,
+        "    Please report this as a GHC bug:  https://www.haskell.org/ghc/reportabug"
     );
 
-    fflush(__stderrp);
+    let _ = handle.flush();
 
     if RtsFlags.TraceFlags.tracing == TRACE_EVENTLOG {
         flushAllCapsEventsBufs();
     }
 
-    abort();
+    abort()
 }
 
-unsafe fn rtsErrorMsgFn(mut s: *const c_char, mut ap: VaList) {
+unsafe fn rtsErrorMsgFn(s: *const c_char, mut ap: VaList) {
     if !prog_name.is_null() {
         fprintf(__stderrp, c"%s: ".as_ptr(), prog_name);
     }
 
-    vfprintf(__stderrp, s, ap.as_va_list());
+    vfprintf(__stderrp, s, ap);
     fprintf(__stderrp, c"\n".as_ptr());
 }
 
-unsafe fn rtsSysErrorMsgFn(mut s: *const c_char, mut ap: VaList) {
+unsafe fn rtsSysErrorMsgFn(s: *const c_char, mut ap: VaList) {
     let mut syserr = null_mut::<c_char>();
     syserr = strerror(*__error());
 
@@ -144,7 +144,7 @@ unsafe fn rtsSysErrorMsgFn(mut s: *const c_char, mut ap: VaList) {
         fprintf(__stderrp, c"%s: ".as_ptr(), prog_name);
     }
 
-    vfprintf(__stderrp, s, ap.as_va_list());
+    vfprintf(__stderrp, s, ap);
 
     if !syserr.is_null() {
         fprintf(__stderrp, c": %s\n".as_ptr(), syserr);
@@ -153,26 +153,26 @@ unsafe fn rtsSysErrorMsgFn(mut s: *const c_char, mut ap: VaList) {
     };
 }
 
-unsafe fn rtsDebugMsgFn(mut s: *const c_char, mut ap: VaList) -> i32 {
+unsafe fn rtsDebugMsgFn(s: *const c_char, mut ap: VaList) -> i32 {
     let mut r: i32 = 0;
-    r = vfprintf(__stderrp, s, ap.as_va_list());
+    r = vfprintf(__stderrp, s, ap);
     fflush(__stderrp);
 
     return r;
 }
 
 unsafe fn rtsBadAlignmentBarf() -> ! {
-    barf(c"Encountered incorrectly aligned pointer. This can't be good.".as_ptr());
+    barf(c"Encountered incorrectly aligned pointer. This can't be good.".as_ptr())
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rtsOutOfBoundsAccess() -> ! {
-    barf(c"Encountered out of bounds array access.".as_ptr());
+    barf(c"Encountered out of bounds array access.".as_ptr())
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rtsMemcpyRangeOverlap() -> ! {
-    barf(c"Encountered overlapping source/destination ranges in a memcpy-using op.".as_ptr());
+    barf(c"Encountered overlapping source/destination ranges in a memcpy-using op.".as_ptr())
 }
