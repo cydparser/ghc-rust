@@ -8,7 +8,6 @@ pub use crate::rts_utils::{
     rts_isThreaded, rts_isTracing,
 };
 
-pub mod adjustor;
 pub mod block_signals;
 pub mod config;
 pub mod constants;
@@ -22,11 +21,9 @@ pub mod globals;
 pub mod hpc;
 pub mod io_interface;
 pub mod ipe;
-pub mod libdw;
 pub mod libdw_pool;
 pub mod linker;
 pub mod main;
-pub mod messages;
 pub mod non_moving;
 pub mod os_threads;
 pub mod parallel;
