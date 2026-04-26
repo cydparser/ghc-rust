@@ -57,14 +57,15 @@
 
         inherit (pkgs) lib;
 
-        rustToolchain = pkgs.fenix.stable;
+        rustToolchain = pkgs.fenix.latest;
 
         crane = (inputs.crane.mkLib pkgs).overrideToolchain (
           rustToolchain.withComponents [
             "cargo"
             "clippy"
             "llvm-tools"
-            "rust-analyzer-preview"
+            "miri"
+            "rust-analyzer"
             "rust-src"
             "rustc"
             "rustfmt"
