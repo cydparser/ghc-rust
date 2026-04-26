@@ -39,6 +39,16 @@ pub unsafe extern "C" fn vbarf(s: *const c_char, ap: VaList) -> ! {
     stg_exit(EXIT_INTERNAL_ERROR)
 }
 
+macro_rules! rts_assert {
+    ($cond:expr) => {
+        if !($cond) {
+            $crate::rts_messages::_assertFail(concat!(file!(), "\0").as_ptr().cast(), line!())
+        }
+    };
+}
+
+pub(crate) use rts_assert;
+
 #[ffi(utils)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -> ! {
