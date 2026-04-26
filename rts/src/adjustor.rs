@@ -30,7 +30,8 @@ Haskell side.
 */
 
 use crate::prelude::*;
-pub(crate) use internal::{createAdjustor, freeHaskellFunctionPtr, initAdjustors};
+pub(crate) use internal::initAdjustors;
+pub use internal::{createAdjustor, freeHaskellFunctionPtr};
 
 // TODO(rust): Choose path based on architecture. E.g.
 //   #[cfg_attr(target_arch = "x86", path  = "adjustor/native_i386.rs")]
