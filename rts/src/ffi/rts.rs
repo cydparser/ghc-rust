@@ -14,7 +14,6 @@ pub mod constants;
 pub mod event_log_writer;
 pub mod exec_page;
 pub mod file_lock;
-pub mod flags;
 pub mod foreign_exports;
 pub mod get_time;
 pub mod globals;
