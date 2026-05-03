@@ -1,6 +1,15 @@
-pub use crate::posix::get_time::getProcessElapsedTime;
+cfg_select! {
+    unix => {
+        pub use crate::posix::get_time::getProcessElapsedTime;
+    }
+    windows => {
+        pub use crate::win32::get_time::getProcessElapsedTime;
+    }
+    target_family = "wasm" => {
+        pub use crate::wasm::get_time::getProcessElapsedTime;
+    }
+}
 use crate::prelude::*;
-pub use crate::win32::get_time::getProcessElapsedTime;
 
 #[cfg(test)]
 mod tests;

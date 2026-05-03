@@ -7,6 +7,7 @@ pub use crate::rts_utils::{
     reportHeapOverflow, reportStackOverflow, rts_isDebugged, rts_isDynamic, rts_isProfiled,
     rts_isThreaded, rts_isTracing,
 };
+pub use crate::time::{Time, getProcessElapsedTime};
 
 pub mod block_signals;
 pub mod config;
@@ -38,7 +39,6 @@ pub mod static_ptr_table;
 pub mod storage;
 pub mod threads;
 pub mod ticky;
-pub mod time;
 pub mod timer;
 pub mod tty;
 pub mod utils;
