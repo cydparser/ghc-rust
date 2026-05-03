@@ -1,2 +1,2 @@
 mod event_log;
-mod event_log_writer;
+pub(crate) mod event_log_writer;

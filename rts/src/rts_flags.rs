@@ -1,15 +1,17 @@
+use std::fs::{self, File};
+use std::io::{self, Write};
+
+use errno::{Errno, errno, set_errno};
+use printf_compat as printf;
+
 use crate::capability::n_numa_nodes;
 use crate::config::RtsOptsEnabledEnum;
-use crate::eventlog::event_log_writer::FileEventLogWriter;
+use crate::eventlog::event_log_writer::{EventLogWriter, FileEventLogWriter};
 use crate::ffi::rts::constants::MAX_NUMA_NODES;
-use crate::ffi::rts::messages::{barf, errorBelch, vdebugBelch};
 use crate::ffi::rts::os_threads::getNumberOfProcessors;
-use crate::ffi::rts::stg_exit;
 use crate::ffi::rts::storage::block::{BLOCK_SIZE, MBLOCK_SIZE};
-use crate::ffi::rts::time::{Time, fsecondsToTime};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{StgDouble, StgWord, StgWord64};
-use crate::fs::__rts_fopen;
 use crate::hooks::hooks::{
     FlagDefaultsHook, LongGCSync, LongGCSyncEnd, MallocFailHook, OnExitHook, OutOfHeapHook,
     StackOverflowHook,
@@ -20,10 +22,13 @@ use crate::prelude::*;
 use crate::rts_api::{
     RtsConfig, RtsOptsAll, RtsOptsIgnore, RtsOptsIgnoreAll, RtsOptsNone, RtsOptsSafeOnly,
 };
+use crate::rts_messages::{barf, errorBelch, vdebugBelch};
+use crate::rts_startup::{EXIT_FAILURE, stg_exit};
 use crate::rts_utils::{
     printRtsInfo, stgCallocBytes, stgFree, stgMallocBytes, stgReallocBytes, stgStrndup,
 };
 use crate::sm::os_mem::{getPhysicalMemorySize, osBuiltWithNumaSupport, osNumaAvailable};
+use crate::time::{Time, fsecondsToTime};
 
 #[cfg(test)]
 mod tests;
@@ -89,13 +94,18 @@ pub const HEAP_BY_INFO_TABLE: u32 = 9;
 pub const HEAP_BY_ERA: u32 = 10;
 
 #[ffi(ghc_lib)]
-pub const TRACE_NONE: u32 = 0;
+pub const TRACE_NONE: i32 = 0;
 
 #[ffi(ghc_lib)]
-pub const TRACE_EVENTLOG: u32 = 1;
+pub const TRACE_EVENTLOG: i32 = 1;
 
 #[ffi(ghc_lib)]
-pub const TRACE_STDERR: u32 = 2;
+pub const TRACE_STDERR: i32 = 2;
+
+const DEFAULT_TICK_INTERVAL: Time = cfg_select! {
+    target_family = "wasm" => 0,
+    _ => 10_000 * 1000,
+};
 
 pub(crate) const DEFAULT_LINKER_ALWAYS_PIC: u32 = 1;
 
@@ -530,8 +540,8 @@ pub type HPC_FLAGS = _HPC_FLAGS;
 #[repr(C)]
 #[derive(Debug)]
 pub struct _TICKY_FLAGS {
-    showTickyStats: bool,
-    tickyFile: Option<&'static mut File>,
+    pub(crate) showTickyStats: bool,
+    pub(crate) tickyFile: Option<&'static mut File>,
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -610,7 +620,7 @@ pub static mut RtsFlags: RTS_FLAGS = _RTS_FLAGS {
         linkerAlwaysPic: false,
         linkerOptimistic: false,
         linkerMemBase: 0,
-        ioManager: IO_MNGR_FLAG_AUTO,
+        ioManager: _IO_MANAGER_FLAG::IO_MNGR_FLAG_AUTO,
         numIoWorkerThreads: 0,
     },
     DebugFlags: _DEBUG_FLAGS {
@@ -695,15 +705,15 @@ pub static mut RtsFlags: RTS_FLAGS = _RTS_FLAGS {
     },
     HpcFlags: _HPC_FLAGS {
         writeTixFile: false,
-        readTixFile: HPC_NO_EXPLICIT,
+        readTixFile: _HPC_READ_FILE::HPC_NO_EXPLICIT,
     },
 };
 
-static mut prog_argc: i32 = 0;
+static mut prog_argc: u32 = 0;
 
 static mut prog_argv: *mut *mut c_char = null_mut::<*mut c_char>();
 
-static mut full_prog_argc: i32 = 0;
+static mut full_prog_argc: u32 = 0;
 
 static mut full_prog_argv: *mut *mut c_char = null_mut::<*mut c_char>();
 
@@ -713,7 +723,7 @@ static mut rts_argc: i32 = 0;
 
 static mut rts_argv: *mut *mut c_char = null_mut::<*mut c_char>();
 
-static mut rts_argv_size: i32 = 0;
+static mut rts_argv_size: u32 = 0;
 
 static mut rtsConfig: RtsConfig = RtsConfig {
     rts_opts_enabled: RtsOptsNone,
@@ -764,12 +774,11 @@ unsafe fn initRtsFlagsDefaults() {
 
     if maxStkSize == 0 {
         maxStkSize = (8 * 1024 * 1024) as StgWord64;
-    } else if maxStkSize > (UINT32_MAX as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord64
-    {
-        maxStkSize = (UINT32_MAX as usize).wrapping_mul(size_of::<W_>() as usize) as StgWord64;
+    } else if maxStkSize > (u32::MAX as StgWord64).wrapping_mul(size_of::<W_>() as StgWord64) {
+        maxStkSize = (u32::MAX as StgWord64).wrapping_mul(size_of::<W_>() as StgWord64);
     }
 
-    RtsFlags.GcFlags.statsFile = null_mut::<FILE>();
+    RtsFlags.GcFlags.statsFile = None;
     RtsFlags.GcFlags.giveStats = NO_GC_STATS as u32;
     RtsFlags.GcFlags.maxStkSize = maxStkSize.wrapping_div(size_of::<W_>() as StgWord64) as u32;
     RtsFlags.GcFlags.initialStkSize = (1024 as usize).wrapping_div(size_of::<W_>() as usize) as u32;
@@ -777,19 +786,17 @@ unsafe fn initRtsFlagsDefaults() {
         ((32 as i32 * 1024 as i32) as usize).wrapping_div(size_of::<W_>() as usize) as u32;
     RtsFlags.GcFlags.stkChunkBufferSize =
         ((1 as i32 * 1024 as i32) as usize).wrapping_div(size_of::<W_>() as usize) as u32;
-    RtsFlags.GcFlags.minAllocAreaSize =
-        ((4 as i32 * 1024 as i32 * 1024 as i32) as u64).wrapping_div(BLOCK_SIZE) as u32;
+    RtsFlags.GcFlags.minAllocAreaSize = (4_u32 * 1024 * 1024).wrapping_div(BLOCK_SIZE);
     RtsFlags.GcFlags.largeAllocLim = 0;
     RtsFlags.GcFlags.nurseryChunkSize = 0;
-    RtsFlags.GcFlags.minOldGenSize =
-        ((1024 as i32 * 1024 as i32) as u64).wrapping_div(BLOCK_SIZE) as u32;
+    RtsFlags.GcFlags.minOldGenSize = (1024_u32 * 1024).wrapping_div(BLOCK_SIZE);
     RtsFlags.GcFlags.maxHeapSize = 0;
     RtsFlags.GcFlags.heapLimitGrace = (1024 * 1024) as StgWord;
     RtsFlags.GcFlags.heapSizeSuggestion = 0;
     RtsFlags.GcFlags.heapSizeSuggestionAuto = false;
-    RtsFlags.GcFlags.pcFreeHeap = 3;
-    RtsFlags.GcFlags.oldGenFactor = 2;
-    RtsFlags.GcFlags.returnDecayFactor = 4;
+    RtsFlags.GcFlags.pcFreeHeap = 3.;
+    RtsFlags.GcFlags.oldGenFactor = 2.;
+    RtsFlags.GcFlags.returnDecayFactor = 4.;
     RtsFlags.GcFlags.useNonmoving = false;
     RtsFlags.GcFlags.nonmovingDenseAllocatorCount = 16;
     RtsFlags.GcFlags.generations = 2;
@@ -801,8 +808,7 @@ unsafe fn initRtsFlagsDefaults() {
     RtsFlags.GcFlags.interIdleGCWait = 0;
     RtsFlags.GcFlags.doIdleGC = true;
     RtsFlags.GcFlags.heapBase = 0;
-    RtsFlags.GcFlags.allocLimitGrace =
-        ((100 as i32 * 1024 as i32) as u64).wrapping_div(BLOCK_SIZE) as StgWord;
+    RtsFlags.GcFlags.allocLimitGrace = (100_u32 * 1024).wrapping_div(BLOCK_SIZE) as StgWord;
     RtsFlags.GcFlags.numa = false;
     RtsFlags.GcFlags.numaMask = 1;
     RtsFlags.GcFlags.ringBell = false;
@@ -831,7 +837,7 @@ unsafe fn initRtsFlagsDefaults() {
     RtsFlags.DebugFlags.continuation = false;
     RtsFlags.CcFlags.doCostCentres = COST_CENTRES_NONE as u32;
     RtsFlags.CcFlags.outputFileNameStem = null::<c_char>();
-    RtsFlags.ProfFlags.doHeapProfile = false;
+    RtsFlags.ProfFlags.doHeapProfile = NO_HEAP_PROFILING;
     RtsFlags.ProfFlags.heapProfileInterval = 100000 * 1000;
     RtsFlags.ProfFlags.startHeapProfileAtStartup = true;
     RtsFlags.ProfFlags.startTimeProfileAtStartup = true;
@@ -871,7 +877,7 @@ unsafe fn initRtsFlagsDefaults() {
     RtsFlags.MiscFlags.linkerAlwaysPic = DEFAULT_LINKER_ALWAYS_PIC != 0;
     RtsFlags.MiscFlags.linkerOptimistic = false;
     RtsFlags.MiscFlags.linkerMemBase = 0;
-    RtsFlags.MiscFlags.ioManager = IO_MNGR_FLAG_AUTO;
+    RtsFlags.MiscFlags.ioManager = _IO_MANAGER_FLAG::IO_MNGR_FLAG_AUTO;
     RtsFlags.MiscFlags.numIoWorkerThreads = 1;
     RtsFlags.ParFlags.nCapabilities = 1;
     RtsFlags.ParFlags.migrate = true;
@@ -884,8 +890,8 @@ unsafe fn initRtsFlagsDefaults() {
     RtsFlags.ParFlags.setAffinity = 0 != 0;
     RtsFlags.ParFlags.maxLocalSparks = 4096;
     RtsFlags.TickyFlags.showTickyStats = false;
-    RtsFlags.TickyFlags.tickyFile = null_mut::<FILE>();
-    RtsFlags.HpcFlags.readTixFile = HPC_YES_IMPLICIT;
+    RtsFlags.TickyFlags.tickyFile = None;
+    RtsFlags.HpcFlags.readTixFile = _HPC_READ_FILE::HPC_YES_IMPLICIT;
     RtsFlags.HpcFlags.writeTixFile = true;
 }
 
@@ -1133,8 +1139,8 @@ static mut usage_text: [*const c_char; 213] = [
     null::<c_char>(),
 ];
 
-unsafe fn strequal(mut a: *const c_char, mut b: *const c_char) -> bool {
-    return strcmp(a, b) == 0;
+unsafe fn strequal(a: *const c_char, b: *const c_char) -> bool {
+    libc::strcmp(a, b) == 0
 }
 
 unsafe fn appendRtsArg(mut arg: *mut c_char) {
@@ -1162,13 +1168,13 @@ unsafe fn splitRtsFlags(mut s: *const c_char) {
     c1 = s;
 
     loop {
-        while isspace(*c1 as i32) != 0 {
+        while libc::isspace(*c1 as i32) != 0 {
             c1 = c1.offset(1);
         }
 
         c2 = c1;
 
-        while isspace(*c2 as i32) == 0 && *c2 as i32 != '\0' as i32 {
+        while libc::isspace(*c2 as i32) == 0 && *c2 as i32 != '\0' as i32 {
             c2 = c2.offset(1);
         }
 
@@ -1181,9 +1187,9 @@ unsafe fn splitRtsFlags(mut s: *const c_char) {
             c"RtsFlags.c:splitRtsFlags()".as_ptr(),
         ) as *mut c_char;
 
-        strncpy(t, c1, c2.offset_from(c1) as i64 as usize);
+        libc::strncpy(t, c1, c2.offset_from(c1) as i64 as usize);
         *t.offset(c2.offset_from(c1) as i64 as isize) = '\0' as i32 as c_char;
-        appendRtsArg(t);
+        appendRtsArg(argv, t);
         c1 = c2;
 
         if !(*c1 as i32 != '\0' as i32) {
@@ -1193,7 +1199,7 @@ unsafe fn splitRtsFlags(mut s: *const c_char) {
 }
 
 unsafe fn errorRtsOptsDisabled(mut s: *const c_char) {
-    let mut advice = null_mut::<c_char>();
+    let mut advice;
 
     if rtsConfig.rts_hs_main != 0 {
         advice = c"Link with -rtsopts to enable them.".as_ptr();
@@ -1206,13 +1212,11 @@ unsafe fn errorRtsOptsDisabled(mut s: *const c_char) {
 
 unsafe fn setupRtsFlags(mut argc: *mut i32, mut argv: *mut *mut c_char, mut rts_config: RtsConfig) {
     let mut mode: u32 = 0;
-    let mut total_arg: u32 = 0;
-    let mut arg: u32 = 0;
+    let mut total_arg: u32 = *argc as u32;
+    let mut arg: u32 = 1;
     let mut rts_argc0: u32 = 0;
     rtsConfig = rts_config;
     setProgName(argv);
-    total_arg = *argc as u32;
-    arg = 1;
 
     if *argc > 1 {
         *argc = 1;
@@ -1235,7 +1239,7 @@ unsafe fn setupRtsFlags(mut argc: *mut i32, mut argv: *mut *mut c_char, mut rts_
     }
 
     if rtsConfig.rts_opts_enabled as u32 != RtsOptsIgnoreAll as i32 as u32 {
-        let mut ghc_rts = getenv(c"GHCRTS".as_ptr());
+        let mut ghc_rts = libc::getenv(c"GHCRTS".as_ptr());
 
         if !ghc_rts.is_null() {
             if rtsConfig.rts_opts_enabled as u32 == RtsOptsNone as i32 as u32 {
@@ -1301,18 +1305,18 @@ unsafe fn setupRtsFlags(mut argc: *mut i32, mut argv: *mut *mut c_char, mut rts_
     normaliseRtsOpts();
     setProgArgv(*argc, argv);
 
-    if !RtsFlags.GcFlags.statsFile.is_null() {
-        initStatsFile(RtsFlags.GcFlags.statsFile);
+    if let Some(statsFile) = RtsFlags.GcFlags.statsFile {
+        initStatsFile(statsFile);
     }
 
-    if !RtsFlags.TickyFlags.tickyFile.is_null() {
-        initStatsFile(RtsFlags.TickyFlags.tickyFile);
+    if let Some(tickyFile) = RtsFlags.TickyFlags.tickyFile {
+        initStatsFile(tickyFile);
     }
 }
 
 unsafe fn checkSuid(mut enabled: RtsOptsEnabledEnum) {
     if enabled as u32 == RtsOptsSafeOnly as i32 as u32 {
-        if getuid() != geteuid() || getgid() != getegid() {
+        if libc::getuid() != libc::geteuid() || libc::getgid() != libc::getegid() {
             errorRtsOptsDisabled(c"RTS options are disabled for setuid binaries. %s".as_ptr());
 
             stg_exit(EXIT_FAILURE);
@@ -1349,7 +1353,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
         let mut option_checked = false;
 
         if *(*rts_argv.offset(arg as isize)).offset(0) as i32 != '-' as i32 {
-            fflush(__stdoutp);
+            io::stdout().flush();
 
             errorBelch(
                 c"unexpected RTS argument: %s".as_ptr(),
@@ -1450,7 +1454,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     ) {
                         option_checked = true;
                         RtsFlags.MiscFlags.internalCounters = true;
-                    } else if strncmp(
+                    } else if libc::strncmp(
                         c"io-manager=".as_ptr(),
                         (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                         11,
@@ -1462,7 +1466,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         let mut iomgrstr: *mut c_char =
                             (*rts_argv.offset(arg as isize)).offset(13) as *mut c_char;
 
-                        let mut iomgrflag = IO_MNGR_FLAG_AUTO;
+                        let mut iomgrflag = _IO_MANAGER_FLAG::IO_MNGR_FLAG_AUTO;
                         let mut availability = IOManagerAvailable;
                         availability = parseIOManagerFlag(iomgrstr, &raw mut iomgrflag);
 
@@ -1490,7 +1494,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         option_checked = true;
                         printRtsInfo(rtsConfig);
                         stg_exit(0);
-                    } else if strncmp(
+                    } else if libc::strncmp(
                         c"eventlog-flush-interval=".as_ptr(),
                         (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                         24,
@@ -1520,7 +1524,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     ) {
                         option_checked = true;
                         RtsFlags.GcFlags.useNonmoving = true;
-                    } else if strncmp(
+                    } else if libc::strncmp(
                         c"nonmoving-dense-allocator-count=".as_ptr(),
                         (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                         32,
@@ -1528,13 +1532,13 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     {
                         option_checked = true;
 
-                        let mut threshold: i32 = strtol(
+                        let mut threshold: i32 = libc::strtol(
                             (*rts_argv.offset(arg as isize)).offset(34),
-                            NULL as *mut *mut c_char,
+                            null_mut(),
                             10,
                         ) as i32;
 
-                        if threshold < 1 || threshold > -1 as u16 as i32 {
+                        if threshold < 1 || threshold > u16::MAX as i32 {
                             errorBelch(c"bad value for --nonmoving-dense-allocator-count".as_ptr());
 
                             error = true;
@@ -1547,14 +1551,14 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     ) {
                         checkUnsafe(rtsOptsEnabled);
                         option_checked = true;
-                        RtsFlags.HpcFlags.readTixFile = HPC_YES_EXPLICIT;
+                        RtsFlags.HpcFlags.readTixFile = _HPC_READ_FILE::HPC_YES_EXPLICIT;
                     } else if strequal(
                         c"read-tix-file=no".as_ptr(),
                         (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                     ) {
                         checkUnsafe(rtsOptsEnabled);
                         option_checked = true;
-                        RtsFlags.HpcFlags.readTixFile = HPC_NO_EXPLICIT;
+                        RtsFlags.HpcFlags.readTixFile = _HPC_READ_FILE::HPC_NO_EXPLICIT;
                     } else if strequal(
                         c"write-tix-file=yes".as_ptr(),
                         (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
@@ -1569,7 +1573,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         checkUnsafe(rtsOptsEnabled);
                         option_checked = true;
                         RtsFlags.HpcFlags.writeTixFile = false;
-                    } else if strncmp(
+                    } else if libc::strncmp(
                         c"numa".as_ptr(),
                         (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                         4,
@@ -1588,9 +1592,9 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                             let mut mask: StgWord = 0;
 
                             if *(*rts_argv.offset(arg as isize)).offset(6) as i32 == '=' as i32 {
-                                mask = strtol(
+                                mask = libc::strtol(
                                     (*rts_argv.offset(arg as isize)).offset(7),
-                                    NULL as *mut *mut c_char,
+                                    null_mut::<*mut c_char>(),
                                     10,
                                 ) as StgWord;
 
@@ -1627,7 +1631,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                                 }
                             }
                         }
-                    } else if strncmp(
+                    } else if libc::strncmp(
                         c"debug-numa".as_ptr(),
                         (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                         10,
@@ -1638,11 +1642,12 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         let mut nNodes: usize = 0;
 
                         if *(*rts_argv.offset(arg as isize)).offset(12) as i32 == '=' as i32
-                            && isdigit(*(*rts_argv.offset(arg as isize)).offset(13) as i32) != 0
+                            && libc::isdigit(*(*rts_argv.offset(arg as isize)).offset(13) as i32)
+                                != 0
                         {
-                            nNodes = strtol(
+                            nNodes = libc::strtol(
                                 (*rts_argv.offset(arg as isize)).offset(13),
-                                NULL as *mut *mut c_char,
+                                null_mut::<*mut c_char>(),
                                 10,
                             ) as StgWord as usize;
 
@@ -1668,7 +1673,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
 
                             error = true;
                         }
-                    } else if strncmp(
+                    } else if libc::strncmp(
                         c"long-gc-sync=".as_ptr(),
                         (*rts_argv.offset(arg as isize)).offset(2) as *mut c_char,
                         13,
@@ -1677,8 +1682,9 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         option_checked = true;
 
                         if !(*(*rts_argv.offset(arg as isize)).offset(2) as i32 == '\0' as i32) {
-                            RtsFlags.GcFlags.longGCSync =
-                                fsecondsToTime(atof((*rts_argv.offset(arg as isize)).offset(16)));
+                            RtsFlags.GcFlags.longGCSync = fsecondsToTime(libc::atof(
+                                (*rts_argv.offset(arg as isize)).offset(16),
+                            ));
                         }
                     } else if strequal(
                         c"no-automatic-heap-samples".as_ptr(),
@@ -1719,7 +1725,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         RtsFlags.GcFlags.largeAllocLim = decodeSize(
                             *rts_argv.offset(arg as isize),
                             3 as u32,
-                            (2 as u64).wrapping_mul(BLOCK_SIZE) as StgWord64,
+                            (2 as StgWord64).wrapping_mul(BLOCK_SIZE as StgWord64),
                             HS_INT_MAX as StgWord64,
                         )
                         .wrapping_div(BLOCK_SIZE as StgWord64)
@@ -1728,7 +1734,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         RtsFlags.GcFlags.minAllocAreaSize = decodeSize(
                             *rts_argv.offset(arg as isize),
                             2 as u32,
-                            (2 as u64).wrapping_mul(BLOCK_SIZE) as StgWord64,
+                            (2 as StgWord64).wrapping_mul(BLOCK_SIZE as StgWord64),
                             HS_INT_MAX as StgWord64,
                         )
                         .wrapping_div(BLOCK_SIZE as StgWord64)
@@ -1744,7 +1750,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     RtsFlags.GcFlags.nurseryChunkSize = decodeSize(
                         *rts_argv.offset(arg as isize),
                         2 as u32,
-                        (2 as u64).wrapping_mul(BLOCK_SIZE) as StgWord64,
+                        (2 as StgWord64).wrapping_mul(BLOCK_SIZE as StgWord64),
                         HS_INT_MAX as StgWord64,
                     )
                     .wrapping_div(BLOCK_SIZE as StgWord64)
@@ -1764,7 +1770,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
 
                     if *(*rts_argv.offset(arg as isize)).offset(2) as i32 != '\0' as i32 {
                         RtsFlags.GcFlags.compactThreshold =
-                            atof((*rts_argv.offset(arg as isize)).offset(2));
+                            libc::atof((*rts_argv.offset(arg as isize)).offset(2));
                     } else {
                         RtsFlags.GcFlags.compact = true;
                     }
@@ -1785,17 +1791,17 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     match *(*rts_argv.offset(arg as isize)).offset(2) as i32 {
                         100 => {
                             RtsFlags.GcFlags.returnDecayFactor =
-                                atof((*rts_argv.offset(arg as isize)).offset(3));
+                                libc::atof((*rts_argv.offset(arg as isize)).offset(3));
 
-                            if RtsFlags.GcFlags.returnDecayFactor < 0 {
+                            if RtsFlags.GcFlags.returnDecayFactor < 0.0 {
                                 bad_option(*rts_argv.offset(arg as isize));
                             }
                         }
                         _ => {
                             RtsFlags.GcFlags.oldGenFactor =
-                                atof((*rts_argv.offset(arg as isize)).offset(2));
+                                libc::atof((*rts_argv.offset(arg as isize)).offset(2));
 
-                            if RtsFlags.GcFlags.oldGenFactor < 0 {
+                            if RtsFlags.GcFlags.oldGenFactor < 0.0 {
                                 bad_option(*rts_argv.offset(arg as isize));
                             }
                         }
@@ -1816,7 +1822,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         *rts_argv.offset(arg as isize),
                         2 as u32,
                         0 as StgWord64,
-                        UINT32_MAX as StgWord64,
+                        u32::MAX as StgWord64,
                     )
                     .wrapping_div(size_of::<W_>() as StgWord64)
                         as u32;
@@ -1875,7 +1881,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     checkUnsafe(rtsOptsEnabled);
                     option_checked = true;
 
-                    if 0 == strncmp(
+                    if 0 == libc::strncmp(
                         c"grace=".as_ptr(),
                         (*rts_argv.offset(arg as isize)).offset(2),
                         6,
@@ -1900,7 +1906,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     current_block = 1841612074772515791;
                 }
                 109 => {
-                    if strncmp(
+                    if libc::strncmp(
                         c"maxN".as_ptr(),
                         (*rts_argv.offset(arg as isize)).offset(1) as *mut c_char,
                         4,
@@ -1911,7 +1917,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         let mut nCapabilities: i32 = 0;
                         let mut proc = getNumberOfProcessors() as i32;
 
-                        nCapabilities = strtol(
+                        nCapabilities = libc::strtol(
                             (*rts_argv.offset(arg as isize)).offset(5),
                             null_mut::<c_void>() as *mut *mut c_char,
                             10,
@@ -1932,7 +1938,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         option_checked = true;
 
                         RtsFlags.GcFlags.pcFreeHeap =
-                            atof((*rts_argv.offset(arg as isize)).offset(2));
+                            libc::atof((*rts_argv.offset(arg as isize)).offset(2));
 
                         if RtsFlags.GcFlags.pcFreeHeap == 0.0f64
                             && *(*rts_argv.offset(arg as isize)).offset(2) as i32 != '0' as i32
@@ -2001,15 +2007,16 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         119 => {
                             if !(*(*rts_argv.offset(arg as isize)).offset(3) as i32 == '\0' as i32)
                             {
-                                RtsFlags.GcFlags.interIdleGCWait = fsecondsToTime(atof(
+                                RtsFlags.GcFlags.interIdleGCWait = fsecondsToTime(libc::atof(
                                     (*rts_argv.offset(arg as isize)).offset(3),
                                 ));
                             }
                         }
                         0 => {}
                         _ => {
-                            let mut t =
-                                fsecondsToTime(atof((*rts_argv.offset(arg as isize)).offset(2)));
+                            let mut t = fsecondsToTime(libc::atof(
+                                (*rts_argv.offset(arg as isize)).offset(2),
+                            ));
 
                             if t == 0 {
                                 RtsFlags.GcFlags.doIdleGC = false;
@@ -2103,7 +2110,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     option_checked = true;
 
                     RtsFlags.ProfFlags.maxRetainerSetSize =
-                        atof((*rts_argv.offset(arg as isize)).offset(2)) as u32;
+                        libc::atof((*rts_argv.offset(arg as isize)).offset(2)) as u32;
 
                     current_block = 1841612074772515791;
                 }
@@ -2111,7 +2118,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     option_checked = true;
 
                     RtsFlags.ProfFlags.ccsLength =
-                        atof((*rts_argv.offset(arg as isize)).offset(2)) as u32;
+                        libc::atof((*rts_argv.offset(arg as isize)).offset(2)) as u32;
 
                     if RtsFlags.ProfFlags.ccsLength <= 0 {
                         bad_option(*rts_argv.offset(arg as isize));
@@ -2188,7 +2195,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         let mut nCapabilities_0: i32 = 0;
                         option_checked = 1 != 0;
 
-                        nCapabilities_0 = strtol(
+                        nCapabilities_0 = libc::strtol(
                             (*rts_argv.offset(arg as isize)).offset(2),
                             null_mut::<c_void>() as *mut *mut c_char,
                             10,
@@ -2253,7 +2260,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                             } else {
                                 RtsFlags.ParFlags.parGcEnabled = 1 != 0;
 
-                                RtsFlags.ParFlags.parGcGen = strtol(
+                                RtsFlags.ParFlags.parGcGen = libc::strtol(
                                     (*rts_argv.offset(arg as isize)).offset(3),
                                     null_mut::<c_void>() as *mut *mut c_char,
                                     10,
@@ -2267,7 +2274,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                             } else {
                                 RtsFlags.ParFlags.parGcLoadBalancingEnabled = 1 != 0;
 
-                                RtsFlags.ParFlags.parGcLoadBalancingGen = strtol(
+                                RtsFlags.ParFlags.parGcLoadBalancingGen = libc::strtol(
                                     (*rts_argv.offset(arg as isize)).offset(3),
                                     null_mut::<c_void>() as *mut *mut c_char,
                                     10,
@@ -2276,7 +2283,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                             }
                         }
                         105 => {
-                            RtsFlags.ParFlags.parGcNoSyncWithIdle = strtol(
+                            RtsFlags.ParFlags.parGcNoSyncWithIdle = libc::strtol(
                                 (*rts_argv.offset(arg as isize)).offset(3),
                                 null_mut::<c_void>() as *mut *mut c_char,
                                 10,
@@ -2286,7 +2293,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         110 => {
                             let mut threads: i32 = 0;
 
-                            threads = strtol(
+                            threads = libc::strtol(
                                 (*rts_argv.offset(arg as isize)).offset(3),
                                 null_mut::<c_void>() as *mut *mut c_char,
                                 10,
@@ -2323,7 +2330,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     option_checked = true;
 
                     if *(*rts_argv.offset(arg as isize)).offset(2) as i32 != '\0' as i32 {
-                        RtsFlags.ParFlags.maxLocalSparks = strtol(
+                        RtsFlags.ParFlags.maxLocalSparks = libc::strtol(
                             (*rts_argv.offset(arg as isize)).offset(2),
                             null_mut::<c_void>() as *mut *mut c_char,
                             10,
@@ -2350,8 +2357,8 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
 
                     r_0 = openStatsFile(
                         (*rts_argv.offset(arg as isize)).offset(2),
-                        c"%0.121s.ticky".as_ptr(),
-                        &raw mut RtsFlags.TickyFlags.tickyFile,
+                        &format!("{prog_name}.ticky"),
+                        &mut RtsFlags.TickyFlags.tickyFile,
                     );
 
                     if r_0 == -1 {
@@ -2365,13 +2372,14 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                         108 => {
                             option_checked = true;
 
-                            if strlen((*rts_argv.offset(arg as isize)).offset(3) as *mut c_char)
-                                == 0
+                            if libc::strlen(
+                                (*rts_argv.offset(arg as isize)).offset(3) as *mut c_char
+                            ) == 0
                             {
                                 errorBelch(c"-ol expects filename".as_ptr());
                                 error = 1 != 0;
                             } else {
-                                RtsFlags.TraceFlags.trace_output = strdup(
+                                RtsFlags.TraceFlags.trace_output = libc::strdup(
                                     (*rts_argv.offset(arg as isize)).offset(3) as *mut c_char,
                                 );
                             }
@@ -2424,9 +2432,9 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                             option_checked = true;
 
                             if *(*rts_argv.offset(arg as isize)).offset(3) as i32 != '\0' as i32 {
-                                RtsFlags.GcFlags.heapBase = strtoull(
+                                RtsFlags.GcFlags.heapBase = libc::strtoull(
                                     (*rts_argv.offset(arg as isize)).offset(3),
-                                    NULL as *mut *mut c_char,
+                                    null_mut(),
                                     0,
                                 )
                                     as StgWord;
@@ -2535,7 +2543,7 @@ unsafe fn procRtsOpts(mut rts_argc0: i32, mut rtsOptsEnabled: RtsOptsEnabledEnum
                     r = openStatsFile(
                         (*rts_argv.offset(arg as isize)).offset(2),
                         null::<c_char>(),
-                        &raw mut RtsFlags.GcFlags.statsFile,
+                        &mut RtsFlags.GcFlags.statsFile,
                     );
 
                     if r == -1 {
@@ -2571,30 +2579,24 @@ unsafe fn normaliseRtsOpts() {
     }
 
     if RtsFlags.ConcFlags.ctxtSwitchTime > 0 {
-        RtsFlags.MiscFlags.tickInterval = ({
-            let mut _a: Time = RtsFlags.ConcFlags.ctxtSwitchTime as Time;
-            let mut _b: Time = RtsFlags.MiscFlags.tickInterval as Time;
-
-            if _a <= _b { _a } else { _b as Time }
-        });
+        RtsFlags.MiscFlags.tickInterval = RtsFlags
+            .ConcFlags
+            .ctxtSwitchTime
+            .min(RtsFlags.MiscFlags.tickInterval);
     }
 
     if RtsFlags.GcFlags.idleGCDelayTime > 0 {
-        RtsFlags.MiscFlags.tickInterval = ({
-            let mut _a: Time = RtsFlags.GcFlags.idleGCDelayTime as Time;
-            let mut _b: Time = RtsFlags.MiscFlags.tickInterval as Time;
-
-            if _a <= _b { _a } else { _b as Time }
-        });
+        RtsFlags.MiscFlags.tickInterval = RtsFlags
+            .GcFlags
+            .idleGCDelayTime
+            .min(RtsFlags.MiscFlags.tickInterval);
     }
 
     if RtsFlags.ProfFlags.heapProfileInterval > 0 {
-        RtsFlags.MiscFlags.tickInterval = ({
-            let mut _a: Time = RtsFlags.ProfFlags.heapProfileInterval as Time;
-            let mut _b: Time = RtsFlags.MiscFlags.tickInterval as Time;
-
-            if _a <= _b { _a } else { _b as Time }
-        });
+        RtsFlags.MiscFlags.tickInterval = RtsFlags
+            .ProfFlags
+            .heapProfileInterval
+            .min(RtsFlags.MiscFlags.tickInterval);
     }
 
     if RtsFlags.ConcFlags.ctxtSwitchTime > 0 && RtsFlags.MiscFlags.tickInterval != 0 {
@@ -2649,17 +2651,16 @@ unsafe fn normaliseRtsOpts() {
     }
 
     if RtsFlags.GcFlags.minAllocAreaSize as u64
-        >= ((16 as i32 * 1024 as i32 * 1024 as i32) as u64).wrapping_div(BLOCK_SIZE)
+        >= (16_u64 * 1024 * 1024).wrapping_div(BLOCK_SIZE as u64)
     {
-        RtsFlags.GcFlags.nurseryChunkSize =
-            ((4 as i32 * 1024 as i32 * 1024 as i32) as u64).wrapping_div(BLOCK_SIZE) as u32;
+        RtsFlags.GcFlags.nurseryChunkSize = (4 * 1024 * 1024) / BLOCK_SIZE;
     }
 
     if RtsFlags.ParFlags.parGcLoadBalancingGen == !0 {
-        let mut alloc_area_bytes: StgWord =
-            (RtsFlags.GcFlags.minAllocAreaSize as u64).wrapping_mul(BLOCK_SIZE) as StgWord;
+        let mut alloc_area_bytes: u64 =
+            (RtsFlags.GcFlags.minAllocAreaSize as u64).wrapping_mul(BLOCK_SIZE as u64);
 
-        if alloc_area_bytes >= (32 * 1024 * 1024) as StgWord {
+        if alloc_area_bytes >= (32_u64 * 1024 * 1024) {
             RtsFlags.ParFlags.parGcLoadBalancingGen = 0;
         } else {
             RtsFlags.ParFlags.parGcLoadBalancingGen = 1;
@@ -2692,9 +2693,8 @@ unsafe fn normaliseRtsOpts() {
 }
 
 unsafe fn errorUsage() -> ! {
-    let mut p = null_mut::<*const c_char>();
-    fflush(__stdoutp);
-    p = &raw mut usage_text as *mut *const c_char;
+    io::stdout().flush();
+    let mut p = &raw mut usage_text as *mut *const c_char;
 
     while !(*p).is_null() {
         errorBelch(c"%s".as_ptr(), *p);
@@ -2704,14 +2704,11 @@ unsafe fn errorUsage() -> ! {
     stg_exit(EXIT_FAILURE);
 }
 
-unsafe fn stats_fprintf(mut f: *mut FILE, mut s: *mut c_char, mut args: ...) {
-    let mut ap: VaListImpl;
-    ap = args.clone();
-
-    if f.is_null() {
-        vdebugBelch(s, ap.as_va_list());
+unsafe extern "C" fn stats_fprintf<W: io::Write>(f: Option<&mut W>, s: *const c_char, args: ...) {
+    if let Some(f) = f {
+        printf::format(s, args, printf::output::io_write(f));
     } else {
-        vfprintf(f, s, ap.as_va_list());
+        vdebugBelch(s, args);
     };
 }
 
@@ -2760,35 +2757,34 @@ unsafe fn openStatsFile(
     return 0;
 }
 
-unsafe fn stats_fprintf_escape(mut f: *mut FILE, mut s: *mut c_char) {
-    stats_fprintf(f, c"'".as_ptr());
+unsafe fn stats_fprintf_escape(f: &mut File, mut s: *const c_char) {
+    stats_fprintf(Some(f), c"'".as_ptr());
 
     while *s as i32 != '\0' as i32 {
         match *s as i32 {
             39 => {
-                stats_fprintf(f, c"'\\''".as_ptr());
+                stats_fprintf(Some(f), c"'''".as_ptr());
             }
             _ => {
-                stats_fprintf(f, c"%c".as_ptr(), *s as i32);
+                stats_fprintf(Some(f), c"%c".as_ptr(), *s as i32);
             }
         }
 
         s = s.offset(1);
     }
 
-    stats_fprintf(f, c"' ".as_ptr());
+    stats_fprintf(Some(f), c"' ".as_ptr());
 }
 
-unsafe fn initStatsFile(mut f: *mut FILE) {
+unsafe fn initStatsFile(f: &mut File) {
     let mut count: i32 = 0;
-    count = 0;
 
     while count < prog_argc {
         stats_fprintf_escape(f, *prog_argv.offset(count as isize));
         count += 1;
     }
 
-    stats_fprintf(f, c"+RTS ".as_ptr());
+    stats_fprintf(Some(f), c"+RTS ".as_ptr());
     count = 0;
 
     while count < rts_argc {
@@ -2796,25 +2792,23 @@ unsafe fn initStatsFile(mut f: *mut FILE) {
         count += 1;
     }
 
-    stats_fprintf(f, c"\n".as_ptr());
+    stats_fprintf(Some(f), c"\n".as_ptr());
 }
 
 unsafe fn decodeSize(
-    mut flag: *const c_char,
-    mut offset: u32,
-    mut min: StgWord64,
-    mut max: StgWord64,
+    flag: *const c_char,
+    offset: u32,
+    min: StgWord64,
+    max: StgWord64,
 ) -> StgWord64 {
-    let mut s = null::<c_char>();
-    let mut m: StgDouble = 0.;
-    let mut val: StgWord64 = 0;
-    s = flag.offset(offset as isize);
+    let s = flag.offset(offset as isize);
+    let mut m: StgDouble;
 
     if *s == 0 {
-        m = 0;
+        m = 0.;
     } else {
         let mut end = null_mut::<c_char>();
-        m = strtod(s, &raw mut end) as StgDouble;
+        m = libc::strtod(s, &raw mut end) as StgDouble;
 
         if end == s as *mut c_char {
             errorBelch(
@@ -2826,20 +2820,17 @@ unsafe fn decodeSize(
             stg_exit(EXIT_FAILURE);
         }
 
-        let mut unit: StgWord64 = 0;
+        let unit: StgWord64;
 
         match *end as i32 {
             116 | 84 => {
-                unit = (1024 as i32 as StgWord64)
-                    .wrapping_mul(1024 as StgWord64)
-                    .wrapping_mul(1024 as StgWord64)
-                    .wrapping_mul(1024 as StgWord64);
+                unit = 1024 * 1024 * 1024 * 1024;
             }
             103 | 71 => {
-                unit = (1024 * 1024 * 1024) as StgWord64;
+                unit = 1024 * 1024 * 1024;
             }
             109 | 77 => {
-                unit = (1024 * 1024) as StgWord64;
+                unit = 1024 * 1024;
             }
             107 | 75 => {
                 unit = 1024;
@@ -2864,9 +2855,9 @@ unsafe fn decodeSize(
         m *= unit as StgDouble;
     }
 
-    val = m as StgWord64;
+    let val = m as StgWord64;
 
-    if m < 0 || val < min || val > max {
+    if m < 0.0 || val < min || val > max {
         errorBelch(
             c"error in RTS option %s: size outside allowed range (%llu - %llu)".as_ptr(),
             flag,
@@ -2880,19 +2871,20 @@ unsafe fn decodeSize(
     return val;
 }
 
-unsafe fn parseDouble(mut arg: *const c_char, mut error: *mut bool) -> f64 {
+unsafe fn parseDouble(arg: *const c_char, error: *mut bool) -> f64 {
     let mut endptr = null_mut::<c_char>();
-    let mut out: f64 = 0.;
-    *__error() = 0;
-    out = strtod(arg, &raw mut endptr);
 
-    if *__error() != 0 || endptr == arg as *mut c_char {
+    let out: f64 = libc::strtod(arg, &raw mut endptr);
+
+    set_errno(Errno(0));
+
+    if errno().0 != 0 || endptr == arg as *mut c_char {
         *error = true;
 
         return out;
     }
 
-    while isspace(*endptr as u8 as i32) != 0 {
+    while libc::isspace(*endptr as u8 as i32) != 0 {
         endptr = endptr.offset(1);
     }
 
@@ -2903,9 +2895,8 @@ unsafe fn parseDouble(mut arg: *const c_char, mut error: *mut bool) -> f64 {
     return out;
 }
 
-unsafe fn read_debug_flags(mut arg: *const c_char) {
-    let mut c = null::<c_char>();
-    c = arg.offset(2);
+unsafe fn read_debug_flags(arg: *const c_char) {
+    let mut c = arg.offset(2);
 
     while *c as i32 != '\0' as i32 {
         match *c as i32 {
@@ -2990,9 +2981,9 @@ unsafe fn read_debug_flags(mut arg: *const c_char) {
     }
 }
 
-unsafe fn read_heap_profiling_flag(mut arg: *const c_char) -> bool {
+unsafe fn read_heap_profiling_flag(arg: *const c_char) -> bool {
     let mut error = false;
-    let mut current_block_31: u64;
+    let current_block_31: u64;
 
     match *arg.offset(2) as i32 {
         0 => {
@@ -3013,8 +3004,8 @@ unsafe fn read_heap_profiling_flag(mut arg: *const c_char) -> bool {
     match current_block_31 {
         6028434607431139856 => {
             if *arg.offset(2) as i32 != '\0' as i32 && *arg.offset(3) as i32 != '\0' as i32 {
-                let mut left: *const c_char = strchr(arg, '{' as i32);
-                let mut right: *const c_char = strrchr(arg, '}' as i32);
+                let mut left: *const c_char = libc::strchr(arg, '{' as i32);
+                let mut right: *const c_char = libc::strrchr(arg, '}' as i32);
 
                 if !left.is_null() {
                     left = left.offset(1);
@@ -3023,10 +3014,10 @@ unsafe fn read_heap_profiling_flag(mut arg: *const c_char) -> bool {
                 }
 
                 if right.is_null() {
-                    right = arg.offset(strlen(arg) as isize);
+                    right = arg.offset(libc::strlen(arg) as isize);
                 }
 
-                let mut selector = stgStrndup(left, (right.offset_from(left) as i64 + 1) as usize);
+                let selector = stgStrndup(left, (right.offset_from(left) as i64 + 1) as usize);
 
                 match *arg.offset(2) as i32 {
                     99 => {
@@ -3052,7 +3043,7 @@ unsafe fn read_heap_profiling_flag(mut arg: *const c_char) -> bool {
                     }
                     69 | 101 => {
                         RtsFlags.ProfFlags.eraSelector =
-                            strtoul(selector, NULL as *mut *mut c_char, 10) as StgWord;
+                            libc::strtoul(selector, null_mut::<*mut c_char>(), 10) as StgWord;
                     }
                     _ => {
                         stgFree(selector as *mut c_void);
@@ -3100,8 +3091,8 @@ unsafe fn read_heap_profiling_flag(mut arg: *const c_char) -> bool {
     return error;
 }
 
-unsafe fn read_trace_flags(mut arg: *const c_char) {
-    let mut c = null::<c_char>();
+unsafe fn read_trace_flags(arg: *const c_char) {
+    let mut c;
     let mut enabled = true;
     RtsFlags.TraceFlags.scheduler = true;
     RtsFlags.TraceFlags.gc = true;
@@ -3166,35 +3157,34 @@ unsafe fn read_trace_flags(mut arg: *const c_char) {
     }
 }
 
-unsafe fn bad_option(mut s: *const c_char) -> ! {
+unsafe fn bad_option(s: *const c_char) -> ! {
     errorBelch(c"bad RTS option: %s".as_ptr(), s);
     stg_exit(EXIT_FAILURE);
 }
 
-unsafe fn copyArg(mut arg: *mut c_char) -> *mut c_char {
-    let mut new_arg =
-        stgMallocBytes(strlen(arg).wrapping_add(1 as usize), c"copyArg".as_ptr()) as *mut c_char;
+unsafe fn copyArg(arg: *const c_char) -> *mut c_char {
+    let new_arg = stgMallocBytes(
+        libc::strlen(arg).wrapping_add(1 as usize),
+        c"copyArg".as_ptr(),
+    ) as *mut c_char;
 
-    strcpy(new_arg, arg);
+    libc::strcpy(new_arg, arg);
 
     return new_arg;
 }
 
-unsafe fn copyArgv(mut argc: i32, mut argv: *mut *mut c_char) -> *mut *mut c_char {
-    let mut i: i32 = 0;
-    let mut new_argv = null_mut::<*mut c_char>();
-
-    new_argv = stgCallocBytes(
+unsafe fn copyArgv(argc: i32, argv: *const *const c_char) -> *const *const c_char {
+    let argc = argc as isize;
+    let mut i: isize = 0;
+    let new_argv = stgCallocBytes(
         (argc + 1) as usize,
         size_of::<*mut c_char>() as usize,
         c"copyArgv 1".as_ptr(),
-    ) as *mut *mut c_char;
-
-    i = 0;
+    ) as *const *const c_char;
 
     while i < argc {
-        let ref mut fresh0 = *new_argv.offset(i as isize);
-        *fresh0 = copyArg(*argv.offset(i as isize));
+        let fresh0 = *new_argv.offset(i);
+        *fresh0 = copyArg(*argv.offset(i));
         i += 1;
     }
 
@@ -3204,8 +3194,8 @@ unsafe fn copyArgv(mut argc: i32, mut argv: *mut *mut c_char) -> *mut *mut c_cha
     return new_argv;
 }
 
-unsafe fn freeArgv(mut argc: i32, mut argv: *mut *mut c_char) {
-    let mut i: i32 = 0;
+unsafe fn freeArgv(argc: i32, argv: *const *const c_char) {
+    let mut i: i32;
 
     if !argv.is_null() {
         i = 0;
@@ -3219,27 +3209,27 @@ unsafe fn freeArgv(mut argc: i32, mut argv: *mut *mut c_char) {
     }
 }
 
-unsafe fn setProgName(mut argv: *mut *mut c_char) {
-    let mut last_slash = null_mut::<c_char>();
-
+unsafe fn setProgName(argv: *const *const c_char) {
     if (*argv.offset(0)).is_null() {
-        prog_name = c"".as_ptr();
+        prog_name = DEFAULT_PROG_NAME;
         return;
     }
 
-    last_slash = strrchr(*argv.offset(0), '/' as i32);
+    let last_slash = libc::strrchr(*argv.offset(0), '/' as i32);
 
-    if !last_slash.is_null() {
-        prog_name = last_slash.offset(1);
+    let name = if !last_slash.is_null() {
+        last_slash.offset(1);
     } else {
-        prog_name = *argv.offset(0);
+        *argv.offset(0);
     };
+
+    prog_name = todo!();
 }
 
 #[ffi(ghc_lib, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn getProgArgv(mut argc: *mut c_int, mut argv: *mut *mut *mut c_char) {
+pub unsafe extern "C" fn getProgArgv(argc: *mut c_int, argv: *mut *const *const c_char) {
     if !argc.is_null() {
         *argc = prog_argc;
     }
@@ -3252,20 +3242,20 @@ pub unsafe extern "C" fn getProgArgv(mut argc: *mut c_int, mut argv: *mut *mut *
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn setProgArgv(mut argc: c_int, mut argv: *mut *mut c_char) {
-    freeArgv(prog_argc, prog_argv as *mut *mut c_char);
+pub unsafe extern "C" fn setProgArgv(argc: c_int, argv: *const *const c_char) {
+    freeArgv(prog_argc, prog_argv);
     prog_argc = argc;
     prog_argv = copyArgv(argc, argv);
-    setProgName(prog_argv as *mut *mut c_char);
+    setProgName(prog_argv);
 }
 
 unsafe fn freeProgArgv() {
-    freeArgv(prog_argc, prog_argv as *mut *mut c_char);
+    freeArgv(prog_argc, prog_argv);
     prog_argc = 0;
-    prog_argv = null_mut::<*mut c_char>();
+    prog_argv = null();
 }
 
-unsafe fn setFullProgArgv(mut argc: i32, mut argv: *mut *mut c_char) {
+unsafe fn setFullProgArgv(argc: i32, argv: *const *const c_char) {
     full_prog_argc = argc;
     full_prog_argv = copyArgv(argc, argv);
 }
@@ -3273,7 +3263,7 @@ unsafe fn setFullProgArgv(mut argc: i32, mut argv: *mut *mut c_char) {
 #[ffi(ghc_lib, libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn getFullProgArgv(mut argc: *mut c_int, mut argv: *mut *mut *mut c_char) {
+pub unsafe extern "C" fn getFullProgArgv(argc: *mut c_int, argv: *mut *const *const c_char) {
     if !argc.is_null() {
         *argc = full_prog_argc;
     }
@@ -3284,19 +3274,19 @@ pub unsafe extern "C" fn getFullProgArgv(mut argc: *mut c_int, mut argv: *mut *m
 }
 
 unsafe fn freeFullProgArgv() {
-    freeArgv(full_prog_argc, full_prog_argv as *mut *mut c_char);
+    freeArgv(full_prog_argc, full_prog_argv);
     full_prog_argc = 0;
-    full_prog_argv = null_mut::<*mut c_char>();
+    full_prog_argv = null();
 }
 
 unsafe fn freeRtsArgv() {
-    freeArgv(rts_argc, rts_argv as *mut *mut c_char);
+    freeArgv(rts_argc, rts_argv);
     rts_argc = 0;
-    rts_argv = null_mut::<*mut c_char>();
+    rts_argv = null();
     rts_argv_size = 0;
 }
 
-unsafe fn freeRtsArgs() {
+pub(in crate::rts_startup) unsafe fn freeRtsArgs() {
     freeFullProgArgv();
     freeProgArgv();
     freeRtsArgv();

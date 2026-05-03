@@ -17,7 +17,7 @@ use crate::ticky::PrintTickyInfo;
 #[cfg(test)]
 mod tests;
 
-unsafe fn stgMallocBytes(n: usize, msg: *const c_char) -> *mut c_void {
+pub(crate) unsafe fn stgMallocBytes(n: usize, msg: *const c_char) -> *mut c_void {
     let mut space = libc::malloc(n);
 
     if space.is_null() {
@@ -36,19 +36,18 @@ unsafe fn stgMallocBytes(n: usize, msg: *const c_char) -> *mut c_void {
     return space;
 }
 
-unsafe fn stgReallocBytes(p: *mut c_void, n: usize, msg: *const c_char) -> *mut c_void {
-    let mut space = null_mut::<c_void>();
-    space = libc::realloc(p, n);
+pub(crate) unsafe fn stgReallocBytes(p: *mut c_void, n: usize, msg: *const c_char) -> *mut c_void {
+    let mut space = libc::realloc(p, n);
 
     if space.is_null() {
-        rtsConfig.mallocFailHook.expect("non-null mallocFailHook")(n as W_, msg);
+        rtsConfig.mallocFailHook.expect("non-null mallocFailHook")(n, msg);
         stg_exit(EXIT_INTERNAL_ERROR);
     }
 
     return space;
 }
 
-unsafe fn stgCallocBytes(count: usize, size: usize, msg: *const c_char) -> *mut c_void {
+pub(crate) unsafe fn stgCallocBytes(count: usize, size: usize, msg: *const c_char) -> *mut c_void {
     let mut space = null_mut::<c_void>();
     space = libc::calloc(count, size);
 
@@ -64,7 +63,7 @@ unsafe fn stgCallocBytes(count: usize, size: usize, msg: *const c_char) -> *mut 
     return space;
 }
 
-unsafe fn stgStrndup(s: *const c_char, n: usize) -> *const c_char {
+pub(crate) unsafe fn stgStrndup(s: *const c_char, n: usize) -> *const c_char {
     let l = libc::strnlen(s, n);
     let d = stgMallocBytes(l.wrapping_add(1 as usize), c"stgStrndup".as_ptr()) as *mut c_char;
 
@@ -78,7 +77,7 @@ unsafe fn stgStrndup(s: *const c_char, n: usize) -> *const c_char {
     return d;
 }
 
-unsafe fn stgFree(p: *mut c_void) {
+pub(crate) unsafe fn stgFree(p: *mut c_void) {
     libc::free(p);
 }
 
@@ -282,7 +281,7 @@ unsafe fn mkRtsInfoPair(key: *const c_char, val: *const c_char) {
     libc::printf(c" ,(\"%s\", \"%s\")\n".as_ptr(), key, val);
 }
 
-unsafe fn printRtsInfo(rts_config: RtsConfig) {
+pub(crate) unsafe fn printRtsInfo(rts_config: RtsConfig) {
     libc::printf(c" [(\"GHC RTS\", \"YES\")\n".as_ptr());
     mkRtsInfoPair(
         c"GHC version".as_ptr(),

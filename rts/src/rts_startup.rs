@@ -4,7 +4,6 @@ use crate::capability::getCapability;
 use crate::check_vector_support::setVectorSupport;
 use crate::eventlog::event_log::{finishCapEventLogging, postInitEvent};
 use crate::ffi::rts::hpc::{exitHpc, startupHpc};
-use crate::ffi::rts::messages::errorBelch;
 use crate::ffi::rts::os_threads::freeThreadingResources;
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::stable_ptr::getStablePtr;
@@ -33,6 +32,7 @@ use crate::rts_api::{
 };
 use crate::rts_flags::RtsFlags;
 use crate::rts_flags::{freeRtsArgs, initRtsFlagsDefaults, rtsConfig, setupRtsFlags};
+use crate::rts_messages::errorBelch;
 use crate::rts_signals::{
     freeSignalHandlers, initDefaultHandlers, initUserSignals, resetDefaultHandlers,
 };
@@ -54,6 +54,8 @@ use crate::trace::{
 };
 use crate::weak::runAllCFinalizers;
 use std::process;
+
+pub use libc::EXIT_FAILURE;
 
 #[cfg(test)]
 mod tests;
@@ -297,10 +299,11 @@ unsafe fn hs_exit_(mut wait_foreign: bool) {
         PrintTickyInfo();
     }
 
-    let mut tf = RtsFlags.TickyFlags.tickyFile;
-
-    if !tf.is_null() {
-        fclose(tf);
+    if let Some(f) = RtsFlags.TickyFlags.tickyFile.take() {
+        if let Err(err) = f.sync_all() {
+            let err = todo!("convert err to C string");
+            errorBelch(c"error syncing ticky file: %s".as_ptr(), err);
+        }
     }
 
     exitIOManager(wait_foreign);
@@ -344,7 +347,7 @@ unsafe fn shutdownHaskell() {
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn shutdownHaskellAndExit(mut n: c_int, mut fastExit: c_int) -> ! {
+pub unsafe extern "C" fn shutdownHaskellAndExit(n: c_int, fastExit: c_int) -> ! {
     if fastExit == 0 {
         hs_exit_(false);
     }
@@ -354,7 +357,7 @@ pub unsafe extern "C" fn shutdownHaskellAndExit(mut n: c_int, mut fastExit: c_in
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn shutdownHaskellAndSignal(mut sig: c_int, mut fastExit: c_int) -> ! {
+pub unsafe extern "C" fn shutdownHaskellAndSignal(sig: c_int, fastExit: c_int) -> ! {
     if fastExit == 0 {
         hs_exit_(false);
     }
@@ -383,16 +386,18 @@ unsafe fn exitBySignal(sig: i32) -> ! {
 
     match sig {
         SIGSTOP | SIGTSTP | SIGTTIN | SIGTTOU | SIGCONT => {
-            exit(0xff);
+            process::exit(0xff);
         }
         _ => {
             kill(getpid(), sig);
-            exit(0xff);
+            process::exit(0xff);
         }
     };
 }
 
-static mut exitFn: Option<extern "C" fn(c_int) -> ()> = None;
+#[ffi]
+#[unsafe(no_mangle)]
+pub static mut exitFn: Option<extern "C" fn(c_int) -> ()> = None;
 
 #[ffi(ghc_lib, utils)]
 #[unsafe(no_mangle)]

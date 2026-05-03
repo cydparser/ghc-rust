@@ -156,7 +156,7 @@ unsafe fn flushEventLogFileNoop() {}
 
 unsafe fn stopEventLogFileWriterNoop() {}
 
-static mut FileEventLogWriter: EventLogWriter = unsafe {
+pub(in crate::rts_flags) static mut FileEventLogWriter: EventLogWriter = unsafe {
     EventLogWriter {
         initEventLogWriter: Some(initEventLogFileWriter as unsafe extern "C" fn() -> ()),
         writeEventLog: Some(writeEventLogFile as unsafe extern "C" fn(*mut c_void, usize) -> bool),
