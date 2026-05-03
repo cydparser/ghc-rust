@@ -10,7 +10,7 @@ use crate::ffi::rts::storage::m_block::{mblocks_allocated, peak_mblocks_allocate
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::time::Time;
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time, getProcessElapsedTime};
-use crate::ffi::rts::{_assertFail, _warnFail};
+use crate::ffi::rts::{_assertFail, rts_assert_warn};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{StgInt, StgWord, StgWord64};
 use crate::get_time::{getCurrentThreadCPUTime, getPageFaults, getProcessTimes};
@@ -1918,16 +1918,12 @@ unsafe fn stat_exitReport() {
         let mut exit_gc_cpu: Time = stats.gc_cpu_ns - start_exit_gc_cpu;
         let mut exit_gc_elapsed: Time = stats.gc_elapsed_ns - start_exit_gc_elapsed;
 
-        if !((exit_gc_elapsed > 0) as i32 as i64 != 0) {
-            _warnFail(c"rts/Stats.c".as_ptr(), 1281);
-        }
+        rts_assert_warn!(exit_gc_elapsed > 0);
 
         sum.exit_cpu_ns = end_exit_cpu - start_exit_cpu - exit_gc_cpu;
         sum.exit_elapsed_ns = end_exit_elapsed - start_exit_elapsed - exit_gc_elapsed;
 
-        if !((sum.exit_elapsed_ns >= 0) as i32 as i64 != 0) {
-            _warnFail(c"rts/Stats.c".as_ptr(), 1290);
-        }
+        rts_assert_warn!(sum.exit_elapsed_ns >= 0);
 
         stats.mutator_cpu_ns = start_exit_cpu
             - end_init_cpu
@@ -1936,39 +1932,33 @@ unsafe fn stat_exitReport() {
         stats.mutator_elapsed_ns =
             start_exit_elapsed - end_init_elapsed - (stats.gc_elapsed_ns - exit_gc_elapsed);
 
-        if !((stats.mutator_elapsed_ns >= 0) as i32 as i64 != 0) {
-            _warnFail(c"rts/Stats.c".as_ptr(), 1300);
-        }
+        rts_assert_warn!(stats.mutator_elapsed_ns >= 0);
 
         if stats.mutator_cpu_ns < 0 {
             stats.mutator_cpu_ns = 0;
         }
 
-        if !((stats.init_elapsed_ns
-            + stats.mutator_elapsed_ns
-            + stats.gc_elapsed_ns
-            + sum.exit_elapsed_ns
-            == end_exit_elapsed - start_init_elapsed) as i32 as i64
-            != 0)
-        {
-            _warnFail(c"rts/Stats.c".as_ptr(), 1312);
-        }
+        rts_assert_warn!(
+            stats.init_elapsed_ns
+                + stats.mutator_elapsed_ns
+                + stats.gc_elapsed_ns
+                + sum.exit_elapsed_ns
+                == end_exit_elapsed - start_init_elapsed
+        );
 
         let mut prof_cpu: Time = sum.rp_cpu_ns + sum.hc_cpu_ns;
         let mut prof_elapsed: Time = sum.rp_elapsed_ns + sum.hc_elapsed_ns;
         stats.gc_cpu_ns -= prof_cpu;
         stats.gc_elapsed_ns -= prof_elapsed;
 
-        if !((stats.init_elapsed_ns
-            + stats.mutator_elapsed_ns
-            + stats.gc_elapsed_ns
-            + sum.exit_elapsed_ns
-            + (sum.rp_elapsed_ns + sum.hc_elapsed_ns)
-            == end_exit_elapsed - start_init_elapsed) as i32 as i64
-            != 0)
-        {
-            _warnFail(c"rts/Stats.c".as_ptr(), 1330);
-        }
+        rts_assert_warn!(
+            stats.init_elapsed_ns
+                + stats.mutator_elapsed_ns
+                + stats.gc_elapsed_ns
+                + sum.exit_elapsed_ns
+                + (sum.rp_elapsed_ns + sum.hc_elapsed_ns)
+                == end_exit_elapsed - start_init_elapsed
+        );
 
         let mut tot_alloc_bytes: u64 = calcTotalAllocated().wrapping_mul(size_of::<W_>() as u64);
         stats.gc.allocated_bytes = tot_alloc_bytes.wrapping_sub(stats.allocated_bytes);
@@ -2055,18 +2045,16 @@ unsafe fn stat_exitReport() {
             (stats.cpu_ns - stats.gc_cpu_ns - stats.init_cpu_ns - sum.exit_cpu_ns) as f64
                 / TIME_RESOLUTION as f64
                 / (stats.cpu_ns as f64 / TIME_RESOLUTION as f64);
-        if !((sum.productivity_cpu_percent >= 0) as i32 as i64 != 0) {
-            _warnFail(c"rts/Stats.c".as_ptr(), 1407);
-        }
+
+        rts_assert_warn!(sum.productivity_cpu_percent >= 0);
 
         sum.productivity_elapsed_percent =
             (stats.elapsed_ns - stats.gc_elapsed_ns - stats.init_elapsed_ns - sum.exit_elapsed_ns)
                 as f64
                 / TIME_RESOLUTION as f64
                 / (stats.elapsed_ns as f64 / TIME_RESOLUTION as f64);
-        if !((sum.productivity_elapsed_percent >= 0) as i32 as i64 != 0) {
-            _warnFail(c"rts/Stats.c".as_ptr(), 1416);
-        }
+
+        rts_assert_warn!(sum.productivity_elapsed_percent >= 0);
 
         let mut g: u32 = 0;
 

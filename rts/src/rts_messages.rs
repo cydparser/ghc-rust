@@ -65,12 +65,28 @@ pub unsafe extern "C" fn errorBelch(s: *const c_char, args: ...) {
     errorMsgFn.expect("non-null errorMsgFn")(s, args);
 }
 
-unsafe fn _warnFail(filename: *const c_char, linenum: u32) {
-    errorBelch(
-        c"ASSERTION FAILED: file %s, line %u\n".as_ptr(),
-        filename,
-        linenum,
-    );
+pub(crate) fn errorBelch0(s: &CStr) {
+    unsafe { errorBelch(s.as_ptr()) }
+}
+
+macro_rules! rts_assert_warn {
+    ($cond:expr) => {
+        if !($cond) {
+            $crate::rts_messages::_warnFail(concat!(file!(), "\0").as_ptr().cast(), line!())
+        }
+    };
+}
+
+pub(crate) use rts_assert_warn;
+
+fn _warnFail(filename: *const c_char, linenum: u32) {
+    unsafe {
+        errorBelch(
+            c"ASSERTION FAILED: file %s, line %u\n".as_ptr(),
+            filename,
+            linenum,
+        );
+    }
 }
 
 unsafe fn verrorBelch(s: *const c_char, ap: VaList) {
