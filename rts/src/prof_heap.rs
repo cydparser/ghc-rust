@@ -41,7 +41,7 @@ use crate::retainer_profile::{
 };
 use crate::retainer_set::{RetainerSet, printRetainerSetShort, retainer, rs_MANY};
 use crate::rts_api::RtsOptsAll;
-use crate::rts_flags::rtsConfig;
+use crate::rts_flags::get_rts_config;
 use crate::rts_flags::{HEAP_BY_LDV, RtsFlags, rts_argc, rts_argv};
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes, time_str};
 use crate::sm::gc_thread::{gc_threads, gen_workspace};
@@ -394,8 +394,10 @@ unsafe fn nextEra() {
         if era as u32 == max_era {
             errorBelch(c"Maximum number of censuses reached.".as_ptr());
 
-            if rtsConfig.rts_opts_suggestions == true {
-                if rtsConfig.rts_opts_enabled as u32 == RtsOptsAll as i32 as u32 {
+            let rts_config = get_rts_config();
+
+            if rts_config.rts_opts_suggestions {
+                if rts_config.rts_opts_enabled == RtsOptsAll {
                     errorBelch(c"Use `+RTS -i' to reduce censuses.".as_ptr());
                 } else {
                     errorBelch(

@@ -17,7 +17,7 @@ use crate::get_time::{getCurrentThreadCPUTime, getPageFaults, getProcessTimes};
 use crate::prelude::*;
 use crate::profiling::prof_file;
 use crate::rts_flags::{
-    NO_GC_STATS, ONELINE_GC_STATS, RtsFlags, SUMMARY_GC_STATS, VERBOSE_GC_STATS, rtsConfig,
+    NO_GC_STATS, ONELINE_GC_STATS, RtsFlags, SUMMARY_GC_STATS, VERBOSE_GC_STATS, get_rts_config,
 };
 use crate::rts_utils::{showStgWord64, stgFree, stgMallocBytes};
 use crate::sm::block_alloc::{hw_alloc_blocks, n_alloc_blocks};
@@ -649,7 +649,7 @@ unsafe fn stat_endNonmovingGcSync() {
 
 unsafe fn stat_startGCWorker(mut cap: *mut Capability, mut gct: *mut gc_thread) {
     let mut stats_enabled =
-        RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32 || rtsConfig.gcDoneHook.is_some();
+        RtsFlags.GcFlags.giveStats != NO_GC_STATS || get_rts_config().gcDoneHook.is_some();
 
     if stats_enabled as i32 != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
         (*gct).gc_start_cpu = getCurrentThreadCPUTime();
@@ -658,7 +658,7 @@ unsafe fn stat_startGCWorker(mut cap: *mut Capability, mut gct: *mut gc_thread) 
 
 unsafe fn stat_endGCWorker(mut cap: *mut Capability, mut gct: *mut gc_thread) {
     let mut stats_enabled =
-        RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32 || rtsConfig.gcDoneHook.is_some();
+        RtsFlags.GcFlags.giveStats != NO_GC_STATS || get_rts_config().gcDoneHook.is_some();
 
     if stats_enabled as i32 != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
         (*gct).gc_end_cpu = getCurrentThreadCPUTime();
@@ -676,7 +676,7 @@ unsafe fn stat_startGC(mut cap: *mut Capability, mut gct: *mut gc_thread) {
     }
 
     let mut stats_enabled =
-        RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32 || rtsConfig.gcDoneHook.is_some();
+        RtsFlags.GcFlags.giveStats != NO_GC_STATS || get_rts_config().gcDoneHook.is_some();
 
     if stats_enabled as i32 != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
         (*gct).gc_start_cpu = getCurrentThreadCPUTime();
@@ -722,6 +722,8 @@ unsafe fn stat_endGC(
         );
     }
 
+    let rts_config = get_rts_config();
+
     stats.gc.r#gen = r#gen;
     stats.gc.threads = par_n_threads;
 
@@ -743,7 +745,7 @@ unsafe fn stat_endGC(
         .wrapping_mul(BLOCK_SIZE as W_) as u64;
 
     let mut stats_enabled =
-        RtsFlags.GcFlags.giveStats != NO_GC_STATS as u32 || rtsConfig.gcDoneHook.is_some();
+        RtsFlags.GcFlags.giveStats != NO_GC_STATS || rts_config.gcDoneHook.is_some();
 
     if stats_enabled as i32 != 0 || RtsFlags.ProfFlags.doHeapProfile != 0 {
         let mut current_cpu: Time = 0;
@@ -881,8 +883,8 @@ unsafe fn stat_endGC(
             statsFlush();
         }
 
-        if rtsConfig.gcDoneHook.is_some() {
-            rtsConfig.gcDoneHook.expect("non-null function pointer")(&raw mut stats.gc);
+        if rts_config.gcDoneHook.is_some() {
+            rts_config.gcDoneHook.expect("non-null function pointer")(&raw mut stats.gc);
         }
 
         traceEventHeapSize(

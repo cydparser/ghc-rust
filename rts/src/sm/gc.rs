@@ -49,7 +49,7 @@ use crate::proftimer::performTickySample;
 use crate::retainer_profile::{g_retainerTraverseState, retainerStackBlocks};
 use crate::rts_api::{_RTSStats, GCDetails_, getRTSStats};
 use crate::rts_flags::RtsFlags;
-use crate::rts_flags::rtsConfig;
+use crate::rts_flags::get_rts_config;
 use crate::rts_flags::{HEAP_BY_LDV, HEAP_BY_RETAINER, RtsFlags};
 use crate::rts_utils::{
     stgFree, stgFreeAligned, stgMallocAlignedBytes, stgMallocBytes, stgReallocBytes,
@@ -1895,6 +1895,8 @@ unsafe fn waitForGcThreads(mut cap: *mut Capability, mut idle_cap: *mut bool) {
         );
     }
 
+    let rts_config = get_rts_config();
+
     loop {
         cur_n_gc_entered = (&raw mut n_gc_entered).load(Ordering::SeqCst) as u32;
 
@@ -1939,7 +1941,7 @@ unsafe fn waitForGcThreads(mut cap: *mut Capability, mut idle_cap: *mut bool) {
                 );
             }
 
-            rtsConfig.longGCSync.expect("non-null function pointer")((*cap).no, t2 - t0);
+            rts_config.longGCSync.expect("non-null longGCSync")((*cap).no, t2 - t0);
             t1 = t2;
 
             let mut __r_0 = pthread_mutex_lock(&raw mut gc_entry_mutex);
@@ -1964,7 +1966,7 @@ unsafe fn waitForGcThreads(mut cap: *mut Capability, mut idle_cap: *mut bool) {
     }
 
     if RtsFlags.GcFlags.longGCSync != 0 && t2 - t0 > RtsFlags.GcFlags.longGCSync {
-        rtsConfig.longGCSyncEnd.expect("non-null function pointer")(t2 - t0);
+        rts_config.longGCSyncEnd.expect("non-null longGCSyncEnd")(t2 - t0);
     }
 }
 

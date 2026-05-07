@@ -31,7 +31,7 @@ use crate::rts_api::{
     setFullProgArgv,
 };
 use crate::rts_flags::RtsFlags;
-use crate::rts_flags::{freeRtsArgs, initRtsFlagsDefaults, rtsConfig, setupRtsFlags};
+use crate::rts_flags::{freeRtsArgs, get_rts_config, initRtsFlagsDefaults, setupRtsFlags};
 use crate::rts_messages::errorBelch;
 use crate::rts_signals::{
     freeSignalHandlers, initDefaultHandlers, initUserSignals, resetDefaultHandlers,
@@ -232,7 +232,7 @@ unsafe fn hs_exit_(mut wait_foreign: bool) {
 
     rts_shutdown = true;
     stat_startExit();
-    rtsConfig.onExitHook.expect("non-null function pointer")();
+    get_rts_config().onExitHook.expect("non-null onExitHook")();
     flushStdHandles();
     checkFPUStack();
     stopIOManager();

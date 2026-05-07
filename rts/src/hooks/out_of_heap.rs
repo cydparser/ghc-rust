@@ -3,7 +3,7 @@ use crate::ffi::stg::W_;
 use crate::hs_ffi::HsBool;
 use crate::prelude::*;
 use crate::rts_api::RtsOptsAll;
-use crate::rts_flags::rtsConfig;
+use crate::rts_flags::get_rts_config;
 
 unsafe fn OutOfHeapHook(mut request_size: W_, mut heap_size: W_) {
     if heap_size > 0 {
@@ -15,8 +15,10 @@ unsafe fn OutOfHeapHook(mut request_size: W_, mut heap_size: W_) {
             heap_size.wrapping_div((1024 as i32 * 1024 as i32) as W_),
         );
 
-        if rtsConfig.rts_opts_suggestions == true {
-            if rtsConfig.rts_opts_enabled as u32 == RtsOptsAll as i32 as u32 {
+        let rts_config = get_rts_config();
+
+        if rts_config.rts_opts_suggestions {
+            if rts_config.rts_opts_enabled == RtsOptsAll {
                 errorBelch(c"Use `+RTS -M<size>' to increase it.".as_ptr());
             } else {
                 errorBelch(

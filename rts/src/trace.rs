@@ -44,7 +44,7 @@ use crate::ffi::stg::types::{StgWord, StgWord16, StgWord32, StgWord64};
 use crate::prelude::*;
 use crate::printer::what_next_strs;
 use crate::rts_api::getFullProgArgv;
-use crate::rts_flags::rtsConfig;
+use crate::rts_flags::get_rts_config;
 use crate::rts_flags::{COLLECT_GC_STATS, NO_GC_STATS, RtsFlags, TRACE_EVENTLOG, TRACE_STDERR};
 use crate::sm::non_moving_census::NonmovingAllocCensus;
 use crate::sparks::sparkPoolSize;
@@ -550,11 +550,13 @@ unsafe fn initTracing() {
 
     initEventLogging();
 
+    let rts_config = get_rts_config();
+
     if RtsFlags.TraceFlags.tracing == TRACE_EVENTLOG && RtsFlags.TraceFlags.nullWriter as i32 != 0 {
         startEventLogging(&raw const NullEventLogWriter);
-    } else if RtsFlags.TraceFlags.tracing == TRACE_EVENTLOG && !rtsConfig.eventlog_writer.is_null()
+    } else if RtsFlags.TraceFlags.tracing == TRACE_EVENTLOG && !rts_config.eventlog_writer.is_null()
     {
-        startEventLogging(rtsConfig.eventlog_writer);
+        startEventLogging(rts_config.eventlog_writer);
     }
 }
 

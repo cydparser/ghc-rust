@@ -743,6 +743,10 @@ static mut rtsConfig: RtsConfig = RtsConfig {
     longGCSyncEnd: None,
 };
 
+pub(crate) fn get_rts_config<'a>() -> &'a RtsConfig {
+    unsafe { &rtsConfig }
+}
+
 #[ffi(compiler, docs, testsuite, utils)]
 #[unsafe(no_mangle)]
 pub static mut defaultRtsConfig: RtsConfig = unsafe {

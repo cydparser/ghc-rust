@@ -11,7 +11,7 @@ use crate::io_manager::{selectIOManager, showIOManager};
 use crate::prelude::*;
 use crate::rts_api::RtsConfig;
 use crate::rts_flags::RtsFlags;
-use crate::rts_flags::rtsConfig;
+use crate::rts_flags::get_rts_config;
 use crate::ticky::PrintTickyInfo;
 
 #[cfg(test)]
@@ -25,7 +25,9 @@ pub(crate) unsafe fn stgMallocBytes(n: usize, msg: *const c_char) -> *mut c_void
             return null_mut();
         }
 
-        rtsConfig.mallocFailHook.expect("non-null mallocFailHook")(n as W_, msg);
+        get_rts_config()
+            .mallocFailHook
+            .expect("non-null mallocFailHook")(n as W_, msg);
         stg_exit(EXIT_INTERNAL_ERROR);
     }
 
@@ -40,7 +42,9 @@ pub(crate) unsafe fn stgReallocBytes(p: *mut c_void, n: usize, msg: *const c_cha
     let mut space = libc::realloc(p, n);
 
     if space.is_null() {
-        rtsConfig.mallocFailHook.expect("non-null mallocFailHook")(n, msg);
+        get_rts_config()
+            .mallocFailHook
+            .expect("non-null mallocFailHook")(n, msg);
         stg_exit(EXIT_INTERNAL_ERROR);
     }
 
@@ -52,10 +56,9 @@ pub(crate) unsafe fn stgCallocBytes(count: usize, size: usize, msg: *const c_cha
     space = libc::calloc(count, size);
 
     if space.is_null() {
-        rtsConfig.mallocFailHook.expect("non-null mallocFailHook")(
-            (count as W_).wrapping_mul(size as W_),
-            msg,
-        );
+        get_rts_config()
+            .mallocFailHook
+            .expect("non-null mallocFailHook")((count as W_).wrapping_mul(size as W_), msg);
 
         stg_exit(EXIT_INTERNAL_ERROR);
     }
@@ -97,7 +100,9 @@ unsafe fn stgMallocAlignedBytes(
             return null_mut();
         }
 
-        rtsConfig.mallocFailHook.expect("non-null function pointer")(n as W_, msg);
+        get_rts_config()
+            .mallocFailHook
+            .expect("non-null function pointer")(n as W_, msg);
         stg_exit(EXIT_INTERNAL_ERROR);
     }
 
@@ -116,7 +121,7 @@ unsafe fn stgFreeAligned(p: *mut c_void) {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn reportStackOverflow(mut tso: *mut StgTSO) {
-    rtsConfig
+    get_rts_config()
         .stackOverflowHook
         .expect("non-null function pointer")(
         ((*tso).tot_stack_size as usize).wrapping_mul(size_of::<W_>() as usize) as W_,
@@ -131,7 +136,9 @@ pub unsafe extern "C" fn reportStackOverflow(mut tso: *mut StgTSO) {
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn reportHeapOverflow() {
-    rtsConfig.outOfHeapHook.expect("non-null function pointer")(
+    get_rts_config()
+        .outOfHeapHook
+        .expect("non-null function pointer")(
         0,
         (RtsFlags.GcFlags.maxHeapSize as W_).wrapping_mul(BLOCK_SIZE as W_),
     );
