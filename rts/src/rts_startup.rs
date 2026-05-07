@@ -1,3 +1,5 @@
+use std::process;
+
 use crate::adjustor::initAdjustors;
 use crate::builtin_closures::initBuiltinClosures;
 use crate::capability::getCapability;
@@ -53,14 +55,13 @@ use crate::trace::{
     endTracing, flushTrace, freeTracing, initTracing, traceOSProcessInfo, traceWallClockTime,
 };
 use crate::weak::runAllCFinalizers;
-use std::process;
 
 pub use libc::EXIT_FAILURE;
 
 #[cfg(test)]
 mod tests;
 
-extern "C" {
+unsafe extern "C" {
     pub(crate) fn init_ghc_hs_iface();
 }
 
@@ -288,8 +289,8 @@ unsafe fn hs_exit_(mut wait_foreign: bool) {
     endProfiling();
     freeProfiling();
 
-    if !prof_file.is_null() {
-        fclose(prof_file);
+    if let Some(file) = prof_file.take() {
+        file.close();
     }
 
     endTracing();
@@ -315,8 +316,7 @@ unsafe fn hs_exit_(mut wait_foreign: bool) {
 }
 
 unsafe fn flushStdHandles() {
-    let mut cap = null_mut::<Capability>();
-    cap = rts_lock();
+    let mut cap = rts_lock();
 
     rts_evalIO(
         &raw mut cap,

@@ -203,7 +203,7 @@ unsafe fn logCostCentreStack(mut prof_file: *mut FILE, mut ccs: *const CostCentr
 }
 
 unsafe fn writeCCSReportJson(
-    mut prof_file: *mut FILE,
+    prof_file: &mut File,
     mut stack: *const CostCentreStack,
     mut totals: ProfilerTotals,
 ) {

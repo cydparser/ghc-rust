@@ -31,6 +31,7 @@ use crate::io_manager::CapIOManager;
 use crate::io_manager::{initCapabilityIOManager, markCapabilityIOManager, stopIOManager};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::rts_assert;
 use crate::rts_utils::{stgFree, stgFreeAligned, stgMallocAlignedBytes, stgMallocBytes};
 use crate::schedule::{
     ACTIVITY_INACTIVE, SCHED_INTERRUPTING, SCHED_SHUTTING_DOWN, emptyRunQueue, getRecentActivity,
@@ -446,7 +447,7 @@ static mut last_free_capability: [AtomicPtr<Capability>; MAX_NUMA_NODES] =
 
 static mut pending_sync: AtomicPtr<PendingSync> = AtomicPtr::new(null_mut());
 
-static mut n_numa_nodes: u32 = 0;
+pub(crate) static mut n_numa_nodes: u32 = 0;
 
 static mut numa_map: [u32; 16] = [0; 16];
 
@@ -568,10 +569,7 @@ unsafe fn newReturningTask(mut cap: *mut Capability, mut task: *mut Task) {
         _assertFail(c"rts/Capability.c".as_ptr(), 209);
     }
 
-    if (*task).next.is_null() as i32 as i64 != 0 {
-    } else {
-        _assertFail(c"rts/Capability.c".as_ptr(), 210);
-    }
+    rts_assert!(!(*task).next.is_null());
 
     if !(*cap).returning_tasks_hd.is_null() {
         if (*(*cap).returning_tasks_tl).next.is_null() as i32 as i64 != 0 {

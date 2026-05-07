@@ -720,14 +720,14 @@ pub unsafe extern "C" fn newCAF(
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setKeepCAFs() {
-    keepCAFs = 1 != 0;
+    keepCAFs = true;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn setHighMemDynamic() {
-    highMemDynamic = 1 != 0;
+    highMemDynamic = true;
 }
 
 unsafe fn newRetainedCAF(mut reg: *mut StgRegTable, mut caf: *mut StgIndStatic) -> *mut StgInd {

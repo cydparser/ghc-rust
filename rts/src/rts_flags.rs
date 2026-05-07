@@ -29,7 +29,7 @@ use crate::rts_utils::{
 };
 use crate::sm::os_mem::{getPhysicalMemorySize, osBuiltWithNumaSupport, osNumaAvailable};
 use crate::time::{Time, fsecondsToTime};
-use crate::utils::str::{Str0, String0, ptr_to_str};
+use crate::utils::str::{Str0, String0};
 
 #[cfg(test)]
 mod tests;
@@ -257,19 +257,19 @@ pub type PROFILING_FLAGS = _PROFILING_FLAGS;
 /// cbindgen:no-export
 #[repr(C)]
 pub struct _TRACE_FLAGS {
-    tracing: u32,
-    timestamp: bool,
-    scheduler: bool,
-    gc: bool,
-    nonmoving_gc: bool,
-    sparks_sampled: bool,
-    sparks_full: bool,
-    ticky: bool,
-    user: bool,
-    eventlogFlushTime: Time,
-    eventlogFlushTicks: i32,
-    trace_output: *mut c_char,
-    nullWriter: bool,
+    pub(crate) tracing: u32,
+    pub(crate) timestamp: bool,
+    pub(crate) scheduler: bool,
+    pub(crate) gc: bool,
+    pub(crate) nonmoving_gc: bool,
+    pub(crate) sparks_sampled: bool,
+    pub(crate) sparks_full: bool,
+    pub(crate) ticky: bool,
+    pub(crate) user: bool,
+    pub(crate) eventlogFlushTime: Time,
+    pub(crate) eventlogFlushTicks: i32,
+    pub(crate) trace_output: *mut c_char,
+    pub(crate) nullWriter: bool,
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -374,19 +374,19 @@ impl Arbitrary for _IO_MANAGER_FLAG {
 #[repr(C)]
 #[cfg_attr(test, derive(Clone))]
 pub struct _MISC_FLAGS {
-    tickInterval: Time,
-    install_signal_handlers: bool,
-    install_seh_handlers: bool,
-    generate_dump_file: bool,
-    generate_stack_trace: bool,
-    machineReadable: bool,
-    disableDelayedOsMemoryReturn: bool,
-    internalCounters: bool,
-    linkerAlwaysPic: bool,
-    linkerOptimistic: bool,
-    linkerMemBase: StgWord,
-    ioManager: IO_MANAGER_FLAG,
-    numIoWorkerThreads: u32,
+    pub(crate) tickInterval: Time,
+    pub(crate) install_signal_handlers: bool,
+    pub(crate) install_seh_handlers: bool,
+    pub(crate) generate_dump_file: bool,
+    pub(crate) generate_stack_trace: bool,
+    pub(crate) machineReadable: bool,
+    pub(crate) disableDelayedOsMemoryReturn: bool,
+    pub(crate) internalCounters: bool,
+    pub(crate) linkerAlwaysPic: bool,
+    pub(crate) linkerOptimistic: bool,
+    pub(crate) linkerMemBase: StgWord,
+    pub(crate) ioManager: IO_MANAGER_FLAG,
+    pub(crate) numIoWorkerThreads: u32,
 }
 
 #[cfg(test)]
@@ -718,7 +718,7 @@ static mut full_prog_argc: u32 = 0;
 
 static mut full_prog_argv: *const *const c_char = null::<*const c_char>();
 
-pub(crate) static mut prog_name: Option<String0> = None;
+static mut prog_name: Option<String0> = None;
 
 static mut rts_argc: u32 = 0;
 
@@ -1212,9 +1212,9 @@ unsafe fn errorRtsOptsDisabled(mut s: *const c_char) {
 }
 
 pub(in crate::rts_startup) unsafe fn setupRtsFlags(
-    mut argc: *mut i32,
-    mut argv: *const *const c_char,
-    mut rts_config: RtsConfig,
+    argc: *mut i32,
+    argv: *const *const c_char,
+    rts_config: RtsConfig,
 ) {
     let mut mode: u32 = 0;
     let mut total_arg: u32 = *argc as u32;

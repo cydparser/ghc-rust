@@ -5,7 +5,7 @@
 #![warn(clippy::undocumented_unsafe_blocks)]
 
 mod adjustor;
-mod capability;
+pub(crate) mod capability;
 mod config;
 mod prelude;
 pub(crate) mod rts_flags;

@@ -2201,7 +2201,7 @@ unsafe fn flushLocalEventsBuf(mut cap: *mut Capability) {
     printAndClearEventBuf(eb);
 }
 
-unsafe fn flushAllCapsEventsBufs() {
+pub(crate) unsafe fn flushAllCapsEventsBufs() {
     if event_log_writer.is_null() {
         return;
     }

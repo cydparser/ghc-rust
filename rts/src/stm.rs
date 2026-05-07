@@ -653,7 +653,7 @@ unsafe fn merge_update_into(
             s = (*e).tvar;
 
             if s == tvar {
-                found = 1 != 0;
+                found = true;
 
                 if (*e).expected_value != expected_value {
                     if 1 != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {
@@ -725,7 +725,7 @@ unsafe fn merge_read_into(
                     as *mut TRecEntry;
 
                 if (*e).tvar == tvar {
-                    found = 1 != 0;
+                    found = true;
 
                     if (*e).expected_value != expected_value {
                         if 1 != 0 && RtsFlags.DebugFlags.stm as i64 != 0 {

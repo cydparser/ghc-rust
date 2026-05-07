@@ -45,7 +45,7 @@ static mut DUMPED_CC_ID: u32 = 0;
 
 static mut prof_filename: *mut c_char = null_mut::<c_char>();
 
-static mut prof_file: *mut FILE = null_mut::<FILE>();
+static mut prof_file: Option<&mut File> = None;
 
 static mut CC_LIST: *mut CostCentre = null_mut::<CostCentre>();
 
