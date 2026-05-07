@@ -398,7 +398,10 @@ fn sys_TRACE_STDERR_layout() {
 #[cfg(feature = "sys")]
 #[test]
 fn sys__GC_FLAGS_layout() {
-    assert_eq!(size_of::<*mut FILE>(), size_of::<*mut sys::FILE>());
+    assert_eq!(
+        size_of::<Option<&'static mut File>>(),
+        size_of::<*mut sys::FILE>()
+    );
     assert_eq!(
         offset_of!(_GC_FLAGS, statsFile),
         offset_of!(sys::_GC_FLAGS, statsFile)
@@ -831,9 +834,9 @@ fn test_getProgArgv() {
 
     let actual = {
         let mut argc: i32 = Arbitrary::arbitrary(g);
-        let mut argv: c_char = Arbitrary::arbitrary(g);
-        let mut argv = &raw mut argv;
-        let mut argv = &raw mut argv;
+        let argv: c_char = Arbitrary::arbitrary(g);
+        let argv = &raw const argv;
+        let mut argv = &raw const argv;
         unsafe { getProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
@@ -858,9 +861,9 @@ fn equivalent_getProgArgv(argc: i32, argv: c_char) -> bool {
 
     let actual = {
         let mut argc = argc;
-        let mut argv = argv;
-        let mut argv = &raw mut argv;
-        let mut argv = &raw mut argv;
+        let argv = argv;
+        let argv = &raw const argv;
+        let mut argv = &raw const argv;
         unsafe { getProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
@@ -876,8 +879,8 @@ fn test_setProgArgv() {
 
     let actual = {
         let argc: i32 = Arbitrary::arbitrary(g);
-        let mut argv: c_char = Arbitrary::arbitrary(g);
-        let mut argv = &raw mut argv;
+        let argv: c_char = Arbitrary::arbitrary(g);
+        let mut argv = &raw const argv;
         unsafe { setProgArgv(argc, &raw mut argv) };
         todo!()
     };
@@ -900,7 +903,7 @@ fn equivalent_setProgArgv(argc: i32, argv: c_char) -> bool {
 
     let actual = {
         let mut argv = argv;
-        let mut argv = &raw mut argv;
+        let mut argv = &raw const argv;
         unsafe { setProgArgv(argc, &raw mut argv) };
         todo!()
     };
@@ -916,9 +919,9 @@ fn test_getFullProgArgv() {
 
     let actual = {
         let mut argc: i32 = Arbitrary::arbitrary(g);
-        let mut argv: c_char = Arbitrary::arbitrary(g);
-        let mut argv = &raw mut argv;
-        let mut argv = &raw mut argv;
+        let argv: c_char = Arbitrary::arbitrary(g);
+        let argv = &raw const argv;
+        let mut argv = &raw const argv;
         unsafe { getFullProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
@@ -943,9 +946,9 @@ fn equivalent_getFullProgArgv(argc: i32, argv: c_char) -> bool {
 
     let actual = {
         let mut argc = argc;
-        let mut argv = argv;
-        let mut argv = &raw mut argv;
-        let mut argv = &raw mut argv;
+        let argv = argv;
+        let argv = &raw const argv;
+        let mut argv = &raw const argv;
         unsafe { getFullProgArgv(&raw mut argc, &raw mut argv) };
         todo!()
     };
