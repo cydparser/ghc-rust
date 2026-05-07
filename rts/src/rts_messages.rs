@@ -7,15 +7,22 @@ is no console for generating messages, so they have to either go to
 to the debug console, or pop up message boxes.
 */
 
+use std::ffi::VaList;
+use std::io::Write as _;
+use std::{io, process};
+
+use errno::errno;
+use printf_compat as printf;
+#[cfg(windows)]
+use windows_sys::Win32::Foundation::HWND;
+#[cfg(windows)]
+use windows_sys::Win32::UI::WindowsAndMessaging::{MB_ICONERROR, MB_OK, MB_TASKMODAL, MessageBoxA};
+
 use crate::eventlog::event_log::flushAllCapsEventsBufs;
 use crate::ffi::ghcversion::__GLASGOW_HASKELL_FULL_VERSION__;
 use crate::ffi::rts::{EXIT_INTERNAL_ERROR, stg_exit};
 use crate::prelude::*;
-use crate::rts_flags::{RtsFlags, TRACE_EVENTLOG};
-use printf_compat as printf;
-use std::ffi::VaList;
-use std::io::Write as _;
-use std::{env, io, process};
+use crate::rts_flags::{RtsFlags, TRACE_EVENTLOG, get_prog_name};
 
 #[cfg(test)]
 mod tests;
@@ -38,6 +45,29 @@ pub static mut errorMsgFn: Option<RtsMsgFunction> = Some(rtsErrorMsgFn);
 
 #[ffi]
 pub static mut sysErrorMsgFn: Option<RtsMsgFunction> = Some(rtsSysErrorMsgFn);
+
+#[cfg(not(test))]
+macro_rules! get_handle {
+    () => {
+        io::stderr().lock()
+    };
+}
+
+#[cfg(test)]
+macro_rules! get_handle {
+    () => {
+        testing::get_handle()
+    };
+}
+
+#[cfg(test)]
+mod testing {
+    use std::io;
+
+    pub(super) fn get_handle() -> Box<dyn io::Write> {
+        todo!("Add ability to capture output in a `Vec<u8>`")
+    }
+}
 
 #[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
 #[unsafe(no_mangle)]
@@ -128,19 +158,23 @@ pub(crate) unsafe fn vdebugBelch(s: *const c_char, ap: VaList) -> i32 {
     debugMsgFn.expect("non-null debugMsgFn")(s, ap)
 }
 
+const BUFSIZE: usize = 512;
+
 fn isGUIApp() -> bool {
     #[cfg(windows)]
     {
         use windows_sys::Win32::System::Diagnostics::Debug;
         use windows_sys::Win32::System::Diagnostics::Debug::IMAGE_SUBSYSTEM_WINDOWS_GUI;
         use windows_sys::Win32::System::LibraryLoader::GetModuleHandleA;
-        use windows_sys::Win32::System::SystemServices::{IMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE};
+        use windows_sys::Win32::System::SystemServices::{
+            IMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE, IMAGE_NT_SIGNATURE,
+        };
 
         todo!("test isGUIApp on Windows");
 
         let pDOSHeader: *const IMAGE_DOS_HEADER = unsafe { GetModuleHandleA(null()).cast() };
 
-        if (*pDOSHeader).e_magic != IMAGE_DOS_SIGNATURE {
+        if unsafe { *pDOSHeader.e_magic != IMAGE_DOS_SIGNATURE } {
             return false;
         }
 
@@ -167,41 +201,36 @@ fn isGUIApp() -> bool {
 }
 
 unsafe extern "C" fn rtsFatalInternalErrorFn(s: *const c_char, mut ap: VaList) -> ! {
+    let prog_name = get_prog_name();
+
     if isGUIApp() {
         #[cfg(windows)]
         {
-            const BUFSIZE: usize = 512;
+            let mut message: [u8; BUFSIZE];
+            let mut title: [u8; BUFSIZE];
 
-            let message: [u8; BUFSIZE];
-            let title: [u8; BUFSIZE];
-
-            printf::format(
-                "%s: internal error",
-                prog_name.unwrap_or(c"".as_ptr()),
-                printf::io_write(&mut title),
+            write_printf(
+                &mut title.as_mut_slice(),
+                c"%s: internal error".as_ptr(),
+                prog_name.as_ptr(),
             );
 
-            printf::format(s, ap, printf::io_write(&mut message));
-
-            use windows_sys::Win32::Foundation::HWND;
-            use windows_sys::Win32::UI::WindowsAndMessaging::{
-                MB_ICONERROR, MB_OK, MB_TASKMODAL, MessageBoxA,
-            };
+            write_printf(&mut message.as_mut_slice(), s, ap);
 
             let hwnd: HWND = null_mut();
 
             MessageBoxA(
                 hwnd,
-                &raw const message,
-                &raw const title,
+                message.as_ptr().cast(),
+                title.as_ptr().cast(),
                 MB_OK | MB_ICONERROR | MB_TASKMODAL,
             );
         }
     } else {
-        let mut handle = io::stderr().lock();
+        let mut handle = get_handle!();
 
-        if let Some(prog_name) = env::args_os().next() {
-            write!(handle, "{}: ", prog_name.to_string_lossy());
+        if !prog_name.is_empty() {
+            write!(handle, "{}: ", prog_name.as_str());
         }
         write!(handle, "internal error: ");
 
@@ -212,8 +241,7 @@ unsafe extern "C" fn rtsFatalInternalErrorFn(s: *const c_char, mut ap: VaList) -
         writeln!(
             handle,
             "\n    (GHC version {} for {})",
-            __GLASGOW_HASKELL_FULL_VERSION__.as_ptr(),
-            HostPlatform_TYPE,
+            __GLASGOW_HASKELL_FULL_VERSION__, HostPlatform_TYPE,
         );
 
         writeln!(
@@ -231,38 +259,109 @@ unsafe extern "C" fn rtsFatalInternalErrorFn(s: *const c_char, mut ap: VaList) -
     process::abort()
 }
 
-unsafe extern "C" fn rtsErrorMsgFn(s: *const c_char, mut ap: VaList) {
-    let mut handle = io::stderr().lock();
+unsafe extern "C" fn rtsErrorMsgFn(s: *const c_char, ap: VaList) {
+    let mut handle = get_handle!();
 
-    if let Some(prog_name) = env::args_os().next() {
-        write!(handle, "{}: ", prog_name.to_string_lossy());
-    }
+    let prog_name = get_prog_name();
 
-    todo!("vfprintf(__stderrp, s, ap)");
-    writeln!(handle);
-}
+    if isGUIApp() {
+        #[cfg(windows)]
+        {
+            let mut buf: [u8; BUFSIZE];
 
-unsafe extern "C" fn rtsSysErrorMsgFn(s: *const c_char, mut ap: VaList) {
-    let mut syserr = null_mut::<c_char>();
-    syserr = strerror(*__error());
+            let r = write_printf(&mut buf.as_mut_slice(), s, ap);
 
-    if !prog_argv.is_null() && !prog_name.is_null() {
-        fprintf(__stderrp, c"%s: ".as_ptr(), prog_name);
-    }
+            if r > 0 && r < BUFSIZE as i32 {
+                let hwnd: HWND = null_mut();
 
-    vfprintf(__stderrp, s, ap);
-
-    if !syserr.is_null() {
-        fprintf(__stderrp, c": %s\n".as_ptr(), syserr);
+                MessageBox(
+                    hwnd,
+                    buf.as_ptr(),
+                    prog_name.as_ptr,
+                    MB_OK | MB_ICONERROR | MB_TASKMODAL,
+                );
+            }
+        }
     } else {
-        fprintf(__stderrp, c"\n".as_ptr());
-    };
+        if !prog_name.is_empty() {
+            write!(handle, "{}: ", prog_name.as_str());
+        }
+
+        write_printf(&mut handle, s, ap);
+        writeln!(handle);
+    }
 }
 
-unsafe extern "C" fn rtsDebugMsgFn(s: *const c_char, mut ap: VaList) -> i32 {
-    let mut handle = io::stderr().lock();
-    let r = vfprintf(__stderrp, s, ap);
-    _ = handle.flush();
+unsafe extern "C" fn rtsSysErrorMsgFn(s: *const c_char, ap: VaList) {
+    let prog_name = get_prog_name();
+
+    if isGUIApp() {
+        #[cfg(windows)]
+        {
+            let mut buf: [u8; BUFSIZE];
+
+            let r: usize = write_printf(&mut buf.as_mut_slice(), s, ap) as usize;
+
+            if r > 0 && r < BUFSIZE {
+                let syserr = errno();
+
+                if syserr.0 != 0 {
+                    // Ensure `buf` ends with a nul.
+                    if write_printf(&mut buf[r..], c": %s".as_ptr(), syserr) as usize == BUFSIZE {
+                        buf[BUFSIZE - 1] = 0;
+                    }
+                }
+
+                let hwnd: HWND = null_mut();
+
+                MessageBox(
+                    hwnd,
+                    buf.as_ptr(),
+                    prog_name.as_ptr,
+                    MB_OK | MB_ICONERROR | MB_TASKMODAL,
+                );
+            }
+        }
+    } else {
+        let mut handle = get_handle!();
+
+        if !prog_name.is_empty() {
+            write!(handle, "{}: ", prog_name.as_str());
+        }
+
+        write_printf(&mut handle, s, ap);
+
+        let syserr = errno();
+
+        if syserr.0 != 0 {
+            writeln!(handle, ": {}", syserr);
+        } else {
+            writeln!(handle);
+        };
+    }
+}
+
+unsafe extern "C" fn rtsDebugMsgFn(s: *const c_char, ap: VaList) -> i32 {
+    let mut r = 0;
+
+    if isGUIApp() {
+        #[cfg(windows)]
+        {
+            let mut buf: [u8; BUFSIZE];
+            r = write_printf(&mut buf.as_mut_slice(), s, ap);
+
+            if r > 0 && r < BUFSIZE as i32 {
+                use windows_sys::Win32::System::Diagnostics::Debug::OutputDebugStringA;
+
+                OutputDebugStringA(buf.as_ptr());
+            }
+        }
+    } else {
+        let mut handle = get_handle!();
+
+        r = write_printf(&mut handle, s, ap);
+        _ = handle.flush();
+    }
 
     r
 }
@@ -283,4 +382,13 @@ pub extern "C" fn rtsMemcpyRangeOverlap() -> ! {
     unsafe {
         barf(c"Encountered overlapping source/destination ranges in a memcpy-using op.".as_ptr())
     }
+}
+
+#[inline(always)]
+pub(crate) unsafe extern "C" fn write_printf(
+    w: &mut impl io::Write,
+    format: *const c_char,
+    ap: ...
+) -> c_int {
+    printf::format(format, ap, printf::output::io_write(w))
 }
