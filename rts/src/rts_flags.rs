@@ -2574,7 +2574,7 @@ unsafe fn openStatsFile(filename: &str) -> Result<Option<&mut File>, io::Error> 
             Ok(f) => Ok(Some(Box::leak(Box::new(f)))),
             Err(err) => {
                 let mut c_filename = [0; 128];
-                Str0::stack_lossy(filename, &mut c_filename);
+                Str0::write_lossy(filename, &mut c_filename);
 
                 errorBelch(c"Can't open stats file %s\n".as_ptr(), c_filename.as_ptr());
 

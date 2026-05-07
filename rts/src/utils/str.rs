@@ -70,7 +70,7 @@ impl<'a> Str0<'a> {
         };
     }
 
-    pub fn stack_lossy<'s, 'd>(src: &'s str, mut dst: &'d mut [u8]) -> Str0<'d> {
+    pub fn write_lossy<'s, 'd>(src: &'s str, mut dst: &'d mut [u8]) -> Str0<'d> {
         use std::io::Write;
 
         let last_dst_index = dst.len() - 1;
