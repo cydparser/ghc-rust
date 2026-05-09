@@ -50,18 +50,12 @@ pub static mut errorMsgFn: Option<RtsMsgFunction> = Some(rtsErrorMsgFn);
 #[unsafe(no_mangle)]
 pub static mut sysErrorMsgFn: Option<RtsMsgFunction> = Some(rtsSysErrorMsgFn);
 
-#[cfg(not(test))]
-macro_rules! get_handle {
-    () => {
-        io::stderr().lock()
-    };
-}
-
-#[cfg(test)]
-macro_rules! get_handle {
-    () => {
-        testing::get_handle()
-    };
+#[inline(always)]
+fn get_handle() -> impl io::Write {
+    cfg_select! {
+        test => self::testing::get_handle(),
+        _ => io::stderr().lock(),
+    }
 }
 
 #[cfg(test)]
@@ -231,7 +225,7 @@ unsafe extern "C" fn rtsFatalInternalErrorFn(s: *const c_char, mut ap: VaList) -
             );
         }
     } else {
-        let mut handle = get_handle!();
+        let mut handle = get_handle();
 
         if !prog_name.is_empty() {
             write!(handle, "{}: ", prog_name.as_str());
@@ -264,7 +258,7 @@ unsafe extern "C" fn rtsFatalInternalErrorFn(s: *const c_char, mut ap: VaList) -
 }
 
 unsafe extern "C" fn rtsErrorMsgFn(s: *const c_char, ap: VaList) {
-    let mut handle = get_handle!();
+    let mut handle = get_handle();
 
     let prog_name = get_prog_name();
 
@@ -327,7 +321,7 @@ unsafe extern "C" fn rtsSysErrorMsgFn(s: *const c_char, ap: VaList) {
             }
         }
     } else {
-        let mut handle = get_handle!();
+        let mut handle = get_handle();
 
         if !prog_name.is_empty() {
             write!(handle, "{}: ", prog_name.as_str());
@@ -361,7 +355,7 @@ unsafe extern "C" fn rtsDebugMsgFn(s: *const c_char, ap: VaList) -> i32 {
             }
         }
     } else {
-        let mut handle = get_handle!();
+        let mut handle = get_handle();
 
         r = write_printf(&mut handle, s, ap);
         _ = handle.flush();
