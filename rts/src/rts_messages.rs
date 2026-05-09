@@ -34,16 +34,20 @@ pub type RtsMsgFunction = unsafe extern "C" fn(*const c_char, VaList);
 pub type RtsMsgFunctionRetLen = unsafe extern "C" fn(*const c_char, VaList) -> c_int;
 
 #[ffi]
+#[unsafe(no_mangle)]
 pub static mut fatalInternalErrorFn: Option<unsafe extern "C" fn(*const c_char, VaList) -> !> =
     Some(rtsFatalInternalErrorFn);
 
 #[ffi]
+#[unsafe(no_mangle)]
 pub static mut debugMsgFn: Option<RtsMsgFunctionRetLen> = Some(rtsDebugMsgFn);
 
 #[ffi]
+#[unsafe(no_mangle)]
 pub static mut errorMsgFn: Option<RtsMsgFunction> = Some(rtsErrorMsgFn);
 
 #[ffi]
+#[unsafe(no_mangle)]
 pub static mut sysErrorMsgFn: Option<RtsMsgFunction> = Some(rtsSysErrorMsgFn);
 
 #[cfg(not(test))]
