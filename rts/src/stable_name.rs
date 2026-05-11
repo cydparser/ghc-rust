@@ -1,5 +1,3 @@
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::stable_name::snEntry;
 use crate::ffi::rts::storage::closure_macros::{GET_CLOSURE_TAG, UNTAG_CLOSURE, get_itbl};
@@ -13,6 +11,7 @@ use crate::hash::{
 };
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf};
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
 use crate::sm::gc::{evac_fn, isAlive};
 use crate::trace::{DEBUG_RTS, trace_};
@@ -72,7 +71,7 @@ unsafe fn initSnEntryFreeList(mut table: *mut snEntry, mut n: u32, mut free: *mu
     stable_name_free = table;
 }
 
-unsafe fn initStableNameTable() {
+pub(crate) unsafe fn initStableNameTable() {
     if SNT_size > 0 {
         return;
     }
@@ -111,7 +110,7 @@ unsafe fn enlargeStableNameTable() {
     );
 }
 
-unsafe fn exitStableNameTable() {
+pub(crate) unsafe fn exitStableNameTable() {
     if !addrToStableHash.is_null() {
         freeHashTable(addrToStableHash, None);
     }
@@ -205,7 +204,7 @@ unsafe fn lookupStableName(mut p: StgPtr) -> StgWord {
 }
 
 unsafe fn rememberOldStableNameAddresses() {
-    let mut p = null_mut::<snEntry>();
+    let mut p;
     let mut __end_ptr: *mut snEntry = stable_name_table.offset(SNT_size as isize) as *mut snEntry;
     p = stable_name_table.offset(1);
 

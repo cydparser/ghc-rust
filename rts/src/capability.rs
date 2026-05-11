@@ -109,6 +109,8 @@ pub(crate) struct Capability_ {
     pub(crate) transaction_tokens: u32,
 }
 
+pub(crate) type PutMVar = PutMVar_;
+
 /// cbindgen:no-export
 pub(crate) struct PutMVar_ {
     pub(crate) mvar: StgStablePtr,
@@ -904,7 +906,7 @@ unsafe fn giveCapabilityToTask(mut cap: *mut Capability, mut task: *mut Task) {
     }
 }
 
-unsafe fn releaseCapability_(mut cap: *mut Capability, mut always_wakeup: bool) {
+pub(crate) unsafe fn releaseCapability_(mut cap: *mut Capability, mut always_wakeup: bool) {
     let mut task = null_mut::<Task>();
     task = (*cap).running_task;
 
@@ -1018,7 +1020,7 @@ unsafe fn releaseCapability_(mut cap: *mut Capability, mut always_wakeup: bool) 
     }
 }
 
-unsafe fn releaseCapability(mut cap: *mut Capability) {
+pub(crate) unsafe fn releaseCapability(mut cap: *mut Capability) {
     let mut __r = pthread_mutex_lock(&raw mut (*cap).lock);
 
     if __r != 0 {
@@ -1340,7 +1342,7 @@ unsafe fn find_capability_for_task(mut task: *const Task) -> *mut Capability {
     };
 }
 
-unsafe fn waitForCapability(mut pCap: *mut *mut Capability, mut task: *mut Task) {
+pub(crate) unsafe fn waitForCapability(mut pCap: *mut *mut Capability, mut task: *mut Task) {
     let mut cap = *pCap;
 
     if cap.is_null() {

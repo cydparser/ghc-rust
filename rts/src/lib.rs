@@ -3,6 +3,8 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 #![warn(clippy::undocumented_unsafe_blocks)]
+// TODO(rust): Remove after refactoring.
+#![allow(unsafe_op_in_unsafe_fn)]
 
 mod adjustor;
 pub(crate) mod capability;

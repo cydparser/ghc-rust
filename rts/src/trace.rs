@@ -1,10 +1,11 @@
+use std::ffi::VaList;
+
 use crate::capability::Capability;
 use crate::event_log_constants::{
     EVENT_CONC_MARK_BEGIN, EVENT_CONC_SWEEP_BEGIN, EVENT_CONC_SWEEP_END, EVENT_CONC_SYNC_BEGIN,
     EVENT_CONC_SYNC_END, EVENT_OSPROCESS_PID, EVENT_OSPROCESS_PPID, EVENT_PROGRAM_ARGS,
     EVENT_RTS_IDENTIFIER, EVENT_USER_BINARY_MSG, EVENT_USER_MARKER, EVENT_USER_MSG,
 };
-use crate::eventlog::event_log::{eventlog_enabled, flushLocalEventsBuf};
 use crate::eventlog::event_log::{
     eventlog_enabled, flushLocalEventsBuf, freeEventLogging, initEventLogging, moreCapEventBufs,
     postCapEvent, postCapMsg, postCapsetEvent, postCapsetStrEvent, postCapsetVecEvent,
@@ -17,11 +18,7 @@ use crate::eventlog::event_log::{
     postTaskCreateEvent, postTaskDeleteEvent, postTaskMigrateEvent, postThreadLabel,
     postUserBinaryEvent, postUserEvent, postWallClockTime, restartEventLogging,
 };
-use crate::ffi::ghcversion::__GLASGOW_HASKELL_FULL_VERSION__;
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BlockedOnBlackHole, StackOverflow};
-use crate::ffi::rts::event_log_format::EventTypeNum;
 use crate::ffi::rts::event_log_format::{
     EventCapNo, EventCapsetID, EventKernelThreadId, EventTaskId, EventThreadID, EventTimestamp,
     EventTypeNum,
@@ -34,28 +31,23 @@ use crate::ffi::rts::messages::{barf, debugBelch, vdebugBelch};
 use crate::ffi::rts::os_threads::{Mutex, initMutex, kernelThreadId, osThreadId};
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::tso::{StgThreadID, StgThreadReturnCode};
-use crate::ffi::rts::storage::tso::{StgThreadID, StgThreadReturnCode};
 use crate::ffi::rts::types::StgTSO;
-use crate::ffi::rts::types::StgTSO;
-use crate::ffi::stg::W_;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::types::{StgBool, StgInt, StgWord, StgWord8, StgWord16, StgWord32, StgWord64};
 use crate::ffi::stg::types::{StgWord, StgWord16, StgWord32, StgWord64};
+use crate::ghcversion::__GLASGOW_HASKELL_FULL_VERSION__;
 use crate::prelude::*;
 use crate::printer::what_next_strs;
 use crate::rts_api::getFullProgArgv;
-use crate::rts_flags::get_rts_config;
-use crate::rts_flags::{COLLECT_GC_STATS, NO_GC_STATS, RtsFlags, TRACE_EVENTLOG, TRACE_STDERR};
+use crate::rts_flags::{
+    COLLECT_GC_STATS, NO_GC_STATS, RtsFlags, TRACE_EVENTLOG, TRACE_STDERR, get_rts_config,
+};
+use crate::rts_messages::_assertFail;
 use crate::sm::non_moving_census::NonmovingAllocCensus;
-use crate::sparks::sparkPoolSize;
 use crate::sparks::{SparkCounters, sparkPoolSize};
 use crate::stats::stat_getElapsedTime;
-use crate::task::Task;
 use crate::task::{Task, serialisableTaskId};
 use crate::threads::printThreadStatus;
-use crate::trace::{
-    CAPSET_CLOCKDOMAIN_DEFAULT, CAPSET_HEAP_DEFAULT, CAPSET_OSPROCESS_DEFAULT, CapsetID, CapsetType,
-};
 
 pub(crate) type CapsetID = StgWord32;
 
@@ -596,7 +588,7 @@ unsafe fn tracePreface() {
     }
 }
 
-static mut thread_stop_reasons: [*mut c_char; 21] = [
+static thread_stop_reasons: [*const c_char; 21] = [
     null_mut::<c_char>(),
     c"heap overflow".as_ptr(),
     c"stack overflow".as_ptr(),
@@ -1319,24 +1311,19 @@ unsafe fn vtraceCap_stderr(mut cap: *mut Capability, mut msg: *mut c_char, mut a
     }
 }
 
-unsafe fn traceCap_stderr(mut cap: *mut Capability, mut msg: *mut c_char, mut args: ...) {
-    let mut ap: VaListImpl;
-    ap = args.clone();
-    vtraceCap_stderr(cap, msg, ap.as_va_list());
+unsafe extern "C" fn traceCap_stderr(mut cap: *mut Capability, msg: *const c_char, args: ...) {
+    vtraceCap_stderr(cap, msg, args);
 }
 
-unsafe fn traceCap_(mut cap: *mut Capability, mut msg: *mut c_char, mut args: ...) {
-    let mut ap: VaListImpl;
-    ap = args.clone();
-
+unsafe extern "C" fn traceCap_(mut cap: *mut Capability, msg: *const c_char, args: ...) {
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR {
-        vtraceCap_stderr(cap, msg, ap.as_va_list());
+        vtraceCap_stderr(cap, msg, args);
     } else {
-        postCapMsg(cap, msg, ap.as_va_list());
+        postCapMsg(cap, msg, args);
     };
 }
 
-unsafe fn vtrace_stderr(mut msg: *mut c_char, mut ap: VaList) {
+unsafe fn vtrace_stderr(mut msg: *const c_char, ap: VaList) {
     let mut __r = pthread_mutex_lock(&raw mut trace_utx);
 
     if __r != 0 {
@@ -1349,7 +1336,7 @@ unsafe fn vtrace_stderr(mut msg: *mut c_char, mut ap: VaList) {
     }
 
     tracePreface();
-    vdebugBelch(msg, ap.as_va_list());
+    vdebugBelch(msg, ap);
     debugBelch(c"\n".as_ptr());
 
     if pthread_mutex_unlock(&raw mut trace_utx) != 0 {
@@ -1361,18 +1348,15 @@ unsafe fn vtrace_stderr(mut msg: *mut c_char, mut ap: VaList) {
     }
 }
 
-unsafe fn trace_(mut msg: *mut c_char, mut args: ...) {
-    let mut ap: VaListImpl;
-    ap = args.clone();
-
+unsafe extern "C" fn trace_(mut msg: *const c_char, args: ...) {
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR {
-        vtrace_stderr(msg, ap.as_va_list());
+        vtrace_stderr(msg, args);
     } else {
-        postMsg(msg, ap.as_va_list());
+        postMsg(msg, args);
     };
 }
 
-unsafe fn traceUserMsg(mut cap: *mut Capability, mut msg: *mut c_char) {
+unsafe fn traceUserMsg(mut cap: *mut Capability, mut msg: *const c_char) {
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR && TRACE_user as i32 != 0 {
         traceCap_stderr(cap, c"%s".as_ptr(), msg);
     } else if eventlog_enabled as i32 != 0 && TRACE_user as i32 != 0 {
@@ -1494,10 +1478,7 @@ unsafe fn traceThreadStatus_(mut tso: *mut StgTSO) {
     }
 }
 
-unsafe fn traceBegin(mut str: *const c_char, mut args: ...) {
-    let mut ap: VaListImpl;
-    ap = args.clone();
-
+unsafe extern "C" fn traceBegin(mut str: *const c_char, mut args: ...) {
     let mut __r = pthread_mutex_lock(&raw mut trace_utx);
 
     if __r != 0 {
@@ -1510,7 +1491,7 @@ unsafe fn traceBegin(mut str: *const c_char, mut args: ...) {
     }
 
     tracePreface();
-    vdebugBelch(str, ap.as_va_list());
+    vdebugBelch(str, args);
 }
 
 unsafe fn traceEnd() {

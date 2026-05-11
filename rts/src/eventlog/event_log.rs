@@ -1,3 +1,5 @@
+use std::ffi::VaList;
+
 use crate::capability::Capability;
 use crate::capability::{SYNC_FLUSH_EVENT_LOG, getCapability};
 use crate::event_log_constants::{
@@ -80,7 +82,7 @@ type EventType = _EventType;
 struct _EventType {
     etNum: EventTypeNum,
     size: u32,
-    desc: *mut c_char,
+    desc: *const c_char,
 }
 
 static mut state_change_mutex: Mutex = _opaque_pthread_mutex_t {
@@ -745,9 +747,9 @@ unsafe fn postCapsetEvent(mut tag: EventTypeNum, mut capset: EventCapsetID, mut 
 unsafe fn postCapsetStrEvent(
     mut tag: EventTypeNum,
     mut capset: EventCapsetID,
-    mut msg: *mut c_char,
+    mut msg: *const c_char,
 ) {
-    let mut strsize = strlen(msg) as i32;
+    let mut strsize = libc::strlen(msg) as i32;
     let mut size = (strsize as usize).wrapping_add(size_of::<EventCapsetID>() as usize) as i32;
 
     if size > EVENT_PAYLOAD_SIZE_MAX {
@@ -808,7 +810,8 @@ unsafe fn postCapsetVecEvent(
     let mut i = 0;
 
     while i < argc {
-        let mut increment = (1 as usize).wrapping_add(strlen(*argv.offset(i as isize))) as i32;
+        let mut increment =
+            (1 as usize).wrapping_add(libc::strlen(*argv.offset(i as isize))) as i32;
 
         if size + increment > EVENT_PAYLOAD_SIZE_MAX {
             errorBelch(
@@ -859,16 +862,14 @@ unsafe fn postCapsetVecEvent(
     postPayloadSize(&raw mut eventBuf, size as EventPayloadSize);
     postCapsetID(&raw mut eventBuf, capset);
 
-    let mut i_0 = 0;
+    for i in 0..(argc as isize) {
+        let buf = *argv.offset(i);
 
-    while i_0 < argc {
         postBuf(
             &raw mut eventBuf,
-            *argv.offset(i_0 as isize) as *mut StgWord8,
-            (1 as usize).wrapping_add(strlen(*argv.offset(i_0 as isize))) as u32,
+            buf.cast(),
+            (libc::strlen(buf) + 1) as u32,
         );
-
-        i_0 += 1;
     }
 
     if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
@@ -1141,24 +1142,14 @@ unsafe fn postEventAtTimestamp(
     postWord64(eb, ts as StgWord64);
 }
 
-const BUF: i32 = 512;
+const BUF: usize = 512;
 
-unsafe fn postLogMsg(
-    mut eb: *mut EventsBuf,
-    mut r#type: EventTypeNum,
-    mut msg: *mut c_char,
-    mut ap: VaList,
-) {
-    let mut buf: [c_char; 512] = [0; 512];
+unsafe fn postLogMsg(eb: *mut EventsBuf, r#type: EventTypeNum, msg: *const c_char, ap: VaList) {
+    let mut buf: [c_char; BUF] = [0; _];
 
-    let mut size: u32 = vsnprintf(
-        &raw mut buf as *mut c_char,
-        BUF as usize,
-        msg,
-        ap.as_va_list(),
-    ) as u32;
+    let mut size: u32 = vsnprintf(&raw mut buf as *mut c_char, BUF, msg, ap) as u32;
 
-    if size > BUF as u32 {
+    if size > BUF {
         buf[(BUF - 1) as usize] = '\0' as i32 as c_char;
         size = BUF as u32;
     }
@@ -1169,7 +1160,7 @@ unsafe fn postLogMsg(
     postBuf(eb, &raw mut buf as *mut c_char as *mut StgWord8, size);
 }
 
-unsafe fn postMsg(mut msg: *mut c_char, mut ap: VaList) {
+unsafe fn postMsg(mut msg: *const c_char, mut ap: VaList) {
     let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
 
     if __r != 0 {
@@ -1181,12 +1172,7 @@ unsafe fn postMsg(mut msg: *mut c_char, mut ap: VaList) {
         );
     }
 
-    postLogMsg(
-        &raw mut eventBuf,
-        EVENT_LOG_MSG as EventTypeNum,
-        msg,
-        ap.as_va_list(),
-    );
+    postLogMsg(&raw mut eventBuf, EVENT_LOG_MSG as EventTypeNum, msg, ap);
 
     if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
         barf(
@@ -1197,17 +1183,17 @@ unsafe fn postMsg(mut msg: *mut c_char, mut ap: VaList) {
     }
 }
 
-unsafe fn postCapMsg(mut cap: *mut Capability, mut msg: *mut c_char, mut ap: VaList) {
+unsafe fn postCapMsg(cap: *mut Capability, msg: *const c_char, ap: VaList) {
     postLogMsg(
         capEventBuf.offset((*cap).no as isize) as *mut EventsBuf,
         EVENT_LOG_MSG as EventTypeNum,
         msg,
-        ap.as_va_list(),
+        ap,
     );
 }
 
-unsafe fn postUserEvent(mut cap: *mut Capability, mut r#type: EventTypeNum, mut msg: *mut c_char) {
-    let size = strlen(msg) as usize;
+unsafe fn postUserEvent(cap: *const Capability, r#type: EventTypeNum, msg: *const c_char) {
+    let size = libc::strlen(msg) as usize;
 
     if size > EVENT_PAYLOAD_SIZE_MAX as usize {
         errorBelch(c"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out".as_ptr());
@@ -1437,43 +1423,43 @@ unsafe fn postHeapProfBegin(mut profile_id: StgWord8) {
     let mut flags: *mut PROFILING_FLAGS = &raw mut RtsFlags.ProfFlags;
 
     let mut modSelector_len: StgWord = (if !(*flags).modSelector.is_null() {
-        strlen((*flags).modSelector)
+        libc::strlen((*flags).modSelector)
     } else {
         0
     }) as StgWord;
 
     let mut descrSelector_len: StgWord = (if !(*flags).descrSelector.is_null() {
-        strlen((*flags).descrSelector)
+        libc::strlen((*flags).descrSelector)
     } else {
         0
     }) as StgWord;
 
     let mut typeSelector_len: StgWord = (if !(*flags).typeSelector.is_null() {
-        strlen((*flags).typeSelector)
+        libc::strlen((*flags).typeSelector)
     } else {
         0
     }) as StgWord;
 
     let mut ccSelector_len: StgWord = (if !(*flags).ccSelector.is_null() {
-        strlen((*flags).ccSelector)
+        libc::strlen((*flags).ccSelector)
     } else {
         0
     }) as StgWord;
 
     let mut ccsSelector_len: StgWord = (if !(*flags).ccsSelector.is_null() {
-        strlen((*flags).ccsSelector)
+        libc::strlen((*flags).ccsSelector)
     } else {
         0
     }) as StgWord;
 
     let mut retainerSelector_len: StgWord = (if !(*flags).retainerSelector.is_null() {
-        strlen((*flags).retainerSelector)
+        libc::strlen((*flags).retainerSelector)
     } else {
         0
     }) as StgWord;
 
     let mut bioSelector_len: StgWord = (if !(*flags).bioSelector.is_null() {
-        strlen((*flags).bioSelector)
+        libc::strlen((*flags).bioSelector)
     } else {
         0
     }) as StgWord;
@@ -1630,7 +1616,7 @@ unsafe fn postHeapProfSampleString(
         );
     }
 
-    let mut label_len: StgWord = strlen(label) as StgWord;
+    let mut label_len: StgWord = libc::strlen(label) as StgWord;
     let mut len: StgWord = ((1 as i32 + 8 as i32) as StgWord)
         .wrapping_add(label_len)
         .wrapping_add(1 as StgWord);
@@ -1676,9 +1662,9 @@ unsafe fn postHeapProfCostCentre(
         );
     }
 
-    let mut label_len: StgWord = strlen(label) as StgWord;
-    let mut module_len: StgWord = strlen(module) as StgWord;
-    let mut srcloc_len: StgWord = strlen(srcloc) as StgWord;
+    let mut label_len: StgWord = libc::strlen(label) as StgWord;
+    let mut module_len: StgWord = libc::strlen(module) as StgWord;
+    let mut srcloc_len: StgWord = libc::strlen(srcloc) as StgWord;
     let mut len: StgWord = (4 as StgWord)
         .wrapping_add(label_len)
         .wrapping_add(module_len)
@@ -1864,9 +1850,9 @@ unsafe fn postProfBegin() {
 }
 
 unsafe fn postTickyCounterDef(mut eb: *mut EventsBuf, mut p: *mut StgEntCounter) {
-    let mut arg_kinds_len: StgWord = strlen((*p).arg_kinds) as StgWord;
-    let mut str_len: StgWord = strlen((*p).str) as StgWord;
-    let mut ticky_json_len: StgWord = strlen((*p).ticky_json) as StgWord;
+    let mut arg_kinds_len: StgWord = libc::strlen((*p).arg_kinds) as StgWord;
+    let mut str_len: StgWord = libc::strlen((*p).str) as StgWord;
+    let mut ticky_json_len: StgWord = libc::strlen((*p).ticky_json) as StgWord;
     let mut len: StgWord = ((8 as i32 + 2 as i32) as StgWord)
         .wrapping_add(arg_kinds_len)
         .wrapping_add(1 as StgWord)
@@ -1989,48 +1975,51 @@ unsafe fn postIPE(mut ipe: *const InfoProvEnt) {
     }
 
     let mut table_name_len: StgWord =
-        if (strlen((*ipe).prov.table_name) as StgWord) < MAX_IPE_STRING_LEN {
-            strlen((*ipe).prov.table_name) as StgWord
+        if (libc::strlen((*ipe).prov.table_name) as StgWord) < MAX_IPE_STRING_LEN {
+            libc::strlen((*ipe).prov.table_name) as StgWord
         } else {
             MAX_IPE_STRING_LEN
         };
 
     let mut closure_desc_len: StgWord =
-        if (strlen(&raw mut closure_desc_buf as *mut c_char) as StgWord) < MAX_IPE_STRING_LEN {
-            strlen(&raw mut closure_desc_buf as *mut c_char) as StgWord
+        if (libc::strlen(&raw mut closure_desc_buf as *mut c_char) as StgWord) < MAX_IPE_STRING_LEN
+        {
+            libc::strlen(&raw mut closure_desc_buf as *mut c_char) as StgWord
         } else {
             MAX_IPE_STRING_LEN
         };
 
-    let mut ty_desc_len: StgWord = if (strlen((*ipe).prov.ty_desc) as StgWord) < MAX_IPE_STRING_LEN
-    {
-        strlen((*ipe).prov.ty_desc) as StgWord
-    } else {
-        MAX_IPE_STRING_LEN
-    };
+    let mut ty_desc_len: StgWord =
+        if (libc::strlen((*ipe).prov.ty_desc) as StgWord) < MAX_IPE_STRING_LEN {
+            libc::strlen((*ipe).prov.ty_desc) as StgWord
+        } else {
+            MAX_IPE_STRING_LEN
+        };
 
-    let mut label_len: StgWord = if (strlen((*ipe).prov.label) as StgWord) < MAX_IPE_STRING_LEN {
-        strlen((*ipe).prov.label) as StgWord
-    } else {
-        MAX_IPE_STRING_LEN
-    };
+    let mut label_len: StgWord =
+        if (libc::strlen((*ipe).prov.label) as StgWord) < MAX_IPE_STRING_LEN {
+            libc::strlen((*ipe).prov.label) as StgWord
+        } else {
+            MAX_IPE_STRING_LEN
+        };
 
-    let mut module_len: StgWord = if (strlen((*ipe).prov.module) as StgWord) < MAX_IPE_STRING_LEN {
-        strlen((*ipe).prov.module) as StgWord
-    } else {
-        MAX_IPE_STRING_LEN
-    };
+    let mut module_len: StgWord =
+        if (libc::strlen((*ipe).prov.module) as StgWord) < MAX_IPE_STRING_LEN {
+            libc::strlen((*ipe).prov.module) as StgWord
+        } else {
+            MAX_IPE_STRING_LEN
+        };
 
     let mut src_file_len: StgWord =
-        if (strlen((*ipe).prov.src_file) as StgWord) < MAX_IPE_STRING_LEN {
-            strlen((*ipe).prov.src_file) as StgWord
+        if (libc::strlen((*ipe).prov.src_file) as StgWord) < MAX_IPE_STRING_LEN {
+            libc::strlen((*ipe).prov.src_file) as StgWord
         } else {
             MAX_IPE_STRING_LEN
         };
 
     let mut src_span_len: StgWord =
-        if (strlen((*ipe).prov.src_span) as StgWord) < MAX_IPE_STRING_LEN {
-            strlen((*ipe).prov.src_span) as StgWord
+        if (libc::strlen((*ipe).prov.src_span) as StgWord) < MAX_IPE_STRING_LEN {
+            libc::strlen((*ipe).prov.src_span) as StgWord
         } else {
             MAX_IPE_STRING_LEN
         };
@@ -2123,7 +2112,7 @@ unsafe fn initEventsBuf(mut eb: *mut EventsBuf, mut size: StgWord64, mut capno: 
     postBlockMarker(eb);
 }
 
-unsafe fn resetEventsBuf(mut eb: *mut EventsBuf) {
+unsafe fn resetEventsBuf(eb: *mut EventsBuf) {
     (*eb).pos = (*eb).begin;
     (*eb).marker = null_mut::<StgInt8>();
 }
@@ -2165,7 +2154,7 @@ unsafe fn ensureRoomForEvent(mut eb: *mut EventsBuf, mut tag: EventTypeNum) {
     }
 }
 
-unsafe fn ensureRoomForVariableEvent(mut eb: *mut EventsBuf, mut size: StgWord) -> i32 {
+unsafe fn ensureRoomForVariableEvent(eb: *mut EventsBuf, size: StgWord) -> i32 {
     if hasRoomForVariableEvent(eb, size) == 0 {
         printAndClearEventBuf(eb);
 
@@ -2182,7 +2171,7 @@ unsafe fn postEventType(mut eb: *mut EventsBuf, mut et: *mut EventType) {
     postEventTypeNum(eb, (*et).etNum);
     postWord16(eb, (*et).size as StgWord16);
 
-    let desclen = strlen((*et).desc) as i32;
+    let desclen = libc::strlen((*et).desc) as i32;
     postWord32(eb, desclen as StgWord32);
 
     let mut d = 0;
@@ -2196,8 +2185,8 @@ unsafe fn postEventType(mut eb: *mut EventsBuf, mut et: *mut EventType) {
     postInt32(eb, EVENT_ET_END as StgInt32);
 }
 
-unsafe fn flushLocalEventsBuf(mut cap: *mut Capability) {
-    let mut eb: *mut EventsBuf = capEventBuf.offset((*cap).no as isize) as *mut EventsBuf;
+unsafe fn flushLocalEventsBuf(cap: *const Capability) {
+    let eb: *mut EventsBuf = capEventBuf.offset((*cap).no as isize) as *mut EventsBuf;
     printAndClearEventBuf(eb);
 }
 
@@ -2227,11 +2216,8 @@ pub(crate) unsafe fn flushAllCapsEventsBufs() {
         );
     }
 
-    let mut i = 0;
-
-    while i < getNumCapabilities() {
-        flushLocalEventsBuf(getCapability(i as u32));
-        i = i.wrapping_add(1);
+    for i in 0..getNumCapabilities() {
+        flushLocalEventsBuf(getCapability(i));
     }
 
     flushEventLogWriter();
@@ -2283,7 +2269,7 @@ pub unsafe extern "C" fn flushEventLog(mut cap: *mut *mut Capability) {
     flushEventLogWriter();
 }
 
-unsafe fn run_static_initializers() {
+unsafe extern "C" fn run_static_initializers() {
     eventTypes = [
         _EventType {
             etNum: 0,
@@ -3405,7 +3391,7 @@ unsafe fn run_static_initializers() {
 }
 
 #[used]
-#[cfg_attr(target_os = "linux", link_section = ".init_array")]
-#[cfg_attr(target_os = "windows", link_section = ".CRT$XIB")]
-#[cfg_attr(target_os = "macos", link_section = "__DATA,__mod_init_func")]
+#[cfg_attr(target_os = "linux", unsafe(link_section = ".init_array"))]
+#[cfg_attr(target_os = "windows", unsafe(link_section = ".CRT$XIB"))]
+#[cfg_attr(target_os = "macos", unsafe(link_section = "__DATA,__mod_init_func"))]
 static INIT_ARRAY: [unsafe extern "C" fn(); 1] = [run_static_initializers];

@@ -16,7 +16,7 @@ use crate::hooks::hooks::{
     FlagDefaultsHook, LongGCSync, LongGCSyncEnd, MallocFailHook, OnExitHook, OutOfHeapHook,
     StackOverflowHook,
 };
-use crate::hs_ffi::{HS_INT_MAX, HS_WORD_MAX, HS_WORD64_MAX, HsBool};
+use crate::hs_ffi::{HS_INT_MAX, HS_WORD_MAX, HS_WORD64_MAX};
 use crate::io_manager::{IOManagerAvailable, IOManagerUnavailable, parseIOManagerFlag};
 use crate::prelude::*;
 use crate::rts_api::{
@@ -232,23 +232,23 @@ pub type COST_CENTRE_FLAGS = _COST_CENTRE_FLAGS;
 /// cbindgen:no-export
 #[repr(C)]
 pub struct _PROFILING_FLAGS {
-    doHeapProfile: u32,
-    heapProfileInterval: Time,
-    heapProfileIntervalTicks: u32,
-    startHeapProfileAtStartup: bool,
-    startTimeProfileAtStartup: bool,
-    incrementUserEra: bool,
-    showCCSOnException: bool,
-    maxRetainerSetSize: u32,
-    ccsLength: u32,
-    modSelector: *const c_char,
-    descrSelector: *const c_char,
-    typeSelector: *const c_char,
-    ccSelector: *const c_char,
-    ccsSelector: *const c_char,
-    retainerSelector: *const c_char,
-    eraSelector: StgWord,
-    bioSelector: *const c_char,
+    pub(crate) doHeapProfile: u32,
+    pub(crate) heapProfileInterval: Time,
+    pub(crate) heapProfileIntervalTicks: u32,
+    pub(crate) startHeapProfileAtStartup: bool,
+    pub(crate) startTimeProfileAtStartup: bool,
+    pub(crate) incrementUserEra: bool,
+    pub(crate) showCCSOnException: bool,
+    pub(crate) maxRetainerSetSize: u32,
+    pub(crate) ccsLength: u32,
+    pub(crate) modSelector: *const c_char,
+    pub(crate) descrSelector: *const c_char,
+    pub(crate) typeSelector: *const c_char,
+    pub(crate) ccSelector: *const c_char,
+    pub(crate) ccsSelector: *const c_char,
+    pub(crate) retainerSelector: *const c_char,
+    pub(crate) eraSelector: StgWord,
+    pub(crate) bioSelector: *const c_char,
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -3067,7 +3067,7 @@ unsafe fn freeProgArgv() {
     prog_argv = null();
 }
 
-unsafe fn setFullProgArgv(argc: u32, argv: *const *const c_char) {
+pub(crate) unsafe fn setFullProgArgv(argc: u32, argv: *const *const c_char) {
     full_prog_argc = argc;
     full_prog_argv = copyArgv(argc, argv);
 }

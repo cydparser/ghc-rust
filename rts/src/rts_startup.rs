@@ -4,6 +4,7 @@ use crate::adjustor::initAdjustors;
 use crate::builtin_closures::initBuiltinClosures;
 use crate::capability::getCapability;
 use crate::check_vector_support::setVectorSupport;
+use crate::config::{RtsConfig, RtsOptsEnabledEnum};
 use crate::eventlog::event_log::{finishCapEventLogging, postInitEvent};
 use crate::ffi::rts::hpc::{exitHpc, startupHpc};
 use crate::ffi::rts::os_threads::freeThreadingResources;
@@ -28,11 +29,8 @@ use crate::prelude::*;
 use crate::printer::DEBUG_LoadSymbols;
 use crate::prof_heap::{endHeapProfiling, freeHeapProfiling, initHeapProfiling};
 use crate::profiling::{endProfiling, freeProfiling, initProfiling, prof_file, reportCCSProfiling};
-use crate::rts_api::{
-    HaskellObj, RtsConfig, RtsOptsAll, defaultRtsConfig, rts_evalIO, rts_lock, rts_unlock,
-    setFullProgArgv,
-};
-use crate::rts_flags::RtsFlags;
+use crate::rts_api::{HaskellObj, rts_evalIO, rts_lock, rts_unlock, setFullProgArgv};
+use crate::rts_flags::{RtsFlags, defaultRtsConfig};
 use crate::rts_flags::{freeRtsArgs, get_rts_config, initRtsFlagsDefaults, setupRtsFlags};
 use crate::rts_messages::errorBelch;
 use crate::rts_signals::{
@@ -102,19 +100,16 @@ unsafe fn initBuiltinGcRoots() {
 #[ffi(docs, libraries, testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_init(mut argc: *mut c_int, mut argv: *mut *mut *mut c_char) {
+pub unsafe extern "C" fn hs_init(mut argc: *mut c_int, argv: *mut *mut *mut c_char) {
     hs_init_ghc(argc, argv, defaultRtsConfig);
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn hs_init_with_rtsopts(
-    mut argc: *mut c_int,
-    mut argv: *mut *mut *mut c_char,
-) {
+pub unsafe extern "C" fn hs_init_with_rtsopts(argc: *mut c_int, argv: *mut *mut *mut c_char) {
     let mut rts_opts = defaultRtsConfig;
-    rts_opts.rts_opts_enabled = RtsOptsAll;
+    rts_opts.rts_opts_enabled = RtsOptsEnabledEnum::RtsOptsAll;
     hs_init_ghc(argc, argv, rts_opts);
 }
 
@@ -122,8 +117,8 @@ pub unsafe extern "C" fn hs_init_with_rtsopts(
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_init_ghc(
-    mut argc: *mut c_int,
-    mut argv: *mut *mut *mut c_char,
+    argc: *mut c_int,
+    argv: *const *const *const c_char,
     mut rts_config: RtsConfig,
 ) {
     let mut init_count = atomic_inc(&raw mut hs_init_count as StgVolatilePtr, 1);
@@ -160,11 +155,7 @@ pub unsafe extern "C" fn hs_init_ghc(
 
         setFullProgArgv(my_argc, &raw mut my_argv as *mut *mut c_char);
 
-        setupRtsFlags(
-            &raw mut my_argc,
-            &raw mut my_argv as *mut *mut c_char,
-            rts_config,
-        );
+        setupRtsFlags(&raw mut my_argc, my_argv.as_ptr(), rts_config);
     } else {
         setFullProgArgv(*argc, *argv);
         setupRtsFlags(argc, *argv, rts_config);

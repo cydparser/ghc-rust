@@ -1,12 +1,11 @@
 use crate::capability::{
-    Capability_, PutMVar, PutMVar_, getCapability, releaseCapability, releaseCapability_,
-    waitForCapability,
+    Capability, Capability_, PutMVar, PutMVar_, getCapability, releaseCapability,
+    releaseCapability_, waitForCapability,
 };
 use crate::ffi::rts::constants::{
     LDV_SHIFT, LDV_STATE_CREATE, MAX_CHARLIKE, MAX_INTLIKE, MIN_INTLIKE, TSO_BLOCKEX,
     TSO_INTERRUPTIBLE, TSO_LOCKED,
 };
-use crate::ffi::rts::messages::{barf, errorBelch};
 use crate::ffi::rts::os_threads::{osThreadId, shutdownThread};
 use crate::ffi::rts::prof::ccs::{CCS_MAIN, CCS_SYSTEM, CostCentreStack, era, user_era};
 use crate::ffi::rts::stable_ptr::{deRefStablePtr, getStablePtr};
@@ -38,6 +37,7 @@ use crate::hs_ffi::{
 };
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{barf, errorBelch};
 use crate::rts_to_hs_iface::ghc_hs_iface;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::schedule::{releaseAllCapabilities, stopAllCapabilities};
@@ -113,24 +113,6 @@ impl From<sys::SchedulerStatus> for SchedulerStatus {
     }
 }
 
-impl TryFrom<u32> for SchedulerStatus {
-    type Error = ();
-
-    fn try_from(d: u32) -> Result<SchedulerStatus, ()> {
-        use SchedulerStatus::*;
-
-        match d {
-            0 => Ok(NoStatus),
-            1 => Ok(Success),
-            2 => Ok(Killed),
-            3 => Ok(Interrupted),
-            4 => Ok(HeapExhausted),
-            5 => Ok(SchedulerStatus_End),
-            _ => Err(()),
-        }
-    }
-}
-
 #[cfg(test)]
 impl Arbitrary for SchedulerStatus {
     fn arbitrary(g: &mut Gen) -> Self {
@@ -146,18 +128,6 @@ impl Arbitrary for SchedulerStatus {
         }
     }
 }
-
-pub(crate) const SchedulerStatus_End: SchedulerStatus = 5;
-
-pub(crate) const HeapExhausted: SchedulerStatus = 4;
-
-pub(crate) const Interrupted: SchedulerStatus = 3;
-
-pub(crate) const Killed: SchedulerStatus = 2;
-
-pub(crate) const Success: SchedulerStatus = 1;
-
-pub(crate) const NoStatus: SchedulerStatus = 0;
 
 #[ffi(compiler, ghc_lib, testsuite)]
 pub type HaskellObj = *mut StgClosure_;
@@ -1053,7 +1023,7 @@ pub unsafe extern "C" fn rts_evalStableIOMain(
     let mut p = null_mut::<StgClosure>();
     let mut r = null_mut::<StgClosure>();
     let mut w = null_mut::<StgClosure>();
-    let mut stat = NoStatus;
+    let mut stat = SchedulerStatus::NoStatus;
     p = deRefStablePtr(s as StgStablePtr) as *mut StgClosure;
     w = rts_apply(
         *cap,
@@ -1065,7 +1035,7 @@ pub unsafe extern "C" fn rts_evalStableIOMain(
     scheduleWaitThread(tso, &raw mut r, cap);
     stat = rts_getSchedStatus(*cap);
 
-    if stat as u32 == Success as i32 as u32 && !ret.is_null() {
+    if stat == SchedulerStatus::Success && !ret.is_null() {
         if !r.is_null() as i32 as i64 != 0 {
         } else {
             _assertFail(c"rts/RtsAPI.c".as_ptr(), 521);
@@ -1086,14 +1056,14 @@ pub unsafe extern "C" fn rts_evalStableIO(
     let mut tso = null_mut::<StgTSO>();
     let mut p = null_mut::<StgClosure>();
     let mut r = null_mut::<StgClosure>();
-    let mut stat = NoStatus;
+    let mut stat = SchedulerStatus::NoStatus;
     p = deRefStablePtr(s as StgStablePtr) as *mut StgClosure;
     tso = createStrictIOThread(*cap, RtsFlags.GcFlags.initialStkSize as W_, p);
     (*tso).flags |= (TSO_BLOCKEX | TSO_INTERRUPTIBLE) as StgWord32;
     scheduleWaitThread(tso, &raw mut r, cap);
     stat = rts_getSchedStatus(*cap);
 
-    if stat as u32 == Success as i32 as u32 && !ret.is_null() {
+    if stat == SchedulerStatus::Success && !ret.is_null() {
         if !r.is_null() as i32 as i64 != 0 {
         } else {
             _assertFail(c"rts/RtsAPI.c".as_ptr(), 549);
@@ -1533,8 +1503,7 @@ pub unsafe extern "C" fn hs_try_putmvar_with_value(
             as *mut PutMVar;
 
         (*p).mvar = mvar as StgStablePtr;
-        (*p).link = (*cap).putMVars as *mut PutMVar_;
-        (*cap).putMVars = p as *mut PutMVar_;
+        (*p).link = (*cap).putMVars.swap(p, Ordering::Relaxed);
 
         if pthread_mutex_unlock(&raw mut (*cap).lock) != 0 {
             barf(

@@ -4,7 +4,7 @@ use crate::ffi::stg::types::StgPtr;
 /// cbindgen:no-export
 #[repr(C)]
 pub struct snEntry {
-    addr: StgPtr,
-    old: StgPtr,
-    sn_obj: *mut StgClosure,
+    pub(crate) addr: StgPtr,
+    pub(crate) old: StgPtr,
+    pub(crate) sn_obj: *mut StgClosure,
 }

@@ -82,8 +82,8 @@ pub type StgClosurePtr = *mut StgClosure_;
 /// cbindgen:no-export
 #[repr(C)]
 pub struct StgThunk_ {
-    header: StgThunkHeader,
-    payload: __IncompleteArrayField<*mut StgClosure_>,
+    pub(crate) header: StgThunkHeader,
+    pub(crate) payload: __IncompleteArrayField<*mut StgClosure_>,
 }
 
 pub(crate) type StgThunk = StgThunk_;

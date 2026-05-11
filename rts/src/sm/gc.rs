@@ -327,6 +327,8 @@ unsafe fn addMutListScavStats(mut src: *const MutListScavStats, mut dest: *mut M
     (*dest).n_OTHERS = (*dest).n_OTHERS.wrapping_add((*src).n_OTHERS);
 }
 
+pub(crate) type evac_fn = Option<unsafe extern "C" fn(*mut c_void, *mut *mut StgClosure) -> ()>;
+
 unsafe fn GarbageCollect(mut config: GcConfig, mut cap: *mut Capability, mut idle_cap: *mut bool) {
     let mut bd = null_mut::<bdescr>();
     let mut r#gen = null_mut::<generation>();
