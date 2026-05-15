@@ -608,7 +608,7 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
         syms_and_fields_pattern.push_str(r"|([.]|->)(");
         interpolate_inplace(
             &mut syms_and_fields_pattern,
-            visitor.field_symbols.iter().flat_map(|(_, v)| v),
+            visitor.field_symbols.values().flatten(),
         );
         syms_and_fields_pattern.push_str(r"))\b");
         syms_pattern.push_str(r")\b");
@@ -738,7 +738,7 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
                         });
 
                         if let Some(consumer) = consumer {
-                            for key in main_keys.into_iter().chain(sub_keys.into_iter()) {
+                            for key in main_keys.into_iter().chain(sub_keys) {
                                 sym_consumers
                                     .entry(key)
                                     .or_insert_with(Consumers::new)
