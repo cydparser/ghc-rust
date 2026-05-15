@@ -24,13 +24,14 @@ macro_rules! bitset_enum {
 #[rustfmt::skip]
 bitset_enum! {
     pub enum Consumer {
-        Compiler  = 0b0000001,
-        Docs      = 0b0000010,
-        Driver    = 0b0000100,
-        GhcLib    = 0b0001000,
-        Libraries = 0b0010000,
-        Testsuite = 0b0100000,
-        Utils     = 0b1000000,
+        Compiler  = 0b000000001,
+        Docs      = 0b000000010,
+        Driver    = 0b000000100,
+        GhcLib    = 0b000001000,
+        Libraries = 0b000010000,
+        Testsuite = 0b000100000,
+        Utils     = 0b001000000,
+        Cmm       = 0b010000000,
     }
 }
 
@@ -44,6 +45,7 @@ impl Consumer {
             Consumer::Libraries => "libraries",
             Consumer::Testsuite => "testsuite",
             Consumer::Utils => "utils",
+            Consumer::Cmm => "cmm",
         }
     }
 }

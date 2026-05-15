@@ -664,7 +664,6 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
             .args(["-g", "!/m4"])
             .args(["-g", "!/mk"])
             .args(["-g", "!/nofib"])
-            .args(["-g", "!/rts"])
             .args(["-g", "!/rust"])
             .args(args)
             .output()
@@ -729,6 +728,10 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
                                     Some(Consumer::Libraries)
                                 }
                             }
+                            "rts" => match file.rsplit_once('.') {
+                                Some((_, "cmm")) => Some(Consumer::Cmm),
+                                _ => panic!("Expected .cmm: {file}"),
+                            },
                             "testsuite" => Some(Consumer::Testsuite),
                             "utils" => Some(Consumer::Utils),
                             _ => None,
@@ -753,15 +756,17 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
 
     let mut sym_consumers: BTreeMap<String, Consumers> = search(
         &syms_and_fields_regex,
-        &["-g", "*.{c,h,hsc}", &syms_and_fields_pattern],
+        &["-g", "*.{c,h,hsc}", "-g", "!/rts", &syms_and_fields_pattern],
     );
+
+    let cmm_consumers = search(&syms_regex, &["-g", "*.cmm", &syms_pattern]);
 
     let foreign_pat = format!(
         r#"^(foreign +import +(ccall|javascript|prim) +(safe|unsafe)?.*| +data +){}"#,
         syms_pattern
     );
 
-    let hs_consumers = search(&syms_regex, &["-g", "*.hs", &foreign_pat]);
+    let hs_consumers = search(&syms_regex, &["-g", "*.hs", "-g", "!/rts", &foreign_pat]);
 
     let hsc_consumers = {
         let peek_poke = r"\b(peek|poke)\s+";
@@ -774,7 +779,7 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
 
         let pat = format!(r"{}{}", peek_poke, syms_pattern);
 
-        search(&regex, &["-g", "*.hsc", &pat])
+        search(&regex, &["-g", "*.hsc", "-g", "!/rts", &pat])
     };
 
     let internal_consumers = search(
@@ -805,6 +810,7 @@ fn find_consumers<P: AsRef<Path>>(visitor: &SymbolVisitor, path: P) -> BTreeMap<
 
     // Merge the HashMaps.
     for cs in [
+        cmm_consumers,
         hs_consumers,
         hsc_consumers,
         internal_consumers,
