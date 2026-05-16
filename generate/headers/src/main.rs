@@ -25,7 +25,7 @@ fn main() {
         .with_define("target_pointer_width", "64", "SIZEOF_VOID_P_8")
         .with_define("target_pointer_width", "32", "SIZEOF_VOID_P_4")
         .with_parse_expand_default_features(false)
-        .with_parse_expand_features(&["header"]);
+        .with_parse_expand_features(&["cbindgen"]);
 
     let generate = |header, builder: cbindgen::Builder| {
         builder

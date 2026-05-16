@@ -1,12 +1,20 @@
-use crate::ffi::stg::types::{StgChar, StgFunPtr, StgInt, StgWord};
 use crate::prelude::*;
+#[cfg(feature = "cbindgen")]
+pub use crate::stg::types::{
+    STG_INT_MAX, STG_INT8_MAX, STG_INT16_MAX, STG_INT32_MAX, STG_INT64_MAX, STG_WORD_MAX,
+    STG_WORD8_MAX, STG_WORD16_MAX, STG_WORD32_MAX, STG_WORD64_MAX, StgAddr, StgBool, StgChar,
+    StgDouble, StgFloat, StgFun, StgFunPtr, StgHalfWord, StgInt, StgInt8, StgInt16, StgInt32,
+    StgInt64, StgPtr, StgStablePtr, StgWord, StgWord8, StgWord16, StgWord32, StgWord64, StgWord128,
+    StgWord256, StgWord512,
+};
+#[cfg(not(feature = "cbindgen"))]
+use crate::stg::types::{StgChar, StgFunPtr, StgInt, StgWord};
 
 pub mod mach_regs_for_host;
 pub mod misc_closures;
 pub mod prim;
 pub mod regs;
 pub mod ticky;
-pub mod types;
 
 #[cfg(test)]
 mod tests;
