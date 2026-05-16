@@ -1,7 +1,6 @@
 use crate::capability::{getCapability, markCapability};
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::{barf, debugBelch};
+use crate::rts_messages::{barf, debugBelch};
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::os_threads::{
     Condition, Mutex, OSThreadId, broadcastCondition, closeCondition, closeMutex, createOSThread,
@@ -17,22 +16,16 @@ use crate::ffi::rts::storage::block::{
 use crate::ffi::rts::storage::closures::{StgIndStatic, StgWeak};
 use crate::ffi::rts::storage::gc::{memcount, oldest_gen};
 use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
-use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
 use crate::ffi::rts::threads::{getNumCapabilities, n_capabilities};
-use crate::ffi::rts::types::StgClosure;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::stg_END_TSO_QUEUE_closure;
 use crate::ffi::stg::smp::cas;
-use crate::ffi::stg::smp::cas;
-use crate::ffi::stg::types::{StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32, StgWord64};
-use crate::ffi::stg::types::{StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32, StgWord64};
+use crate::stg::types::{StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32, StgWord64};
 use crate::ffi::stg::{P_, W_};
-use crate::ghcautoconf::SIZEOF_VOID_P;
 use crate::ghcautoconf::SIZEOF_VOID_P;
 use crate::prelude::*;
 use crate::printer::printClosure;
-use crate::rts_flags::RtsFlags;
 use crate::rts_flags::RtsFlags;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::schedule::{SCHED_RUNNING, getSchedState, releaseAllCapabilities, resurrectThreads};

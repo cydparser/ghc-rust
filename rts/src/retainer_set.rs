@@ -1,15 +1,13 @@
 use crate::arena::{Arena, arenaAlloc, arenaFree, newArena};
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::StgWord;
-use crate::ffi::stg::types::{StgWord, StgWord8};
 use crate::prelude::*;
 use crate::profiling::fprintCCS;
 use crate::retainer_set::{_RetainerSet, BINARY_SEARCH_THRESHOLD, RetainerSet, isMember, retainer};
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::_assertFail;
 use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::stg::types::{StgWord, StgWord8};
 use crate::trace::traceHeapProfSampleString;
 
 pub(crate) type retainer = *mut CostCentreStack;

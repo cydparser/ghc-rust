@@ -1,5 +1,5 @@
-use crate::ffi::stg::types::StgInt;
 use crate::prelude::*;
+use crate::stg::types::StgInt;
 
 #[cfg(test)]
 mod tests;

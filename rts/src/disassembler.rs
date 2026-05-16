@@ -1,15 +1,15 @@
 use crate::ffi::rts::bytecodes::bci_FLAG_LARGE_ARGS;
-use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::prof::ccs::CostCentre;
 use crate::ffi::rts::storage::closures::StgBCO;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{
+use crate::prelude::*;
+use crate::printer::printPtr;
+use crate::rts_messages::{barf, debugBelch};
+use crate::stg::types::{
     StgDouble, StgFloat, StgInt, StgInt64, StgPtr, StgWord, StgWord8, StgWord16, StgWord32,
     StgWord64,
 };
-use crate::prelude::*;
-use crate::printer::printPtr;
 
 unsafe fn disInstr(mut bco: *mut StgBCO, mut pc: i32) -> i32 {
     let mut instr: StgWord16 = 0;

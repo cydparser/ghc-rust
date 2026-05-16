@@ -24,9 +24,6 @@ use crate::ffi::stg::misc_closures::{
     stg_END_STM_WATCH_QUEUE_closure, stg_END_TSO_QUEUE_closure, stg_NO_TREC_closure,
 };
 use crate::ffi::stg::regs::{StgFunTable, StgRegTable, StgUnion};
-use crate::ffi::stg::types::{
-    StgFunPtr, StgPtr, StgStablePtr, StgWord, StgWord64, StgWord128, StgWord256, StgWord512,
-};
 use crate::io_manager::CapIOManager;
 use crate::io_manager::{initCapabilityIOManager, markCapabilityIOManager, stopIOManager};
 use crate::prelude::*;
@@ -46,6 +43,9 @@ use crate::sm::os_mem::{osNumaMask, osNumaNodes};
 use crate::sparks::{
     SparkCounters, SparkPool, allocSparkPool, discardSparks, fizzledSpark, freeSparkPool,
     looksEmpty, sparkPoolSize, traverseSparkQueue, tryStealSpark,
+};
+use crate::stg::types::{
+    StgFunPtr, StgPtr, StgStablePtr, StgWord, StgWord64, StgWord128, StgWord256, StgWord512,
 };
 use crate::stm::stmPreGCHook;
 use crate::task::{

@@ -1,6 +1,6 @@
 use crate::capability::getCapability;
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
+use crate::rts_messages::barf;
 use crate::ffi::rts::storage::block::Bdescr;
 use crate::ffi::rts::storage::closure_macros::{INFO_PTR_TO_STRUCT, UNTAG_CLOSURE, get_itbl};
 use crate::ffi::rts::storage::closures::{_StgWeak, MessageThrowTo, StgWeak};
@@ -11,7 +11,7 @@ use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::stg::misc_closures::{
     stg_DEAD_WEAK_info, stg_END_TSO_QUEUE_closure, stg_NO_FINALIZER_closure,
 };
-use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord32};
+use crate::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord32};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
 use crate::sm::evac::evacuate;

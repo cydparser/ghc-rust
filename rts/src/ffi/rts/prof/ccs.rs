@@ -1,10 +1,10 @@
-use crate::ffi::stg::types::{StgBool, StgInt, StgWord, StgWord64};
 use crate::prelude::*;
 pub use crate::prof_heap::{era, user_era};
 pub use crate::profiling::{
     CCS_DONT_CARE, CCS_MAIN, CCS_SYSTEM, enterFunCCS, mkCostCentre, pushCostCentre,
 };
 pub use crate::proftimer::{startProfTimer, stopProfTimer};
+use crate::stg::types::{StgBool, StgInt, StgWord, StgWord64};
 
 #[cfg(test)]
 mod tests;

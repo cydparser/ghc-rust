@@ -1,8 +1,6 @@
 use crate::capability::{getCapability, markCapabilities};
 use crate::ffi::mach_deps::TAG_MASK;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK};
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::block::bdescr;
 use crate::ffi::rts::storage::block::{
     BF_MARKED, BF_PINNED, BLOCK_SIZE_W, Bdescr, bdescr, freeChain,
@@ -27,20 +25,19 @@ use crate::ffi::rts::storage::info_tables::{
 use crate::ffi::rts::storage::tso::StgStack;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::{StgClosure, StgInfoTable, StgTSO};
-use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord};
-use crate::ffi::stg::types::{StgPtr, StgWord};
 use crate::ffi::stg::{BITS_PER_BYTE, P_, W_};
-use crate::ffi::stg::{BITS_PER_BYTE, W_};
 use crate::hash::{
     HashTable, allocHashTable, freeHashTable, insertHashTable, mapHashTable, mapHashTableKeys,
 };
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf};
 use crate::sm::gc::markCAFs;
 use crate::sm::gc_thread::{gc_threads, gen_workspace};
 use crate::sm::storage::{STATIC_BITS, move_STACK, static_flag};
 use crate::stable_name::threadStableNameTable;
 use crate::stable_ptr::threadStablePtrTable;
+use crate::stg::types::{StgHalfWord, StgPtr, StgWord};
 use crate::task::{InCall, Task, all_tasks};
 use crate::trace::{DEBUG_RTS, trace_};
 

@@ -7,7 +7,6 @@ use crate::ffi::rts::constants::{
     LDV_SHIFT, LDV_STATE_CREATE, TSO_STOP_AFTER_RETURN, TSO_STOP_NEXT_BREAKPOINT,
     TSO_STOPPED_ON_BREAKPOINT,
 };
-use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::prof::ccs::{
     CostCentre, CostCentreStack, CostCentreStack_, enterFunCCS, era, pushCostCentre, user_era,
 };
@@ -53,10 +52,6 @@ use crate::ffi::stg::misc_closures::{
     stg_stack_underflow_frame_v16_info, stg_stack_underflow_frame_v32_info,
     stg_stack_underflow_frame_v64_info, stg_upd_frame_info,
 };
-use crate::ffi::stg::types::{
-    StgDouble, StgFloat, StgHalfWord, StgInt, StgInt8, StgInt16, StgInt32, StgInt64, StgPtr,
-    StgStablePtr, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
-};
 use crate::ffi::stg::{I_, P_, PK_DBL, PK_FLT, W_};
 use crate::ffi::{ffi_call, ffi_type_void};
 use crate::hs_ffi::HsStablePtr;
@@ -64,8 +59,13 @@ use crate::prelude::*;
 use crate::printer::{printClosure, printObj, printStackChunk};
 use crate::profiling::fprintCCS;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{barf, debugBelch};
 use crate::sm::sanity::{checkStackChunk, checkStackFrame};
 use crate::sm::storage::doYouWantToGC;
+use crate::stg::types::{
+    StgDouble, StgFloat, StgHalfWord, StgInt, StgInt8, StgInt16, StgInt32, StgInt64, StgPtr,
+    StgStablePtr, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
+};
 use crate::thread_paused::threadPaused;
 use crate::threads::updateThunk;
 

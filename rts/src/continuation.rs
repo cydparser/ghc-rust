@@ -1,7 +1,5 @@
 use crate::capability::Capability;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE, TSO_BLOCKEX, TSO_INTERRUPTIBLE};
-use crate::ffi::rts::messages::debugBelch;
 use crate::ffi::rts::prof::ccs::{era, user_era};
 use crate::ffi::rts::storage::closure_macros::{
     CONTINUATION_sizeW, TAG_CLOSURE, doingErasProfiling, doingLDVProfiling, doingRetainerProfiling,
@@ -19,11 +17,12 @@ use crate::ffi::stg::misc_closures::{
     stg_CONTINUATION_info, stg_maskAsyncExceptionszh_ret_info, stg_maskUninterruptiblezh_ret_info,
     stg_prompt_frame_info, stg_unmaskAsyncExceptionszh_ret_info,
 };
-use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord32};
 use crate::prelude::*;
 use crate::printer::{printClosure, printStackChunk};
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, debugBelch};
 use crate::sm::sanity::{checkClosure, checkTSO};
+use crate::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord32};
 use crate::threads::threadStackUnderflow;
 
 unsafe fn is_mask_frame_info(mut info: *const StgInfoTable) -> bool {

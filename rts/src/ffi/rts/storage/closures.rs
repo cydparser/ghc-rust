@@ -1,9 +1,9 @@
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::info_tables::StgInfoTable;
 use crate::ffi::rts::storage::tso::{StgStack_, StgTSO, StgTSO_};
-use crate::ffi::stg::types::{StgHalfWord, StgInt, StgPtr, StgWord};
 pub use crate::hash::hashtable;
 use crate::prelude::*;
+use crate::stg::types::{StgHalfWord, StgInt, StgPtr, StgWord};
 
 #[cfg(test)]
 mod tests;

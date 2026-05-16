@@ -31,10 +31,6 @@ use crate::ffi::rts::linker::{
     loadArchive, loadNativeObj, loadObj, lookupSymbol, lookupSymbolInNativeObj, pathchar, purgeObj,
     removeLibrarySearchPath, resolveObjs, unloadObj,
 };
-use crate::ffi::rts::messages::{
-    barf, debugBelch, errorBelch, rtsBadAlignmentBarf, rtsMemcpyRangeOverlap, rtsOutOfBoundsAccess,
-    sysErrorBelch,
-};
 use crate::ffi::rts::non_moving::{
     nonmoving_write_barrier_enabled, stg_copyArray_barrier, updateRemembSetPushClosure_,
     updateRemembSetPushThunk_,
@@ -196,10 +192,6 @@ use crate::ffi::stg::ticky::{
     UPDF_OMITTED_ctr, UPDF_PUSHED_ctr, UPDF_RCC_OMITTED_ctr, UPDF_RCC_PUSHED_ctr,
     VERY_SLOW_CALL_ctr, ticky_slow_call_unevald,
 };
-use crate::ffi::stg::types::{
-    StgDouble, StgFloat, StgFunPtr, StgInt, StgPtr, StgStablePtr, StgVolatilePtr, StgWord,
-    StgWord16, StgWord32, StgWord64,
-};
 use crate::ffi::stg::{I_, W_};
 use crate::hs_ffi::{
     HsBool, HsChar, HsDouble, HsFloat, HsFunPtr, HsInt, HsInt8, HsInt16, HsInt32, HsInt64, HsPtr,
@@ -232,12 +224,20 @@ use crate::rts_api::{
     shutdownHaskellAndSignal, startupHaskell,
 };
 use crate::rts_flags::{RTS_FLAGS, RtsFlags};
+use crate::rts_messages::{
+    barf, debugBelch, errorBelch, rtsBadAlignmentBarf, rtsMemcpyRangeOverlap, rtsOutOfBoundsAccess,
+    sysErrorBelch,
+};
 use crate::rts_symbols::{
     _RtsSymbolVal, _SymStrength, _SymType, RtsSymbolVal, STRENGTH_NORMAL, SYM_TYPE_CODE,
     SYM_TYPE_DATA, SymStrength, SymType, SymbolName,
 };
 use crate::sm::non_moving_mark::updateRemembSetPushThunk;
 use crate::sm::storage::dirty_TVAR;
+use crate::stg::types::{
+    StgDouble, StgFloat, StgFunPtr, StgInt, StgPtr, StgStablePtr, StgVolatilePtr, StgWord,
+    StgWord16, StgWord32, StgWord64,
+};
 use crate::ticky::{ticky_entry_ctrs, top_ct};
 use crate::top_handler::rts_setMainThread;
 

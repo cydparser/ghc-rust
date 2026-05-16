@@ -1,4 +1,4 @@
-use crate::ffi::stg::types::StgPtr;
+use crate::stg::types::StgPtr;
 
 /// cbindgen:no-export
 #[repr(C)]

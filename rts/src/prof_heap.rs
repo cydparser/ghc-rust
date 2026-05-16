@@ -3,7 +3,6 @@ use crate::capability::getCapability;
 use crate::ffi::rts::constants::{
     LDV_CREATE_MASK, LDV_LAST_MASK, LDV_SHIFT, LDV_STATE_CREATE, LDV_STATE_MASK,
 };
-use crate::ffi::rts::messages::{barf, debugBelch, errorBelch, sysErrorBelch};
 use crate::ffi::rts::prof::ccs::{CCS_MAIN, CostCentreStack};
 use crate::ffi::rts::storage::block::{BF_LARGE, BF_PINNED, bdescr};
 use crate::ffi::rts::storage::closure_macros::{
@@ -25,10 +24,6 @@ use crate::ffi::rts::types::StgClosure;
 use crate::ffi::rts::{_assertFail, prog_argc, prog_argv, prog_name, stg_exit};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::smp::atomic_inc;
-use crate::ffi::stg::types::StgWord64;
-use crate::ffi::stg::types::{
-    StgDouble, StgHalfWord, StgInt, StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord64,
-};
 use crate::fs::__rts_fopen;
 use crate::hash::HashTable;
 use crate::hash::{HashTable, allocHashTable, freeHashTable, insertHashTable, lookupHashTable};
@@ -43,6 +38,7 @@ use crate::retainer_set::{RetainerSet, printRetainerSetShort, retainer, rs_MANY}
 use crate::rts_api::RtsOptsAll;
 use crate::rts_flags::get_rts_config;
 use crate::rts_flags::{HEAP_BY_LDV, RtsFlags, rts_argc, rts_argv};
+use crate::rts_messages::{barf, debugBelch, errorBelch, sysErrorBelch};
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes, time_str};
 use crate::sm::gc_thread::{gc_threads, gen_workspace};
 use crate::sm::non_moving::{
@@ -52,6 +48,9 @@ use crate::sm::non_moving::{
 use crate::sm::non_moving_mark::{nonmoving_compact_objects, nonmoving_large_objects};
 use crate::stats::{_RTSStats, GCDetails_, getRTSStats};
 use crate::stats::{stat_endHeapCensus, stat_getElapsedTime, stat_startHeapCensus};
+use crate::stg::types::{
+    StgDouble, StgHalfWord, StgInt, StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord64,
+};
 use crate::trace::{
     traceHeapBioProfSampleBegin, traceHeapProfBegin, traceHeapProfSampleBegin,
     traceHeapProfSampleCostCentre, traceHeapProfSampleEnd, traceHeapProfSampleString,

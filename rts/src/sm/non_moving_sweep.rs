@@ -1,6 +1,4 @@
 use crate::capability::{getCapability, recordMutableCap};
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::os_threads::yieldThread;
 use crate::ffi::rts::stable_name::{snEntry, stable_name_table};
 use crate::ffi::rts::storage::block::{
@@ -20,10 +18,10 @@ use crate::ffi::stg::misc_closures::{
     stg_MUT_VAR_CLEAN_info, stg_MUT_VAR_DIRTY_info, stg_MVAR_CLEAN_info, stg_MVAR_DIRTY_info,
     stg_TVAR_CLEAN_info, stg_TVAR_DIRTY_info,
 };
-use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord16};
 use crate::ffi::stg::{P_, W_};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf};
 use crate::sm::cnf::compactFree;
 use crate::sm::non_moving::{
     FILLED_SWEEPING, NONMOVING_SEGMENT_SIZE, NonmovingSegment, nonmoving_block_idx,
@@ -40,6 +38,7 @@ use crate::sm::non_moving_mark::{
 };
 use crate::sm::storage::{END_OF_CAF_LIST, STATIC_BITS, debug_caf_list, sm_mutex, static_flag};
 use crate::stable_name::{SNT_size, freeSnEntry, stableNameLock, stableNameUnlock};
+use crate::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord16};
 use crate::trace::{DEBUG_RTS, trace_};
 
 type SweepResult = u32;

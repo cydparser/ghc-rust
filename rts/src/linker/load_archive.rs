@@ -1,7 +1,5 @@
 use crate::check_unload::{insertOCSectionIndices, loaded_objects};
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::linker::pathchar;
-use crate::ffi::rts::messages::{barf, debugBelch, errorBelch};
 use crate::hs_ffi::HsInt;
 use crate::linker::m_map::{mmapAnonForLinker, munmapForLinker};
 use crate::linker::mach_o::ocInit_MachO;
@@ -11,6 +9,7 @@ use crate::linker_internals::{
 use crate::path_utils::{mkPath, pathdir, pathdup, pathsize};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf, debugBelch, errorBelch};
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
 
 #[cfg(test)]

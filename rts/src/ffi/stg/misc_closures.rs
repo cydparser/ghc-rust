@@ -6,8 +6,8 @@ use crate::ffi::rts::storage::info_tables::{
     StgClosureInfo, StgFunInfoExtraRev_, StgFunInfoExtraRev___bindgen_ty_1, StgFunInfoTable,
     StgInfoTable, StgInfoTable_, StgProfInfo,
 };
-use crate::ffi::stg::types::StgFunPtr;
 use crate::prelude::*;
+use crate::stg::types::StgFunPtr;
 
 #[cfg(test)]
 mod tests;

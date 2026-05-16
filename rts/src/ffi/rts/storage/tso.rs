@@ -4,8 +4,8 @@ use crate::ffi::rts::storage::closures::{
     MessageBlackHole_, MessageThrowTo_, MessageWakeup_, StgArrBytes, StgBlockingQueue, StgClosure,
     StgHeader, StgTRecHeader_,
 };
-use crate::ffi::stg::types::{StgInt, StgInt64, StgPtr, StgWord8, StgWord16, StgWord32, StgWord64};
 use crate::prelude::*;
+use crate::stg::types::{StgInt, StgInt64, StgPtr, StgWord8, StgWord16, StgWord32, StgWord64};
 pub use crate::task::InCall_;
 
 #[cfg(test)]

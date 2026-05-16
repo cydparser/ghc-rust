@@ -1,7 +1,7 @@
 use crate::ffi::rts::storage::gc::generation_;
-use crate::ffi::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 use crate::prelude::*;
 pub use crate::sm::block_alloc::{allocAlignedGroupOnNode, allocGroup_lock, freeGroup_lock};
+use crate::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 
 #[cfg(test)]
 mod tests;

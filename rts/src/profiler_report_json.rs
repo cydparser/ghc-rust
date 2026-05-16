@@ -2,11 +2,11 @@ use crate::ffi::rts::prof::ccs::{CC_LIST, CostCentre, CostCentreStack, IndexTabl
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time};
 use crate::ffi::rts::{prog_argv, prog_name};
-use crate::ffi::stg::types::StgWord64;
 use crate::prelude::*;
 use crate::profiling::ProfilerTotals;
 use crate::rts_flags::{RtsFlags, rts_argv};
 use crate::rts_utils::{stgFree, stgMallocBytes, time_str};
+use crate::stg::types::StgWord64;
 
 unsafe fn escaped_size(mut str: *const c_char) -> usize {
     let mut escaped_size_0: usize = 0;

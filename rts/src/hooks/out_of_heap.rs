@@ -1,9 +1,9 @@
-use crate::ffi::rts::messages::errorBelch;
 use crate::ffi::stg::W_;
 use crate::hs_ffi::HsBool;
 use crate::prelude::*;
 use crate::rts_api::RtsOptsAll;
 use crate::rts_flags::get_rts_config;
+use crate::rts_messages::errorBelch;
 
 unsafe fn OutOfHeapHook(mut request_size: W_, mut heap_size: W_) {
     if heap_size > 0 {

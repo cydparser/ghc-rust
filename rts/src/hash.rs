@@ -1,9 +1,8 @@
-use crate::ffi::rts::_assertFail;
-use crate::ffi::stg::types::StgWord;
-use crate::ffi::stg::types::StgWord;
 use crate::hash::{HashSet, HashTable, IterHashFn, MapHashFn, MapHashFnKeys, StrHashTable};
 use crate::prelude::*;
+use crate::rts_messages::_assertFail;
 use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::stg::types::StgWord;
 
 #[cfg(test)]
 mod tests;

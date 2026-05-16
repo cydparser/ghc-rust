@@ -1,7 +1,5 @@
 use crate::ffi::rts::hpc::{_HpcModuleInfo, HpcModuleInfo};
 use crate::ffi::rts::{_assertFail, prog_name, stg_exit};
-use crate::ffi::stg::types::{StgWord32, StgWord64};
-use crate::ffi::stg::types::{StgWord32, StgWord64};
 use crate::fs::__rts_fopen;
 use crate::hash::{
     StrHashTable, allocStrHashTable, freeStrHashTable, insertStrHashTable, lookupStrHashTable,
@@ -9,6 +7,7 @@ use crate::hash::{
 use crate::prelude::*;
 use crate::rts_flags::{HPC_YES_EXPLICIT, HPC_YES_IMPLICIT, RtsFlags};
 use crate::rts_utils::{stgCallocBytes, stgFree, stgMallocBytes};
+use crate::stg::types::{StgWord32, StgWord64};
 use crate::trace::{DEBUG_RTS, trace_};
 
 #[cfg(test)]

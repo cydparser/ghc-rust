@@ -14,7 +14,6 @@ use crate::ffi::rts::storage::gc::{generations, setKeepCAFs};
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::timer::{startTimer, stopTimer};
 use crate::ffi::stg::smp::{atomic_dec, atomic_inc};
-use crate::ffi::stg::types::{StgInt, StgPtr, StgVolatilePtr, StgWord};
 use crate::file_lock::{freeFileLocking, initFileLocking};
 use crate::foreign_exports::processForeignExports;
 use crate::get_time::initializeTimer;
@@ -46,6 +45,7 @@ use crate::static_ptr_table::exitStaticPtrTable;
 use crate::stats::{
     initStats0, initStats1, stat_endExit, stat_endInit, stat_exit, stat_startExit, stat_startInit,
 };
+use crate::stg::types::{StgInt, StgPtr, StgVolatilePtr, StgWord};
 use crate::ticky::{PrintTickyInfo, emitTickyCounterDefs};
 use crate::timer::{exitTimer, initTimer};
 use crate::top_handler::{exitTopHandler, initTopHandler};

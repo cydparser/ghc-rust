@@ -2,10 +2,7 @@ use crate::capability::Capability;
 use crate::capability::{SYNC_FLUSH_UPD_REM_SET, getCapability, regTableToCapability};
 use crate::ffi::mach_deps::TAG_MASK;
 use crate::ffi::mach_deps::TAG_MASK;
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK};
-use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::os_threads::{
     Condition, Mutex, initCondition, initMutex, signalCondition, waitCondition,
 };
@@ -22,7 +19,6 @@ use crate::ffi::rts::storage::closure_macros::{
     itbl_to_thunk_itbl,
 };
 use crate::ffi::rts::storage::closure_types::{CONSTR_0_1, CONSTR_0_2, CONSTR_NOCAF};
-use crate::ffi::rts::storage::closures::StgMutArrPtrs;
 use crate::ffi::rts::storage::closures::{
     _StgWeak, MessageThrowTo, StgAP, StgAP_STACK, StgBCO, StgBlockingQueue, StgClosure_,
     StgContinuation, StgInd, StgIndStatic, StgMVar, StgMutArrPtrs, StgMutVar, StgPAP, StgRetFun,
@@ -45,11 +41,10 @@ use crate::ffi::stg::misc_closures::{
 };
 use crate::ffi::stg::regs::StgRegTable;
 use crate::ffi::stg::smp::{atomic_inc, cas, cas_word8};
-use crate::ffi::stg::types::StgWord;
-use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord32};
 use crate::prelude::*;
 use crate::printer::printClosure;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf, debugBelch};
 use crate::schedule::{releaseAllCapabilities, stopAllCapabilitiesWith};
 use crate::sm::cnf::objectGetCompact;
 use crate::sm::heap_utils::walk_large_bitmap;
@@ -68,6 +63,7 @@ use crate::sm::non_moving_mark::{
 use crate::sm::non_moving_shortcut::nonmoving_eval_thunk_selector;
 use crate::sm::storage::{END_OF_CAF_LIST, STATIC_BITS, sm_mutex, static_flag};
 use crate::stats::{stat_endNonmovingGcSync, stat_startNonmovingGcSync};
+use crate::stg::types::{StgHalfWord, StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord32};
 use crate::task::Task;
 use crate::trace::{
     DEBUG_RTS, trace_, traceConcMarkBegin, traceConcMarkEnd, traceConcSyncBegin, traceConcSyncEnd,

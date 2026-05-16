@@ -29,7 +29,6 @@ use crate::ffi::rts::event_log_writer::{
     EVENTLOG_NOT_CONFIGURED, EVENTLOG_RUNNING, EventLogStatus, EventLogWriter,
 };
 use crate::ffi::rts::ipe::{InfoProvEnt, formatClosureDescIpe};
-use crate::ffi::rts::messages::{barf, debugBelch, errorBelch};
 use crate::ffi::rts::os_threads::{Mutex, OS_TRY_ACQUIRE_LOCK, initMutex};
 use crate::ffi::rts::prof::ccs::{CCS_MAIN, CostCentreStack};
 use crate::ffi::rts::storage::closure_macros::INFO_PTR_TO_STRUCT;
@@ -37,12 +36,10 @@ use crate::ffi::rts::storage::tso::StgThreadID;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::ticky::StgEntCounter;
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{
-    StgBool, StgInt, StgInt8, StgInt32, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
-};
 use crate::get_time::getUnixEpochTime;
 use crate::prelude::*;
 use crate::rts_flags::{PROFILING_FLAGS, RtsFlags};
+use crate::rts_messages::{barf, debugBelch, errorBelch};
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
 use crate::schedule::{
     SCHED_SHUTTING_DOWN, getSchedState, releaseAllCapabilities, stopAllCapabilitiesWith,
@@ -50,6 +47,9 @@ use crate::schedule::{
 use crate::sm::non_moving_census::NonmovingAllocCensus;
 use crate::sparks::SparkCounters;
 use crate::stats::stat_getElapsedTime;
+use crate::stg::types::{
+    StgBool, StgInt, StgInt8, StgInt32, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
+};
 use crate::task::getMyTask;
 
 #[cfg(test)]

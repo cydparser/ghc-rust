@@ -1,6 +1,4 @@
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::gc::{AdjustorExecutable, AdjustorWritable};
-use crate::ffi::stg::types::{StgFunPtr, StgStablePtr, StgWord};
 use crate::ffi::{
     FFI_OK, ffi_cif, ffi_closure, ffi_closure_alloc, ffi_closure_free, ffi_prep_cif,
     ffi_prep_closure_loc, ffi_status, ffi_type, ffi_type_double, ffi_type_float, ffi_type_pointer,
@@ -10,9 +8,11 @@ use crate::ffi::{
 use crate::ffitarget::FFI_DEFAULT_ABI;
 use crate::hash::{HashTable, allocHashTable, insertHashTable, lookupHashTable, removeHashTable};
 use crate::prelude::*;
+use crate::rts_messages::barf;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::sm::storage::sm_mutex;
 use crate::stable_ptr::freeStablePtr;
+use crate::stg::types::{StgFunPtr, StgStablePtr, StgWord};
 
 #[cfg(test)]
 #[path = "libffi_adjustor/tests.rs"]

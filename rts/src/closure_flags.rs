@@ -1,6 +1,6 @@
 use crate::ffi::rts::storage::info_tables::{_BTM, _FRM, _HNF, _IND, _MUT, _NS, _SRT, _THU, _UPT};
-use crate::ffi::stg::types::StgWord16;
 use crate::prelude::*;
+use crate::stg::types::StgWord16;
 
 static mut closure_flags: [StgWord16; 66] = [
     0,

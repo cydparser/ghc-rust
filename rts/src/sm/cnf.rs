@@ -1,8 +1,6 @@
 use crate::capability::Capability;
 use crate::capability::recordClosureMutated;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
-use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack, era, user_era};
 use crate::ffi::rts::storage::block::{
     BF_COMPACT, BF_KNOWN, BF_PINNED, BLOCK_MASK, BLOCK_SIZE, BLOCK_SIZE_W, BLOCKS_PER_MBLOCK,
@@ -26,19 +24,19 @@ use crate::ffi::rts::{_assertFail, EXIT_HEAPOVERFLOW, reportHeapOverflow, stg_ex
 use crate::ffi::stg::misc_closures::{
     stg_COMPACT_NFDATA_CLEAN_info, stg_COMPACT_NFDATA_DIRTY_info,
 };
-use crate::ffi::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
-use crate::ffi::stg::types::{StgPtr, StgWord16, StgWord32};
 use crate::ffi::stg::{P_, W_};
 use crate::hash::{HashTable, insertHashTable};
 use crate::hs_ffi::HS_INT32_MAX;
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf, debugBelch};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::sm::cnf::{objectGetCompact, objectGetCompactBlock};
 use crate::sm::should_compact::{
     SHOULDCOMPACT_IN_CNF, SHOULDCOMPACT_NOTIN_CNF, SHOULDCOMPACT_PINNED, SHOULDCOMPACT_STATIC,
 };
 use crate::sm::storage::sm_mutex;
+use crate::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 use crate::trace::{DEBUG_RTS, trace_};
 
 #[inline]

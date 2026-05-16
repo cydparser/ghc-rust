@@ -1,10 +1,7 @@
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::linker::OBJECT_UNLOADED;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::smp::xchg;
-use crate::ffi::stg::types::StgWord;
 use crate::hash::{HashTable, iterHashTable};
 use crate::linker_internals::{
     _ObjectCode, DYNAMIC_OBJECT, NativeCodeRange, ObjectCode, SECTIONKIND_OTHER, freeObjectCode,
@@ -12,7 +9,9 @@ use crate::linker_internals::{
 };
 use crate::prelude::*;
 use crate::rts_flags::{NO_HEAP_PROFILING, RtsFlags};
+use crate::rts_messages::{_assertFail, barf};
 use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::stg::types::StgWord;
 
 /// cbindgen:no-export
 struct OCSectionIndices {

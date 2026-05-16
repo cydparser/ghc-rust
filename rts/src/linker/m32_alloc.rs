@@ -1,4 +1,3 @@
-use crate::ffi::rts::messages::{barf, debugBelch, sysErrorBelch};
 use crate::ffi::stg::misc_closures::stg_upd_frame_info;
 use crate::linker::m_map::{
     MEM_READ_EXECUTE, MEM_READ_WRITE, mmapAnonForLinker, mprotectForLinker, munmapForLinker,
@@ -7,6 +6,7 @@ use crate::linker::m32_alloc::m32_allocator;
 use crate::prelude::*;
 use crate::report_memory_map::reportMemoryMap;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{barf, debugBelch, sysErrorBelch};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::sm::os_mem::getPageSize;
 

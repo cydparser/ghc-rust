@@ -3,7 +3,6 @@ use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{
     LDV_SHIFT, LDV_STATE_CREATE, MAX_CHARLIKE, MAX_INTLIKE, MIN_INTLIKE,
 };
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::era;
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK};
@@ -34,11 +33,9 @@ use crate::ffi::stg::misc_closures::{
     stg_WHITEHOLE_info, stg_sel_0_upd_info,
 };
 use crate::ffi::stg::smp::{busy_wait_nop, cas, xchg};
-use crate::ffi::stg::types::{
-    StgChar, StgHalfWord, StgInt, StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord64,
-};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::barf;
 use crate::sm::cnf::objectGetCompact;
 use crate::sm::compact::{is_marked, mark};
 use crate::sm::gc::{deadlock_detect_gc, major_gc, unload_mark_needed, whitehole_gc_spin};
@@ -50,6 +47,9 @@ use crate::sm::non_moving::{isNonmovingClosure, nonmovingGetSegment};
 use crate::sm::non_moving_allocate::nonmovingAllocateGC;
 use crate::sm::non_moving_mark::markQueuePushClosureGC;
 use crate::sm::storage::{STATIC_BITS, move_STACK, prev_static_flag, static_flag};
+use crate::stg::types::{
+    StgChar, StgHalfWord, StgInt, StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord64,
+};
 use crate::trace::{DEBUG_RTS, trace_};
 
 const MAX_THUNK_SELECTOR_DEPTH: i32 = 16;

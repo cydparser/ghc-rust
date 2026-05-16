@@ -1,7 +1,7 @@
-use crate::ffi::stg::types::StgStablePtr;
 pub use crate::foreign_exports::registerForeignExports;
 pub use crate::linker::_ObjectCode;
 use crate::prelude::*;
+use crate::stg::types::StgStablePtr;
 
 #[cfg(test)]
 mod tests;

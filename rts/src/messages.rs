@@ -1,23 +1,13 @@
 use crate::capability::Capability;
-use crate::capability::Capability;
 use crate::capability::{interruptCapability, recordClosureMutated, releaseCapability_};
 use crate::clone_stack::handleCloneStackMessage;
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE, NotBlocked};
-use crate::ffi::rts::messages::barf;
-use crate::ffi::rts::messages::{doneWithMsgThrowTo, whitehole_executeMessage_spin};
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
-use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
-use crate::ffi::rts::prof::ccs::era;
 use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack, era, user_era};
 use crate::ffi::rts::storage::closure_macros::{
     UNTAG_CLOSURE, doingErasProfiling, doingLDVProfiling, doingRetainerProfiling,
     overwritingClosure,
 };
-use crate::ffi::rts::storage::closure_macros::{doingLDVProfiling, overwritingClosure};
-use crate::ffi::rts::storage::closures::MessageThrowTo;
 use crate::ffi::rts::storage::closures::{
     Message, Message_, MessageBlackHole, MessageBlackHole_, MessageCloneStack, MessageThrowTo,
     MessageWakeup, StgBlockingQueue, StgInd,
@@ -25,8 +15,6 @@ use crate::ffi::rts::storage::closures::{
 use crate::ffi::rts::storage::gc::allocate;
 use crate::ffi::rts::storage::tso::dirty_TSO;
 use crate::ffi::rts::threads::getNumCapabilities;
-use crate::ffi::rts::threads::getNumCapabilities;
-use crate::ffi::rts::types::StgClosure;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
@@ -37,17 +25,14 @@ use crate::ffi::stg::misc_closures::{
 };
 use crate::ffi::stg::misc_closures::{stg_MSG_NULL_info, stg_WHITEHOLE_info};
 use crate::ffi::stg::smp::busy_wait_nop;
-use crate::ffi::stg::types::{StgWord, StgWord32, StgWord64};
-use crate::ffi::stg::types::{StgWord, StgWord64};
 use crate::prelude::*;
 use crate::raise_async::throwToMsg;
 use crate::rts_flags::RtsFlags;
-use crate::schedule::{SCHED_INTERRUPTING, getSchedState};
+use crate::rts_messages::{_assertFail, barf};
 use crate::schedule::{SCHED_INTERRUPTING, getSchedState, promoteInRunQueue};
-use crate::sm::non_moving_mark::updateRemembSetPushMessageThrowTo;
 use crate::sm::non_moving_mark::{updateRemembSetPushClosure, updateRemembSetPushMessageThrowTo};
-use crate::smp_closure_ops::unlockClosure;
 use crate::smp_closure_ops::{lockClosure, unlockClosure};
+use crate::stg::types::{StgWord, StgWord32, StgWord64};
 use crate::task::myTask;
 use crate::threads::tryWakeupThread;
 use crate::trace::{DEBUG_RTS, traceCap_};

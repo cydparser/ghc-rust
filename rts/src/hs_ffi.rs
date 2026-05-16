@@ -1,14 +1,14 @@
 use crate::ffi::rts::adjustor::freeHaskellFunctionPtr;
 use crate::ffi::rts::storage::gc::performBlockingMajorGC;
-use crate::ffi::stg::types::{
+use crate::prelude::*;
+use crate::rts_api::setProgArgv;
+use crate::stable_ptr::{freeStablePtr, freeStablePtrUnsafe, stablePtrLock, stablePtrUnlock};
+use crate::stg::types::{
     STG_INT_MAX, STG_INT_MIN, STG_INT8_MAX, STG_INT8_MIN, STG_INT16_MAX, STG_INT16_MIN,
     STG_INT32_MAX, STG_INT32_MIN, STG_INT64_MAX, STG_INT64_MIN, STG_WORD_MAX, STG_WORD8_MAX,
     STG_WORD16_MAX, STG_WORD32_MAX, STG_WORD64_MAX, StgChar, StgDouble, StgFloat, StgInt, StgInt8,
     StgInt16, StgInt32, StgInt64, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
 };
-use crate::prelude::*;
-use crate::rts_api::setProgArgv;
-use crate::stable_ptr::{freeStablePtr, freeStablePtrUnsafe, stablePtrLock, stablePtrUnlock};
 use crate::task::freeMyTask;
 
 #[cfg(test)]

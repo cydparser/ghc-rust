@@ -1,5 +1,3 @@
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::closure_macros::{
     GET_CLOSURE_TAG, INFO_PTR_TO_STRUCT, UNTAG_CLOSURE, get_itbl, get_itbl_acquire,
 };
@@ -12,12 +10,13 @@ use crate::ffi::stg::misc_closures::{
     stg_WHITEHOLE_info,
 };
 use crate::ffi::stg::smp::cas;
-use crate::ffi::stg::types::{StgHalfWord, StgVolatilePtr, StgWord};
 use crate::ffi::stg::{P_, W_};
 use crate::prelude::*;
+use crate::rts_messages::{_assertFail, barf};
 use crate::sm::non_moving::isNonmovingClosure;
 use crate::sm::non_moving_mark::{MarkQueue, markQueuePushClosure};
 use crate::smp_closure_ops::{lockClosure, unlockClosure};
+use crate::stg::types::{StgHalfWord, StgVolatilePtr, StgWord};
 
 const MAX_THUNK_SELECTOR_DEPTH: i32 = 16;
 

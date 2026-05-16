@@ -1,10 +1,8 @@
 use crate::capability::Capability;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{
     BlockedOnMVar, BlockedOnMVarRead, LDV_SHIFT, LDV_STATE_CREATE, NotBlocked, TSO_BLOCKEX,
     TSO_INTERRUPTIBLE, ThreadComplete, ThreadFinished, ThreadKilled, ThreadRunGHC,
 };
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack, era, user_era};
 use crate::ffi::rts::storage::closure_macros::{
     AP_STACK_sizeW, SET_INFO_RELAXED, doingErasProfiling, doingLDVProfiling,
@@ -27,16 +25,17 @@ use crate::ffi::stg::misc_closures::{
     stg_maskAsyncExceptionszh_ret_info, stg_maskUninterruptiblezh_ret_info, stg_ret_p_info,
     stg_unmaskAsyncExceptionszh_ret_info,
 };
-use crate::ffi::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 use crate::io_manager::{syncDelayCancel, syncIOCancel};
 use crate::messages::{doneWithMsgThrowTo, sendMessage};
 use crate::prelude::*;
 use crate::profiling::fprintCCS_stderr;
 use crate::raise_async::{THROWTO_BLOCKED, THROWTO_SUCCESS, interruptible};
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf};
 use crate::schedule::appendToRunQueue;
 use crate::sm::sanity::checkTSO;
 use crate::smp_closure_ops::{lockClosure, tryLockClosure, unlockClosure};
+use crate::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 use crate::stm::{stmAbortTransaction, stmCondemnTransaction, stmFreeAbortedTRec};
 use crate::task::{InCall, Task, interruptWorkerTask};
 use crate::threads::{threadStackUnderflow, tryWakeupThread, updateThunk};

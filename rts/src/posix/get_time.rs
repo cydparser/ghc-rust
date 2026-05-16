@@ -1,12 +1,12 @@
-use crate::ffi::rts::messages::sysErrorBelch;
-use crate::ffi::rts::stg_exit;
 use crate::ffi::rts::time::{
     _CLOCK_MONOTONIC, _CLOCK_PROCESS_CPUTIME_ID, clock_gettime, clockid_t,
 };
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time};
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgWord32, StgWord64};
 use crate::prelude::*;
+use crate::rts_messages::sysErrorBelch;
+use crate::rts_startup::stg_exit;
+use crate::stg::types::{StgWord32, StgWord64};
 
 #[cfg(test)]
 mod tests;

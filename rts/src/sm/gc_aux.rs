@@ -9,7 +9,7 @@ use crate::ffi::rts::storage::closures::{StgInd, StgIndStatic};
 use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgPtr, StgWord};
+use crate::stg::types::{StgPtr, StgWord};
 use crate::prelude::*;
 use crate::sm::compact::is_marked;
 use crate::sm::gc::{evac_fn, unload_mark_needed};

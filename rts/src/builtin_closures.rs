@@ -10,8 +10,8 @@ use crate::ffi::rts::storage::closures::{
     C2RustUnnamed, StgHeader, StgIntCharlikeClosure, StgProfHeader,
 };
 use crate::ffi::rts::types::StgClosure;
-use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
+use crate::stg::types::StgWord;
 
 #[cfg(test)]
 mod tests;

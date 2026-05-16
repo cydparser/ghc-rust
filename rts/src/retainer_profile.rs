@@ -1,6 +1,4 @@
 use crate::capability::{getCapability, markCapabilities};
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack};
 use crate::ffi::rts::storage::block::bdescr;
 use crate::ffi::rts::storage::closure_macros::{UNTAG_CLOSURE, get_itbl};
@@ -10,7 +8,6 @@ use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::stg_END_TSO_QUEUE_closure;
-use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
 use crate::profiling::prof_file;
 use crate::retainer_set::{
@@ -18,9 +15,11 @@ use crate::retainer_set::{
     singleton,
 };
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf};
 use crate::stable_name::rememberOldStableNameAddresses;
 use crate::stable_ptr::markStablePtrTable;
 use crate::stats::{stat_endRP, stat_startRP};
+use crate::stg::types::StgWord;
 use crate::traverse_heap::{
     closeTraverseStack, getTravData, getTraverseStackMaxSize, initializeTraverseStack,
     isTravDataValid, setTravData, stackAccum, stackData, stackData_, stackElement,

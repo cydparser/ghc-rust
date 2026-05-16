@@ -1,13 +1,12 @@
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::block::{
     BLOCK_MASK, BLOCK_SIZE, BLOCK_SIZE_W, allocBlock_lock, allocGroup_lock, bdescr, bdescr_,
     freeGroup_lock,
 };
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgPtr, StgWord, StgWord16};
 use crate::prelude::*;
+use crate::rts_messages::{_assertFail, barf};
 use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::stg::types::{StgPtr, StgWord, StgWord16};
 
 pub(crate) type Arena = _Arena;
 

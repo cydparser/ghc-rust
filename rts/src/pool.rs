@@ -1,11 +1,11 @@
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::os_threads::{
     Condition, Mutex, closeCondition, closeMutex, initCondition, initMutex, signalCondition,
     waitCondition,
 };
-use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
+use crate::rts_messages::barf;
 use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::stg::types::StgWord;
 
 pub(crate) type alloc_thing_fn = Option<unsafe extern "C" fn() -> *mut c_void>;
 

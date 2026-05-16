@@ -1,9 +1,9 @@
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
-use crate::ffi::stg::types::StgStablePtr;
 use crate::hs_ffi::{HsInt, HsWord64};
 use crate::prelude::*;
+use crate::rts_messages::barf;
 use crate::stable_ptr::freeStablePtr;
+use crate::stg::types::StgStablePtr;
 
 #[cfg(test)]
 mod tests;

@@ -1,10 +1,10 @@
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::foreign_exports::ForeignExportsList;
 use crate::ffi::rts::stable_ptr::getStablePtr;
-use crate::ffi::stg::types::{StgPtr, StgStablePtr};
 use crate::linker_internals::{_ObjectCode, ObjectCode};
 use crate::prelude::*;
+use crate::rts_messages::_assertFail;
 use crate::rts_utils::stgMallocBytes;
+use crate::stg::types::{StgPtr, StgStablePtr};
 
 #[cfg(test)]
 mod tests;

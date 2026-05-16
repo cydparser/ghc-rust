@@ -1,5 +1,3 @@
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::era;
 use crate::ffi::rts::storage::block::{BF_PINNED, bdescr};
 use crate::ffi::rts::storage::closure_macros::{
@@ -7,9 +5,10 @@ use crate::ffi::rts::storage::closure_macros::{
 };
 use crate::ffi::rts::storage::gc::generations;
 use crate::ffi::rts::types::StgClosure;
-use crate::ffi::stg::types::{StgHalfWord, StgWord};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf};
+use crate::stg::types::{StgHalfWord, StgWord};
 
 unsafe fn isInherentlyUsed(mut closure_type: StgHalfWord) -> bool {
     match closure_type {

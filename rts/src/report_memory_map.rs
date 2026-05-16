@@ -1,5 +1,5 @@
-use crate::ffi::rts::messages::debugBelch;
 use crate::prelude::*;
+use crate::rts_messages::debugBelch;
 
 unsafe fn reportMemoryMap() {
     debugBelch(c"\nMemory map:\n".as_ptr());

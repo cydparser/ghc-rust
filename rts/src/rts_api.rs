@@ -24,10 +24,6 @@ use crate::ffi::rts::{_assertFail, stg_exit};
 use crate::ffi::stg::misc_closures::{
     stg_END_TSO_QUEUE_closure, stg_ap_2_upd_info, stg_ap_v_info, stg_enter_info, stg_forceIO_info,
 };
-use crate::ffi::stg::types::{
-    StgInt, StgInt8, StgInt16, StgInt32, StgInt64, StgPtr, StgStablePtr, StgWord, StgWord8,
-    StgWord16, StgWord32, StgWord64,
-};
 use crate::ffi::stg::{
     ASSIGN_DBL, ASSIGN_FLT, ASSIGN_Int64, ASSIGN_Word64, PK_DBL, PK_FLT, PK_Int64, PK_Word64, W_,
 };
@@ -44,6 +40,10 @@ use crate::schedule::{releaseAllCapabilities, stopAllCapabilities};
 use crate::sm::non_moving::{nonmovingBlockConcurrentMark, nonmovingUnblockConcurrentMark};
 use crate::stable_name::threadStableNameTable;
 use crate::stable_ptr::{freeStablePtr, threadStablePtrTable};
+use crate::stg::types::{
+    StgInt, StgInt8, StgInt16, StgInt32, StgInt64, StgPtr, StgStablePtr, StgWord, StgWord8,
+    StgWord16, StgWord32, StgWord64,
+};
 use crate::task::{Task, exitMyTask, freeMyTask, getMyTask, myTask, newBoundTask};
 use crate::threads::performTryPutMVar;
 use crate::trace::{traceTaskCreate, traceTaskDelete};

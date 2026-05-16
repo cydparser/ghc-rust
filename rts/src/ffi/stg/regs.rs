@@ -2,11 +2,11 @@ use crate::ffi::rts::prof::ccs::CostCentreStack_;
 use crate::ffi::rts::storage::block::bdescr_;
 use crate::ffi::rts::storage::gc::nursery_;
 use crate::ffi::rts::storage::tso::StgTSO_;
-use crate::ffi::stg::types::{
+use crate::prelude::*;
+use crate::stg::types::{
     StgAddr, StgAtomicPtr, StgChar, StgDouble, StgFloat, StgFunPtr, StgInt, StgPtr, StgWord,
     StgWord64, StgWord128, StgWord256, StgWord512,
 };
-use crate::prelude::*;
 
 #[cfg(test)]
 mod tests;

@@ -1,11 +1,10 @@
-use crate::ffi::rts::messages::{barf, sysErrorBelch};
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
-use crate::ffi::rts::{prog_name, stg_exit};
-use crate::ffi::stg::types::StgWord64;
-use crate::fs::__rts_fopen;
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{barf, sysErrorBelch};
+use crate::rts_startup::{EXIT_FAILURE, stg_exit};
 use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::stg::types::StgWord64;
 
 #[cfg(test)]
 mod tests;

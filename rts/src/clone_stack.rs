@@ -1,6 +1,5 @@
 use crate::capability::Capability;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack, era, user_era};
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::stable_ptr::deRefStablePtr;
@@ -16,12 +15,13 @@ use crate::ffi::stg::misc_closures::{
     stg_MSG_CLONE_STACK_info, stg_stack_underflow_frame_d_info, stg_stack_underflow_frame_v16_info,
     stg_stack_underflow_frame_v32_info, stg_stack_underflow_frame_v64_info,
 };
-use crate::ffi::stg::types::{StgPtr, StgStablePtr, StgWord, StgWord8};
 use crate::hs_ffi::HsStablePtr;
 use crate::messages::sendMessage;
 use crate::prelude::*;
 use crate::rts_api::{HaskellObj, rts_apply, rts_unsafeGetMyCapability};
+use crate::rts_messages::barf;
 use crate::sm::sanity::checkClosure;
+use crate::stg::types::{StgPtr, StgStablePtr, StgWord, StgWord8};
 use crate::threads::performTryPutMVar;
 
 unsafe fn cloneStackChunk(

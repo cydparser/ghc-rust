@@ -7,7 +7,7 @@ use crate::check_unload::{checkUnload, prepareUnloadCheck};
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::block_signals::{blockUserSignals, unblockUserSignals};
-use crate::ffi::rts::messages::barf;
+use crate::rts_messages::barf;
 use crate::ffi::rts::os_threads::{
     Condition, Mutex, broadcastCondition, closeCondition, closeMutex, initCondition, initMutex,
     osThreadId, signalCondition, timedWaitCondition, waitCondition,
@@ -37,10 +37,10 @@ use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{stg_END_TSO_QUEUE_closure, stg_GCD_CAF_info};
 use crate::ffi::stg::smp::{atomic_dec, atomic_inc};
-use crate::ffi::stg::types::{
+use crate::stg::types::{
     StgHalfWord, StgInt, StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord64,
 };
-use crate::ffi::stg::types::{StgWord, StgWord16};
+use crate::stg::types::{StgWord, StgWord16};
 use crate::ffi::stg::{BITS_PER_BYTE, W_};
 use crate::ldv_profile::LdvCensusForDead;
 use crate::prelude::*;

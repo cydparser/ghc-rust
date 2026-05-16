@@ -1,8 +1,6 @@
 use crate::alloc_array::allocateMutArrPtrs;
 use crate::capability::Capability;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::BITMAP_BITS_SHIFT;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::closure_macros::{
     LOOKS_LIKE_CLOSURE_PTR, SET_INFO, UNTAG_CLOSURE, closure_sizeW, get_fun_itbl, get_itbl,
@@ -14,10 +12,11 @@ use crate::ffi::rts::storage::closures::{
 use crate::ffi::rts::storage::info_tables::{StgLargeBitmap, stg_arg_bitmaps};
 use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::stg::misc_closures::stg_MUT_ARR_PTRS_FROZEN_CLEAN_info;
-use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
 use crate::printer::closure_type_names;
+use crate::rts_messages::{_assertFail, barf};
 use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::stg::types::StgWord;
 
 #[cfg(test)]
 mod tests;

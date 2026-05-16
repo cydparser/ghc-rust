@@ -1,6 +1,6 @@
 use crate::capability::Capability;
 use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
+use crate::rts_messages::barf;
 use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK};
 use crate::ffi::rts::storage::block::{
     BF_NONMOVING, BLOCK_SIZE_W, BLOCKS_PER_MBLOCK, Bdescr, allocMBlockAlignedGroupOnNode, bdescr,
@@ -11,7 +11,7 @@ use crate::ffi::rts::storage::heap_alloc::gc_alloc_block_sync;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::smp::{atomic_inc, cas};
-use crate::ffi::stg::types::{StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32};
+use crate::stg::types::{StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32};
 use crate::prelude::*;
 use crate::rts_utils::stgMallocBytes;
 use crate::sm::non_moving::{

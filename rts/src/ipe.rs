@@ -4,16 +4,15 @@ use crate::ffi::rts::ipe::{
     InfoProv, InfoProv_, InfoProvEnt, InfoProvEnt_, IpeBufferEntry, IpeBufferListNode,
     IpeBufferListNode_, StringIdx,
 };
-use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::types::StgInfoTable;
 use crate::ffi::rts::types::StgInfoTable;
 use crate::ffi::stg::smp::{cas_ptr, xchg_ptr};
-use crate::ffi::stg::types::StgWord;
-use crate::ffi::stg::types::StgWord;
 use crate::hash::{HashTable, allocHashTable, insertHashTable, lookupHashTable, mapHashTable};
 use crate::prelude::*;
+use crate::rts_messages::{barf, debugBelch};
 use crate::rts_utils::stgMallocBytes;
+use crate::stg::types::StgWord;
 use crate::trace::traceIPE;
 
 #[cfg(test)]

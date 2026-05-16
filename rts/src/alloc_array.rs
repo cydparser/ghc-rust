@@ -12,8 +12,8 @@ use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{
     stg_ARR_WORDS_info, stg_MUT_ARR_PTRS_DIRTY_info, stg_SMALL_MUT_ARR_PTRS_DIRTY_info,
 };
-use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
+use crate::stg::types::StgWord;
 
 unsafe fn allocateMutArrPtrs(
     mut cap: *mut Capability,

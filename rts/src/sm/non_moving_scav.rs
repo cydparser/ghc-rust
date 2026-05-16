@@ -1,5 +1,3 @@
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::storage::block::Bdescr;
 use crate::ffi::rts::storage::closure_macros::{
     LOOKS_LIKE_CLOSURE_PTR, get_itbl, small_mut_arr_ptrs_sizeW,
@@ -21,8 +19,8 @@ use crate::ffi::stg::misc_closures::{
     stg_SMALL_MUT_ARR_PTRS_DIRTY_info, stg_SMALL_MUT_ARR_PTRS_FROZEN_CLEAN_info,
     stg_SMALL_MUT_ARR_PTRS_FROZEN_DIRTY_info, stg_TVAR_CLEAN_info, stg_TVAR_DIRTY_info,
 };
-use crate::ffi::stg::types::{StgPtr, StgWord, StgWord8};
 use crate::prelude::*;
+use crate::rts_messages::{_assertFail, barf};
 use crate::sm::evac::evacuate;
 use crate::sm::gc_utils::recordMutableGen_GC;
 use crate::sm::gct_decl::gct;
@@ -35,6 +33,7 @@ use crate::sm::scav::{
     scavenge_AP, scavenge_PAP, scavenge_compact, scavenge_continuation, scavenge_fun_srt,
     scavenge_mut_arr_ptrs, scavenge_stack, scavenge_thunk_srt, scavengeTSO,
 };
+use crate::stg::types::{StgPtr, StgWord, StgWord8};
 
 unsafe fn nonmovingScavengeOne(mut q: *mut StgClosure) {
     let mut current_block: u64;

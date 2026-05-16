@@ -10,13 +10,10 @@ use crate::ffi::rts::linker::{
     OBJECT_RESOLVED, OBJECT_UNLOADED, OStatus, pathchar,
 };
 use crate::ffi::rts::linker::{OStatus, pathchar};
-use crate::ffi::rts::messages::{barf, debugBelch, errorBelch};
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::storage::closures::{StgInd, StgIndStatic};
 use crate::ffi::rts::storage::gc::{newGCdCAF, newRetainedCAF};
 use crate::ffi::stg::regs::StgRegTable;
-use crate::ffi::stg::types::StgWord;
-use crate::ffi::stg::types::{StgStablePtr, StgWord};
 use crate::foreign_exports::{foreignExportsFinishedLoadingObject, foreignExportsLoadingObject};
 use crate::ghcautoconf::RTS_LINKER_USE_MMAP;
 use crate::hash::{HashSet, StrHashTable};
@@ -53,6 +50,7 @@ use crate::path_utils::{pathdup, pathsize};
 use crate::prelude::*;
 use crate::profiling::refreshProfilingCCSs;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{barf, debugBelch, errorBelch};
 use crate::rts_symbol_info::{isSymbolImport, isSymbolWeak};
 use crate::rts_symbols::{
     RtsSymbolVal, STRENGTH_NORMAL, STRENGTH_STRONG, STRENGTH_WEAK, SYM_TYPE_CODE,
@@ -61,6 +59,7 @@ use crate::rts_symbols::{
 use crate::rts_symbols::{SymStrength, SymType, SymbolName};
 use crate::rts_utils::{stgCallocBytes, stgFree, stgMallocBytes};
 use crate::stable_ptr::freeStablePtr;
+use crate::stg::types::{StgStablePtr, StgWord};
 
 #[cfg(test)]
 mod tests;

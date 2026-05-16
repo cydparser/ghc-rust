@@ -1,9 +1,9 @@
-use crate::ffi::rts::messages::errorBelch;
 use crate::ffi::stg::W_;
 use crate::hs_ffi::HsBool;
 use crate::prelude::*;
 use crate::rts_api::RtsOptsAll;
 use crate::rts_flags::get_rts_config;
+use crate::rts_messages::errorBelch;
 
 unsafe fn StackOverflowHook(mut stack_size: W_) {
     errorBelch(

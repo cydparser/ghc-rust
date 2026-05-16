@@ -1,12 +1,11 @@
 use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::exec_page::{allocateExecPage, freezeExecPage};
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::os_threads::{Mutex, initMutex};
-use crate::ffi::stg::types::{StgFunPtr, StgStablePtr};
-use crate::ffi::stg::types::{StgFunPtr, StgStablePtr};
 use crate::prelude::*;
+use crate::rts_messages::barf;
 use crate::rts_utils::stgMallocBytes;
 use crate::sm::os_mem::getPageSize;
+use crate::stg::types::{StgFunPtr, StgStablePtr};
 
 pub(crate) type mk_adjustor_code_fn =
     Option<unsafe extern "C" fn(*mut u8, *const c_void, *mut c_void) -> ()>;

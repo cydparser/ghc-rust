@@ -1,13 +1,13 @@
-use crate::ffi::rts::messages::{barf, errorBelch, sysErrorBelch};
 use crate::ffi::rts::storage::block::{BLOCK_SIZE, MBLOCK_MASK, MBLOCK_SIZE};
 use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
 use crate::ffi::rts::storage::m_block::{getFirstMBlock, getNextMBlock};
 use crate::ffi::rts::{_assertFail, EXIT_HEAPOVERFLOW, stg_exit};
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgWord, StgWord8, StgWord64};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{barf, errorBelch, sysErrorBelch};
 use crate::sm::os_mem::roundUpToAlign;
+use crate::stg::types::{StgWord, StgWord8, StgWord64};
 
 #[inline]
 pub(crate) unsafe fn roundDownToPage(mut x: usize) -> usize {

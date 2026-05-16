@@ -1,7 +1,5 @@
 use crate::check_unload::{insertOCSectionIndices, loaded_objects};
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::linker::{OBJECT_READY, OBJECT_UNLOADED, pathchar};
-use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::foreign_exports::{foreignExportsFinishedLoadingObject, foreignExportsLoadingObject};
 use crate::linker_internals::{
     _ObjectCode, DYNAMIC_OBJECT, NativeCodeRange, ObjectCode, linker_mutex, lookupObjectByPath,
@@ -10,6 +8,7 @@ use crate::linker_internals::{
 use crate::prelude::*;
 use crate::profiling::{ccs_mutex, refreshProfilingCCSs};
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf, debugBelch};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 
 unsafe fn copyErrmsg(mut errmsg_dest: *mut *mut c_char, mut errmsg: *mut c_char) {

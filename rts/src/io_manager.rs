@@ -1,11 +1,8 @@
 use crate::capability::Capability;
 use crate::capability::{CapIOManager, getCapability};
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::{barf, errorBelch};
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::types::StgTSO;
-use crate::ffi::stg::types::StgWord32;
 use crate::hs_ffi::HsInt;
 use crate::io_manager::{
     IO_MANAGER_MIO_POSIX, IOManagerAvailability, IOManagerAvailable, IOManagerType,
@@ -15,8 +12,10 @@ use crate::posix::signals::{ioManagerDie, ioManagerStart, ioManagerStartCap, ioM
 use crate::prelude::*;
 use crate::rts_api::{HaskellObj, rts_evalIO};
 use crate::rts_flags::{IO_MANAGER_FLAG, IO_MNGR_FLAG_AUTO, IO_MNGR_FLAG_MIO, RtsFlags};
+use crate::rts_messages::{_assertFail, barf, errorBelch};
 use crate::rts_utils::stgMallocBytes;
 use crate::sm::gc::evac_fn;
+use crate::stg::types::StgWord32;
 use crate::trace::{DEBUG_RTS, trace_};
 
 #[cfg(test)]

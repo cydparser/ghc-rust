@@ -1,9 +1,7 @@
 use crate::capability::getCapability;
 use crate::disassembler::disassemble;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK};
 use crate::ffi::rts::ipe::{InfoProv_, InfoProvEnt_, lookupIPE};
-use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::block::bdescr;
 use crate::ffi::rts::storage::closure_macros::{
@@ -34,14 +32,15 @@ use crate::ffi::stg::misc_closures::{
     stg_restore_cccs_v64_info, stg_ret_d_info, stg_ret_f_info, stg_ret_l_info, stg_ret_n_info,
     stg_ret_p_info, stg_ret_t_info, stg_ret_v_info, stg_upd_frame_info,
 };
-use crate::ffi::stg::types::{StgPtr, StgWord};
 use crate::ffi::stg::{BITS_PER_BYTE, P_, W_};
 use crate::hash::{HashTable, lookupHashTable};
 use crate::prelude::*;
 use crate::profiling::fprintCCS;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf, debugBelch};
 use crate::sm::gc_thread::{gc_threads, gen_workspace};
 use crate::sm::storage::{STATIC_BITS, static_flag};
+use crate::stg::types::{StgPtr, StgWord};
 
 unsafe fn printPtr(mut p: StgPtr) {
     let mut raw = null::<c_char>();

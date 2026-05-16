@@ -11,7 +11,6 @@ use crate::ffi::rts::constants::MAX_NUMA_NODES;
 use crate::ffi::rts::os_threads::getNumberOfProcessors;
 use crate::ffi::rts::storage::block::{BLOCK_SIZE, MBLOCK_SIZE};
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgDouble, StgWord, StgWord64};
 use crate::hooks::hooks::{
     FlagDefaultsHook, LongGCSync, LongGCSyncEnd, MallocFailHook, OnExitHook, OutOfHeapHook,
     StackOverflowHook,
@@ -28,6 +27,7 @@ use crate::rts_utils::{
     printRtsInfo, stgCallocBytes, stgFree, stgMallocBytes, stgReallocBytes, stgStrndup,
 };
 use crate::sm::os_mem::{getPhysicalMemorySize, osBuiltWithNumaSupport, osNumaAvailable};
+use crate::stg::types::{StgDouble, StgWord, StgWord64};
 use crate::time::{Time, fsecondsToTime};
 use crate::utils::str::{Str0, String0};
 

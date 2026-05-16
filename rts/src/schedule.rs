@@ -14,7 +14,6 @@ use crate::ffi::rts::constants::{
     ThreadBlocked, ThreadComplete, ThreadFinished, ThreadKilled,
 };
 use crate::ffi::rts::event_log_format::THREAD_SUSPENDED_FOREIGN_CALL;
-use crate::ffi::rts::messages::{barf, errorBelch};
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::os_threads::{
     Condition, Mutex, OS_TRY_ACQUIRE_LOCK, closeMutex, getNumberOfProcessors, initCondition,
@@ -61,10 +60,6 @@ use crate::ffi::stg::misc_closures::{
 };
 use crate::ffi::stg::regs::StgRegTable;
 use crate::ffi::stg::smp::cas;
-use crate::ffi::stg::types::StgWord;
-use crate::ffi::stg::types::{
-    StgFunPtr, StgHalfWord, StgInt64, StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32,
-};
 use crate::ffi::stg::{ASSIGN_Int64, PK_Int64, W_};
 use crate::hs_ffi::HsStablePtr;
 use crate::interpreter::interpretBCO;
@@ -86,6 +81,7 @@ use crate::rts_api::{
     shutdownHaskellAndExit,
 };
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{barf, errorBelch};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::schedule::{
     ACTIVITY_DONE_GC, ACTIVITY_INACTIVE, ACTIVITY_YES, RecentActivity, SCHED_INTERRUPTING,
@@ -103,6 +99,9 @@ use crate::sparks::{createSparkThread, sparkPoolSize};
 use crate::stable_name::stable_name_mutex;
 use crate::stable_ptr::{freeStablePtr, stable_ptr_mutex};
 use crate::stats::{resetChildProcessStats, stat_startGCSync};
+use crate::stg::types::{
+    StgFunPtr, StgHalfWord, StgInt64, StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32,
+};
 use crate::stg_run::StgRun;
 use crate::stm::{stmAbortTransaction, stmFreeAbortedTRec, stmValidateNestOfTransactions};
 use crate::task::{

@@ -1,6 +1,6 @@
-use crate::ffi::rts::messages::barf;
 use crate::linker::proddable_blocks::ProddableBlockSet;
 use crate::prelude::*;
+use crate::rts_messages::barf;
 use crate::rts_utils::{stgFree, stgReallocBytes};
 
 /// cbindgen:no-export

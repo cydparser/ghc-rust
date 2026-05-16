@@ -1,9 +1,9 @@
-use crate::ffi::rts::messages::debugBelch;
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::time::Time;
-use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
+use crate::rts_messages::debugBelch;
 use crate::sm::gc_thread::{GC_THREAD_STANDING_BY, gc_threads};
+use crate::stg::types::StgWord;
 
 unsafe fn LongGCSync(mut me: u32, mut t: Time) {
     let mut i: u32 = 0;

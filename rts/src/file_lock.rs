@@ -1,12 +1,12 @@
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
-use crate::ffi::stg::types::{StgWord, StgWord64};
 use crate::hash::{
     HashTable, allocHashTable, freeHashTable, hashWord, insertHashTable, insertHashTable_,
     lookupHashTable, lookupHashTable_, removeHashTable, removeHashTable_,
 };
 use crate::prelude::*;
+use crate::rts_messages::barf;
 use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::stg::types::{StgWord, StgWord64};
 
 #[cfg(test)]
 mod tests;

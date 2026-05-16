@@ -5,13 +5,13 @@ use crate::ffi::rts::time::{ctime_r, nanosleep, time};
 use crate::ffi::rts::types::StgTSO;
 use crate::ffi::rts::{EXIT_HEAPOVERFLOW, EXIT_INTERNAL_ERROR, stg_exit};
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::StgWord64;
 use crate::ghcplatform::{HOST_ARCH, HOST_OS, HOST_VENDOR};
 use crate::io_manager::{selectIOManager, showIOManager};
 use crate::prelude::*;
 use crate::rts_api::RtsConfig;
 use crate::rts_flags::RtsFlags;
 use crate::rts_flags::get_rts_config;
+use crate::stg::types::StgWord64;
 use crate::ticky::PrintTickyInfo;
 
 #[cfg(test)]
