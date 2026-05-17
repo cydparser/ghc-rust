@@ -652,7 +652,7 @@ pub unsafe extern "C" fn rts_pinThreadToNumaNode(mut node: c_int) {
         let mut task = getMyTask();
         (*task).node = (node as u32).wrapping_rem(n_numa_nodes);
 
-        if DEBUG_IS_ON == 0 || !RtsFlags.DebugFlags.numa {
+        if cfg!(feature = "way_debug") || !RtsFlags.DebugFlags.numa {
             setThreadNode(numa_map[(*task).node as usize]);
         }
     }

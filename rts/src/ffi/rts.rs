@@ -64,5 +64,3 @@ pub(crate) const EXIT_INTERRUPTED: i32 = 252;
 pub(crate) const EXIT_HEAPOVERFLOW: i32 = 251;
 
 pub(crate) const EXIT_KILLED: i32 = 250;
-
-pub(crate) const DEBUG_IS_ON: u32 = 1;
