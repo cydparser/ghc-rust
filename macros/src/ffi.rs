@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use proc_macro2 as proc2;
 use proc_macro2::{Delimiter, Group, Spacing, TokenStream, TokenTree};
 use syn::{Ident, Token};
@@ -13,6 +11,7 @@ pub fn ffi_attribute(args: TokenStream, item: TokenStream) -> syn::Result<TokenS
 // Duplicated from generated/consumer to avoid a dependency.
 #[derive(PartialEq, PartialOrd, Eq, Ord)]
 enum Consumer {
+    Cmm,
     Compiler,
     Docs,
     Driver,
@@ -23,17 +22,19 @@ enum Consumer {
 }
 
 #[expect(dead_code)]
-struct Consumers(BTreeSet<Consumer>);
+struct Consumers(u32);
 
 impl syn::parse::Parse for Consumers {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         use Consumer::*;
-        let mut consumers = BTreeSet::new();
+        let mut consumers = 0;
 
         while !input.is_empty() {
             let ident: syn::Ident = input.parse()?;
 
-            let consumer = if ident == "compiler" {
+            let consumer = if ident == "cmm" {
+                Cmm
+            } else if ident == "compiler" {
                 Compiler
             } else if ident == "docs" {
                 Docs
@@ -50,7 +51,7 @@ impl syn::parse::Parse for Consumers {
             } else {
                 return Err(input.error("expected a known consumer"));
             };
-            consumers.insert(consumer);
+            consumers |= consumer as u32;
 
             if input.is_empty() {
                 break;
