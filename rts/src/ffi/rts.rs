@@ -1,4 +1,8 @@
 pub use crate::adjustor::{createAdjustor, freeHaskellFunctionPtr};
+#[cfg(feature = "cbindgen")]
+pub use crate::event_log::writer::EventLogWriter;
+#[cfg(feature = "cbindgen")]
+pub use crate::event_log::{EventLogStatus, endEventLogging, flushEventLog, startEventLogging};
 pub use crate::posix::signals::stg_sig_install;
 use crate::prelude::*;
 pub use crate::rts_messages::{_assertFail, rtsMemcpyRangeOverlap, rtsOutOfBoundsAccess};
@@ -12,7 +16,6 @@ pub use crate::time::{Time, getProcessElapsedTime};
 pub mod block_signals;
 pub mod config;
 pub mod constants;
-pub mod event_log_writer;
 pub mod exec_page;
 pub mod file_lock;
 pub mod foreign_exports;
