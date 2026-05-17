@@ -1,28 +1,21 @@
 use crate::arena::arenaBlocks;
-use crate::capability::Capability;
 use crate::capability::{
-    getCapability, interruptCapability, markCapability, n_numa_nodes, prodCapability,
+    Capability, getCapability, interruptCapability, markCapability, n_numa_nodes, prodCapability,
 };
 use crate::check_unload::{checkUnload, prepareUnloadCheck};
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::block_signals::{blockUserSignals, unblockUserSignals};
-use crate::rts_messages::barf;
 use crate::ffi::rts::os_threads::{
     Condition, Mutex, broadcastCondition, closeCondition, closeMutex, initCondition, initMutex,
     osThreadId, signalCondition, timedWaitCondition, waitCondition,
 };
 use crate::ffi::rts::prof::ccs::{CCS_GC, CostCentreStack, CostCentreStack_};
-use crate::ffi::rts::spin_lock::SpinLock;
 use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK, SpinLock};
-use crate::ffi::rts::storage::block::bdescr;
 use crate::ffi::rts::storage::block::{
     BF_EVACUATED, BF_FRAGMENTED, BF_MARKED, BF_NONMOVING, BF_SWEPT, BLOCK_MASK, BLOCK_SIZE,
     BLOCK_SIZE_W, MBLOCK_MASK, MBLOCK_SIZE, allocBlock, allocBlockOnNode, allocGroup, bdescr,
     bdescr_, dbl_link_onto, freeChain, freeGroup,
 };
 use crate::ffi::rts::storage::closure_macros::{SET_INFO, get_itbl};
-use crate::ffi::rts::storage::closures::StgWeak;
 use crate::ffi::rts::storage::closures::{
     StgCompactNFData, StgCompactNFDataBlock, StgIndStatic, StgWeak,
 };
@@ -32,15 +25,10 @@ use crate::ffi::rts::storage::gc::{
 use crate::ffi::rts::storage::m_block::mblocks_allocated;
 use crate::ffi::rts::threads::{getNumCapabilities, n_capabilities};
 use crate::ffi::rts::time::{Time, getProcessElapsedTime};
-use crate::ffi::rts::types::StgTSO;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::{stg_END_TSO_QUEUE_closure, stg_GCD_CAF_info};
 use crate::ffi::stg::smp::{atomic_dec, atomic_inc};
-use crate::stg::types::{
-    StgHalfWord, StgInt, StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord64,
-};
-use crate::stg::types::{StgWord, StgWord16};
 use crate::ffi::stg::{BITS_PER_BYTE, W_};
 use crate::ldv_profile::LdvCensusForDead;
 use crate::prelude::*;
@@ -48,9 +36,8 @@ use crate::prof_heap::heapCensus;
 use crate::proftimer::performTickySample;
 use crate::retainer_profile::{g_retainerTraverseState, retainerStackBlocks};
 use crate::rts_api::{_RTSStats, GCDetails_, getRTSStats};
-use crate::rts_flags::RtsFlags;
-use crate::rts_flags::get_rts_config;
-use crate::rts_flags::{HEAP_BY_LDV, HEAP_BY_RETAINER, RtsFlags};
+use crate::rts_flags::{HEAP_BY_LDV, HEAP_BY_RETAINER, RtsFlags, get_rts_config};
+use crate::rts_messages::{_assertFail, barf};
 use crate::rts_utils::{
     stgFree, stgFreeAligned, stgMallocAlignedBytes, stgMallocBytes, stgReallocBytes,
 };
@@ -89,6 +76,9 @@ use crate::stable_name::{
 use crate::stable_ptr::{markStablePtrTable, stablePtrLock, stablePtrUnlock};
 use crate::stats::{
     stat_endGC, stat_endGCWorker, stat_startGC, stat_startGCWorker, statDescribeGens,
+};
+use crate::stg::types::{
+    StgHalfWord, StgInt, StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord64,
 };
 use crate::ticky::emitTickyCounterSamples;
 use crate::trace::{

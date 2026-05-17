@@ -14,7 +14,6 @@ use crate::event_log_constants::{
 };
 use crate::event_types::eventTypes;
 use crate::eventlog::event_log::{EventlogInitPost, eventlog_init_func, eventlog_init_func_t};
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::event_log_format::{
     EVENT_DATA_BEGIN, EVENT_DATA_END, EVENT_ET_BEGIN, EVENT_ET_END, EVENT_HEADER_BEGIN,
     EVENT_HEADER_END, EVENT_HET_BEGIN, EVENT_HET_END, EVENT_PAYLOAD_SIZE_MAX, EventCapNo,
@@ -39,7 +38,7 @@ use crate::ffi::stg::W_;
 use crate::get_time::getUnixEpochTime;
 use crate::prelude::*;
 use crate::rts_flags::{PROFILING_FLAGS, RtsFlags};
-use crate::rts_messages::{barf, debugBelch, errorBelch};
+use crate::rts_messages::{_assertFail, barf, debugBelch, errorBelch};
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
 use crate::schedule::{
     SCHED_SHUTTING_DOWN, getSchedState, releaseAllCapabilities, stopAllCapabilitiesWith,

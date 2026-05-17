@@ -1,5 +1,4 @@
 use crate::capability::getCapability;
-use crate::ffi::rts::messages::{barf, debugBelch, vdebugBelch};
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::storage::block::{
     BLOCK_SIZE, BLOCK_SIZE_W, BLOCKS_PER_MBLOCK, MBLOCK_SIZE, bdescr,
@@ -10,15 +9,14 @@ use crate::ffi::rts::storage::m_block::{mblocks_allocated, peak_mblocks_allocate
 use crate::ffi::rts::threads::getNumCapabilities;
 use crate::ffi::rts::time::Time;
 use crate::ffi::rts::time::{TIME_RESOLUTION, Time, getProcessElapsedTime};
-use crate::ffi::rts::{_assertFail, rts_assert_warn};
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgInt, StgWord, StgWord64};
 use crate::get_time::{getCurrentThreadCPUTime, getPageFaults, getProcessTimes};
 use crate::prelude::*;
 use crate::profiling::prof_file;
 use crate::rts_flags::{
     NO_GC_STATS, ONELINE_GC_STATS, RtsFlags, SUMMARY_GC_STATS, VERBOSE_GC_STATS, get_rts_config,
 };
+use crate::rts_messages::{_assertFail, barf, debugBelch, rts_assert_warn, vdebugBelch};
 use crate::rts_utils::{showStgWord64, stgFree, stgMallocBytes};
 use crate::sm::block_alloc::{hw_alloc_blocks, n_alloc_blocks};
 use crate::sm::gc::{waitForGcThreads_spin, waitForGcThreads_yield, whitehole_gc_spin};
@@ -28,6 +26,7 @@ use crate::sm::storage::{
     gcThreadLiveBlocks, gcThreadLiveWords, genLiveBlocks, genLiveWords, updateNurseriesStats,
 };
 use crate::sparks::SparkCounters;
+use crate::stg::types::{StgInt, StgWord, StgWord64};
 use crate::task::{all_tasks_mutex, peakWorkerCount, taskCount, workerCount};
 use crate::trace::{
     CAPSET_HEAP_DEFAULT, traceConcSyncBegin, traceConcSyncEnd, traceEventBlocksSize,

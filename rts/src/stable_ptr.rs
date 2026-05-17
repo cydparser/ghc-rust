@@ -1,13 +1,12 @@
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::stable_ptr::spEntry;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::stg::P_;
-use crate::ffi::stg::types::{StgPtr, StgStablePtr, StgWord};
 use crate::prelude::*;
+use crate::rts_messages::{_assertFail, barf};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::sm::gc::evac_fn;
+use crate::stg::types::{StgPtr, StgStablePtr, StgWord};
 
 static mut stable_ptr_table: *mut spEntry = null_mut::<spEntry>();
 

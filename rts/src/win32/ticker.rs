@@ -1,7 +1,7 @@
-use crate::ffi::rts::messages::sysErrorBelch;
-use crate::ffi::rts::stg_exit;
 use crate::ffi::rts::time::Time;
 use crate::prelude::*;
+use crate::rts_messages::sysErrorBelch;
+use crate::rts_startup::stg_exit;
 use crate::ticker::TickProc;
 
 pub(crate) type TickProc = Option<unsafe extern "C" fn(c_int) -> ()>;

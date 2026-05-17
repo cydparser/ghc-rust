@@ -1,7 +1,5 @@
 use crate::capability::Capability;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK, MUT_ARR_PTRS_CARD_BITS};
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK};
 use crate::ffi::rts::storage::block::{BF_COMPACT, BLOCK_SIZE_W, Bdescr, bdescr, dbl_link_onto};
 use crate::ffi::rts::storage::closure_macros::{
@@ -30,12 +28,12 @@ use crate::ffi::stg::misc_closures::{
     stg_SMALL_MUT_ARR_PTRS_FROZEN_DIRTY_info, stg_TREC_HEADER_info, stg_TVAR_CLEAN_info,
     stg_TVAR_DIRTY_info, stg_TVAR_WATCH_QUEUE_info, stg_WHITEHOLE_info,
 };
-use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord8, StgWord32};
 use crate::ffi::stg::{P_, W_};
 use crate::hash::{HashTable, allocHashTable, freeHashTable, insertHashTable, mapHashTable};
 use crate::io_manager::scavengeTSOIOManager;
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf};
 use crate::sm::evac::{evacuate_BLACKHOLE1, evacuate1};
 use crate::sm::gc::{
     MutListScavStats, N, addMutListScavStats, deadlock_detect_gc, major_gc, mark_stack_bd,
@@ -54,6 +52,7 @@ use crate::sm::non_moving::END_NONMOVING_TODO_LIST;
 use crate::sm::non_moving_scav::{nonmovingScavengeOne, scavengeNonmovingSegment};
 use crate::sm::sanity::checkStaticObjects;
 use crate::sm::storage::{STATIC_BITS, static_flag};
+use crate::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord8, StgWord32};
 use crate::trace::{DEBUG_RTS, trace_};
 
 /// cbindgen:no-export

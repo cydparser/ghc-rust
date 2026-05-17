@@ -1,6 +1,5 @@
 use crate::capability::Capability;
 use crate::capability::regTableToCapability;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::storage::block::{BF_EVACUATED, BF_NONMOVING, Bdescr};
 use crate::ffi::rts::storage::closure_macros::{
@@ -11,20 +10,19 @@ use crate::ffi::rts::storage::closure_types::THUNK_STATIC;
 use crate::ffi::rts::storage::closures::StgClosurePtr;
 use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
 use crate::ffi::rts::storage::info_tables::{_NS, closure_flags};
-use crate::ffi::rts::storage::info_tables::{_NS, closure_flags};
 use crate::ffi::rts::threads::createIOThread;
-use crate::ffi::rts::types::StgClosure;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::regs::StgRegTable;
-use crate::ffi::stg::types::{StgHalfWord, StgInt, StgPtr, StgWord, StgWord16};
-use crate::ffi::stg::types::{StgInt, StgWord, StgWord16};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::_assertFail;
 use crate::schedule::appendToRunQueue;
 use crate::sm::gc::evac_fn;
 use crate::sm::non_moving_mark::nonmovingIsAlive;
 use crate::sparks::{SparkPool, fizzledSpark, sparkPoolSize};
+use crate::stg::types::{StgHalfWord, StgInt, StgPtr, StgWord, StgWord16};
+use crate::stg::types::{StgInt, StgWord, StgWord16};
 use crate::thread_labels::setThreadLabel;
 use crate::trace::{
     DEBUG_RTS, trace_, traceEventCreateSparkThread, traceEventSparkCreate, traceEventSparkDud,
@@ -33,9 +31,6 @@ use crate::trace::{
 use crate::ws_deque::{
     WSDeque, dequeElements, discardElements, freeWSDeque, looksEmptyWSDeque, newWSDeque,
     popWSDeque, pushWSDeque, stealWSDeque_,
-};
-use crate::ws_deque::{
-    WSDeque, dequeElements, discardElements, looksEmptyWSDeque, popWSDeque, stealWSDeque_,
 };
 
 #[cfg(test)]

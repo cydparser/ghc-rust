@@ -1,8 +1,7 @@
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::exec_page::{allocateExecPage, freezeExecPage};
 use crate::ffi::rts::os_threads::{Mutex, initMutex};
 use crate::prelude::*;
-use crate::rts_messages::barf;
+use crate::rts_messages::{_assertFail, barf};
 use crate::rts_utils::stgMallocBytes;
 use crate::sm::os_mem::getPageSize;
 use crate::stg::types::{StgFunPtr, StgStablePtr};

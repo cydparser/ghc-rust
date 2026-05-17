@@ -1,5 +1,4 @@
 use crate::check_unload::markObjectCode;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::storage::block::{BF_EVACUATED, BF_LARGE, BF_MARKED, BF_NONMOVING, Bdescr};
 use crate::ffi::rts::storage::closure_macros::{
     GET_CLOSURE_TAG, INFO_PTR_TO_STRUCT, LOOKS_LIKE_CLOSURE_PTR, SET_INFO, TAG_CLOSURE,
@@ -9,13 +8,14 @@ use crate::ffi::rts::storage::closures::{StgInd, StgIndStatic};
 use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::stg::W_;
-use crate::stg::types::{StgPtr, StgWord};
 use crate::prelude::*;
+use crate::rts_messages::_assertFail;
 use crate::sm::compact::is_marked;
 use crate::sm::gc::{evac_fn, unload_mark_needed};
 use crate::sm::storage::{
     END_OF_CAF_LIST, STATIC_BITS, STATIC_FLAG_LIST, dyn_caf_list, revertible_caf_list,
 };
+use crate::stg::types::{StgPtr, StgWord};
 
 #[cfg(test)]
 mod tests;

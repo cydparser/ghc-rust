@@ -1,8 +1,8 @@
-use crate::ffi::rts::messages::sysErrorBelch;
 use crate::ffi::rts::time::Time;
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgWord32, StgWord64};
 use crate::prelude::*;
+use crate::rts_messages::sysErrorBelch;
+use crate::stg::types::{StgWord32, StgWord64};
 
 #[cfg(test)]
 mod tests;

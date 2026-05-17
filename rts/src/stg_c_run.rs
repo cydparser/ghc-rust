@@ -1,6 +1,6 @@
 use crate::ffi::stg::regs::StgRegTable;
-use crate::ffi::stg::types::StgFunPtr;
 use crate::prelude::*;
+use crate::stg::types::StgFunPtr;
 
 unsafe fn StgRun(mut f: StgFunPtr, mut basereg: *mut StgRegTable) -> *mut StgRegTable {
     let mut r = null_mut::<StgRegTable>();

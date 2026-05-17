@@ -2,10 +2,10 @@ use crate::capability::Capability;
 use crate::ffi::rts::ipe::{IpeBufferEntry, IpeBufferListNode, StringIdx};
 use crate::ffi::rts::storage::closure_macros::get_itbl;
 use crate::ffi::rts::types::{StgClosure, StgInfoTable};
-use crate::ffi::stg::types::StgWord;
 use crate::hs_ffi::HsInt;
 use crate::prelude::*;
 use crate::rts_api::rts_mkInt;
+use crate::stg::types::StgWord;
 
 unsafe fn init_string_table(mut st: *mut StringTable) {
     (*st).size = 128;

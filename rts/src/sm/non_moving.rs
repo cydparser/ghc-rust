@@ -1,6 +1,4 @@
 use crate::capability::{getCapability, markCapability};
-use crate::ffi::rts::_assertFail;
-use crate::rts_messages::{barf, debugBelch};
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::os_threads::{
     Condition, Mutex, OSThreadId, broadcastCondition, closeCondition, closeMutex, createOSThread,
@@ -10,23 +8,19 @@ use crate::ffi::rts::storage::block::{
     BF_LARGE, BF_MARKED, BF_NONMOVING, BF_NONMOVING_SWEEPING, BLOCK_SIZE, BLOCK_SIZE_W,
     BLOCKS_PER_MBLOCK, Bdescr, MBLOCK_MASK, NonmovingSegmentInfo, bdescr, dbl_link_onto, freeGroup,
 };
-use crate::ffi::rts::storage::block::{
-    BF_LARGE, BF_NONMOVING, BF_NONMOVING_SWEEPING, BLOCK_SIZE, Bdescr, NonmovingSegmentInfo, bdescr,
-};
 use crate::ffi::rts::storage::closures::{StgIndStatic, StgWeak};
 use crate::ffi::rts::storage::gc::{memcount, oldest_gen};
 use crate::ffi::rts::storage::heap_alloc::mblock_address_space;
 use crate::ffi::rts::threads::{getNumCapabilities, n_capabilities};
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::stg::W_;
 use crate::ffi::stg::misc_closures::stg_END_TSO_QUEUE_closure;
 use crate::ffi::stg::smp::cas;
-use crate::stg::types::{StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32, StgWord64};
 use crate::ffi::stg::{P_, W_};
 use crate::ghcautoconf::SIZEOF_VOID_P;
 use crate::prelude::*;
 use crate::printer::printClosure;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf, debugBelch};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::schedule::{SCHED_RUNNING, getSchedState, releaseAllCapabilities, resurrectThreads};
 use crate::sm::gc::{markCAFs, resizeGenerations};
@@ -66,6 +60,7 @@ use crate::sm::storage::{
 use crate::sparks::pruneSparkQueue;
 use crate::stable_ptr::markStablePtrTable;
 use crate::stats::{stat_endNonmovingGc, stat_endNonmovingGcSync, stat_startNonmovingGc};
+use crate::stg::types::{StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32, StgWord64};
 use crate::task::{myTask, newBoundTask};
 use crate::trace::{
     DEBUG_RTS, TRACE_nonmoving_gc, trace_, traceConcSweepBegin, traceConcSweepEnd,

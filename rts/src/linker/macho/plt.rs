@@ -1,8 +1,8 @@
-use crate::ffi::rts::_assertFail;
 use crate::linker::mach_o_types::{_Stub, MachORelocationInfo, MachOSection, Stub};
 use crate::linker::macho::plt_aarch64::{makeStubAarch64, needStubForRelAarch64, stubSizeAarch64};
 use crate::linker_internals::{ObjectCode, Section};
 use crate::prelude::*;
+use crate::rts_messages::_assertFail;
 use crate::rts_utils::{stgCallocBytes, stgFree};
 
 unsafe fn numberOfStubsForSection(mut oc: *mut ObjectCode, mut sectionIndex: u32) -> u32 {

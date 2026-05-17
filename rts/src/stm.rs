@@ -1,5 +1,4 @@
 use crate::capability::Capability;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::prof::ccs::{CCS_SYSTEM, CostCentreStack, era, user_era};
@@ -20,11 +19,12 @@ use crate::ffi::stg::misc_closures::{
     stg_NO_TREC_closure, stg_TREC_CHUNK_info, stg_TREC_HEADER_info, stg_TVAR_WATCH_QUEUE_info,
 };
 use crate::ffi::stg::smp::cas;
-use crate::ffi::stg::types::{StgBool, StgInt, StgInt64, StgVolatilePtr, StgWord, StgWord32};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::_assertFail;
 use crate::sm::non_moving_mark::updateRemembSetPushClosure;
 use crate::sm::storage::dirty_TVAR;
+use crate::stg::types::{StgBool, StgInt, StgInt64, StgVolatilePtr, StgWord, StgWord32};
 use crate::threads::tryWakeupThread;
 use crate::trace::{DEBUG_RTS, trace_};
 

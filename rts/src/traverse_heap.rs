@@ -1,11 +1,8 @@
 use crate::capability::getCapability;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{
     BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK, ThreadComplete, ThreadKilled,
 };
-use crate::ffi::rts::messages::{barf, vdebugBelch};
 use crate::ffi::rts::prof::ccs::CostCentreStack;
-use crate::ffi::rts::storage::block::bdescr;
 use crate::ffi::rts::storage::block::{BLOCK_SIZE_W, allocGroup, bdescr, bdescr_, freeChain};
 use crate::ffi::rts::storage::closure_macros::{
     STATIC_LINK, UNTAG_CLOSURE, UNTAG_CONST_CLOSURE, get_fun_itbl, get_itbl, get_ret_itbl,
@@ -21,16 +18,14 @@ use crate::ffi::rts::storage::info_tables::{
 };
 use crate::ffi::rts::storage::tso::StgStack;
 use crate::ffi::rts::threads::getNumCapabilities;
-use crate::ffi::rts::types::StgClosure;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::stg::types::{STG_WORD_MAX, StgHalfWord, StgPtr, StgWord};
-use crate::ffi::stg::types::{StgHalfWord, StgPtr, StgWord};
 use crate::ffi::stg::{BITS_PER_BYTE, P_, W_};
 use crate::prelude::*;
 use crate::retainer_set::retainer;
-use crate::retainer_set::retainer;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf, vdebugBelch};
 use crate::sm::storage::{STATIC_BITS, static_flag};
+use crate::stg::types::{STG_WORD_MAX, StgHalfWord, StgPtr, StgWord};
 use crate::traverse_heap::{
     C2RustUnnamed_11, C2RustUnnamed_12, nextPos, nextPosType, posTypeEmpty, posTypeFresh,
     posTypePtrs, posTypeSRT, posTypeStep, stackAccum, stackAccum_, stackData, stackData_,

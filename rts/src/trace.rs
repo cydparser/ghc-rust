@@ -27,14 +27,11 @@ use crate::ffi::rts::event_log_writer::{
     NullEventLogWriter, endEventLogging, flushEventLog, startEventLogging,
 };
 use crate::ffi::rts::ipe::{InfoProvEnt, formatClosureDescIpe};
-use crate::ffi::rts::messages::{barf, debugBelch, vdebugBelch};
 use crate::ffi::rts::os_threads::{Mutex, initMutex, kernelThreadId, osThreadId};
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::tso::{StgThreadID, StgThreadReturnCode};
 use crate::ffi::rts::types::StgTSO;
 use crate::ffi::stg::W_;
-use crate::ffi::stg::types::{StgBool, StgInt, StgWord, StgWord8, StgWord16, StgWord32, StgWord64};
-use crate::ffi::stg::types::{StgWord, StgWord16, StgWord32, StgWord64};
 use crate::ghcversion::__GLASGOW_HASKELL_FULL_VERSION__;
 use crate::prelude::*;
 use crate::printer::what_next_strs;
@@ -42,10 +39,11 @@ use crate::rts_api::getFullProgArgv;
 use crate::rts_flags::{
     COLLECT_GC_STATS, NO_GC_STATS, RtsFlags, TRACE_EVENTLOG, TRACE_STDERR, get_rts_config,
 };
-use crate::rts_messages::_assertFail;
+use crate::rts_messages::{_assertFail, barf, debugBelch, vdebugBelch};
 use crate::sm::non_moving_census::NonmovingAllocCensus;
 use crate::sparks::{SparkCounters, sparkPoolSize};
 use crate::stats::stat_getElapsedTime;
+use crate::stg::types::{StgBool, StgInt, StgWord, StgWord8, StgWord16, StgWord32, StgWord64};
 use crate::task::{Task, serialisableTaskId};
 use crate::threads::printThreadStatus;
 

@@ -2,7 +2,6 @@ use crate::check_unload::{
     exitUnloadCheck, initUnloadCheck, insertOCSectionIndices, loaded_objects, n_unloaded_objects,
     object_code_mark_bit, objects,
 };
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::foreign_exports::ForeignExportsList;
 use crate::ffi::rts::foreign_exports::ForeignExportsList;
 use crate::ffi::rts::linker::{
@@ -50,7 +49,7 @@ use crate::path_utils::{pathdup, pathsize};
 use crate::prelude::*;
 use crate::profiling::refreshProfilingCCSs;
 use crate::rts_flags::RtsFlags;
-use crate::rts_messages::{barf, debugBelch, errorBelch};
+use crate::rts_messages::{_assertFail, barf, debugBelch, errorBelch};
 use crate::rts_symbol_info::{isSymbolImport, isSymbolWeak};
 use crate::rts_symbols::{
     RtsSymbolVal, STRENGTH_NORMAL, STRENGTH_STRONG, STRENGTH_WEAK, SYM_TYPE_CODE,

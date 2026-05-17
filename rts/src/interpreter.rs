@@ -1,7 +1,6 @@
 use crate::capability::Capability;
 use crate::disassembler::disInstr;
 use crate::ffi::mach_deps::TAG_MASK;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::bytecodes::{bci_BRK_FUN, bci_FLAG_LARGE_ARGS};
 use crate::ffi::rts::constants::{
     LDV_SHIFT, LDV_STATE_CREATE, TSO_STOP_AFTER_RETURN, TSO_STOP_NEXT_BREAKPOINT,
@@ -59,7 +58,7 @@ use crate::prelude::*;
 use crate::printer::{printClosure, printObj, printStackChunk};
 use crate::profiling::fprintCCS;
 use crate::rts_flags::RtsFlags;
-use crate::rts_messages::{barf, debugBelch};
+use crate::rts_messages::{_assertFail, barf, debugBelch};
 use crate::sm::sanity::{checkStackChunk, checkStackFrame};
 use crate::sm::storage::doYouWantToGC;
 use crate::stg::types::{

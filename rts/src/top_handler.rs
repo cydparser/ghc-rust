@@ -1,13 +1,12 @@
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::stable_ptr::{deRefStablePtr, getStablePtr};
 use crate::ffi::rts::storage::closures::StgWeak;
 use crate::ffi::rts::types::StgTSO;
 use crate::ffi::stg::misc_closures::{stg_DEAD_WEAK_info, stg_TSO_info, stg_WEAK_info};
-use crate::ffi::stg::types::{StgPtr, StgStablePtr};
 use crate::prelude::*;
+use crate::rts_messages::{_assertFail, barf};
 use crate::stable_ptr::freeStablePtr;
+use crate::stg::types::{StgPtr, StgStablePtr};
 
 static mut m: Mutex = _opaque_pthread_mutex_t {
     __sig: 0,

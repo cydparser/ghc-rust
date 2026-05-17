@@ -5,7 +5,6 @@ use crate::capability::{
 };
 use crate::eventlog::event_log::postInitEvent;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
-use crate::ffi::rts::messages::{barf, errorBelch};
 use crate::ffi::rts::non_moving::{nonmoving_write_barrier_enabled, updateRemembSetPushClosure_};
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::prof::ccs::{era, user_era};
@@ -42,16 +41,12 @@ use crate::ffi::stg::misc_closures::{
 };
 use crate::ffi::stg::regs::StgRegTable;
 use crate::ffi::stg::smp::cas;
-use crate::ffi::stg::types::StgWord32;
-use crate::ffi::stg::types::{
-    StgHalfWord, StgInt64, StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord16, StgWord32,
-    StgWord64,
-};
 use crate::ffi::stg::{ASSIGN_Int64, BITS_PER_BYTE, PK_Int64, W_};
 use crate::hs_ffi::{HS_INT32_MAX, HS_WORD_MAX};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{barf, errorBelch};
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
 use crate::sm::block_alloc::{allocLargeChunkOnNode, clear_free_list, countBlocks};
 use crate::sm::gc::{N, freeGcThreads, initGcThreads};
@@ -72,6 +67,10 @@ use crate::sm::storage::{
     END_OF_CAF_LIST, STATIC_FLAG_LIST, clear_blocks, finishedNurseryBlock, newNurseryBlock,
 };
 use crate::stats::{stat_exitReport, statDescribeGens};
+use crate::stg::types::{
+    StgHalfWord, StgInt64, StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord16, StgWord32,
+    StgWord64,
+};
 use crate::trace::{
     CAPSET_HEAP_DEFAULT, DEBUG_RTS, trace_, traceEventHeapAllocated, traceEventHeapInfo,
 };

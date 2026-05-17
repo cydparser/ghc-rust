@@ -1,6 +1,4 @@
 use crate::capability::Capability;
-use crate::ffi::rts::_assertFail;
-use crate::rts_messages::barf;
 use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK};
 use crate::ffi::rts::storage::block::{
     BF_NONMOVING, BLOCK_SIZE_W, BLOCKS_PER_MBLOCK, Bdescr, allocMBlockAlignedGroupOnNode, bdescr,
@@ -11,8 +9,8 @@ use crate::ffi::rts::storage::heap_alloc::gc_alloc_block_sync;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::stg::W_;
 use crate::ffi::stg::smp::{atomic_inc, cas};
-use crate::stg::types::{StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32};
 use crate::prelude::*;
+use crate::rts_messages::{_assertFail, barf};
 use crate::rts_utils::stgMallocBytes;
 use crate::sm::non_moving::{
     CURRENT, FREE, NONMOVING_ALLOCA0, NONMOVING_SEGMENT_BLOCKS, NonmovingAllocator,
@@ -23,6 +21,7 @@ use crate::sm::non_moving::{
 };
 use crate::sm::non_moving_mark::nonmovingInitUpdRemSet;
 use crate::sm::storage::{accountAllocation, sm_mutex};
+use crate::stg::types::{StgPtr, StgVolatilePtr, StgWord, StgWord16, StgWord32};
 
 type AllocLockMode = u32;
 

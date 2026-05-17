@@ -1,4 +1,3 @@
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::config::{CACHELINE_SIZE, MAX_N_CAPABILITIES};
 use crate::ffi::rts::constants::{MAX_NUMA_NODES, MAX_SPARE_WORKERS};
 use crate::ffi::rts::os_threads::{
@@ -28,7 +27,7 @@ use crate::io_manager::CapIOManager;
 use crate::io_manager::{initCapabilityIOManager, markCapabilityIOManager, stopIOManager};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
-use crate::rts_messages::rts_assert;
+use crate::rts_messages::{_assertFail, rts_assert};
 use crate::rts_utils::{stgFree, stgFreeAligned, stgMallocAlignedBytes, stgMallocBytes};
 use crate::schedule::{
     ACTIVITY_INACTIVE, SCHED_INTERRUPTING, SCHED_SHUTTING_DOWN, emptyRunQueue, getRecentActivity,

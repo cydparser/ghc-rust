@@ -1,7 +1,7 @@
-use crate::ffi::rts::_assertFail;
-use crate::ffi::stg::types::{StgDouble, StgFloat, StgInt, StgInt64};
 use crate::ffi::stg::{ASSIGN_Int64, I_, W_};
 use crate::prelude::*;
+use crate::rts_messages::_assertFail;
+use crate::stg::types::{StgDouble, StgFloat, StgInt, StgInt64};
 
 #[cfg(test)]
 mod tests;

@@ -16,12 +16,12 @@ use crate::ffi::stg::misc_closures::{
     stg_DEAD_WEAK_info, stg_MUT_ARR_PTRS_FROZEN_CLEAN_info, stg_NO_FINALIZER_closure,
 };
 use crate::ffi::stg::smp::cas;
-use crate::ffi::stg::types::StgWord;
 use crate::hs_ffi::HsInt;
 use crate::prelude::*;
 use crate::rts_api::{HaskellObj, rts_apply, rts_mkInt};
 use crate::rts_flags::RtsFlags;
 use crate::schedule::scheduleThread;
+use crate::stg::types::StgWord;
 use crate::task::myTask;
 use crate::trace::{DEBUG_RTS, trace_};
 

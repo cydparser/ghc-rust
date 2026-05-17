@@ -4,7 +4,6 @@ use crate::ffi::rts::storage::closure_macros::{GET_CLOSURE_TAG, UNTAG_CLOSURE, g
 use crate::ffi::rts::storage::closures::StgInd;
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::stg::P_;
-use crate::ffi::stg::types::{StgPtr, StgWord};
 use crate::hash::{
     HashTable, allocHashTable, freeHashTable, insertHashTable, keyCountHashTable, lookupHashTable,
     removeHashTable,
@@ -14,6 +13,7 @@ use crate::rts_flags::RtsFlags;
 use crate::rts_messages::{_assertFail, barf};
 use crate::rts_utils::{stgFree, stgMallocBytes, stgReallocBytes};
 use crate::sm::gc::{evac_fn, isAlive};
+use crate::stg::types::{StgPtr, StgWord};
 use crate::trace::{DEBUG_RTS, trace_};
 
 static mut stable_name_table: *mut snEntry = null_mut::<snEntry>();

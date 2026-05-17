@@ -1,4 +1,3 @@
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::CLOSURE_DESC_BUFFER_SIZE;
 use crate::ffi::rts::ipe::{
     InfoProv, InfoProv_, InfoProvEnt, InfoProvEnt_, IpeBufferEntry, IpeBufferListNode,
@@ -6,11 +5,10 @@ use crate::ffi::rts::ipe::{
 };
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::ffi::rts::types::StgInfoTable;
-use crate::ffi::rts::types::StgInfoTable;
 use crate::ffi::stg::smp::{cas_ptr, xchg_ptr};
 use crate::hash::{HashTable, allocHashTable, insertHashTable, lookupHashTable, mapHashTable};
 use crate::prelude::*;
-use crate::rts_messages::{barf, debugBelch};
+use crate::rts_messages::{_assertFail, barf, debugBelch};
 use crate::rts_utils::stgMallocBytes;
 use crate::stg::types::StgWord;
 use crate::trace::traceIPE;

@@ -1,17 +1,17 @@
 use crate::capability::numa_map;
-use crate::rts_messages::errorBelch;
 use crate::ffi::rts::storage::block::MBLOCK_SIZE;
 use crate::ffi::rts::storage::heap_alloc::{mblock_address_range, mblock_address_range_Inner};
 use crate::ffi::rts::{_assertFail, EXIT_HEAPOVERFLOW, stg_exit};
 use crate::ffi::stg::W_;
-use crate::stg::types::StgWord;
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::errorBelch;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::sm::os_mem::{
     osBindMBlocksToNode, osCommitMemory, osDecommitMemory, osMemInit, osReleaseHeapMemory,
     osReserveHeapMemory,
 };
+use crate::stg::types::StgWord;
 use crate::trace::{DEBUG_RTS, trace_};
 
 #[cfg(test)]

@@ -1,13 +1,13 @@
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::storage::block::{
     BF_FRAGMENTED, BF_MARKED, BF_SWEPT, BLOCK_SIZE_W, bdescr, bdescr_, freeGroup,
 };
 use crate::ffi::rts::storage::gc::{generation, memcount};
-use crate::ffi::stg::types::{StgWord, StgWord16};
 use crate::ffi::stg::{BITS_PER_BYTE, W_};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::_assertFail;
 use crate::sm::block_alloc::countBlocks;
+use crate::stg::types::{StgWord, StgWord16};
 use crate::trace::{DEBUG_RTS, trace_};
 
 unsafe fn sweep(mut r#gen: *mut generation) {

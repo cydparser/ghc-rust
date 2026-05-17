@@ -1,22 +1,18 @@
-use crate::capability::Capability;
-use crate::capability::Capability_;
-use crate::capability::{Capability_, n_numa_nodes, numa_map};
-use crate::ffi::rts::messages::{barf, debugBelch, errorBelch, sysErrorBelch};
-use crate::ffi::rts::os_threads::{Condition, Mutex, OSThreadId};
+use crate::capability::{Capability, Capability_, n_numa_nodes, numa_map};
 use crate::ffi::rts::os_threads::{
     Condition, Mutex, OSThreadId, closeCondition, closeMutex, createOSThread, initCondition,
     initMutex, interruptOSThread, osThreadId, setThreadAffinity, setThreadNode,
 };
 use crate::ffi::rts::threads::{getNumCapabilities, n_capabilities};
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::rts::{_assertFail, DEBUG_IS_ON, stg_exit};
-use crate::ffi::stg::types::StgWord64;
 use crate::prelude::*;
 use crate::rts_api::{NoStatus, SchedulerStatus};
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf, debugBelch, errorBelch, sysErrorBelch};
+use crate::rts_startup::stg_exit;
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::schedule::scheduleWorker;
+use crate::stg::types::StgWord64;
 use crate::task::{
     InCall, InCall_, Task, Task_, TaskId, myTask, serialisableTaskId, serialiseTaskId, setMyTask,
 };

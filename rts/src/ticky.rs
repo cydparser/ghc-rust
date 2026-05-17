@@ -1,6 +1,4 @@
 use crate::eventlog::event_log::{postTickyCounterDefs, postTickyCounterSamples};
-use crate::ffi::rts::messages::barf;
-use crate::ffi::rts::types::StgInfoTable;
 use crate::ffi::rts::types::StgInfoTable;
 use crate::ffi::stg::ticky::{
     ALLOC_CON_ctr, ALLOC_CON_gds, ALLOC_FUN_ctr, ALLOC_FUN_gds, ALLOC_HEAP_ctr, ALLOC_HEAP_tot,
@@ -28,10 +26,10 @@ use crate::ffi::stg::ticky::{
     UPDF_OMITTED_ctr, UPDF_PUSHED_ctr, UPDF_RCC_OMITTED_ctr, UPDF_RCC_PUSHED_ctr,
     VERY_SLOW_CALL_ctr,
 };
-use crate::ffi::stg::types::{StgInt, StgWord};
-use crate::ffi::stg::types::{StgInt, StgWord, StgWord64};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::barf;
+use crate::stg::types::{StgInt, StgWord, StgWord64};
 use crate::ticky::{_StgEntCounter, StgEntCounter};
 
 #[cfg(test)]

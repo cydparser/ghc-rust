@@ -3,9 +3,9 @@ use crate::ffi::rts::os_threads::yieldThread;
 use crate::ffi::rts::spin_lock::{SpinLock, SpinLock_};
 use crate::ffi::stg::smp::cas;
 use crate::ffi::stg::smp::{busy_wait_nop, cas};
-use crate::ffi::stg::types::{StgVolatilePtr, StgWord, StgWord32, StgWord64};
-use crate::ffi::stg::types::{StgVolatilePtr, StgWord, StgWord32, StgWord64};
 use crate::prelude::*;
+use crate::stg::types::{StgVolatilePtr, StgWord, StgWord32, StgWord64};
+use crate::stg::types::{StgVolatilePtr, StgWord, StgWord32, StgWord64};
 
 #[cfg(test)]
 mod tests;

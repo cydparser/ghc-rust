@@ -5,9 +5,9 @@ use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::prof::ccs::CostCentreStack;
 use crate::ffi::rts::storage::closures::StgArrBytes;
 use crate::ffi::rts::types::{StgClosure, StgTSO};
-use crate::ffi::stg::types::StgWord;
 use crate::prelude::*;
 use crate::sm::non_moving_mark::updateRemembSetPushClosure;
+use crate::stg::types::StgWord;
 use crate::trace::traceThreadLabel;
 
 unsafe fn setThreadLabel(mut cap: *mut Capability, mut tso: *mut StgTSO, mut label: *mut c_char) {

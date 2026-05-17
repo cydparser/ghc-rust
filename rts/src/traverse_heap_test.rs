@@ -9,8 +9,8 @@ use crate::ffi::rts::storage::info_tables::{
     C2RustUnnamed_0, StgClosureInfo, StgInfoTable_, StgProfInfo,
 };
 use crate::ffi::rts::types::{StgClosure, StgInfoTable};
-use crate::ffi::stg::types::StgHalfWord;
 use crate::prelude::*;
+use crate::stg::types::StgHalfWord;
 use crate::traverse_heap::{
     closeTraverseStack, initializeTraverseStack, nextPos, nullStackData, posTypeStep, stackAccum,
     stackAccum_, stackData, stackData_, stackElement, stackElement_, stackPos_,

@@ -1,6 +1,4 @@
 use crate::capability::getCapability;
-use crate::ffi::rts::_assertFail;
-use crate::rts_messages::barf;
 use crate::ffi::rts::storage::block::Bdescr;
 use crate::ffi::rts::storage::closure_macros::{INFO_PTR_TO_STRUCT, UNTAG_CLOSURE, get_itbl};
 use crate::ffi::rts::storage::closures::{_StgWeak, MessageThrowTo, StgWeak};
@@ -11,14 +9,15 @@ use crate::ffi::rts::types::{StgClosure, StgTSO};
 use crate::ffi::stg::misc_closures::{
     stg_DEAD_WEAK_info, stg_END_TSO_QUEUE_closure, stg_NO_FINALIZER_closure,
 };
-use crate::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord32};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf};
 use crate::sm::evac::evacuate;
 use crate::sm::gc::{N, isAlive};
 use crate::sm::gc_utils::recordMutableGen_GC;
 use crate::sm::gct_decl::gct;
 use crate::sm::sanity::checkClosure;
+use crate::stg::types::{StgHalfWord, StgPtr, StgWord, StgWord32};
 use crate::trace::{DEBUG_RTS, trace_};
 
 type WeakStage = u32;

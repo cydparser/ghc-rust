@@ -1,9 +1,8 @@
-use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::os_threads::{OSThreadId, createOSThread};
-use crate::ffi::stg::types::{StgInt, StgWord};
 use crate::prelude::*;
-use crate::ws_deque::cas_top;
-use crate::ws_deque::{WSDeque, looksEmptyWSDeque, newWSDeque, popWSDeque, pushWSDeque};
+use crate::rts_messages::{barf, debugBelch};
+use crate::stg::types::{StgInt, StgWord};
+use crate::ws_deque::{WSDeque, cas_top, looksEmptyWSDeque, newWSDeque, popWSDeque, pushWSDeque};
 
 const SCRATCH_SIZE: i32 = 1024 * 1024;
 

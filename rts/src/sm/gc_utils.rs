@@ -1,5 +1,4 @@
 use crate::capability::n_numa_nodes;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::spin_lock::{ACQUIRE_SPIN_LOCK, RELEASE_SPIN_LOCK, SpinLock, SpinLock_};
 use crate::ffi::rts::storage::block::{
     BLOCK_MASK, BLOCK_SIZE, BLOCK_SIZE_W, allocGroupOnNode, bdescr, bdescr_, freeChain, freeGroup,
@@ -8,14 +7,15 @@ use crate::ffi::rts::storage::block::{BLOCK_SIZE_W, bdescr, bdescr_};
 use crate::ffi::rts::storage::gc::{generation, initBdescr};
 use crate::ffi::rts::types::StgClosure;
 use crate::ffi::stg::W_;
-use crate::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::_assertFail;
 use crate::sm::block_alloc::{allocLargeChunkOnNode, countBlocks};
 use crate::sm::gc::{WORK_UNIT_WORDS, notifyTodoBlock};
 use crate::sm::gc_thread::{gc_threads, gen_workspace, n_gc_threads};
 use crate::sm::gc_utils::allocBlock_sync;
 use crate::sm::gct_decl::gct;
+use crate::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 use crate::trace::{DEBUG_RTS, trace_};
 use crate::ws_deque::{dequeElements, looksEmptyWSDeque, popWSDeque, pushWSDeque, stealWSDeque};
 

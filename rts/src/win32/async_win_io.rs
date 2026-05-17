@@ -1,8 +1,7 @@
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::io_interface::{IO_MANAGER_DIE, readIOManagerEvent};
-use crate::ffi::rts::messages::barf;
 use crate::hs_ffi::HsWord32;
 use crate::prelude::*;
+use crate::rts_messages::{_assertFail, barf};
 use crate::win32::thr_io_manager::{ioManagerDie, ioManagerStart, ioManagerWakeup};
 
 static mut completionPortHandle: HANDLE = unsafe { INVALID_HANDLE_VALUE };

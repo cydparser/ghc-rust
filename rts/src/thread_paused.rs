@@ -1,6 +1,5 @@
 use crate::capability::Capability;
 use crate::capability::recordClosureMutated;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE, TSO_SQUEEZED, ThreadKilled};
 use crate::ffi::rts::non_moving::nonmoving_write_barrier_enabled;
 use crate::ffi::rts::prof::ccs::era;
@@ -17,15 +16,15 @@ use crate::ffi::stg::misc_closures::{
     stg_WHITEHOLE_info, stg_bh_upd_frame_info, stg_enter_info, stg_marked_upd_frame_info,
 };
 use crate::ffi::stg::smp::{busy_wait_nop, cas};
-use crate::ffi::stg::types::StgWord64;
-use crate::ffi::stg::types::{
-    StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
-};
 use crate::ffi::stg::{P_, W_};
 use crate::prelude::*;
 use crate::raise_async::{maybePerformBlockedException, suspendComputation};
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::_assertFail;
 use crate::sm::non_moving_mark::{updateRemembSetPushClosure, updateRemembSetPushThunkEager};
+use crate::stg::types::{
+    StgPtr, StgVolatilePtr, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
+};
 use crate::thread_paused::whitehole_threadPaused_spin;
 use crate::threads::updateThunk;
 use crate::trace::{DEBUG_RTS, trace_};

@@ -1,10 +1,8 @@
-use crate::ffi::rts::_assertFail;
-use crate::ffi::rts::messages::barf;
 use crate::ffi::stg::smp::cas_seq_cst_relaxed;
-use crate::ffi::stg::types::{StgInt, StgPtr, StgVolatilePtr, StgWord};
-use crate::ffi::stg::types::{StgInt, StgWord};
 use crate::prelude::*;
+use crate::rts_messages::{_assertFail, barf};
 use crate::rts_utils::{stgFree, stgMallocBytes};
+use crate::stg::types::{StgInt, StgPtr, StgVolatilePtr, StgWord};
 use crate::ws_deque::{WSDeque, WSDeque_, dequeElements, looksEmptyWSDeque};
 
 /// cbindgen:no-export

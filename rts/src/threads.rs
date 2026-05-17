@@ -2,12 +2,10 @@ use crate::alloc_array::allocateMutArrPtrs;
 use crate::capability::Capability;
 use crate::capability::{Capability_, getCapability};
 use crate::check_vector_support::vectorSupportGlobalVar;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{
     BlockedOnMVarRead, LDV_SHIFT, LDV_STATE_CREATE, NotBlocked, RESERVED_STACK_WORDS,
     TSO_ALLOC_LIMIT, TSO_SQUEEZED, ThreadMigrating, ThreadRunGHC,
 };
-use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::prof::ccs::{CCS_MAIN, CCS_SYSTEM, CostCentreStack, era, user_era};
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;
 use crate::ffi::rts::storage::block::{BLOCK_SIZE_W, round_to_mblocks};
@@ -35,7 +33,6 @@ use crate::ffi::stg::misc_closures::{
     stg_stack_underflow_frame_v16_info, stg_stack_underflow_frame_v32_info,
     stg_stack_underflow_frame_v64_info, stg_stop_thread_info,
 };
-use crate::ffi::stg::types::{StgBool, StgInt64, StgPtr, StgWord, StgWord8, StgWord16, StgWord32};
 use crate::ffi::stg::{ASSIGN_Int64, P_, W_};
 use crate::hs_ffi::{HS_BOOL_TRUE, HsBool};
 use crate::messages::sendMessage;
@@ -43,10 +40,12 @@ use crate::prelude::*;
 use crate::printer::printStackChunk;
 use crate::raise_async::throwToSelf;
 use crate::rts_flags::RtsFlags;
+use crate::rts_messages::{_assertFail, barf, debugBelch};
 use crate::schedule::{appendToRunQueue, sched_mutex};
 use crate::sm::sanity::checkTSO;
 use crate::sm::storage::dirty_MVAR;
 use crate::smp_closure_ops::{lockClosure, unlockClosure};
+use crate::stg::types::{StgBool, StgInt64, StgPtr, StgWord, StgWord8, StgWord16, StgWord32};
 use crate::task::InCall_;
 use crate::trace::{
     DEBUG_RTS, trace_, traceCap_, traceEventCreateThread, traceEventMigrateThread,

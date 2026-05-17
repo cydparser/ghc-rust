@@ -1,12 +1,9 @@
 use crate::arena::{arenaBlocks, checkPtrInArena};
-use crate::capability::Capability;
-use crate::capability::getCapability;
-use crate::ffi::rts::_assertFail;
+use crate::capability::{Capability, getCapability};
 use crate::ffi::rts::constants::{
     BITMAP_BITS_SHIFT, BITMAP_SIZE_MASK, BlockedOnBlackHole, BlockedOnMVar, BlockedOnMVarRead,
     BlockedOnMsgThrowTo, NotBlocked, TSO_MARKED,
 };
-use crate::ffi::rts::messages::{barf, debugBelch};
 use crate::ffi::rts::storage::block::{
     BF_PINNED, BF_SWEPT, BLOCK_SIZE_W, BLOCKS_PER_MBLOCK, Bdescr, bdescr,
 };
@@ -38,13 +35,13 @@ use crate::ffi::stg::misc_closures::{
     stg_stack_underflow_frame_v32_info, stg_stack_underflow_frame_v64_info,
     stg_unmaskAsyncExceptionszh_ret_info,
 };
-use crate::ffi::stg::types::{StgHalfWord, StgOffset, StgPtr, StgWord, StgWord8, StgWord32};
 use crate::ffi::stg::{BITS_PER_BYTE, P_, W_};
 use crate::prelude::*;
 use crate::printer::info_type;
 use crate::profiling::prof_arena;
 use crate::retainer_profile::retainerStackBlocks;
 use crate::rts_flags::{HEAP_BY_RETAINER, RtsFlags};
+use crate::rts_messages::{_assertFail, barf, debugBelch};
 use crate::sm::block_alloc::{
     checkFreeListSanity, countAllocdBlocks, countBlocks, countFreeList, markBlocks, n_alloc_blocks,
     reportUnmarkedBlocks,
@@ -63,6 +60,7 @@ use crate::sm::non_moving_mark::{
     upd_rem_set_block_list,
 };
 use crate::sm::storage::{STATIC_BITS, exec_block, n_nurseries, nurseries, static_flag};
+use crate::stg::types::{StgHalfWord, StgOffset, StgPtr, StgWord, StgWord8, StgWord32};
 
 unsafe fn isHeapAlloced(mut p: StgPtr) -> i32 {
     return (p as W_ >= mblock_address_space.0.begin && (p as W_) < mblock_address_space.0.end)

@@ -1,5 +1,4 @@
 use crate::check_unload::markObjectCode;
-use crate::ffi::rts::_assertFail;
 use crate::ffi::rts::constants::{
     LDV_SHIFT, LDV_STATE_CREATE, MAX_CHARLIKE, MAX_INTLIKE, MIN_INTLIKE,
 };
@@ -35,7 +34,7 @@ use crate::ffi::stg::misc_closures::{
 use crate::ffi::stg::smp::{busy_wait_nop, cas, xchg};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
-use crate::rts_messages::barf;
+use crate::rts_messages::{_assertFail, barf};
 use crate::sm::cnf::objectGetCompact;
 use crate::sm::compact::{is_marked, mark};
 use crate::sm::gc::{deadlock_detect_gc, major_gc, unload_mark_needed, whitehole_gc_spin};
