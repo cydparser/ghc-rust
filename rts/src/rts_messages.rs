@@ -138,7 +138,7 @@ unsafe fn verrorBelch(s: *const c_char, ap: VaList) {
     errorMsgFn.expect("non-null errorMsgFn")(s, ap);
 }
 
-unsafe extern "C" fn sysErrorBelch(s: *const c_char, args: ...) {
+pub(crate) unsafe extern "C" fn sysErrorBelch(s: *const c_char, args: ...) {
     sysErrorMsgFn.expect("non-null sysErrorMsgFn")(s, args)
 }
 
