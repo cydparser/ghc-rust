@@ -135,7 +135,7 @@ unsafe fn scheduleFinalizers(mut cap: *mut Capability, mut list: *mut StgWeak) {
 
     let fresh14 = &raw mut n_finalizers;
     let fresh15 = i;
-    (fresh14).xadd(fresh15, Ordering::SeqCst) + fresh15;
+    (fresh14).fetch_add(fresh15, Ordering::SeqCst) + fresh15;
 
     if n == 0 {
         return;
@@ -240,7 +240,7 @@ unsafe fn runSomeFinalizers(mut all: bool) -> bool {
 
     let fresh18 = &raw mut n_finalizers;
     let fresh19 = -count as u32;
-    (fresh18).xadd(fresh19, Ordering::SeqCst) + fresh19;
+    (fresh18).fetch_add(fresh19, Ordering::SeqCst) + fresh19;
 
     if !task.is_null() {
         (*task).running_finalizers = false;

@@ -1767,7 +1767,7 @@ unsafe fn gcWorkerThread(mut cap: *mut Capability) {
 
     let fresh17 = &raw mut n_gc_entered;
     let fresh18 = 1;
-    (fresh17).xadd(fresh18, Ordering::SeqCst) + fresh18;
+    (fresh17).fetch_add(fresh18, Ordering::SeqCst) + fresh18;
     signalCondition(&raw mut gc_entry_arrived_cv);
 
     while (&raw mut n_gc_entered).load(Ordering::SeqCst) != 0 {
@@ -1824,7 +1824,7 @@ unsafe fn gcWorkerThread(mut cap: *mut Capability) {
 
     let fresh19 = &raw mut n_gc_exited;
     let fresh20 = 1;
-    (fresh19).xadd(fresh20, Ordering::SeqCst) + fresh20;
+    (fresh19).fetch_add(fresh20, Ordering::SeqCst) + fresh20;
     signalCondition(&raw mut gc_exit_arrived_cv);
 
     while (&raw mut n_gc_exited).load(Ordering::SeqCst) != 0 {

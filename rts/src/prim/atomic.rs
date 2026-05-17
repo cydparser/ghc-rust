@@ -8,28 +8,28 @@ mod tests;
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_atomic_add8(mut x: StgWord, mut val: StgWord) -> StgWord {
-    return (x as *mut StgWord8).xadd(val as StgWord8, Ordering::SeqCst) as StgWord;
+    return (x as *mut StgWord8).fetch_add(val as StgWord8, Ordering::SeqCst) as StgWord;
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_atomic_add16(mut x: StgWord, mut val: StgWord) -> StgWord {
-    return (x as *mut StgWord16).xadd(val as StgWord16, Ordering::SeqCst) as StgWord;
+    return (x as *mut StgWord16).fetch_add(val as StgWord16, Ordering::SeqCst) as StgWord;
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_atomic_add32(mut x: StgWord, mut val: StgWord) -> StgWord {
-    return (x as *mut StgWord32).xadd(val as StgWord32, Ordering::SeqCst) as StgWord;
+    return (x as *mut StgWord32).fetch_add(val as StgWord32, Ordering::SeqCst) as StgWord;
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn hs_atomic_add64(mut x: StgWord, mut val: StgWord64) -> StgWord64 {
-    return (x as *mut StgWord64).xadd(val, Ordering::SeqCst);
+    return (x as *mut StgWord64).fetch_add(val, Ordering::SeqCst);
 }
 
 #[ffi(compiler)]

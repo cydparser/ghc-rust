@@ -119,7 +119,7 @@ pub unsafe extern "C" fn stopTimer() {
     let fresh7 = &raw mut timer_disabled;
     let fresh8 = 1;
 
-    if (fresh7).xadd(fresh8, Ordering::SeqCst) + fresh8 == 1 {
+    if (fresh7).fetch_add(fresh8, Ordering::SeqCst) + fresh8 == 1 {
         if RtsFlags.MiscFlags.tickInterval != 0 {
             stopTicker();
         }

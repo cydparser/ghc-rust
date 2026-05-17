@@ -62,7 +62,7 @@ unsafe fn try_acquire_spin_slow_path(mut p: *mut SpinLock) -> bool {
     if r == 0 {
         let fresh10 = &raw mut (*p).spin;
         let fresh11 = 1;
-        (fresh10).xadd(fresh11, Ordering::Relaxed) + fresh11;
+        (fresh10).fetch_add(fresh11, Ordering::Relaxed) + fresh11;
     }
 
     return r != 0;
@@ -83,7 +83,7 @@ unsafe fn acquire_spin_lock_slow_path(mut p: *mut SpinLock) {
 
         let fresh8 = &raw mut (*p).r#yield;
         let fresh9 = 1;
-        (fresh8).xadd(fresh9, Ordering::Relaxed) + fresh9;
+        (fresh8).fetch_add(fresh9, Ordering::Relaxed) + fresh9;
         yieldThread();
     }
 }

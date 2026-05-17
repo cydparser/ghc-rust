@@ -585,9 +585,9 @@ unsafe fn newReturningTask(mut cap: *mut Capability, mut task: *mut Task) {
 
     (*cap).returning_tasks_tl = task;
 
-    let fresh18 = &raw mut (*cap).n_returning_tasks;
+    let fresh18 = (*cap).n_returning_tasks;
     let fresh19 = 1;
-    (fresh18).xadd(fresh19, Ordering::Relaxed) + fresh19;
+    fresh18.fetch_add(fresh19, Ordering::Relaxed) + fresh19;
 
     if (if (*cap).returning_tasks_hd.is_null() {
         ((*cap).returning_tasks_tl.is_null() && (*cap).n_returning_tasks == 0) as i32
@@ -625,7 +625,7 @@ unsafe fn popReturningTask(mut cap: *mut Capability) -> *mut Task {
 
     let fresh16 = &raw mut (*cap).n_returning_tasks;
     let fresh17 = -1 as u32;
-    (fresh16).xadd(fresh17, Ordering::Relaxed) + fresh17;
+    (fresh16).fetch_add(fresh17, Ordering::Relaxed) + fresh17;
 
     if (if (*cap).returning_tasks_hd.is_null() {
         ((*cap).returning_tasks_tl.is_null() && (*cap).n_returning_tasks == 0) as i32
