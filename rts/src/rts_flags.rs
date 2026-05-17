@@ -6,7 +6,7 @@ use printf_compat as printf;
 
 use crate::capability::n_numa_nodes;
 use crate::config::RtsOptsEnabledEnum;
-use crate::eventlog::event_log_writer::{EventLogWriter, FileEventLogWriter};
+use crate::event_log::writer::{EventLogWriter, FileEventLogWriter};
 use crate::ffi::rts::constants::MAX_NUMA_NODES;
 use crate::ffi::rts::os_threads::getNumberOfProcessors;
 use crate::ffi::rts::storage::block::{BLOCK_SIZE, MBLOCK_SIZE};

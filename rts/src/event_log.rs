@@ -2,6 +2,7 @@ use std::ffi::VaList;
 
 use crate::capability::Capability;
 use crate::capability::{SYNC_FLUSH_EVENT_LOG, getCapability};
+use crate::event_log::{EventlogInitPost, eventlog_init_func, eventlog_init_func_t};
 use crate::event_log_constants::{
     EVENT_BLOCK_MARKER, EVENT_CONC_MARK_END, EVENT_CONC_UPD_REM_SET_FLUSH, EVENT_GC_STATS_GHC,
     EVENT_HEAP_BIO_PROF_SAMPLE_BEGIN, EVENT_HEAP_INFO_GHC, EVENT_HEAP_PROF_BEGIN,
@@ -13,7 +14,6 @@ use crate::event_log_constants::{
     EVENT_TICKY_COUNTER_DEF, EVENT_TICKY_COUNTER_SAMPLE, EVENT_WALL_CLOCK_TIME,
 };
 use crate::event_types::eventTypes;
-use crate::eventlog::event_log::{EventlogInitPost, eventlog_init_func, eventlog_init_func_t};
 use crate::ffi::rts::event_log_format::{
     EVENT_DATA_BEGIN, EVENT_DATA_END, EVENT_ET_BEGIN, EVENT_ET_END, EVENT_HEADER_BEGIN,
     EVENT_HEADER_END, EVENT_HET_BEGIN, EVENT_HET_END, EVENT_PAYLOAD_SIZE_MAX, EventCapNo,
@@ -50,6 +50,8 @@ use crate::stg::types::{
     StgBool, StgInt, StgInt8, StgInt32, StgWord, StgWord8, StgWord16, StgWord32, StgWord64,
 };
 use crate::task::getMyTask;
+
+pub(crate) mod writer;
 
 #[cfg(test)]
 mod tests;

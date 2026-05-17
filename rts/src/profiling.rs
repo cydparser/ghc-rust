@@ -1,5 +1,5 @@
 use crate::arena::{Arena, arenaAlloc, arenaFree, newArena};
-use crate::eventlog::event_log::postInitEvent;
+use crate::event_log::postInitEvent;
 use crate::ffi::rts::os_threads::{Mutex, initMutex};
 use crate::ffi::rts::prof::ccs::{
     CostCentre, CostCentre_, CostCentreStack, CostCentreStack_, IndexTable, IndexTable_,

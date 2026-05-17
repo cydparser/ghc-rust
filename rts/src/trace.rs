@@ -1,12 +1,7 @@
 use std::ffi::VaList;
 
 use crate::capability::Capability;
-use crate::event_log_constants::{
-    EVENT_CONC_MARK_BEGIN, EVENT_CONC_SWEEP_BEGIN, EVENT_CONC_SWEEP_END, EVENT_CONC_SYNC_BEGIN,
-    EVENT_CONC_SYNC_END, EVENT_OSPROCESS_PID, EVENT_OSPROCESS_PPID, EVENT_PROGRAM_ARGS,
-    EVENT_RTS_IDENTIFIER, EVENT_USER_BINARY_MSG, EVENT_USER_MARKER, EVENT_USER_MSG,
-};
-use crate::eventlog::event_log::{
+use crate::event_log::{
     eventlog_enabled, flushLocalEventsBuf, freeEventLogging, initEventLogging, moreCapEventBufs,
     postCapEvent, postCapMsg, postCapsetEvent, postCapsetStrEvent, postCapsetVecEvent,
     postConcMarkEnd, postConcUpdRemSetFlush, postEvent, postEventAtTimestamp, postEventGcStats,
@@ -17,6 +12,11 @@ use crate::eventlog::event_log::{
     postProfSampleCostCentre, postSchedEvent, postSparkCountersEvent, postSparkEvent,
     postTaskCreateEvent, postTaskDeleteEvent, postTaskMigrateEvent, postThreadLabel,
     postUserBinaryEvent, postUserEvent, postWallClockTime, restartEventLogging,
+};
+use crate::event_log_constants::{
+    EVENT_CONC_MARK_BEGIN, EVENT_CONC_SWEEP_BEGIN, EVENT_CONC_SWEEP_END, EVENT_CONC_SYNC_BEGIN,
+    EVENT_CONC_SYNC_END, EVENT_OSPROCESS_PID, EVENT_OSPROCESS_PPID, EVENT_PROGRAM_ARGS,
+    EVENT_RTS_IDENTIFIER, EVENT_USER_BINARY_MSG, EVENT_USER_MARKER, EVENT_USER_MSG,
 };
 use crate::ffi::rts::constants::{BlockedOnBlackHole, StackOverflow};
 use crate::ffi::rts::event_log_format::{

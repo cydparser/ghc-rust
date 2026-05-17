@@ -7,7 +7,7 @@ use crate::capability::{
     releaseCapability_, shutdownCapabilities, sparkPoolSizeCap, tryGrabCapability,
     waitForCapability, yieldCapability,
 };
-use crate::eventlog::event_log::flushAllCapsEventsBufs;
+use crate::event_log::flushAllCapsEventsBufs;
 use crate::ffi::rts::constants::{
     BlockedOnBlackHole, BlockedOnCCall, BlockedOnCCall_Interruptible, LDV_SHIFT, LDV_STATE_CREATE,
     NotBlocked, StackOverflow, TSO_ALLOC_LIMIT, TSO_BLOCKEX, TSO_INTERRUPTIBLE, TSO_LOCKED,

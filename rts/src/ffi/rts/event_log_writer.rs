@@ -1,5 +1,5 @@
-pub use crate::eventlog::event_log::{endEventLogging, flushEventLog, startEventLogging};
-pub use crate::eventlog::event_log_writer::EventLogWriter;
+pub use crate::event_log::writer::EventLogWriter;
+pub use crate::event_log::{endEventLogging, flushEventLog, startEventLogging};
 use crate::prelude::*;
 
 #[repr(u32)]

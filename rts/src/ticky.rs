@@ -1,4 +1,4 @@
-use crate::eventlog::event_log::{postTickyCounterDefs, postTickyCounterSamples};
+use crate::event_log::{postTickyCounterDefs, postTickyCounterSamples};
 use crate::ffi::rts::types::StgInfoTable;
 use crate::ffi::stg::ticky::{
     ALLOC_CON_ctr, ALLOC_CON_gds, ALLOC_FUN_ctr, ALLOC_FUN_gds, ALLOC_HEAP_ctr, ALLOC_HEAP_tot,

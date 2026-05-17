@@ -5,7 +5,7 @@ use crate::builtin_closures::initBuiltinClosures;
 use crate::capability::getCapability;
 use crate::check_vector_support::setVectorSupport;
 use crate::config::{RtsConfig, RtsOptsEnabledEnum};
-use crate::eventlog::event_log::{finishCapEventLogging, postInitEvent};
+use crate::event_log::{finishCapEventLogging, postInitEvent};
 use crate::ffi::rts::hpc::{exitHpc, startupHpc};
 use crate::ffi::rts::os_threads::freeThreadingResources;
 use crate::ffi::rts::rts_to_hs_iface::ghc_hs_iface;

@@ -1,6 +1,6 @@
 pub use crate::capability::{Capability, rts_unsafeGetMyCapability};
 pub use crate::config::{RtsConfig, RtsOptsEnabledEnum};
-pub use crate::eventlog::event_log_writer::EventLogWriter;
+pub use crate::event_log::writer::EventLogWriter;
 pub use crate::ffi::rts::time::Time;
 pub use crate::rts_api::{
     HaskellObj, ListRootsCb, ListThreadsCb, PauseToken, PauseToken_, SchedulerStatus,

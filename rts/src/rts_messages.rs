@@ -18,7 +18,7 @@ use windows_sys::Win32::Foundation::HWND;
 #[cfg(windows)]
 use windows_sys::Win32::UI::WindowsAndMessaging::{MB_ICONERROR, MB_OK, MB_TASKMODAL, MessageBoxA};
 
-use crate::eventlog::event_log::flushAllCapsEventsBufs;
+use crate::event_log::flushAllCapsEventsBufs;
 use crate::ffi::ghcversion::__GLASGOW_HASKELL_FULL_VERSION__;
 use crate::ffi::rts::{EXIT_INTERNAL_ERROR, stg_exit};
 use crate::prelude::*;

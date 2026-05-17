@@ -3,7 +3,7 @@ use crate::capability::Capability;
 use crate::capability::{
     getCapability, n_numa_nodes, recordClosureMutated, recordMutableCap, regTableToCapability,
 };
-use crate::eventlog::event_log::postInitEvent;
+use crate::event_log::postInitEvent;
 use crate::ffi::rts::constants::{LDV_SHIFT, LDV_STATE_CREATE};
 use crate::ffi::rts::non_moving::{nonmoving_write_barrier_enabled, updateRemembSetPushClosure_};
 use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
