@@ -51,6 +51,16 @@ impl<'a> Str0<'a> {
         }
     }
 
+    pub const fn from_c_str(c_str: &CStr) -> Result<Self, Error> {
+        match str::from_utf8(c_str.to_bytes()) {
+            Ok(_) => Ok(Str0 {
+                ptr: c_str.as_ptr(),
+                _phantom: PhantomData,
+            }),
+            Err(err) => Err(Error::Utf8Error(err)),
+        }
+    }
+
     pub fn from_ptr_with_str(ptr: *const c_char) -> Result<(Self, &'a str), Error> {
         match unsafe { ptr_to_str(ptr) } {
             Ok(s) => Ok((
