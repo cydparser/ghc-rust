@@ -95,7 +95,7 @@ impl<'a> Str0<'a> {
         } else {
             match dst[0..last_dst_index].utf8_chunks().next() {
                 Some(chunk) => chunk.valid().len(),
-                // This will be rare: either Symbol’s value as variable is void: dst is empty or smaller than the first utf8 char.
+                // This will be rare: either `dst` is empty or smaller than the first utf8 char.
                 None => return Str0::empty(),
             }
         };
