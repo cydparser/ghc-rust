@@ -89,7 +89,7 @@ pub(crate) const CAPSET_TYPE_OSPROCESS: u32 = 2;
 pub(crate) const CAPSET_TYPE_CLOCKDOMAIN: u32 = 3;
 
 /// Heap profile breakdown types. See `EventTypeNum::HEAP_PROF_BEGIN`.
-enum HeapProfBreakdown {
+pub(super) enum HeapProfBreakdown {
     HEAP_PROF_BREAKDOWN_COST_CENTRE = 0x1,
     HEAP_PROF_BREAKDOWN_MODULE,
     HEAP_PROF_BREAKDOWN_CLOSURE_DESCR,

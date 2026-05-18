@@ -1,6 +1,13 @@
 use std::ffi::VaList;
 
 use crate::capability::Capability;
+use crate::event_log::EventTypeNum;
+use crate::event_log::format::{
+    EventCapNo, EventCapsetID, EventKernelThreadId, EventTaskId, EventThreadID, EventTimestamp,
+};
+use crate::event_log::writer::{
+    NullEventLogWriter, endEventLogging, flushEventLog, startEventLogging,
+};
 use crate::event_log::{
     eventlog_enabled, flushLocalEventsBuf, freeEventLogging, initEventLogging, moreCapEventBufs,
     postCapEvent, postCapMsg, postCapsetEvent, postCapsetStrEvent, postCapsetVecEvent,
@@ -13,19 +20,7 @@ use crate::event_log::{
     postTaskCreateEvent, postTaskDeleteEvent, postTaskMigrateEvent, postThreadLabel,
     postUserBinaryEvent, postUserEvent, postWallClockTime, restartEventLogging,
 };
-use crate::event_log_constants::{
-    EVENT_CONC_MARK_BEGIN, EVENT_CONC_SWEEP_BEGIN, EVENT_CONC_SWEEP_END, EVENT_CONC_SYNC_BEGIN,
-    EVENT_CONC_SYNC_END, EVENT_OSPROCESS_PID, EVENT_OSPROCESS_PPID, EVENT_PROGRAM_ARGS,
-    EVENT_RTS_IDENTIFIER, EVENT_USER_BINARY_MSG, EVENT_USER_MARKER, EVENT_USER_MSG,
-};
 use crate::ffi::rts::constants::{BlockedOnBlackHole, StackOverflow};
-use crate::ffi::rts::event_log_format::{
-    EventCapNo, EventCapsetID, EventKernelThreadId, EventTaskId, EventThreadID, EventTimestamp,
-    EventTypeNum,
-};
-use crate::ffi::rts::event_log_writer::{
-    NullEventLogWriter, endEventLogging, flushEventLog, startEventLogging,
-};
 use crate::ffi::rts::ipe::{InfoProvEnt, formatClosureDescIpe};
 use crate::ffi::rts::os_threads::{Mutex, initMutex, kernelThreadId, osThreadId};
 use crate::ffi::rts::prof::ccs::CostCentreStack;
@@ -638,8 +633,8 @@ unsafe fn traceSchedEvent_stderr(
         threadLabel = &raw mut (*(*tso).label).payload as *mut StgWord as *mut c_char;
     }
 
-    match tag as i32 {
-        EVENT_CREATE_THREAD => {
+    match tag {
+        EventTypeNum::CREATE_THREAD => {
             debugBelch(
                 c"cap %d: created thread %llu[\"%.*s\"]\n".as_ptr(),
                 (*cap).no,
@@ -648,7 +643,7 @@ unsafe fn traceSchedEvent_stderr(
                 threadLabel,
             );
         }
-        EVENT_RUN_THREAD => {
+        EventTypeNum::RUN_THREAD => {
             debugBelch(
                 c"cap %d: running thread %llu[\"%.*s\"] (%s)\n".as_ptr(),
                 (*cap).no,
@@ -658,7 +653,7 @@ unsafe fn traceSchedEvent_stderr(
                 *(&raw mut what_next_strs as *mut *const c_char).offset((*tso).what_next as isize),
             );
         }
-        EVENT_THREAD_RUNNABLE => {
+        EventTypeNum::THREAD_RUNNABLE => {
             debugBelch(
                 c"cap %d: thread %llu[\"%.*s\"] appended to run queue\n".as_ptr(),
                 (*cap).no,
@@ -667,7 +662,7 @@ unsafe fn traceSchedEvent_stderr(
                 threadLabel,
             );
         }
-        EVENT_MIGRATE_THREAD => {
+        EventTypeNum::MIGRATE_THREAD => {
             debugBelch(
                 c"cap %d: thread %llu[\"%.*s\"] migrating to cap %d\n".as_ptr(),
                 (*cap).no,
@@ -677,7 +672,7 @@ unsafe fn traceSchedEvent_stderr(
                 info1 as i32,
             );
         }
-        EVENT_THREAD_WAKEUP => {
+        EventTypeNum::THREAD_WAKEUP => {
             debugBelch(
                 c"cap %d: waking up thread %llu[\"%.*s\"] on cap %d\n".as_ptr(),
                 (*cap).no,
@@ -687,7 +682,7 @@ unsafe fn traceSchedEvent_stderr(
                 info1 as i32,
             );
         }
-        EVENT_STOP_THREAD => {
+        EventTypeNum::STOP_THREAD => {
             if info1 == (6 + BlockedOnBlackHole) as StgWord {
                 debugBelch(
                     c"cap %d: thread %llu[\"%.*s\"] stopped (blocked on black hole owned by thread %lu)\n"
@@ -773,29 +768,29 @@ unsafe fn traceGcEvent_stderr(mut cap: *mut Capability, mut tag: EventTypeNum) {
 
     tracePreface();
 
-    match tag as i32 {
-        EVENT_REQUEST_SEQ_GC => {
+    match tag {
+        EventTypeNum::REQUEST_SEQ_GC => {
             debugBelch(c"cap %d: requesting sequential GC\n".as_ptr(), (*cap).no);
         }
-        EVENT_REQUEST_PAR_GC => {
+        EventTypeNum::REQUEST_PAR_GC => {
             debugBelch(c"cap %d: requesting parallel GC\n".as_ptr(), (*cap).no);
         }
-        EVENT_GC_START => {
+        EventTypeNum::GC_START => {
             debugBelch(c"cap %d: starting GC\n".as_ptr(), (*cap).no);
         }
-        EVENT_GC_END => {
+        EventTypeNum::GC_END => {
             debugBelch(c"cap %d: finished GC\n".as_ptr(), (*cap).no);
         }
-        EVENT_GC_IDLE => {
+        EventTypeNum::GC_IDLE => {
             debugBelch(c"cap %d: GC idle\n".as_ptr(), (*cap).no);
         }
-        EVENT_GC_WORK => {
+        EventTypeNum::GC_WORK => {
             debugBelch(c"cap %d: GC working\n".as_ptr(), (*cap).no);
         }
-        EVENT_GC_DONE => {
+        EventTypeNum::GC_DONE => {
             debugBelch(c"cap %d: GC done\n".as_ptr(), (*cap).no);
         }
-        EVENT_GC_GLOBAL_SYNC => {
+        EventTypeNum::GC_GLOBAL_SYNC => {
             debugBelch(c"cap %d: all caps stopped for GC\n".as_ptr(), (*cap).no);
         }
         _ => {
@@ -927,17 +922,17 @@ unsafe fn traceCapEvent_(mut cap: *mut Capability, mut tag: EventTypeNum) {
 
         tracePreface();
 
-        match tag as i32 {
-            EVENT_CAP_CREATE => {
+        match tag {
+            EventTypeNum::CAP_CREATE => {
                 debugBelch(c"cap %d: initialised\n".as_ptr(), (*cap).no);
             }
-            EVENT_CAP_DELETE => {
+            EventTypeNum::CAP_DELETE => {
                 debugBelch(c"cap %d: shutting down\n".as_ptr(), (*cap).no);
             }
-            EVENT_CAP_ENABLE => {
+            EventTypeNum::CAP_ENABLE => {
                 debugBelch(c"cap %d: enabling capability\n".as_ptr(), (*cap).no);
             }
-            EVENT_CAP_DISABLE => {
+            EventTypeNum::CAP_DISABLE => {
                 debugBelch(c"cap %d: disabling capability\n".as_ptr(), (*cap).no);
             }
             _ => {}
@@ -1011,13 +1006,13 @@ unsafe fn traceWallClockTime_() {
 unsafe fn traceOSProcessInfo_() {
     if eventlog_enabled {
         postCapsetEvent(
-            EVENT_OSPROCESS_PID as EventTypeNum,
+            EventTypeNum::OSPROCESS_PID,
             CAPSET_OSPROCESS_DEFAULT,
             getpid() as StgWord,
         );
 
         postCapsetEvent(
-            EVENT_OSPROCESS_PPID as EventTypeNum,
+            EventTypeNum::OSPROCESS_PPID,
             CAPSET_OSPROCESS_DEFAULT,
             getppid() as StgWord,
         );
@@ -1033,7 +1028,7 @@ unsafe fn traceOSProcessInfo_() {
         );
 
         postCapsetStrEvent(
-            EVENT_RTS_IDENTIFIER as EventTypeNum,
+            EventTypeNum::RTS_IDENTIFIER,
             CAPSET_OSPROCESS_DEFAULT,
             &raw mut buf as *mut c_char,
         );
@@ -1044,7 +1039,7 @@ unsafe fn traceOSProcessInfo_() {
 
         if argc != 0 {
             postCapsetVecEvent(
-                EVENT_PROGRAM_ARGS as EventTypeNum,
+                EventTypeNum::PROGRAM_ARGS,
                 CAPSET_OSPROCESS_DEFAULT,
                 argc,
                 argv as *mut *mut c_char,
@@ -1358,13 +1353,13 @@ unsafe fn traceUserMsg(mut cap: *mut Capability, mut msg: *const c_char) {
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR && TRACE_user as i32 != 0 {
         traceCap_stderr(cap, c"%s".as_ptr(), msg);
     } else if eventlog_enabled as i32 != 0 && TRACE_user as i32 != 0 {
-        postUserEvent(cap, EVENT_USER_MSG as EventTypeNum, msg);
+        postUserEvent(cap, EventTypeNum::USER_MSG, msg);
     }
 }
 
 unsafe fn traceUserBinaryMsg(mut cap: *mut Capability, mut msg: *mut u8, mut size: usize) {
     if eventlog_enabled as i32 != 0 && TRACE_user as i32 != 0 {
-        postUserBinaryEvent(cap, EVENT_USER_BINARY_MSG as EventTypeNum, msg, size);
+        postUserBinaryEvent(cap, EventTypeNum::USER_BINARY_MSG, msg, size);
     }
 }
 
@@ -1372,7 +1367,7 @@ unsafe fn traceUserMarker(mut cap: *mut Capability, mut markername: *mut c_char)
     if RtsFlags.TraceFlags.tracing == TRACE_STDERR && TRACE_user as i32 != 0 {
         traceCap_stderr(cap, c"User marker: %s".as_ptr(), markername);
     } else if eventlog_enabled as i32 != 0 && TRACE_user as i32 != 0 {
-        postUserEvent(cap, EVENT_USER_MARKER as EventTypeNum, markername);
+        postUserEvent(cap, EventTypeNum::USER_MARKER, markername);
     }
 }
 
@@ -1418,7 +1413,7 @@ unsafe fn traceThreadLabel_(
 
 unsafe fn traceConcMarkBegin() {
     if eventlog_enabled {
-        postEventNoCap(EVENT_CONC_MARK_BEGIN as EventTypeNum);
+        postEventNoCap(EventTypeNum::CONC_MARK_BEGIN);
     }
 }
 
@@ -1430,25 +1425,25 @@ unsafe fn traceConcMarkEnd(mut marked_obj_count: StgWord32) {
 
 unsafe fn traceConcSyncBegin() {
     if eventlog_enabled {
-        postEventNoCap(EVENT_CONC_SYNC_BEGIN as EventTypeNum);
+        postEventNoCap(EventTypeNum::CONC_SYNC_BEGIN);
     }
 }
 
 unsafe fn traceConcSyncEnd() {
     if eventlog_enabled {
-        postEventNoCap(EVENT_CONC_SYNC_END as EventTypeNum);
+        postEventNoCap(EventTypeNum::CONC_SYNC_END);
     }
 }
 
 unsafe fn traceConcSweepBegin() {
     if eventlog_enabled {
-        postEventNoCap(EVENT_CONC_SWEEP_BEGIN as EventTypeNum);
+        postEventNoCap(EventTypeNum::CONC_SWEEP_BEGIN);
     }
 }
 
 unsafe fn traceConcSweepEnd() {
     if eventlog_enabled {
-        postEventNoCap(EVENT_CONC_SWEEP_END as EventTypeNum);
+        postEventNoCap(EventTypeNum::CONC_SWEEP_END);
     }
 }
 

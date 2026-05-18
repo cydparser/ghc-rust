@@ -2,18 +2,14 @@ use std::ffi::VaList;
 
 use crate::capability::Capability;
 use crate::capability::{SYNC_FLUSH_EVENT_LOG, getCapability};
-use crate::event_log::types::{EventType, eventTypes};
-use crate::event_log::writer::EventLogWriter;
-use crate::ffi::rts::event_log_format::{
-    EVENT_DATA_BEGIN, EVENT_DATA_END, EVENT_ET_BEGIN, EVENT_ET_END, EVENT_HEADER_BEGIN,
-    EVENT_HEADER_END, EVENT_HET_BEGIN, EVENT_HET_END, EVENT_PAYLOAD_SIZE_MAX, EventCapNo,
-    EventCapsetID, EventCapsetType, EventKernelThreadId, EventPayloadSize, EventTaskId,
-    EventThreadID, EventTimestamp, EventTypeNum, HEAP_PROF_BREAKDOWN_BIOGRAPHY,
-    HEAP_PROF_BREAKDOWN_CLOSURE_DESCR, HEAP_PROF_BREAKDOWN_CLOSURE_TYPE,
-    HEAP_PROF_BREAKDOWN_COST_CENTRE, HEAP_PROF_BREAKDOWN_ERA, HEAP_PROF_BREAKDOWN_INFO_TABLE,
-    HEAP_PROF_BREAKDOWN_MODULE, HEAP_PROF_BREAKDOWN_RETAINER, HEAP_PROF_BREAKDOWN_TYPE_DESCR,
-    HeapProfBreakdown, NUM_GHC_EVENT_TAGS,
+use crate::event_log::format::{
+    EVENT_DATA_BEGIN, EVENT_ET_BEGIN, EVENT_HEADER_BEGIN, EVENT_HEADER_END, EVENT_HET_BEGIN,
+    EVENT_HET_END, EVENT_PAYLOAD_SIZE_MAX, EventCapNo, EventCapsetID, EventCapsetType,
+    EventKernelThreadId, EventPayloadSize, EventTaskId, EventThreadID, EventTimestamp,
+    HeapProfBreakdown,
 };
+use crate::event_log::types::{EventType, EventTypeNum, eventTypes};
+use crate::event_log::writer::EventLogWriter;
 use crate::ffi::rts::ipe::{InfoProvEnt, formatClosureDescIpe};
 use crate::ffi::rts::os_threads::{Mutex, OS_TRY_ACQUIRE_LOCK, initMutex};
 use crate::ffi::rts::prof::ccs::{CCS_MAIN, CostCentreStack};
@@ -166,47 +162,47 @@ unsafe fn postTimestamp(eb: *mut EventsBuf) {
 }
 
 #[inline]
-unsafe fn postThreadID(eb: *mut EventsBuf, mut id: EventThreadID) {
+unsafe fn postThreadID(eb: *mut EventsBuf, id: EventThreadID) {
     postWord32(eb, id as StgWord32);
 }
 
 #[inline]
-unsafe fn postCapNo(eb: *mut EventsBuf, mut no: EventCapNo) {
+unsafe fn postCapNo(eb: *mut EventsBuf, no: EventCapNo) {
     postWord16(eb, no as StgWord16);
 }
 
 #[inline]
-unsafe fn postCapsetID(eb: *mut EventsBuf, mut id: EventCapsetID) {
+unsafe fn postCapsetID(eb: *mut EventsBuf, id: EventCapsetID) {
     postWord32(eb, id as StgWord32);
 }
 
 #[inline]
-unsafe fn postCapsetType(eb: *mut EventsBuf, mut r#type: EventCapsetType) {
+unsafe fn postCapsetType(eb: *mut EventsBuf, r#type: EventCapsetType) {
     postWord16(eb, r#type as StgWord16);
 }
 
 #[inline]
-unsafe fn postOSProcessId(eb: *mut EventsBuf, mut pid: pid_t) {
+unsafe fn postOSProcessId(eb: *mut EventsBuf, pid: pid_t) {
     postWord32(eb, pid as StgWord32);
 }
 
 #[inline]
-unsafe fn postKernelThreadId(eb: *mut EventsBuf, mut tid: EventKernelThreadId) {
+unsafe fn postKernelThreadId(eb: *mut EventsBuf, tid: EventKernelThreadId) {
     postWord64(eb, tid as StgWord64);
 }
 
 #[inline]
-unsafe fn postTaskId(eb: *mut EventsBuf, mut tUniq: EventTaskId) {
+unsafe fn postTaskId(eb: *mut EventsBuf, tUniq: EventTaskId) {
     postWord64(eb, tUniq as StgWord64);
 }
 
 #[inline]
-unsafe fn postPayloadSize(eb: *mut EventsBuf, mut size: EventPayloadSize) {
+unsafe fn postPayloadSize(eb: *mut EventsBuf, size: EventPayloadSize) {
     postWord16(eb, size as StgWord16);
 }
 
 #[inline]
-unsafe fn postEventHeader(eb: *mut EventsBuf, mut r#type: EventTypeNum) {
+unsafe fn postEventHeader(eb: *mut EventsBuf, r#type: EventTypeNum) {
     postEventTypeNum(eb, r#type);
     postTimestamp(eb);
 }
@@ -229,7 +225,7 @@ unsafe fn initEventLogWriter() {
     }
 }
 
-unsafe fn writeEventLog(mut eventlog: *mut c_void, eventlog_size: usize) -> bool {
+unsafe fn writeEventLog(eventlog: *mut c_void, eventlog_size: usize) -> bool {
     if !event_log_writer.is_null() && (*event_log_writer).writeEventLog.is_some() {
         return (*event_log_writer)
             .writeEventLog
@@ -272,7 +268,7 @@ unsafe fn postHeaderEvents() {
     postInt32(&raw mut eventBuf, EVENT_DATA_BEGIN as StgInt32);
 }
 
-unsafe fn postInitEvent(mut post_init: EventlogInitPost) {
+unsafe fn postInitEvent(post_init: EventlogInitPost) {
     let mut __r = pthread_mutex_lock(&raw mut state_change_mutex);
 
     if __r != 0 {
@@ -508,7 +504,7 @@ pub unsafe extern "C" fn endEventLogging() {
         );
     }
 
-    postEventTypeNum(&raw mut eventBuf, EVENT_DATA_END as EventTypeNum);
+    postEventTypeNum(&raw mut eventBuf, EventTypeNum::DATA_END);
     printAndClearEventBuf(&raw mut eventBuf);
 
     if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
@@ -590,18 +586,18 @@ unsafe fn postSchedEvent(
     ensureRoomForEvent(eb, tag);
     postEventHeader(eb, tag);
 
-    match tag as i32 {
-        EVENT_CREATE_THREAD | EVENT_RUN_THREAD | EVENT_THREAD_RUNNABLE => {
+    match tag {
+        EventTypeNum::CREATE_THREAD | EventTypeNum::RUN_THREAD | EventTypeNum::THREAD_RUNNABLE => {
             postThreadID(eb, thread as EventThreadID);
         }
-        EVENT_CREATE_SPARK_THREAD => {
+        EventTypeNum::CREATE_SPARK_THREAD => {
             postThreadID(eb, info1 as EventThreadID);
         }
-        EVENT_MIGRATE_THREAD | EVENT_THREAD_WAKEUP => {
+        EventTypeNum::MIGRATE_THREAD | EventTypeNum::THREAD_WAKEUP => {
             postThreadID(eb, thread as EventThreadID);
             postCapNo(eb, info1 as EventCapNo);
         }
-        EVENT_STOP_THREAD => {
+        EventTypeNum::STOP_THREAD => {
             postThreadID(eb, thread as EventThreadID);
             postWord16(eb, info1 as StgWord16);
             postThreadID(eb, info2 as EventThreadID);
@@ -612,21 +608,25 @@ unsafe fn postSchedEvent(
     };
 }
 
-unsafe fn postSparkEvent(mut cap: *mut Capability, tag: EventTypeNum, mut info1: StgWord) {
+unsafe fn postSparkEvent(cap: *mut Capability, tag: EventTypeNum, info1: StgWord) {
     let eb: *mut EventsBuf = capEventBuf.offset((*cap).no as isize) as *mut EventsBuf;
     ensureRoomForEvent(eb, tag);
     postEventHeader(eb, tag);
 
-    match tag as i32 {
-        EVENT_CREATE_SPARK_THREAD => {
+    match tag {
+        EventTypeNum::CREATE_SPARK_THREAD => {
             postThreadID(eb, info1 as EventThreadID);
         }
-        EVENT_SPARK_STEAL => {
+        EventTypeNum::SPARK_STEAL => {
             postCapNo(eb, info1 as EventCapNo);
         }
 
-        EVENT_SPARK_CREATE | EVENT_SPARK_DUD | EVENT_SPARK_OVERFLOW | EVENT_SPARK_RUN
-        | EVENT_SPARK_FIZZLE | EVENT_SPARK_GC => {}
+        EventTypeNum::SPARK_CREATE
+        | EventTypeNum::SPARK_DUD
+        | EventTypeNum::SPARK_OVERFLOW
+        | EventTypeNum::SPARK_RUN
+        | EventTypeNum::SPARK_FIZZLE
+        | EventTypeNum::SPARK_GC => {}
         _ => {
             barf(c"postSparkEvent: unknown event tag %d".as_ptr(), tag as i32);
         }
@@ -634,13 +634,13 @@ unsafe fn postSparkEvent(mut cap: *mut Capability, tag: EventTypeNum, mut info1:
 }
 
 unsafe fn postSparkCountersEvent(
-    mut cap: *mut Capability,
-    mut counters: SparkCounters,
-    mut remaining: StgWord,
+    cap: *mut Capability,
+    counters: SparkCounters,
+    remaining: StgWord,
 ) {
     let eb: *mut EventsBuf = capEventBuf.offset((*cap).no as isize) as *mut EventsBuf;
-    ensureRoomForEvent(eb, EVENT_SPARK_COUNTERS as EventTypeNum);
-    postEventHeader(eb, EVENT_SPARK_COUNTERS as EventTypeNum);
+    ensureRoomForEvent(eb, EventTypeNum::SPARK_COUNTERS);
+    postEventHeader(eb, EventTypeNum::SPARK_COUNTERS);
     postWord64(eb, counters.created as StgWord64);
     postWord64(eb, counters.dud as StgWord64);
     postWord64(eb, counters.overflowed as StgWord64);
@@ -650,7 +650,7 @@ unsafe fn postSparkCountersEvent(
     postWord64(eb, remaining as StgWord64);
 }
 
-unsafe fn postCapEvent(tag: EventTypeNum, mut capno: EventCapNo) {
+unsafe fn postCapEvent(tag: EventTypeNum, capno: EventCapNo) {
     let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
 
     if __r != 0 {
@@ -665,8 +665,11 @@ unsafe fn postCapEvent(tag: EventTypeNum, mut capno: EventCapNo) {
     ensureRoomForEvent(&raw mut eventBuf, tag);
     postEventHeader(&raw mut eventBuf, tag);
 
-    match tag as i32 {
-        EVENT_CAP_CREATE | EVENT_CAP_DELETE | EVENT_CAP_ENABLE | EVENT_CAP_DISABLE => {
+    match tag {
+        EventTypeNum::CAP_CREATE
+        | EventTypeNum::CAP_DELETE
+        | EventTypeNum::CAP_ENABLE
+        | EventTypeNum::CAP_DISABLE => {
             postCapNo(&raw mut eventBuf, capno);
         }
         _ => {
@@ -683,7 +686,7 @@ unsafe fn postCapEvent(tag: EventTypeNum, mut capno: EventCapNo) {
     }
 }
 
-unsafe fn postCapsetEvent(tag: EventTypeNum, mut capset: EventCapsetID, mut info: StgWord) {
+unsafe fn postCapsetEvent(tag: EventTypeNum, capset: EventCapsetID, info: StgWord) {
     let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
 
     if __r != 0 {
@@ -699,15 +702,15 @@ unsafe fn postCapsetEvent(tag: EventTypeNum, mut capset: EventCapsetID, mut info
     postEventHeader(&raw mut eventBuf, tag);
     postCapsetID(&raw mut eventBuf, capset);
 
-    match tag as i32 {
-        EVENT_CAPSET_CREATE => {
+    match tag {
+        EventTypeNum::CAPSET_CREATE => {
             postCapsetType(&raw mut eventBuf, info as EventCapsetType);
         }
-        EVENT_CAPSET_DELETE => {}
-        EVENT_CAPSET_ASSIGN_CAP | EVENT_CAPSET_REMOVE_CAP => {
+        EventTypeNum::CAPSET_DELETE => {}
+        EventTypeNum::CAPSET_ASSIGN_CAP | EventTypeNum::CAPSET_REMOVE_CAP => {
             postCapNo(&raw mut eventBuf, info as EventCapNo);
         }
-        EVENT_OSPROCESS_PID | EVENT_OSPROCESS_PPID => {
+        EventTypeNum::OSPROCESS_PID | EventTypeNum::OSPROCESS_PPID => {
             postOSProcessId(&raw mut eventBuf, info as pid_t);
         }
         _ => {
@@ -727,9 +730,9 @@ unsafe fn postCapsetEvent(tag: EventTypeNum, mut capset: EventCapsetID, mut info
     }
 }
 
-unsafe fn postCapsetStrEvent(tag: EventTypeNum, mut capset: EventCapsetID, mut msg: *const c_char) {
+unsafe fn postCapsetStrEvent(tag: EventTypeNum, capset: EventCapsetID, msg: *const c_char) {
     let mut strsize = libc::strlen(msg) as i32;
-    let mut size = (strsize as usize).wrapping_add(size_of::<EventCapsetID>() as usize) as i32;
+    let mut size = (strsize as usize).wrapping_add(size_of::<EventCapsetID>() as usize);
 
     if size > EVENT_PAYLOAD_SIZE_MAX {
         errorBelch(c"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out".as_ptr());
@@ -781,16 +784,15 @@ unsafe fn postCapsetStrEvent(tag: EventTypeNum, mut capset: EventCapsetID, mut m
 
 unsafe fn postCapsetVecEvent(
     tag: EventTypeNum,
-    mut capset: EventCapsetID,
-    mut argc: i32,
-    mut argv: *mut *mut c_char,
+    capset: EventCapsetID,
+    argc: i32,
+    argv: *mut *mut c_char,
 ) {
-    let mut size = size_of::<EventCapsetID>() as i32;
+    let size = size_of::<EventCapsetID>();
     let mut i = 0;
 
     while i < argc {
-        let mut increment =
-            (1 as usize).wrapping_add(libc::strlen(*argv.offset(i as isize))) as i32;
+        let mut increment = (1 as usize).wrapping_add(libc::strlen(*argv.offset(i as isize)));
 
         if size + increment > EVENT_PAYLOAD_SIZE_MAX {
             errorBelch(
@@ -877,8 +879,8 @@ unsafe fn postWallClockTime(mut capset: EventCapsetID) {
 
     getUnixEpochTime(&raw mut sec, &raw mut nsec);
     ts = time_ns();
-    ensureRoomForEvent(&raw mut eventBuf, EVENT_WALL_CLOCK_TIME as EventTypeNum);
-    postEventTypeNum(&raw mut eventBuf, EVENT_WALL_CLOCK_TIME as EventTypeNum);
+    ensureRoomForEvent(&raw mut eventBuf, EventTypeNum::WALL_CLOCK_TIME);
+    postEventTypeNum(&raw mut eventBuf, EventTypeNum::WALL_CLOCK_TIME);
     postWord64(&raw mut eventBuf, ts);
     postCapsetID(&raw mut eventBuf, capset);
     postWord64(&raw mut eventBuf, sec);
@@ -894,17 +896,20 @@ unsafe fn postWallClockTime(mut capset: EventCapsetID) {
 }
 
 unsafe fn postHeapEvent(
-    mut cap: *mut Capability,
+    cap: *mut Capability,
     tag: EventTypeNum,
-    mut heap_capset: EventCapsetID,
-    mut info1: W_,
+    heap_capset: EventCapsetID,
+    info1: W_,
 ) {
     let eb: *mut EventsBuf = capEventBuf.offset((*cap).no as isize) as *mut EventsBuf;
     ensureRoomForEvent(eb, tag);
     postEventHeader(eb, tag);
 
-    match tag as i32 {
-        EVENT_HEAP_ALLOCATED | EVENT_HEAP_SIZE | EVENT_BLOCKS_SIZE | EVENT_HEAP_LIVE => {
+    match tag {
+        EventTypeNum::HEAP_ALLOCATED
+        | EventTypeNum::HEAP_SIZE
+        | EventTypeNum::BLOCKS_SIZE
+        | EventTypeNum::HEAP_LIVE => {
             postCapsetID(eb, heap_capset);
             postWord64(eb, info1 as StgWord64);
         }
@@ -915,12 +920,12 @@ unsafe fn postHeapEvent(
 }
 
 unsafe fn postEventHeapInfo(
-    mut heap_capset: EventCapsetID,
-    mut gens: u32,
-    mut maxHeapSize: W_,
-    mut allocAreaSize: W_,
-    mut mblockSize: W_,
-    mut blockSize: W_,
+    heap_capset: EventCapsetID,
+    gens: u32,
+    maxHeapSize: W_,
+    allocAreaSize: W_,
+    mblockSize: W_,
+    blockSize: W_,
 ) {
     let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
 
@@ -933,8 +938,8 @@ unsafe fn postEventHeapInfo(
         );
     }
 
-    ensureRoomForEvent(&raw mut eventBuf, EVENT_HEAP_INFO_GHC as EventTypeNum);
-    postEventHeader(&raw mut eventBuf, EVENT_HEAP_INFO_GHC as EventTypeNum);
+    ensureRoomForEvent(&raw mut eventBuf, EventTypeNum::HEAP_INFO_GHC);
+    postEventHeader(&raw mut eventBuf, EventTypeNum::HEAP_INFO_GHC);
     postCapsetID(&raw mut eventBuf, heap_capset);
     postWord16(&raw mut eventBuf, gens as StgWord16);
     postWord64(&raw mut eventBuf, maxHeapSize as StgWord64);
@@ -952,20 +957,20 @@ unsafe fn postEventHeapInfo(
 }
 
 unsafe fn postEventGcStats(
-    mut cap: *mut Capability,
-    mut heap_capset: EventCapsetID,
-    mut r#gen: u32,
-    mut copied: W_,
-    mut slop: W_,
-    mut fragmentation: W_,
-    mut par_n_threads: u32,
-    mut par_max_copied: W_,
-    mut par_tot_copied: W_,
-    mut par_balanced_copied: W_,
+    cap: *mut Capability,
+    heap_capset: EventCapsetID,
+    r#gen: u32,
+    copied: W_,
+    slop: W_,
+    fragmentation: W_,
+    par_n_threads: u32,
+    par_max_copied: W_,
+    par_tot_copied: W_,
+    par_balanced_copied: W_,
 ) {
     let eb: *mut EventsBuf = capEventBuf.offset((*cap).no as isize) as *mut EventsBuf;
-    ensureRoomForEvent(eb, EVENT_GC_STATS_GHC as EventTypeNum);
-    postEventHeader(eb, EVENT_GC_STATS_GHC as EventTypeNum);
+    ensureRoomForEvent(eb, EventTypeNum::GC_STATS_GHC);
+    postEventHeader(eb, EventTypeNum::GC_STATS_GHC);
     postCapsetID(eb, heap_capset);
     postWord16(eb, r#gen as StgWord16);
     postWord64(eb, copied as StgWord64);
@@ -978,26 +983,22 @@ unsafe fn postEventGcStats(
 }
 
 unsafe fn postEventMemReturn(
-    mut cap: *mut Capability,
-    mut heap_capset: EventCapsetID,
-    mut current_mblocks: u32,
-    mut needed_mblocks: u32,
-    mut returned_mblocks: u32,
+    cap: *mut Capability,
+    heap_capset: EventCapsetID,
+    current_mblocks: u32,
+    needed_mblocks: u32,
+    returned_mblocks: u32,
 ) {
     let eb: *mut EventsBuf = capEventBuf.offset((*cap).no as isize) as *mut EventsBuf;
-    ensureRoomForEvent(eb, EVENT_MEM_RETURN as EventTypeNum);
-    postEventHeader(eb, EVENT_MEM_RETURN as EventTypeNum);
+    ensureRoomForEvent(eb, EventTypeNum::MEM_RETURN);
+    postEventHeader(eb, EventTypeNum::MEM_RETURN);
     postCapsetID(eb, heap_capset);
     postWord32(eb, current_mblocks as StgWord32);
     postWord32(eb, needed_mblocks as StgWord32);
     postWord32(eb, returned_mblocks as StgWord32);
 }
 
-unsafe fn postTaskCreateEvent(
-    mut taskId: EventTaskId,
-    mut capno: EventCapNo,
-    mut tid: EventKernelThreadId,
-) {
+unsafe fn postTaskCreateEvent(taskId: EventTaskId, capno: EventCapNo, tid: EventKernelThreadId) {
     let mut __r = pthread_mutex_lock(&raw mut eventBufMutex);
 
     if __r != 0 {
@@ -1009,8 +1010,8 @@ unsafe fn postTaskCreateEvent(
         );
     }
 
-    ensureRoomForEvent(&raw mut eventBuf, EVENT_TASK_CREATE as EventTypeNum);
-    postEventHeader(&raw mut eventBuf, EVENT_TASK_CREATE as EventTypeNum);
+    ensureRoomForEvent(&raw mut eventBuf, EventTypeNum::TASK_CREATE);
+    postEventHeader(&raw mut eventBuf, EventTypeNum::TASK_CREATE);
     postTaskId(&raw mut eventBuf, taskId);
     postCapNo(&raw mut eventBuf, capno);
     postKernelThreadId(&raw mut eventBuf, tid);
@@ -1040,8 +1041,8 @@ unsafe fn postTaskMigrateEvent(
         );
     }
 
-    ensureRoomForEvent(&raw mut eventBuf, EVENT_TASK_MIGRATE as EventTypeNum);
-    postEventHeader(&raw mut eventBuf, EVENT_TASK_MIGRATE as EventTypeNum);
+    ensureRoomForEvent(&raw mut eventBuf, EventTypeNum::TASK_MIGRATE);
+    postEventHeader(&raw mut eventBuf, EventTypeNum::TASK_MIGRATE);
     postTaskId(&raw mut eventBuf, taskId);
     postCapNo(&raw mut eventBuf, capno);
     postCapNo(&raw mut eventBuf, new_capno);
@@ -1067,8 +1068,8 @@ unsafe fn postTaskDeleteEvent(mut taskId: EventTaskId) {
         );
     }
 
-    ensureRoomForEvent(&raw mut eventBuf, EVENT_TASK_DELETE as EventTypeNum);
-    postEventHeader(&raw mut eventBuf, EVENT_TASK_DELETE as EventTypeNum);
+    ensureRoomForEvent(&raw mut eventBuf, EventTypeNum::TASK_DELETE);
+    postEventHeader(&raw mut eventBuf, EventTypeNum::TASK_DELETE);
     postTaskId(&raw mut eventBuf, taskId);
 
     if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
@@ -1126,7 +1127,7 @@ const BUF: usize = 512;
 unsafe fn postLogMsg(eb: *mut EventsBuf, r#type: EventTypeNum, msg: *const c_char, ap: VaList) {
     let mut buf: [c_char; BUF] = [0; _];
 
-    let mut size: u32 = vsnprintf(&raw mut buf as *mut c_char, BUF, msg, ap) as u32;
+    let mut size = vsnprintf(&raw mut buf as *mut c_char, BUF, msg, ap);
 
     if size > BUF {
         buf[(BUF - 1) as usize] = '\0' as i32 as c_char;
@@ -1151,7 +1152,7 @@ unsafe fn postMsg(mut msg: *const c_char, mut ap: VaList) {
         );
     }
 
-    postLogMsg(&raw mut eventBuf, EVENT_LOG_MSG as EventTypeNum, msg, ap);
+    postLogMsg(&raw mut eventBuf, EventTypeNum::LOG_MSG, msg, ap);
 
     if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
         barf(
@@ -1165,7 +1166,7 @@ unsafe fn postMsg(mut msg: *const c_char, mut ap: VaList) {
 unsafe fn postCapMsg(cap: *mut Capability, msg: *const c_char, ap: VaList) {
     postLogMsg(
         capEventBuf.offset((*cap).no as isize) as *mut EventsBuf,
-        EVENT_LOG_MSG as EventTypeNum,
+        EventTypeNum::LOG_MSG,
         msg,
         ap,
     );
@@ -1196,10 +1197,10 @@ unsafe fn postUserEvent(cap: *const Capability, r#type: EventTypeNum, msg: *cons
 }
 
 unsafe fn postUserBinaryEvent(
-    mut cap: *mut Capability,
-    mut r#type: EventTypeNum,
-    mut msg: *mut u8,
-    mut size: usize,
+    cap: *mut Capability,
+    r#type: EventTypeNum,
+    msg: *mut u8,
+    size: usize,
 ) {
     if size > EVENT_PAYLOAD_SIZE_MAX as usize {
         errorBelch(c"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out".as_ptr());
@@ -1222,14 +1223,9 @@ unsafe fn postUserBinaryEvent(
     postBuf(eb, msg as *mut StgWord8, size as u32);
 }
 
-unsafe fn postThreadLabel(
-    mut cap: *mut Capability,
-    mut id: EventThreadID,
-    mut label: *mut c_char,
-    mut len: usize,
-) {
-    let strsize = len as i32;
-    let size = (strsize as usize).wrapping_add(size_of::<EventThreadID>() as usize) as i32;
+unsafe fn postThreadLabel(cap: *mut Capability, id: EventThreadID, label: *mut c_char, len: usize) {
+    let strsize = len;
+    let size = strsize + size_of::<EventThreadID>();
 
     if size > EVENT_PAYLOAD_SIZE_MAX {
         errorBelch(c"Event size exceeds EVENT_PAYLOAD_SIZE_MAX, bail out".as_ptr());
@@ -1247,7 +1243,7 @@ unsafe fn postThreadLabel(
         }
     }
 
-    postEventHeader(eb, EVENT_THREAD_LABEL as EventTypeNum);
+    postEventHeader(eb, EventTypeNum::THREAD_LABEL);
     postPayloadSize(eb, size as EventPayloadSize);
     postThreadID(eb, id);
     postBuf(eb, label as *mut StgWord8, strsize as u32);
@@ -1255,8 +1251,8 @@ unsafe fn postThreadLabel(
 
 unsafe fn postConcUpdRemSetFlush(mut cap: *mut Capability) {
     let eb: *mut EventsBuf = capEventBuf.offset((*cap).no as isize) as *mut EventsBuf;
-    ensureRoomForEvent(eb, EVENT_CONC_UPD_REM_SET_FLUSH as EventTypeNum);
-    postEventHeader(eb, EVENT_CONC_UPD_REM_SET_FLUSH as EventTypeNum);
+    ensureRoomForEvent(eb, EventTypeNum::CONC_UPD_REM_SET_FLUSH);
+    postEventHeader(eb, EventTypeNum::CONC_UPD_REM_SET_FLUSH);
     postCapNo(eb, (*cap).no as EventCapNo);
 }
 
@@ -1272,8 +1268,8 @@ unsafe fn postConcMarkEnd(mut marked_obj_count: StgWord32) {
         );
     }
 
-    ensureRoomForEvent(&raw mut eventBuf, EVENT_CONC_MARK_END as EventTypeNum);
-    postEventHeader(&raw mut eventBuf, EVENT_CONC_MARK_END as EventTypeNum);
+    ensureRoomForEvent(&raw mut eventBuf, EventTypeNum::CONC_MARK_END);
+    postEventHeader(&raw mut eventBuf, EventTypeNum::CONC_MARK_END);
     postWord32(&raw mut eventBuf, marked_obj_count);
 
     if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
@@ -1297,10 +1293,7 @@ unsafe fn postNonmovingHeapCensus(mut blk_size: u16, mut census: *const Nonmovin
         );
     }
 
-    postEventHeader(
-        &raw mut eventBuf,
-        EVENT_NONMOVING_HEAP_CENSUS as EventTypeNum,
-    );
+    postEventHeader(&raw mut eventBuf, EventTypeNum::NONMOVING_HEAP_CENSUS);
     postWord16(&raw mut eventBuf, blk_size as StgWord16);
     postWord32(&raw mut eventBuf, (*census).n_active_segs as StgWord32);
     postWord32(&raw mut eventBuf, (*census).n_filled_segs as StgWord32);
@@ -1327,10 +1320,7 @@ unsafe fn postNonmovingPrunedSegments(mut pruned_segments: u32, mut free_segment
         );
     }
 
-    postEventHeader(
-        &raw mut eventBuf,
-        EVENT_NONMOVING_PRUNED_SEGMENTS as EventTypeNum,
-    );
+    postEventHeader(&raw mut eventBuf, EventTypeNum::NONMOVING_PRUNED_SEGMENTS);
     postWord32(&raw mut eventBuf, pruned_segments as StgWord32);
     postWord32(&raw mut eventBuf, free_segments as StgWord32);
 
@@ -1361,10 +1351,10 @@ unsafe fn closeBlockMarker(mut ebuf: *mut EventsBuf) {
 }
 
 unsafe fn postBlockMarker(eb: *mut EventsBuf) {
-    ensureRoomForEvent(eb, EVENT_BLOCK_MARKER as EventTypeNum);
+    ensureRoomForEvent(eb, EventTypeNum::BLOCK_MARKER);
     closeBlockMarker(eb);
     (*eb).marker = (*eb).pos;
-    postEventHeader(eb, EVENT_BLOCK_MARKER as EventTypeNum);
+    postEventHeader(eb, EventTypeNum::BLOCK_MARKER);
     postWord32(eb, 0);
     postWord64(eb, 0);
     postCapNo(eb, (*eb).capno);
@@ -1458,7 +1448,7 @@ unsafe fn postHeapProfBegin(mut profile_id: StgWord8) {
         _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1244);
     }
 
-    postEventHeader(&raw mut eventBuf, EVENT_HEAP_PROF_BEGIN as EventTypeNum);
+    postEventHeader(&raw mut eventBuf, EventTypeNum::HEAP_PROF_BEGIN);
     postPayloadSize(&raw mut eventBuf, len as EventPayloadSize);
     postWord8(&raw mut eventBuf, profile_id);
     postWord64(&raw mut eventBuf, (*flags).heapProfileInterval as StgWord64);
@@ -1496,14 +1486,8 @@ unsafe fn postHeapProfSampleBegin(mut era: StgInt) {
         );
     }
 
-    ensureRoomForEvent(
-        &raw mut eventBuf,
-        EVENT_HEAP_PROF_SAMPLE_BEGIN as EventTypeNum,
-    );
-    postEventHeader(
-        &raw mut eventBuf,
-        EVENT_HEAP_PROF_SAMPLE_BEGIN as EventTypeNum,
-    );
+    ensureRoomForEvent(&raw mut eventBuf, EventTypeNum::HEAP_PROF_SAMPLE_BEGIN);
+    postEventHeader(&raw mut eventBuf, EventTypeNum::HEAP_PROF_SAMPLE_BEGIN);
     postWord64(&raw mut eventBuf, era as StgWord64);
 
     if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
@@ -1527,15 +1511,9 @@ unsafe fn postHeapBioProfSampleBegin(mut era: StgInt, mut time: StgWord64) {
         );
     }
 
-    ensureRoomForEvent(
-        &raw mut eventBuf,
-        EVENT_HEAP_BIO_PROF_SAMPLE_BEGIN as EventTypeNum,
-    );
+    ensureRoomForEvent(&raw mut eventBuf, EventTypeNum::HEAP_BIO_PROF_SAMPLE_BEGIN);
 
-    postEventHeader(
-        &raw mut eventBuf,
-        EVENT_HEAP_BIO_PROF_SAMPLE_BEGIN as EventTypeNum,
-    );
+    postEventHeader(&raw mut eventBuf, EventTypeNum::HEAP_BIO_PROF_SAMPLE_BEGIN);
     postWord64(&raw mut eventBuf, era as StgWord64);
     postWord64(&raw mut eventBuf, time);
 
@@ -1560,14 +1538,8 @@ unsafe fn postHeapProfSampleEnd(mut era: StgInt) {
         );
     }
 
-    ensureRoomForEvent(
-        &raw mut eventBuf,
-        EVENT_HEAP_PROF_SAMPLE_END as EventTypeNum,
-    );
-    postEventHeader(
-        &raw mut eventBuf,
-        EVENT_HEAP_PROF_SAMPLE_END as EventTypeNum,
-    );
+    ensureRoomForEvent(&raw mut eventBuf, EventTypeNum::HEAP_PROF_SAMPLE_END);
+    postEventHeader(&raw mut eventBuf, EventTypeNum::HEAP_PROF_SAMPLE_END);
     postWord64(&raw mut eventBuf, era as StgWord64);
 
     if pthread_mutex_unlock(&raw mut eventBufMutex) != 0 {
@@ -1605,10 +1577,7 @@ unsafe fn postHeapProfSampleString(
         _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1296);
     }
 
-    postEventHeader(
-        &raw mut eventBuf,
-        EVENT_HEAP_PROF_SAMPLE_STRING as EventTypeNum,
-    );
+    postEventHeader(&raw mut eventBuf, EventTypeNum::HEAP_PROF_SAMPLE_STRING);
     postPayloadSize(&raw mut eventBuf, len as EventPayloadSize);
     postWord8(&raw mut eventBuf, profile_id);
     postWord64(&raw mut eventBuf, residency);
@@ -1656,10 +1625,7 @@ unsafe fn postHeapProfCostCentre(
         _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1317);
     }
 
-    postEventHeader(
-        &raw mut eventBuf,
-        EVENT_HEAP_PROF_COST_CENTRE as EventTypeNum,
-    );
+    postEventHeader(&raw mut eventBuf, EventTypeNum::HEAP_PROF_COST_CENTRE);
     postPayloadSize(&raw mut eventBuf, len as EventPayloadSize);
     postWord32(&raw mut eventBuf, ccID);
     postStringLen(&raw mut eventBuf, label, label_len);
@@ -1715,7 +1681,7 @@ unsafe fn postHeapProfSampleCostCentre(
 
     postEventHeader(
         &raw mut eventBuf,
-        EVENT_HEAP_PROF_SAMPLE_COST_CENTRE as EventTypeNum,
+        EventTypeNum::HEAP_PROF_SAMPLE_COST_CENTRE,
     );
 
     postPayloadSize(&raw mut eventBuf, len as EventPayloadSize);
@@ -1776,10 +1742,7 @@ unsafe fn postProfSampleCostCentre(
         _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1366);
     }
 
-    postEventHeader(
-        &raw mut eventBuf,
-        EVENT_PROF_SAMPLE_COST_CENTRE as EventTypeNum,
-    );
+    postEventHeader(&raw mut eventBuf, EventTypeNum::PROF_SAMPLE_COST_CENTRE);
     postPayloadSize(&raw mut eventBuf, len as EventPayloadSize);
     postWord32(&raw mut eventBuf, (*cap).no as StgWord32);
     postWord64(&raw mut eventBuf, tick);
@@ -1813,7 +1776,7 @@ unsafe fn postProfBegin() {
         );
     }
 
-    postEventHeader(&raw mut eventBuf, EVENT_PROF_BEGIN as EventTypeNum);
+    postEventHeader(&raw mut eventBuf, EventTypeNum::PROF_BEGIN);
     postWord64(
         &raw mut eventBuf,
         RtsFlags.MiscFlags.tickInterval as StgWord64,
@@ -1846,7 +1809,7 @@ unsafe fn postTickyCounterDef(eb: *mut EventsBuf, mut p: *mut StgEntCounter) {
         _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1399);
     }
 
-    postEventHeader(eb, EVENT_TICKY_COUNTER_DEF as EventTypeNum);
+    postEventHeader(eb, EventTypeNum::TICKY_COUNTER_DEF);
     postPayloadSize(eb, len as EventPayloadSize);
     postWord64(eb, p as usize as StgWord64);
     postWord16(eb, (*p).arity as StgWord16);
@@ -1889,8 +1852,8 @@ unsafe fn postTickyCounterSample(eb: *mut EventsBuf, mut p: *mut StgEntCounter) 
         return;
     }
 
-    ensureRoomForEvent(eb, EVENT_TICKY_COUNTER_SAMPLE as EventTypeNum);
-    postEventHeader(eb, EVENT_TICKY_COUNTER_SAMPLE as EventTypeNum);
+    ensureRoomForEvent(eb, EventTypeNum::TICKY_COUNTER_SAMPLE);
+    postEventHeader(eb, EventTypeNum::TICKY_COUNTER_SAMPLE);
     postWord64(eb, p as usize as StgWord64);
     postWord64(eb, (*p).entry_count as StgWord64);
     postWord64(eb, (*p).allocs as StgWord64);
@@ -1912,14 +1875,8 @@ unsafe fn postTickyCounterSamples(mut counters: *mut StgEntCounter) {
         );
     }
 
-    ensureRoomForEvent(
-        &raw mut eventBuf,
-        EVENT_TICKY_COUNTER_SAMPLE as EventTypeNum,
-    );
-    postEventHeader(
-        &raw mut eventBuf,
-        EVENT_TICKY_COUNTER_BEGIN_SAMPLE as EventTypeNum,
-    );
+    ensureRoomForEvent(&raw mut eventBuf, EventTypeNum::TICKY_COUNTER_SAMPLE);
+    postEventHeader(&raw mut eventBuf, EventTypeNum::TICKY_COUNTER_BEGIN_SAMPLE);
 
     let mut p = counters;
 
@@ -2026,7 +1983,7 @@ unsafe fn postIPE(mut ipe: *const InfoProvEnt) {
         _assertFail(c"rts/eventlog/EventLog.c".as_ptr(), 1472);
     }
 
-    postEventHeader(&raw mut eventBuf, EVENT_IPE as EventTypeNum);
+    postEventHeader(&raw mut eventBuf, EventTypeNum::IPE);
     postPayloadSize(&raw mut eventBuf, len as EventPayloadSize);
     postWord64(
         &raw mut eventBuf,
@@ -2063,11 +2020,11 @@ unsafe fn postIPE(mut ipe: *const InfoProvEnt) {
     }
 }
 
-unsafe fn printAndClearEventBuf(mut ebuf: *mut EventsBuf) {
+unsafe fn printAndClearEventBuf(ebuf: *mut EventsBuf) {
     closeBlockMarker(ebuf);
 
     if !(*ebuf).begin.is_null() && (*ebuf).pos != (*ebuf).begin {
-        let mut elog_size: usize = (*ebuf).pos.offset_from((*ebuf).begin) as i64 as usize;
+        let elog_size: usize = (*ebuf).pos.offset_from((*ebuf).begin) as i64 as usize;
 
         if !writeEventLog((*ebuf).begin as *mut c_void, elog_size) {
             debugBelch(c"printAndClearEventLog: could not flush event log\n".as_ptr());
