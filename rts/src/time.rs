@@ -14,9 +14,7 @@ use crate::prelude::*;
 #[cfg(test)]
 mod tests;
 
-pub(crate) const TIME_RESOLUTION: Time = 1000000000;
-
-pub(crate) const TIME_MAX: u64 = 9223372036854775807;
+pub(crate) const TIME_RESOLUTION: Time = 1_000_000_000;
 
 #[ffi(compiler, ghc_lib, libraries)]
 pub type Time = i64;
