@@ -25,6 +25,9 @@ pub struct Str0<'a> {
     _phantom: PhantomData<&'a str>,
 }
 
+unsafe impl Send for Str0<'static> {}
+unsafe impl Sync for Str0<'static> {}
+
 impl<'a> fmt::Debug for Str0<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Str0").field(&self.as_str()).finish()
@@ -38,7 +41,7 @@ impl<'a> fmt::Display for Str0<'a> {
 }
 
 impl<'a> Str0<'a> {
-    pub fn from_ptr(ptr: *const c_char) -> Result<Self, Error> {
+    pub const unsafe fn from_ptr(ptr: *const c_char) -> Result<Self, Error> {
         match unsafe { ptr_to_str(ptr) } {
             Ok(_) => Ok(Str0 {
                 ptr,
@@ -101,7 +104,7 @@ impl<'a> Str0<'a> {
 
     pub fn as_str(&self) -> &str {
         unsafe {
-            let bytes = slice::from_raw_parts(self.ptr.cast::<u8>(), libc::strlen(self.ptr));
+            let bytes = slice::from_raw_parts(self.ptr.cast::<u8>(), strlen(self.ptr));
 
             str::from_utf8_unchecked(bytes)
         }
@@ -109,7 +112,7 @@ impl<'a> Str0<'a> {
 
     pub fn as_c_str(&self) -> &CStr {
         unsafe {
-            let bytes = slice::from_raw_parts(self.ptr.cast::<u8>(), libc::strlen(self.ptr));
+            let bytes = slice::from_raw_parts(self.ptr.cast::<u8>(), strlen(self.ptr));
 
             CStr::from_bytes_with_nul_unchecked(bytes)
         }
@@ -120,13 +123,23 @@ impl<'a> Str0<'a> {
     }
 }
 
-pub unsafe fn ptr_to_str<'a>(ptr: *const c_char) -> Result<&'a str, str::Utf8Error> {
+pub const unsafe fn ptr_to_str<'a>(ptr: *const c_char) -> Result<&'a str, str::Utf8Error> {
     let bytes = unsafe {
-        let len = libc::strlen(ptr);
+        let len = strlen(ptr);
         slice::from_raw_parts(ptr.cast(), len)
     };
 
     str::from_utf8(bytes)
+}
+
+pub const unsafe fn strlen(ptr: *const c_char) -> usize {
+    let mut end = ptr;
+
+    while *end != 0 {
+        end = end.add(1);
+    }
+
+    end.offset_from(ptr) as usize
 }
 
 pub struct String0(Vec<u8>);
@@ -147,7 +160,7 @@ impl fmt::Display for String0 {
 
 impl String0 {
     pub fn from_ptr(ptr: *const c_char) -> Result<Self, Error> {
-        let len = unsafe { libc::strlen(ptr) } + 1;
+        let len = unsafe { strlen(ptr) } + 1;
         let bytes = unsafe { slice::from_raw_parts(ptr.cast(), len) };
 
         match str::from_utf8(bytes) {
