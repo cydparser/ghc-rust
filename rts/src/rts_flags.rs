@@ -1566,11 +1566,11 @@ unsafe fn procRtsOpts(rts_argc0: u32, rtsOptsEnabled: RtsOptsEnabledEnum) {
                             nNodes = libc::strtol(arg_ptr.offset(13), null_mut::<*mut c_char>(), 10)
                                 as StgWord as usize;
 
-                            if nNodes > MAX_NUMA_NODES as usize {
+                            if nNodes > MAX_NUMA_NODES {
                                 errorBelch(
                                     c"%s: Too many NUMA nodes (max %d)".as_ptr(),
                                     arg_ptr,
-                                    MAX_NUMA_NODES,
+                                    MAX_NUMA_NODES as c_int,
                                 );
 
                                 error = true;

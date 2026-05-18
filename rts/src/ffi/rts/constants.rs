@@ -171,6 +171,6 @@ pub(crate) const SPIN_COUNT: u32 = 1000;
 
 pub(crate) const MAX_SPARE_WORKERS: u32 = 6;
 
-pub(crate) const MAX_NUMA_NODES: u32 = 16;
+pub(crate) const MAX_NUMA_NODES: usize = 16;
 
 pub(crate) const CLOSURE_DESC_BUFFER_SIZE: u32 = 11;

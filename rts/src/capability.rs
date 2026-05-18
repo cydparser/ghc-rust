@@ -736,11 +736,8 @@ unsafe fn initCapabilities() {
     if !RtsFlags.GcFlags.numa {
         n_numa_nodes = 1;
 
-        let mut i: u32 = 0;
-
-        while i < MAX_NUMA_NODES as u32 {
-            numa_map[i as usize] = 0;
-            i = i.wrapping_add(1);
+        for i in 0..MAX_NUMA_NODES {
+            numa_map[i] = 0;
         }
     } else if !RtsFlags.DebugFlags.numa {
         let mut nNodes = osNumaNodes();
@@ -750,21 +747,18 @@ unsafe fn initCapabilities() {
         }
 
         let mut mask: StgWord = RtsFlags.GcFlags.numaMask & osNumaMask() as StgWord;
-        let mut logical: u32 = 0;
-        let mut physical: u32 = 0;
+        let mut logical: usize = 0;
 
-        while physical < MAX_NUMA_NODES as u32 {
+        for physical in 0..MAX_NUMA_NODES as u32 {
             if mask & 1 != 0 {
-                let fresh5 = logical;
-                logical = logical.wrapping_add(1);
-                numa_map[fresh5 as usize] = physical;
+                numa_map[logical] = physical;
+                logical += 1;
             }
 
             mask = mask >> 1;
-            physical = physical.wrapping_add(1);
         }
 
-        n_numa_nodes = logical;
+        n_numa_nodes = logical as u32;
 
         if logical == 0 {
             barf(c"available NUMA node set is empty".as_ptr());

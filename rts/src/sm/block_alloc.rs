@@ -18,7 +18,7 @@ use crate::stg::types::{StgPtr, StgWord, StgWord8, StgWord16, StgWord32};
 #[cfg(test)]
 mod tests;
 
-const NUM_FREE_LISTS: i32 = MBLOCK_SHIFT - BLOCK_SHIFT;
+const NUM_FREE_LISTS: usize = MBLOCK_SHIFT - BLOCK_SHIFT;
 
 static mut free_list: [[*mut bdescr; 8]; 16] = [[null_mut::<bdescr>(); 8]; 16];
 
@@ -35,16 +35,9 @@ static mut hw_alloc_blocks: W_ = 0;
 static mut n_alloc_blocks_by_node: [W_; 16] = [0; 16];
 
 unsafe fn initBlockAllocator() {
-    let mut i: u32 = 0;
-    let mut node: u32 = 0;
-    node = 0;
-
-    while node < MAX_NUMA_NODES as u32 {
-        i = 0;
-
-        while i < NUM_FREE_LISTS as u32 {
-            free_list[node as usize][i as usize] = null_mut::<bdescr>();
-            i = i.wrapping_add(1);
+    for node in 0..MAX_NUMA_NODES {
+        for i in 0..NUM_FREE_LISTS {
+            free_list[node][i] = null_mut::<bdescr>();
         }
 
         free_mblock_list[node as usize] = null_mut::<bdescr>();
