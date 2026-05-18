@@ -92,6 +92,16 @@ macro_rules! rts_assert {
 
 pub(crate) use rts_assert;
 
+macro_rules! rts_debug_assert {
+    ($cond:expr) => {
+        if cfg!(debug_assertions) {
+            $crate::rts_messages::rts_assert!($cond)
+        }
+    };
+}
+
+pub(crate) use rts_debug_assert;
+
 #[ffi(utils)]
 #[unsafe(no_mangle)]
 pub extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -> ! {
