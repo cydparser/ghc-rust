@@ -418,16 +418,16 @@ pub type MISC_FLAGS = _MISC_FLAGS;
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
 pub struct _PAR_FLAGS {
-    nCapabilities: u32,
-    migrate: bool,
-    maxLocalSparks: u32,
-    parGcEnabled: bool,
-    parGcGen: u32,
-    parGcLoadBalancingEnabled: bool,
-    parGcLoadBalancingGen: u32,
-    parGcNoSyncWithIdle: u32,
-    parGcThreads: u32,
-    setAffinity: bool,
+    pub(crate) nCapabilities: u32,
+    pub(crate) migrate: bool,
+    pub(crate) maxLocalSparks: u32,
+    pub(crate) parGcEnabled: bool,
+    pub(crate) parGcGen: u32,
+    pub(crate) parGcLoadBalancingEnabled: bool,
+    pub(crate) parGcLoadBalancingGen: u32,
+    pub(crate) parGcNoSyncWithIdle: u32,
+    pub(crate) parGcThreads: u32,
+    pub(crate) setAffinity: bool,
 }
 
 #[cfg(test)]
@@ -772,7 +772,7 @@ const RTS: i32 = 1;
 
 const PGM: i32 = 0;
 
-pub(in crate::rts_startup) unsafe fn initRtsFlagsDefaults() {
+pub(crate) unsafe fn initRtsFlagsDefaults() {
     let mut maxStkSize: StgWord64 = (8 as StgWord64)
         .wrapping_mul(getPhysicalMemorySize())
         .wrapping_div(10 as StgWord64);
@@ -1211,7 +1211,7 @@ unsafe fn errorRtsOptsDisabled(mut s: *const c_char) {
     errorBelch(s, advice);
 }
 
-pub(in crate::rts_startup) unsafe fn setupRtsFlags(
+pub(crate) unsafe fn setupRtsFlags(
     argc: *mut i32,
     argv: *const *const c_char,
     rts_config: RtsConfig,
@@ -3098,7 +3098,7 @@ unsafe fn freeRtsArgv() {
     rts_argv_size = 0;
 }
 
-pub(in crate::rts_startup) unsafe fn freeRtsArgs() {
+pub(crate) unsafe fn freeRtsArgs() {
     freeFullProgArgv();
     freeProgArgv();
     freeRtsArgv();
