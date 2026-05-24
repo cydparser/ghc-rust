@@ -488,19 +488,19 @@ pub(crate) unsafe fn traceTaskDelete(mut task: *mut Task) {
     }
 }
 
-static mut TRACE_sched: u8 = 0;
+static mut TRACE_sched: bool = false;
 
-static mut TRACE_gc: u8 = 0;
+static mut TRACE_gc: bool = false;
 
-static mut TRACE_nonmoving_gc: u8 = 0;
+static mut TRACE_nonmoving_gc: bool = false;
 
-static mut TRACE_spark_sampled: u8 = 0;
+static mut TRACE_spark_sampled: bool = false;
 
-static mut TRACE_spark_full: u8 = 0;
+static mut TRACE_spark_full: bool = false;
 
-static mut TRACE_user: u8 = 0;
+static mut TRACE_user: bool = false;
 
-static mut TRACE_cap: u8 = 0;
+static mut TRACE_cap: bool = false;
 
 static mut trace_utx: Mutex = _opaque_pthread_mutex_t {
     __sig: 0,
@@ -508,21 +508,13 @@ static mut trace_utx: Mutex = _opaque_pthread_mutex_t {
 };
 
 unsafe fn updateTraceFlagCache() {
-    TRACE_sched = (RtsFlags.TraceFlags.scheduler as i32 != 0
-        || RtsFlags.DebugFlags.scheduler as i32 != 0) as i32 as u8;
-    TRACE_gc = (RtsFlags.TraceFlags.gc as i32 != 0
-        || RtsFlags.DebugFlags.gc as i32 != 0
-        || RtsFlags.DebugFlags.scheduler as i32 != 0) as i32 as u8;
-    TRACE_nonmoving_gc = RtsFlags.TraceFlags.nonmoving_gc as u8;
-    TRACE_spark_sampled = RtsFlags.TraceFlags.sparks_sampled as u8;
-    TRACE_spark_full = (RtsFlags.TraceFlags.sparks_full as i32 != 0
-        || RtsFlags.DebugFlags.sparks as i32 != 0) as i32 as u8;
-    TRACE_user = RtsFlags.TraceFlags.user as u8;
-    TRACE_cap = (TRACE_sched as i32 != 0
-        || TRACE_gc as i32 != 0
-        || TRACE_spark_sampled as i32 != 0
-        || TRACE_spark_full as i32 != 0
-        || TRACE_user as i32 != 0) as i32 as u8;
+    TRACE_sched = RtsFlags.TraceFlags.scheduler || RtsFlags.DebugFlags.scheduler;
+    TRACE_gc = RtsFlags.TraceFlags.gc || RtsFlags.DebugFlags.gc || RtsFlags.DebugFlags.scheduler;
+    TRACE_nonmoving_gc = RtsFlags.TraceFlags.nonmoving_gc;
+    TRACE_spark_sampled = RtsFlags.TraceFlags.sparks_sampled;
+    TRACE_spark_full = RtsFlags.TraceFlags.sparks_full || RtsFlags.DebugFlags.sparks;
+    TRACE_user = RtsFlags.TraceFlags.user;
+    TRACE_cap = TRACE_sched || TRACE_gc || TRACE_spark_sampled || TRACE_spark_full || TRACE_user;
 }
 
 unsafe fn initTracing() {
@@ -1278,7 +1270,7 @@ unsafe fn traceProfBegin() {
     }
 }
 
-unsafe fn vtraceCap_stderr(mut cap: *mut Capability, mut msg: *mut c_char, mut ap: VaList) {
+unsafe fn vtraceCap_stderr(mut cap: *mut Capability, mut msg: *const c_char, mut ap: VaList) {
     let mut __r = pthread_mutex_lock(&raw mut trace_utx);
 
     if __r != 0 {
