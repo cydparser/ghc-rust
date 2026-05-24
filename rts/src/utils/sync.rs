@@ -5,7 +5,7 @@ pub use loom::cell::{Cell, UnsafeCell};
 #[cfg(feature = "loom")]
 pub use loom::sync::atomic::{
     AtomicBool, AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicIsize, AtomicPtr, AtomicU8,
-    AtomicU16, AtomicU32, AtomicU64, AtomicUsize, Ordering,
+    AtomicU16, AtomicU32, AtomicU64, AtomicUsize, Ordering, Ordering::*,
 };
 #[cfg(feature = "loom")]
 pub use loom::sync::{Arc, Mutex, RwLock};
@@ -17,7 +17,7 @@ pub use std::cell::Cell;
 #[cfg(not(feature = "loom"))]
 pub use std::sync::atomic::{
     AtomicBool, AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicIsize, AtomicPtr, AtomicU8,
-    AtomicU16, AtomicU32, AtomicU64, AtomicUsize, Ordering,
+    AtomicU16, AtomicU32, AtomicU64, AtomicUsize, Ordering, Ordering::*,
 };
 #[cfg(not(feature = "loom"))]
 pub use std::sync::{Arc, Mutex, RwLock};
