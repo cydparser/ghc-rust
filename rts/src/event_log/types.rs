@@ -32,6 +32,7 @@ type Word64x4 = [StgWord64; 4];
 macro_rules! gen_event_types {
     ($( ( $n:literal, $name:ident, [ $($ty:ty),* $(,)? ], $desc:literal ), )+) => {
         #[repr(u16)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub(crate) enum EventTypeNum {
             $(
                 #[doc = $desc]
