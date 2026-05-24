@@ -1,16 +1,15 @@
+use std::alloc::{self, Layout};
+
+use crate::config::RtsConfig;
 use crate::ffi::ghcversion::__GLASGOW_HASKELL_FULL_VERSION__;
 use crate::ffi::rts::storage::block::BLOCK_SIZE;
-use crate::ffi::rts::time::{TIME_RESOLUTION, Time};
-use crate::ffi::rts::time::{ctime_r, nanosleep, time};
-use crate::ffi::rts::types::StgTSO;
+use crate::ffi::rts::storage::tso::StgTSO;
 use crate::ffi::rts::{EXIT_HEAPOVERFLOW, EXIT_INTERNAL_ERROR, stg_exit};
 use crate::ffi::stg::W_;
 use crate::ghcplatform::{HOST_ARCH, HOST_OS, HOST_VENDOR};
 use crate::io_manager::{selectIOManager, showIOManager};
 use crate::prelude::*;
-use crate::rts_api::RtsConfig;
-use crate::rts_flags::RtsFlags;
-use crate::rts_flags::get_rts_config;
+use crate::rts_flags::{RtsFlags, get_rts_config};
 use crate::stg::types::StgWord64;
 use crate::ticky::PrintTickyInfo;
 
@@ -18,17 +17,14 @@ use crate::ticky::PrintTickyInfo;
 mod tests;
 
 pub(crate) unsafe fn stgMallocBytes(n: usize, msg: *const c_char) -> *mut c_void {
-    let mut space = libc::malloc(n);
+    let space = libc::malloc(n);
 
     if space.is_null() {
         if n == 0 {
             return null_mut();
         }
 
-        get_rts_config()
-            .mallocFailHook
-            .expect("non-null mallocFailHook")(n as W_, msg);
-        stg_exit(EXIT_INTERNAL_ERROR);
+        alloc_fail(n, msg)
     }
 
     if RtsFlags.DebugFlags.zero_on_gc {
@@ -39,28 +35,20 @@ pub(crate) unsafe fn stgMallocBytes(n: usize, msg: *const c_char) -> *mut c_void
 }
 
 pub(crate) unsafe fn stgReallocBytes(p: *mut c_void, n: usize, msg: *const c_char) -> *mut c_void {
-    let mut space = libc::realloc(p, n);
+    let space = libc::realloc(p, n);
 
     if space.is_null() {
-        get_rts_config()
-            .mallocFailHook
-            .expect("non-null mallocFailHook")(n, msg);
-        stg_exit(EXIT_INTERNAL_ERROR);
+        alloc_fail(n, msg)
     }
 
     return space;
 }
 
 pub(crate) unsafe fn stgCallocBytes(count: usize, size: usize, msg: *const c_char) -> *mut c_void {
-    let mut space = null_mut::<c_void>();
-    space = libc::calloc(count, size);
+    let space = libc::calloc(count, size);
 
     if space.is_null() {
-        get_rts_config()
-            .mallocFailHook
-            .expect("non-null mallocFailHook")((count as W_).wrapping_mul(size as W_), msg);
-
-        stg_exit(EXIT_INTERNAL_ERROR);
+        alloc_fail(count * size, msg)
     }
 
     return space;
@@ -84,37 +72,32 @@ pub(crate) unsafe fn stgFree(p: *mut c_void) {
     libc::free(p);
 }
 
-unsafe fn stgMallocAlignedBytes(
-    mut n: usize,
-    mut align: usize,
-    mut msg: *const c_char,
-) -> *mut c_void {
-    let mut space = null_mut::<c_void>();
+pub(crate) unsafe fn stg_alloc<T>(msg: &CStr) -> *mut T {
+    stg_alloc_layout(Layout::new::<T>(), msg).cast()
+}
 
-    if posix_memalign(&raw mut space, align, n) != 0 {
-        space = null_mut();
+pub(crate) unsafe fn stg_alloc_layout(layout: Layout, msg: &CStr) -> *mut u8 {
+    let size = layout.size();
+
+    if size == 0 {
+        return null_mut();
     }
 
-    if space.is_null() {
-        if n == 0 {
-            return null_mut();
-        }
+    let space = alloc::alloc(layout);
 
-        get_rts_config()
-            .mallocFailHook
-            .expect("non-null function pointer")(n as W_, msg);
-        stg_exit(EXIT_INTERNAL_ERROR);
+    if space.is_null() {
+        alloc_fail(size, msg.as_ptr())
     }
 
     if RtsFlags.DebugFlags.zero_on_gc {
-        memset(space, 0xbb, n);
+        space.write_bytes(0xbb, size);
     }
 
-    return space;
+    space
 }
 
-unsafe fn stgFreeAligned(p: *mut c_void) {
-    libc::free(p);
+pub(crate) unsafe fn stg_free<T>(ptr: *mut T) {
+    alloc::dealloc(ptr.cast(), Layout::new::<T>());
 }
 
 #[ffi(compiler, ghc_lib)]
@@ -123,8 +106,8 @@ unsafe fn stgFreeAligned(p: *mut c_void) {
 pub unsafe extern "C" fn reportStackOverflow(mut tso: *mut StgTSO) {
     get_rts_config()
         .stackOverflowHook
-        .expect("non-null function pointer")(
-        ((*tso).tot_stack_size as usize).wrapping_mul(size_of::<W_>() as usize) as W_,
+        .expect("non-null stackOverflowHook")(
+        (*tso).tot_stack_size as usize * size_of::<usize>()
     );
 
     if RtsFlags.TickyFlags.showTickyStats {
@@ -138,9 +121,8 @@ pub unsafe extern "C" fn reportStackOverflow(mut tso: *mut StgTSO) {
 pub unsafe extern "C" fn reportHeapOverflow() {
     get_rts_config()
         .outOfHeapHook
-        .expect("non-null function pointer")(
-        0,
-        (RtsFlags.GcFlags.maxHeapSize as W_).wrapping_mul(BLOCK_SIZE as W_),
+        .expect("non-null outOfHeapHook")(
+        0, (RtsFlags.GcFlags.maxHeapSize * BLOCK_SIZE) as usize
     );
 }
 
@@ -149,35 +131,14 @@ unsafe fn exitHeapOverflow() -> ! {
     stg_exit(EXIT_HEAPOVERFLOW)
 }
 
-unsafe fn rtsSleep(mut t: Time) -> i32 {
-    let mut req = libc::timespec {
-        tv_sec: 0,
-        tv_nsec: 0,
-    };
-    req.tv_sec = (t / TIME_RESOLUTION as Time) as i64;
-    req.tv_nsec = (t - (req.tv_sec * 1000000000) as Time) as i64;
-
-    let mut ret: i32 = 0;
-
-    loop {
-        ret = nanosleep(&raw mut req, &raw mut req);
-
-        if !(ret == -1 && *libc::__error() == libc::EINTR) {
-            break;
-        }
-    }
-
-    return ret;
-}
-
 unsafe fn time_str() -> *mut c_char {
     static mut now: libc::time_t = 0;
 
     static mut nowstr: [c_char; 26] = [0; 26];
 
     if now == 0 {
-        time(&raw mut now);
-        ctime_r(&raw mut now, &raw mut nowstr as *mut c_char);
+        libc::time(&raw mut now);
+        libc::ctime_r(&raw mut now, &raw mut nowstr as *mut c_char);
 
         libc::memmove(
             (&raw mut nowstr as *mut c_char).offset(16) as *mut c_void,
@@ -280,8 +241,8 @@ unsafe fn heapCheckFail() {}
 #[ffi(libraries)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn genericRaise(mut sig: c_int) -> c_int {
-    return pthread_kill(pthread_self(), sig);
+pub unsafe extern "C" fn genericRaise(_sig: c_int) -> c_int {
+    todo!("pthread_kill(pthread_self(), sig) is very unsafe")
 }
 
 unsafe fn mkRtsInfoPair(key: *const c_char, val: *const c_char) {
@@ -320,32 +281,32 @@ pub(crate) unsafe fn printRtsInfo(rts_config: RtsConfig) {
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 pub extern "C" fn rts_isProfiled() -> c_int {
-    return cfg!(feature = "way_profiling") as c_int;
+    cfg!(feature = "way_profiling") as c_int
 }
 
 /// TODO(rust)
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 pub extern "C" fn rts_isDynamic() -> c_int {
-    return 0;
+    0
 }
 
 #[ffi(compiler, ghc_lib)]
 #[unsafe(no_mangle)]
 pub extern "C" fn rts_isThreaded() -> c_int {
-    return cfg!(feature = "way_threaded") as c_int;
+    cfg!(feature = "way_threaded") as c_int
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 pub extern "C" fn rts_isDebugged() -> c_int {
-    return cfg!(feature = "way_debug") as c_int;
+    cfg!(feature = "way_debug") as c_int
 }
 
 #[ffi(compiler)]
 #[unsafe(no_mangle)]
 pub extern "C" fn rts_isTracing() -> c_int {
-    return 1; // TODO(rust)
+    1 // TODO(rust)
 }
 
 /// TODO(rust): Implement the assembly.
@@ -358,4 +319,13 @@ pub(crate) unsafe fn checkFPUStack() {
         errorBelch("NONEMPTY FPU Stack, TAG = %x %x\n", buf[8], buf[9]);
         abort();
     }
+}
+
+#[cold]
+fn alloc_fail(request_size: W_, msg: *const c_char) -> ! {
+    get_rts_config()
+        .mallocFailHook
+        .expect("non-null mallocFailHook")(request_size, msg);
+
+    stg_exit(EXIT_INTERNAL_ERROR)
 }
