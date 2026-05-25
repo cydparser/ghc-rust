@@ -1,4 +1,3 @@
-use crate::ffi::rts::os_threads::{Mutex, closeMutex, initMutex};
 use crate::prelude::*;
 use crate::rts_flags::RtsFlags;
 use crate::rts_messages::{barf, sysErrorBelch};
@@ -89,7 +88,7 @@ unsafe fn outputFileName() -> *mut c_char {
     };
 }
 
-unsafe fn initEventLogFileWriter() {
+unsafe extern "C" fn initEventLogFileWriter() {
     let mut event_log_filename = outputFileName();
     event_log_file = __rts_fopen(event_log_filename, c"wb+".as_ptr());
 
@@ -106,7 +105,10 @@ unsafe fn initEventLogFileWriter() {
     initMutex(&raw mut event_log_mutex);
 }
 
-unsafe fn writeEventLogFile(mut eventlog: *mut c_void, mut eventlog_size: usize) -> bool {
+unsafe extern "C" fn writeEventLogFile(
+    mut eventlog: *mut c_void,
+    mut eventlog_size: usize,
+) -> bool {
     let mut begin = eventlog as *mut u8;
     let mut remain: usize = eventlog_size;
     acquire_event_log_lock();
@@ -130,13 +132,13 @@ unsafe fn writeEventLogFile(mut eventlog: *mut c_void, mut eventlog_size: usize)
     return true;
 }
 
-unsafe fn flushEventLogFile() {
+unsafe extern "C" fn flushEventLogFile() {
     if !event_log_file.is_null() {
         fflush(event_log_file);
     }
 }
 
-unsafe fn stopEventLogFileWriter() {
+unsafe extern "C" fn stopEventLogFileWriter() {
     if !event_log_file.is_null() {
         fclose(event_log_file);
         event_log_file = null_mut::<FILE>();
@@ -145,17 +147,20 @@ unsafe fn stopEventLogFileWriter() {
     closeMutex(&raw mut event_log_mutex);
 }
 
-unsafe fn initEventLogFileWriterNoop() {}
+unsafe extern "C" fn initEventLogFileWriterNoop() {}
 
-unsafe fn writeEventLogFileNoop(mut eventlog: *mut c_void, mut eventlog_size: usize) -> bool {
+unsafe extern "C" fn writeEventLogFileNoop(
+    mut eventlog: *mut c_void,
+    mut eventlog_size: usize,
+) -> bool {
     return true;
 }
 
-unsafe fn flushEventLogFileNoop() {}
+unsafe extern "C" fn flushEventLogFileNoop() {}
 
-unsafe fn stopEventLogFileWriterNoop() {}
+unsafe extern "C" fn stopEventLogFileWriterNoop() {}
 
-pub(in crate::rts_flags) static mut FileEventLogWriter: EventLogWriter = unsafe {
+pub(crate) static mut FileEventLogWriter: EventLogWriter = unsafe {
     EventLogWriter {
         initEventLogWriter: Some(initEventLogFileWriter as unsafe extern "C" fn() -> ()),
         writeEventLog: Some(writeEventLogFile as unsafe extern "C" fn(*mut c_void, usize) -> bool),
