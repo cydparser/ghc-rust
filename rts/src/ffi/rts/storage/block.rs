@@ -1,5 +1,6 @@
 use crate::ffi::rts::storage::gc::generation_;
 use crate::prelude::*;
+#[cfg(feature = "cbindgen")]
 pub use crate::sm::block_alloc::{allocAlignedGroupOnNode, allocGroup_lock, freeGroup_lock};
 use crate::stg::types::{StgPtr, StgWord, StgWord16, StgWord32};
 
@@ -74,9 +75,9 @@ pub struct bdescr_ {
     pub union_free_or_nonmoving: bdescr_free_or_nonmoving,
     pub link: *mut bdescr_,
     pub u: bdescr___bindgen_ty_2,
-    pub gen_: *mut generation_,
-    pub gen_no: StgWord16,
-    pub dest_no: StgWord16,
+    pub r#gen: AtomicPtr<generation_>,
+    pub gen_no: AtomicU16,
+    pub dest_no: AtomicU16,
     pub node: StgWord16,
     pub flags: StgWord16,
     pub blocks: StgWord32,
