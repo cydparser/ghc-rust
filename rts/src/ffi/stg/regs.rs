@@ -1,6 +1,7 @@
 use crate::ffi::rts::prof::ccs::CostCentreStack_;
 use crate::ffi::rts::storage::block::bdescr_;
 use crate::ffi::rts::storage::gc::nursery_;
+use crate::ffi::rts::storage::info_tables::StgInfoTable;
 use crate::ffi::rts::storage::tso::StgTSO_;
 use crate::prelude::*;
 use crate::stg::types::{
@@ -14,7 +15,7 @@ mod tests;
 /// cbindgen:no-export
 #[repr(C)]
 pub struct StgFunTable {
-    pub(crate) stgEagerBlackholeInfo: StgWord,
+    pub(crate) stgEagerBlackholeInfo: *const StgInfoTable,
     pub(crate) stgGCEnter1: StgFunPtr,
     pub(crate) stgGCFun: StgFunPtr,
 }

@@ -240,7 +240,7 @@ pub(crate) unsafe fn emptyInbox(cap: *mut Capability) -> bool {
 #[unsafe(no_mangle)]
 pub static mut MainCapability: Capability = Capability_ {
     f: StgFunTable {
-        stgEagerBlackholeInfo: 0,
+        stgEagerBlackholeInfo: null(),
         stgGCEnter1: None,
         stgGCFun: None,
     },
@@ -664,7 +664,7 @@ unsafe fn initCapability(cap: *mut Capability, i: u32) {
     (*cap).spark_stats.fizzled = 0;
     (*cap).total_allocated = 0;
     initCapabilityIOManager(cap);
-    (*cap).f.stgEagerBlackholeInfo = (&raw const __stg_EAGER_BLACKHOLE_info).expose_provenance();
+    (*cap).f.stgEagerBlackholeInfo = (&raw const __stg_EAGER_BLACKHOLE_info);
 
     (*cap).f.stgGCEnter1 = transmute::<Option<unsafe extern "C" fn() -> StgFunPtr>, StgFunPtr>(
         Some(__stg_gc_enter_1 as unsafe extern "C" fn() -> StgFunPtr),
