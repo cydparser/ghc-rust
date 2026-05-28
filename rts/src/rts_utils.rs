@@ -97,7 +97,11 @@ pub(crate) unsafe fn stg_alloc_layout(layout: Layout, msg: &CStr) -> *mut u8 {
 }
 
 pub(crate) unsafe fn stg_free<T>(ptr: *mut T) {
-    alloc::dealloc(ptr.cast(), Layout::new::<T>());
+    stg_free_layout(ptr.cast(), Layout::new::<T>());
+}
+
+pub(crate) unsafe fn stg_free_layout(ptr: *mut u8, layout: Layout) {
+    alloc::dealloc(ptr, layout);
 }
 
 #[ffi(compiler, ghc_lib)]
