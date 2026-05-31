@@ -69,17 +69,24 @@ mod testing {
 
 #[ffi(compiler, ghc_lib, libraries, testsuite, utils)]
 #[unsafe(no_mangle)]
+#[cold]
 pub unsafe extern "C" fn barf(s: *const c_char, args: ...) -> ! {
     vbarf(s, args)
 }
 
 #[ffi(utils)]
 #[unsafe(no_mangle)]
+#[cold]
 pub unsafe extern "C" fn vbarf(s: *const c_char, ap: VaList) -> ! {
     fatalInternalErrorFn.expect("non-null fatalInternalErrorFn")(s, ap);
     #[expect(unreachable_code)]
     // Just in case fatalInternalErrorFn() returns.
     stg_exit(EXIT_INTERNAL_ERROR)
+}
+
+#[cold]
+pub(crate) unsafe fn sbarf(s: *const c_char) -> ! {
+    barf(c"%s".as_ptr(), s)
 }
 
 macro_rules! rts_assert {
@@ -104,6 +111,7 @@ pub(crate) use rts_debug_assert;
 
 #[ffi(utils)]
 #[unsafe(no_mangle)]
+#[cold]
 pub extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -> ! {
     unsafe {
         barf(
@@ -116,10 +124,12 @@ pub extern "C" fn _assertFail(filename: *const c_char, linenum: c_uint) -> ! {
 
 #[ffi(ghc_lib, testsuite)]
 #[unsafe(no_mangle)]
+#[cold]
 pub unsafe extern "C" fn errorBelch(s: *const c_char, args: ...) {
     errorMsgFn.expect("non-null errorMsgFn")(s, args);
 }
 
+#[cold]
 pub(crate) fn errorBelch0(s: &CStr) {
     unsafe { errorBelch(s.as_ptr()) }
 }
@@ -134,6 +144,7 @@ macro_rules! rts_assert_warn {
 
 pub(crate) use rts_assert_warn;
 
+#[cold]
 fn _warnFail(filename: *const c_char, linenum: u32) {
     unsafe {
         errorBelch(
@@ -144,14 +155,17 @@ fn _warnFail(filename: *const c_char, linenum: u32) {
     }
 }
 
+#[cold]
 unsafe fn verrorBelch(s: *const c_char, ap: VaList) {
     errorMsgFn.expect("non-null errorMsgFn")(s, ap);
 }
 
+#[cold]
 pub(crate) unsafe extern "C" fn sysErrorBelch(s: *const c_char, args: ...) {
     sysErrorMsgFn.expect("non-null sysErrorMsgFn")(s, args)
 }
 
+#[cold]
 unsafe fn vsysErrorBelch(s: *const c_char, ap: VaList) {
     sysErrorMsgFn.expect("non-null sysErrorMsgFn")(s, ap)
 }
