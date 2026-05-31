@@ -1,5 +1,7 @@
 #![expect(unused_imports)]
 
+pub use std::sync::atomic::fence;
+
 #[cfg(feature = "loom")]
 pub use loom::cell::{Cell, UnsafeCell};
 #[cfg(feature = "loom")]
@@ -8,7 +10,7 @@ pub use loom::sync::atomic::{
     AtomicU16, AtomicU32, AtomicU64, AtomicUsize, Ordering, Ordering::*,
 };
 #[cfg(feature = "loom")]
-pub use loom::sync::{Arc, Mutex, RwLock};
+pub use loom::sync::{Arc, Mutex, MutexGuard, RwLock};
 #[cfg(feature = "loom")]
 pub use loom::{atomic, mpsc, thread, thread_local};
 
@@ -20,7 +22,7 @@ pub use std::sync::atomic::{
     AtomicU16, AtomicU32, AtomicU64, AtomicUsize, Ordering, Ordering::*,
 };
 #[cfg(not(feature = "loom"))]
-pub use std::sync::{Arc, Mutex, RwLock};
+pub use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 #[cfg(not(feature = "loom"))]
 pub use std::sync::{atomic, mpsc};
 #[cfg(not(feature = "loom"))]
