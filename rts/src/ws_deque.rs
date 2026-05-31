@@ -11,16 +11,16 @@ use crate::stg::types::{StgInt, StgWord};
 pub(crate) struct WSDeque<T> {
     /// Size of elements array. Used for modulo calculation: we round up
     /// to powers of 2 and use the dyadic log (modulo == bitwise &)
-    pub(crate) size: isize,
+    size: isize,
     /// Bitmask for modulo
-    pub(crate) moduloSize: isize,
+    moduloSize: isize,
     /// top, index where multiple readers steal() (protected by a cas)
-    pub(crate) top: AtomicIsize,
+    top: AtomicIsize,
     /// bottom, index of next free place where one writer can push
     /// elements. This happens unsynchronised.
-    pub(crate) bottom: AtomicIsize,
+    bottom: AtomicIsize,
     /// The elements array
-    pub(crate) elements: *mut AtomicPtr<T>,
+    elements: *mut AtomicPtr<T>,
 }
 
 macro_rules! assert_wsdeque_invariants {
