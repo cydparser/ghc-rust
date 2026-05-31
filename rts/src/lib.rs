@@ -10,6 +10,7 @@ mod adjustor;
 pub(crate) mod capability;
 mod config;
 mod event_log;
+mod os;
 mod prelude;
 pub(crate) mod rts_flags;
 pub(crate) mod rts_startup;

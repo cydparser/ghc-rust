@@ -1,27 +1,27 @@
-use crate::ffi::rts::os_threads::{Condition, KernelThreadId, Mutex, OSThreadId};
-use crate::ffi::rts::time::gettimeofday;
-use crate::ffi::rts::time::{TIME_RESOLUTION, Time};
+use std::mem::MaybeUninit;
+
 use crate::hs_ffi::HsStablePtr;
 use crate::prelude::*;
 use crate::rts_api::{rts_done, rts_evalStableIO, rts_lock, rts_unlock};
 use crate::rts_messages::{_assertFail, barf, sysErrorBelch};
 use crate::rts_utils::{stgFree, stgMallocBytes};
 use crate::stg::types::StgWord64;
+use crate::time::{SecondsToTime, Time, TimeToNS, TimeToSeconds};
 
 #[cfg(test)]
 mod tests;
 
 #[ffi(testsuite)]
-pub type Mutex = pthread_mutex_t;
+pub type Mutex = libc::pthread_mutex_t;
 
 #[ffi(compiler, testsuite)]
 #[repr(C)]
 pub struct Condition {
-    pub cond: pthread_cond_t,
+    cond: libc::pthread_cond_t,
 }
 
 #[ffi(testsuite)]
-pub type OSThreadId = pthread_t;
+pub type OSThreadId = libc::pthread_t;
 
 #[ffi(testsuite)]
 pub type OSThreadProc = unsafe extern "C" fn(*mut c_void) -> *mut c_void;
@@ -29,8 +29,8 @@ pub type OSThreadProc = unsafe extern "C" fn(*mut c_void) -> *mut c_void;
 pub(crate) type KernelThreadId = StgWord64;
 
 #[inline]
-pub(crate) unsafe fn OS_TRY_ACQUIRE_LOCK(mut mutex: *mut pthread_mutex_t) -> i32 {
-    return pthread_mutex_trylock(mutex as *mut pthread_mutex_t);
+pub(crate) unsafe fn OS_TRY_ACQUIRE_LOCK(mutex: *mut libc::pthread_mutex_t) -> i32 {
+    return libc::pthread_mutex_trylock(mutex as *mut libc::pthread_mutex_t);
 }
 
 /// cbindgen:no-export
@@ -43,30 +43,28 @@ struct ThreadDesc {
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn initCondition(mut pCond: *mut Condition) {
-    let mut attr = _opaque_pthread_condattr_t {
-        __sig: 0,
-        __opaque: [0; 8],
-    };
+pub unsafe extern "C" fn initCondition(pCond: *mut Condition) {
+    let mut attr = MaybeUninit::uninit();
 
-    if (pthread_condattr_init(&raw mut attr) == 0) as i32 as i64 != 0 {
+    if (libc::pthread_condattr_init(attr.as_mut_ptr()) == 0) as i32 as i64 != 0 {
     } else {
         _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 111);
     }
 
-    if (pthread_cond_init(&raw mut (*pCond).cond, &raw mut attr) == 0) as i32 as i64 != 0 {
+    if (libc::pthread_cond_init(&raw mut (*pCond).cond, attr.as_mut_ptr()) == 0) as i32 as i64 != 0
+    {
     } else {
         _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 118);
     }
 
-    if (pthread_condattr_destroy(&raw mut attr) == 0) as i32 as i64 != 0 {
+    if (libc::pthread_condattr_destroy(attr.as_mut_ptr()) == 0) as i32 as i64 != 0 {
     } else {
         _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 119);
     };
 }
 
-unsafe fn closeCondition(mut pCond: *mut Condition) {
-    if (pthread_cond_destroy(&raw mut (*pCond).cond) == 0) as i32 as i64 != 0 {
+unsafe fn closeCondition(pCond: *mut Condition) {
+    if (libc::pthread_cond_destroy(&raw mut (*pCond).cond) == 0) as i32 as i64 != 0 {
     } else {
         _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 125);
     };
@@ -75,15 +73,15 @@ unsafe fn closeCondition(mut pCond: *mut Condition) {
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn broadcastCondition(mut pCond: *mut Condition) {
-    if (pthread_cond_broadcast(&raw mut (*pCond).cond) == 0) as i32 as i64 != 0 {
+pub unsafe extern "C" fn broadcastCondition(pCond: *mut Condition) {
+    if (libc::pthread_cond_broadcast(&raw mut (*pCond).cond) == 0) as i32 as i64 != 0 {
     } else {
         _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 131);
     };
 }
 
-unsafe fn signalCondition(mut pCond: *mut Condition) {
-    if (pthread_cond_signal(&raw mut (*pCond).cond) == 0) as i32 as i64 != 0 {
+unsafe fn signalCondition(pCond: *mut Condition) {
+    if (libc::pthread_cond_signal(&raw mut (*pCond).cond) == 0) as i32 as i64 != 0 {
     } else {
         _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 137);
     };
@@ -92,8 +90,9 @@ unsafe fn signalCondition(mut pCond: *mut Condition) {
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn waitCondition(mut pCond: *mut Condition, mut pMut: *mut Mutex) {
-    if (pthread_cond_wait(&raw mut (*pCond).cond, pMut as *mut pthread_mutex_t) == 0) as i32 as i64
+pub unsafe extern "C" fn waitCondition(pCond: *mut Condition, pMut: *mut Mutex) {
+    if (libc::pthread_cond_wait(&raw mut (*pCond).cond, pMut as *mut libc::pthread_mutex_t) == 0)
+        as i32 as i64
         != 0
     {
     } else {
@@ -101,95 +100,91 @@ pub unsafe extern "C" fn waitCondition(mut pCond: *mut Condition, mut pMut: *mut
     };
 }
 
-unsafe fn timedWaitCondition(
-    mut pCond: *mut Condition,
-    mut pMut: *mut Mutex,
-    mut timeout: Time,
-) -> bool {
-    let mut ts = timespec {
-        tv_sec: 0,
-        tv_nsec: 0,
-    };
-    let mut tv = timeval {
+unsafe fn timedWaitCondition(pCond: *mut Condition, pMut: *mut Mutex, timeout: Time) -> bool {
+    let mut tv = libc::timeval {
         tv_sec: 0,
         tv_usec: 0,
     };
 
-    if (gettimeofday(&raw mut tv, null_mut::<c_void>()) == 0) as i32 as i64 != 0 {
+    if (libc::gettimeofday(&raw mut tv, null_mut::<c_void>()) == 0) as i32 as i64 != 0 {
     } else {
         _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 154);
     }
 
-    ts.tv_sec = tv.tv_sec;
-    ts.tv_nsec = (1000 * tv.tv_usec) as i64;
+    let mut ts = libc::timespec {
+        tv_sec: tv.tv_sec,
+        tv_nsec: (1000 * tv.tv_usec) as i64,
+    };
 
-    let mut sec: u64 = (timeout / TIME_RESOLUTION as Time) as u64;
-    ts.tv_sec = (ts.tv_sec as u64).wrapping_add(sec) as i64 as i64;
-    ts.tv_nsec = (ts.tv_nsec as Time + (timeout - sec as Time * 1000000000)) as i64;
+    let sec = TimeToSeconds(timeout);
+    ts.tv_sec += sec;
+    ts.tv_nsec += TimeToNS(timeout - SecondsToTime(sec));
     ts.tv_sec += ts.tv_nsec / 1000000000;
     ts.tv_nsec %= 1000000000;
 
-    let mut ret = pthread_cond_timedwait(
+    let ret = libc::pthread_cond_timedwait(
         &raw mut (*pCond).cond,
-        pMut as *mut pthread_mutex_t,
+        pMut as *mut libc::pthread_mutex_t,
         &raw mut ts,
     );
 
     match ret {
-        ETIMEDOUT => return false,
-        0 => return true,
+        libc::ETIMEDOUT => false,
+        0 => true,
         _ => {
             barf(c"pthread_cond_timedwait failed".as_ptr());
         }
-    };
+    }
 }
 
 unsafe fn yieldThread() {
-    sched_yield();
+    libc::sched_yield();
 }
 
 #[ffi(utils)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shutdownThread() -> ! {
-    pthread_exit(NULL);
+    libc::pthread_exit(null_mut())
 }
 
-unsafe fn start_thread(mut param: *mut c_void) -> *mut c_void {
-    let mut desc = param as *mut ThreadDesc;
-    let mut startProc: Option<OSThreadProc> = (*desc).startProc;
-    let mut startParam = (*desc).param;
-    pthread_setname_np((*desc).name as *const c_char);
-    stgFree((*desc).name as *mut c_void);
-    stgFree(desc as *mut c_void);
+extern "C" fn start_thread(param: *mut c_void) -> *mut c_void {
+    unsafe {
+        let desc = param as *mut ThreadDesc;
+        let startProc: Option<OSThreadProc> = (*desc).startProc;
+        let startParam = (*desc).param;
+        libc::pthread_setname_np((*desc).name as *const c_char);
+        stgFree((*desc).name as *mut c_void);
+        stgFree(desc as *mut c_void);
 
-    return startProc.expect("non-null function pointer")(startParam);
+        startProc.expect("non-null function pointer")(startParam)
+    }
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn createOSThread(
-    mut pId: *mut OSThreadId,
-    mut name: *const c_char,
-    mut startProc: Option<OSThreadProc>,
-    mut param: *mut c_void,
+    pId: *mut OSThreadId,
+    name: *const c_char,
+    startProc: Option<OSThreadProc>,
+    param: *mut c_void,
 ) -> c_int {
-    let mut result = createAttachedOSThread(pId, name, startProc, param);
+    let result = createAttachedOSThread(pId, name, startProc, param);
 
     if result == 0 {
-        pthread_detach(*pId);
+        libc::pthread_detach(*pId);
     }
 
     return result;
 }
 
 unsafe fn createAttachedOSThread(
-    mut pId: *mut OSThreadId,
-    mut name: *const c_char,
-    mut startProc: Option<OSThreadProc>,
-    mut param: *mut c_void,
+    pId: *mut OSThreadId,
+    name: *const c_char,
+    startProc: Option<OSThreadProc>,
+    param: *mut c_void,
 ) -> i32 {
-    let mut desc = stgMallocBytes(
+    let desc = stgMallocBytes(
         size_of::<ThreadDesc>() as usize,
         c"createAttachedOSThread".as_ptr(),
     ) as *mut ThreadDesc;
@@ -198,16 +193,16 @@ unsafe fn createAttachedOSThread(
     (*desc).param = param;
 
     (*desc).name = stgMallocBytes(
-        strlen(name).wrapping_add(1 as usize),
+        libc::strlen(name).wrapping_add(1 as usize),
         c"createAttachedOSThread".as_ptr(),
     ) as *mut c_char;
 
-    strcpy((*desc).name, name);
+    libc::strcpy((*desc).name, name);
 
-    let mut result = pthread_create(
-        pId as *mut pthread_t,
-        null::<pthread_attr_t>(),
-        Some(start_thread as unsafe extern "C" fn(*mut c_void) -> *mut c_void),
+    let result = libc::pthread_create(
+        pId as *mut libc::pthread_t,
+        null::<libc::pthread_attr_t>(),
+        start_thread as extern "C" fn(*mut c_void) -> *mut c_void,
         desc as *mut c_void,
     );
 
@@ -220,95 +215,98 @@ unsafe fn createAttachedOSThread(
 }
 
 unsafe fn osThreadId() -> OSThreadId {
-    return pthread_self() as OSThreadId;
+    libc::pthread_self() as OSThreadId
 }
 
-unsafe fn osThreadIsAlive(mut id: OSThreadId) -> bool {
+unsafe fn osThreadIsAlive(_id: OSThreadId) -> bool {
     return true;
 }
 
 #[ffi(testsuite)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn initMutex(mut pMut: *mut Mutex) {
-    let mut attr = _opaque_pthread_mutexattr_t {
-        __sig: 0,
-        __opaque: [0; 8],
-    };
+pub unsafe extern "C" fn initMutex(pMut: *mut Mutex) {
+    let mut attr = MaybeUninit::uninit();
 
-    pthread_mutexattr_init(&raw mut attr);
-    pthread_mutexattr_settype(&raw mut attr, PTHREAD_MUTEX_ERRORCHECK);
-    pthread_mutex_init(pMut as *mut pthread_mutex_t, &raw mut attr);
+    libc::pthread_mutexattr_init(attr.as_mut_ptr());
+    libc::pthread_mutexattr_settype(attr.as_mut_ptr(), libc::PTHREAD_MUTEX_ERRORCHECK);
+    libc::pthread_mutex_init(pMut as *mut libc::pthread_mutex_t, attr.as_mut_ptr());
 }
 
-unsafe fn closeMutex(mut pMut: *mut Mutex) {
-    pthread_mutex_destroy(pMut as *mut pthread_mutex_t);
+pub(crate) unsafe fn closeMutex(pMut: *mut Mutex) {
+    libc::pthread_mutex_destroy(pMut as *mut libc::pthread_mutex_t);
 }
 
-unsafe fn forkOS_createThreadWrapper(mut entry: *mut c_void) -> *mut c_void {
-    let mut cap = null_mut::<Capability>();
-    cap = rts_lock();
-    rts_evalStableIO(&raw mut cap, entry, null_mut::<HsStablePtr>());
+extern "C" fn forkOS_createThreadWrapper(entry: *mut c_void) -> *mut c_void {
+    unsafe {
+        fork_os_create_thread_wrapper(entry);
+    }
+
+    null_mut()
+}
+
+#[inline]
+unsafe fn fork_os_create_thread_wrapper(entry: *mut c_void) {
+    let cap = rts_lock();
+    rts_evalStableIO(cap, entry, null_mut::<HsStablePtr>());
     rts_unlock(cap);
     rts_done();
-
-    return NULL;
 }
 
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
-pub unsafe extern "C" fn forkOS_createThread(mut entry: HsStablePtr) -> c_int {
-    let mut tid = null_mut::<_opaque_pthread_t>();
+pub unsafe extern "C" fn forkOS_createThread(entry: HsStablePtr) -> c_int {
+    let mut tid = 0;
 
-    let mut result = pthread_create(
+    let result = libc::pthread_create(
         &raw mut tid,
-        null::<pthread_attr_t>(),
-        Some(forkOS_createThreadWrapper as unsafe extern "C" fn(*mut c_void) -> *mut c_void),
+        null::<libc::pthread_attr_t>(),
+        forkOS_createThreadWrapper as extern "C" fn(*mut c_void) -> *mut c_void,
         entry,
     );
 
     if result == 0 {
-        pthread_detach(tid as pthread_t);
+        libc::pthread_detach(tid as libc::pthread_t);
     }
 
-    return result;
+    result
 }
 
 unsafe fn freeThreadingResources() {}
 
-static mut nproc_cache: u32 = 0;
+static nproc_cache: AtomicU32 = AtomicU32::new(0);
 
 #[ffi(ghc_lib)]
 #[unsafe(no_mangle)]
 #[instrument]
 pub unsafe extern "C" fn getNumberOfProcessors() -> c_uint {
-    let mut nproc: u32 = (&raw mut nproc_cache).load(Ordering::Relaxed);
+    let mut nproc: u32 = nproc_cache.load(Relaxed);
 
     if nproc == 0 {
         let mut size: usize = size_of::<u32>() as usize;
 
-        if sysctlbyname(
+        if libc::sysctlbyname(
             c"machdep.cpu.thread_count".as_ptr(),
             &raw mut nproc as *mut c_void,
             &raw mut size,
-            NULL,
+            null_mut(),
             0,
         ) != 0
         {
-            if sysctlbyname(
+            if libc::sysctlbyname(
                 c"hw.logicalcpu".as_ptr(),
                 &raw mut nproc as *mut c_void,
                 &raw mut size,
-                NULL,
+                null_mut(),
                 0,
             ) != 0
             {
-                if sysctlbyname(
+                if libc::sysctlbyname(
                     c"hw.ncpu".as_ptr(),
                     &raw mut nproc as *mut c_void,
                     &raw mut size,
-                    NULL,
+                    null_mut(),
                     0,
                 ) != 0
                 {
@@ -317,44 +315,42 @@ pub unsafe extern "C" fn getNumberOfProcessors() -> c_uint {
             }
         }
 
-        (&raw mut nproc_cache).store(nproc, Ordering::Relaxed);
+        nproc_cache.store(nproc, Relaxed);
     }
 
     return nproc;
 }
 
-unsafe fn setThreadAffinity(mut n: u32, mut m: u32) {
-    let mut policy = thread_affinity_policy { affinity_tag: 0 };
+unsafe fn setThreadAffinity(n: u32, _m: u32) {
+    let mut policy = libc::thread_affinity_policy {
+        affinity_tag: n as i32,
+    };
 
-    policy.affinity_tag = n as integer_t;
-
-    thread_policy_set(
-        mach_thread_self() as thread_act_t,
-        THREAD_AFFINITY_POLICY as thread_policy_flavor_t,
-        &raw mut policy as thread_policy_t,
-        THREAD_AFFINITY_POLICY_COUNT,
+    libc::thread_policy_set(
+        libc::mach_thread_self() as libc::thread_act_t,
+        libc::THREAD_AFFINITY_POLICY as libc::thread_policy_flavor_t,
+        &raw mut policy as libc::thread_policy_t,
+        libc::THREAD_AFFINITY_POLICY_COUNT,
     );
 }
 
-unsafe fn setThreadNode(mut node: u32) {}
+unsafe fn setThreadNode(_node: u32) {}
 
 unsafe fn releaseThreadNode() {}
 
-unsafe fn interruptOSThread(mut id: OSThreadId) {
-    pthread_kill(id as pthread_t, SIGPIPE);
+unsafe fn interruptOSThread(id: OSThreadId) {
+    libc::pthread_kill(id as libc::pthread_t, libc::SIGPIPE);
 }
 
-unsafe fn joinOSThread(mut id: OSThreadId) {
-    let mut ret = pthread_join(id as pthread_t, null_mut::<*mut c_void>());
+unsafe fn joinOSThread(id: OSThreadId) {
+    let ret = libc::pthread_join(id as libc::pthread_t, null_mut::<*mut c_void>());
 
     if ret != 0 {
         sysErrorBelch(c"joinOSThread: error %d".as_ptr(), ret);
     }
 }
 
+/// TODO(rust): Implement kernelThreadId
 unsafe fn kernelThreadId() -> KernelThreadId {
-    let mut ktid: u64 = 0;
-    pthread_threadid_np(null_mut::<_opaque_pthread_t>(), &raw mut ktid);
-
-    return ktid as KernelThreadId;
+    0
 }

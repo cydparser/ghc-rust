@@ -1428,7 +1428,7 @@ pub unsafe extern "C" fn rts_listMiscRoots(mut cb: ListRootsCb, mut user: *mut c
     );
 }
 
-unsafe fn rts_done() {
+pub(crate) unsafe fn rts_done() {
     freeMyTask();
 }
 

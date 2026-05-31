@@ -3,8 +3,8 @@ pub use crate::adjustor::{createAdjustor, freeHaskellFunctionPtr};
 pub use crate::event_log::writer::EventLogWriter;
 #[cfg(feature = "cbindgen")]
 pub use crate::event_log::{EventLogStatus, endEventLogging, flushEventLog, startEventLogging};
-#[cfg(all(feature = "cbindgen", unix))]
-pub use crate::posix::os_threads::{
+#[cfg(feature = "cbindgen")]
+pub use crate::os::threads::{
     Condition, KernelThreadId, Mutex, OSThreadId, OSThreadProc, broadcastCondition, createOSThread,
     forkOS_createThread, getNumberOfProcessors, initCondition, initMutex, shutdownThread,
     waitCondition,
@@ -18,12 +18,6 @@ pub use crate::rts_utils::{
     rts_isThreaded, rts_isTracing,
 };
 pub use crate::time::{Time, getProcessElapsedTime};
-#[cfg(all(feature = "cbindgen", windows))]
-pub use crate::win32::os_threads::{
-    Condition, KernelThreadId, Mutex, OSThreadId, OSThreadProc, broadcastCondition, createOSThread,
-    forkOS_createThread, getNumberOfProcessors, initCondition, initMutex, shutdownThread,
-    waitCondition,
-};
 
 pub mod block_signals;
 pub mod config;
