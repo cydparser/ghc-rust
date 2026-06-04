@@ -34,7 +34,7 @@ static mut cpuGroupCumulativeCache: *mut u32 = null_mut::<u32>();
 
 static mut cpuGroupDistCache: *mut u8 = null_mut::<u8>();
 
-unsafe fn yieldThread() {
+pub(crate) unsafe fn yieldThread() {
     SwitchToThread();
 }
 
@@ -77,11 +77,11 @@ pub unsafe extern "C" fn createOSThread(
     };
 }
 
-unsafe fn osThreadId() -> OSThreadId {
+pub(crate) unsafe fn osThreadId() -> OSThreadId {
     return GetCurrentThreadId() as OSThreadId;
 }
 
-unsafe fn osThreadIsAlive(mut id: OSThreadId) -> bool {
+pub(crate) unsafe fn osThreadIsAlive(mut id: OSThreadId) -> bool {
     let mut exit_code: DWORD = 0;
     let mut hdl = null_mut::<c_void>();
     hdl = OpenThread(THREAD_QUERY_INFORMATION as DWORD, FALSE, id as DWORD);

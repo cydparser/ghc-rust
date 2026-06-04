@@ -80,7 +80,7 @@ pub unsafe extern "C" fn broadcastCondition(pCond: *mut Condition) {
     };
 }
 
-unsafe fn signalCondition(pCond: *mut Condition) {
+pub(crate) unsafe fn signalCondition(pCond: *mut Condition) {
     if (libc::pthread_cond_signal(&raw mut (*pCond).cond) == 0) as i32 as i64 != 0 {
     } else {
         _assertFail(c"rts/posix/OSThreads.c".as_ptr(), 137);
@@ -137,7 +137,7 @@ unsafe fn timedWaitCondition(pCond: *mut Condition, pMut: *mut Mutex, timeout: T
     }
 }
 
-unsafe fn yieldThread() {
+pub(crate) unsafe fn yieldThread() {
     libc::sched_yield();
 }
 
@@ -214,11 +214,11 @@ unsafe fn createAttachedOSThread(
     return result;
 }
 
-unsafe fn osThreadId() -> OSThreadId {
+pub(crate) unsafe fn osThreadId() -> OSThreadId {
     libc::pthread_self() as OSThreadId
 }
 
-unsafe fn osThreadIsAlive(_id: OSThreadId) -> bool {
+pub(crate) unsafe fn osThreadIsAlive(_id: OSThreadId) -> bool {
     return true;
 }
 
