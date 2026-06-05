@@ -12,12 +12,27 @@ use crate::time::{SecondsToTime, Time, TimeToNS, TimeToSeconds};
 mod tests;
 
 #[ffi(testsuite)]
-pub type Mutex = libc::pthread_mutex_t;
+#[repr(transparent)]
+pub struct Mutex(pub(crate) libc::pthread_mutex_t);
+
+impl Mutex {
+    pub fn new() -> Self {
+        Mutex(libc::PTHREAD_MUTEX_INITIALIZER)
+    }
+}
 
 #[ffi(compiler, testsuite)]
 #[repr(C)]
 pub struct Condition {
     cond: libc::pthread_cond_t,
+}
+
+impl Condition {
+    pub fn new() -> Self {
+        Condition {
+            cond: libc::PTHREAD_COND_INITIALIZER,
+        }
+    }
 }
 
 #[ffi(testsuite)]
@@ -28,10 +43,72 @@ pub type OSThreadProc = unsafe extern "C" fn(*mut c_void) -> *mut c_void;
 
 pub(crate) type KernelThreadId = StgWord64;
 
-#[inline]
-pub(crate) unsafe fn OS_TRY_ACQUIRE_LOCK(mutex: *mut libc::pthread_mutex_t) -> i32 {
-    return libc::pthread_mutex_trylock(mutex as *mut libc::pthread_mutex_t);
+macro_rules! LOCK_DEBUG_BELCH {
+    ($msg:literal, $mutex:expr) => {
+        if false {
+            unsafe {
+                $crate::rts_messages::debugBelch(
+                    c"%s(0x%p) %s %d\n".as_ptr(),
+                    $msg.as_ptr(),
+                    $mutex,
+                    concat!(file!(), "\0"),
+                    line!(),
+                )
+            }
+        }
+    };
 }
+
+macro_rules! OS_ACQUIRE_LOCK {
+    ($mutex:expr) => {
+        LOCK_DEBUG_BELCH!(c"ACQUIRE_LOCK", $mutex);
+
+        let r = libc::pthread_mutex_lock($mutex);
+
+        if r != 0 {
+            barf(
+                c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
+                concat!(file!(), "\0"),
+                line!(),
+                r,
+            );
+        }
+    };
+}
+
+pub(crate) use OS_ACQUIRE_LOCK;
+
+#[inline]
+pub(crate) unsafe fn OS_TRY_ACQUIRE_LOCK(mutex: *mut Mutex) -> i32 {
+    return libc::pthread_mutex_trylock(&raw mut (*mutex).0);
+}
+
+macro_rules! OS_RELEASE_LOCK {
+    ($mutex:expr) => {
+        LOCK_DEBUG_BELCH!(c"RELEASE_LOCK", $mutex);
+
+        if libc::pthread_mutex_unlock(mutex.0) != 0 {
+            barf(
+                c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
+                concat!(file!()),
+                line!(),
+            );
+        }
+    };
+}
+
+/// Note: this assertion calls pthread_mutex_lock() on a mutex that
+/// is already held by the calling thread.  The mutex should therefore
+/// have been created with PTHREAD_MUTEX_ERRORCHECK, otherwise this
+/// assertion will hang.  We always initialise mutexes with
+/// PTHREAD_MUTEX_ERRORCHECK when DEBUG is on (see rts/posix/OSThreads.h).
+macro_rules! OS_ASSERT_LOCK_HELD {
+    ($mutex:expr) => {
+        rts_assert!(libc::pthread_mutex_lock(&raw mut $mutex.0) == libc::EDEADLK)
+    };
+}
+
+pub(crate) use OS_ASSERT_LOCK_HELD;
 
 /// cbindgen:no-export
 struct ThreadDesc {
@@ -248,7 +325,7 @@ extern "C" fn forkOS_createThreadWrapper(entry: *mut c_void) -> *mut c_void {
 #[inline]
 unsafe fn fork_os_create_thread_wrapper(entry: *mut c_void) {
     let cap = rts_lock();
-    rts_evalStableIO(cap, entry, null_mut::<HsStablePtr>());
+    rts_evalStableIO(&raw const cap, entry, null_mut::<HsStablePtr>());
     rts_unlock(cap);
     rts_done();
 }
