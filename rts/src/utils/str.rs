@@ -74,6 +74,15 @@ impl<'a> Str0<'a> {
         }
     }
 
+    pub const unsafe fn from_str_unchecked(s: &str) -> Self {
+        debug_assert!(s.len() == strlen(s.as_ptr().cast()) + 1);
+
+        Str0 {
+            ptr: s.as_ptr().cast(),
+            _phantom: PhantomData,
+        }
+    }
+
     pub const fn empty() -> Self {
         static NUL: c_char = 0;
 
@@ -132,6 +141,14 @@ impl<'a> Str0<'a> {
         unsafe { *self.ptr == 0 }
     }
 }
+
+macro_rules! file_str0 {
+    () => {
+        unsafe { $crate::utils::str::Str0::from_str_unchecked(concat!(file!(), "\0")) }
+    };
+}
+
+pub(crate) use file_str0;
 
 pub const unsafe fn ptr_to_str<'a>(ptr: *const c_char) -> Result<&'a str, str::Utf8Error> {
     let bytes = unsafe {
