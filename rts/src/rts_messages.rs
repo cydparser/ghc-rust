@@ -92,7 +92,7 @@ pub(crate) unsafe fn sbarf(s: *const c_char) -> ! {
 macro_rules! rts_assert {
     ($cond:expr) => {
         if !($cond) {
-            $crate::rts_messages::_assertFail(concat!(file!(), "\0").as_ptr().cast(), line!())
+            $crate::rts_messages::_assertFail($crate::prelude::file_str0!().as_ptr(), line!())
         }
     };
 }
@@ -137,7 +137,7 @@ pub(crate) fn errorBelch0(s: &CStr) {
 macro_rules! rts_assert_warn {
     ($cond:expr) => {
         if !($cond) {
-            $crate::rts_messages::_warnFail(concat!(file!(), "\0").as_ptr().cast(), line!())
+            $crate::rts_messages::_warnFail($crate::prelude::file_str0!().as_ptr(), line!())
         }
     };
 }

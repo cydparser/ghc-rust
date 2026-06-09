@@ -51,7 +51,7 @@ macro_rules! LOCK_DEBUG_BELCH {
                     c"%s(0x%p) %s %d\n".as_ptr(),
                     $msg.as_ptr(),
                     $mutex,
-                    concat!(file!(), "\0"),
+                    file_str0!(),
                     line!(),
                 )
             }
@@ -68,7 +68,7 @@ macro_rules! OS_ACQUIRE_LOCK {
         if r != 0 {
             barf(
                 c"ACQUIRE_LOCK failed (%s:%d): %d".as_ptr(),
-                concat!(file!(), "\0"),
+                file_str0!(),
                 line!(),
                 r,
             );
@@ -90,7 +90,7 @@ macro_rules! OS_RELEASE_LOCK {
         if libc::pthread_mutex_unlock(mutex.0) != 0 {
             barf(
                 c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
-                concat!(file!()),
+                file_str0!(),
                 line!(),
             );
         }
