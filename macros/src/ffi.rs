@@ -132,8 +132,6 @@ impl syn::parse::Parse for FfiItem {
 
         let mut kind = None;
 
-        let mut item_ident: Option<Ident> = None;
-
         while let Ok(tt) = input.parse::<TokenTree>() {
             if let TokenTree::Ident(ident) = &tt {
                 if kind.is_none() {
@@ -156,47 +154,12 @@ impl syn::parse::Parse for FfiItem {
                     };
                 } else if kind == Some(ItemKind::Static) && ident == "mut" {
                 } else {
-                    item_ident = Some(ident.clone());
                     code.extend([tt]);
                     code.extend(input.parse::<TokenStream>()?);
                     break;
                 }
             }
             code.extend([tt]);
-        }
-
-        let Some(kind) = kind else {
-            return Err(input.error("unable to determine item kind"));
-        };
-
-        let Some(item_ident) = item_ident else {
-            return Err(input.error("unable to determine item ident"));
-        };
-
-        if kind == ItemKind::Fn || kind == ItemKind::Static {
-            let span = item_ident.span();
-            let mut export_name = proc2::Literal::string(&format!("rust_{item_ident}"));
-            export_name.set_span(span);
-
-            attrs.extend([
-                TokenTree::Punct(proc2::Punct::new('#', Spacing::Alone)),
-                proc_macro2::TokenTree::Group(new_cfg_attr(
-                    span,
-                    [
-                        TokenTree::Ident(Ident::new("feature", span)),
-                        TokenTree::Punct(proc2::Punct::new('=', Spacing::Alone)),
-                        TokenTree::Literal(proc2::Literal::string("sys")),
-                    ],
-                    [
-                        TokenTree::Ident(Ident::new("unsafe", span)),
-                        TokenTree::Group(new_group([
-                            TokenTree::Ident(Ident::new("export_name", span)),
-                            TokenTree::Punct(proc2::Punct::new('=', Spacing::Alone)),
-                            TokenTree::Literal(export_name),
-                        ])),
-                    ],
-                )),
-            ]);
         }
 
         Ok(FfiItem { attrs, code })
