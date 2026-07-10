@@ -144,6 +144,27 @@ pub(crate) unsafe fn traceThreadLabel(
     }
 }
 
+/// Emit a debug message (only when `way_debug` feature is enabled)
+macro_rules! debugTrace {
+    ($class:ident, $msg:literal $($args:tt)*) => {
+        if cfg!(feature = "way_debug") && $crate::rts::RTS_UNLIKELY!(RtsFlags.DebugFlags.$class) {
+            trace_($msg $($args)*);
+        }
+    };
+}
+
+pub(crate) use debugTrace;
+
+macro_rules! debugTraceCap {
+    ($class:ident, $cap:expr, $msg:literal $($args:tt)*) => {
+        if cfg!(feature = "way_debug") && $crate::rts::RTS_UNLIKELY!(RtsFlags.DebugFlags.$class) {
+            traceCap_($cap, $msg $($tt)*);
+        }
+    }
+}
+
+pub(crate) use debugTraceCap;
+
 #[inline]
 pub(crate) unsafe fn traceEventGcStart(mut cap: *mut Capability) {
     if TRACE_gc as i64 != 0 {
