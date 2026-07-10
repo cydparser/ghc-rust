@@ -59,11 +59,14 @@ macro_rules! LOCK_DEBUG_BELCH {
     };
 }
 
+pub(crate) use LOCK_DEBUG_BELCH;
+
 macro_rules! OS_ACQUIRE_LOCK {
     ($mutex:expr) => {
-        LOCK_DEBUG_BELCH!(c"ACQUIRE_LOCK", $mutex);
+        let mutex = $mutex.cast();
+        $crate::os::threads::LOCK_DEBUG_BELCH!(c"ACQUIRE_LOCK", mutex);
 
-        let r = libc::pthread_mutex_lock($mutex);
+        let r = libc::pthread_mutex_lock(mutex);
 
         if r != 0 {
             barf(
@@ -85,9 +88,10 @@ pub(crate) unsafe fn OS_TRY_ACQUIRE_LOCK(mutex: *mut Mutex) -> i32 {
 
 macro_rules! OS_RELEASE_LOCK {
     ($mutex:expr) => {
-        LOCK_DEBUG_BELCH!(c"RELEASE_LOCK", $mutex);
+        let mutex = $mutex.cast();
+        $crate::os::threads::LOCK_DEBUG_BELCH!(c"RELEASE_LOCK", mutex);
 
-        if libc::pthread_mutex_unlock(mutex.0) != 0 {
+        if libc::pthread_mutex_unlock(mutex) != 0 {
             barf(
                 c"RELEASE_LOCK: I do not own this lock: %s %d".as_ptr(),
                 file_str0!(),
@@ -97,6 +101,8 @@ macro_rules! OS_RELEASE_LOCK {
     };
 }
 
+pub(crate) use OS_RELEASE_LOCK;
+
 /// Note: this assertion calls pthread_mutex_lock() on a mutex that
 /// is already held by the calling thread.  The mutex should therefore
 /// have been created with PTHREAD_MUTEX_ERRORCHECK, otherwise this
@@ -104,7 +110,7 @@ macro_rules! OS_RELEASE_LOCK {
 /// PTHREAD_MUTEX_ERRORCHECK when DEBUG is on (see rts/posix/OSThreads.h).
 macro_rules! OS_ASSERT_LOCK_HELD {
     ($mutex:expr) => {
-        rts_assert!(libc::pthread_mutex_lock(&raw mut $mutex.0) == libc::EDEADLK)
+        rts_assert!(libc::pthread_mutex_lock($mutex.cast()) == libc::EDEADLK)
     };
 }
 
